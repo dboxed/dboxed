@@ -1,0 +1,132 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  VERSION: 0.0.1
+  GIT_COMMIT_HEAD:
+    sh: git rev-parse --short HEAD
+  GIT_COMMIT_TAG:
+    sh: git rev-parse --short v{{ .VERSION }} 2> /dev/null || echo ""
+  SNAPSHOT: '{{ if eq .GIT_COMMIT_TAG "" }}true{{ else }}false{{ end }}'
+  VERSION_SUFFIX: '{{ if eq .SNAPSHOT "true" }}-SNAPSHOT{{ end }}'
+  REPO: ghcr.io/koobox/unboxed
+
+  # use `docker buildx imagetools inspect cgr.dev/chainguard/wolfi-base:latest` to find latest sha256 of multiarch image
+  WOLFI_DIGEST: sha256:1c6a85817d3a8787e094aae474e978d4ecdf634fd65e77ab28ffae513e35cca1
+
+  INFRA_REPO: ghcr.io/koobox/unboxed-infra
+
+tasks:
+  check-version:
+    run: once
+    cmds:
+      - echo VERSION={{ .VERSION }}
+      - echo GIT_COMMIT_HEAD={{ .GIT_COMMIT_HEAD }}
+      - echo GIT_COMMIT_TAG={{ .GIT_COMMIT_TAG }}
+      - echo SNAPSHOT={{ .SNAPSHOT }}
+      - echo VERSION_SUFFIX={{ .VERSION_SUFFIX }}
+      - if [[ "{{ .GIT_COMMIT_TAG }}" != "" && "{{ .GIT_COMMIT_HEAD }}" != "{{ .GIT_COMMIT_TAG }}" ]]; then echo "tag already exists with different commit"; exit 1; fi
+  go-vendor:
+    run: once
+    cmds:
+      - mkdir -p build
+      - rm -rf build/vendor
+      - go mod vendor -o build/vendor
+  build-helper:
+    vars:
+      DIST: dist/unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_{{ .OS }}_{{ .ARCH }}
+      TAG: "v{{ .VERSION }}{{ .VERSION_SUFFIX }}-{{ .ARCH }}"
+    deps:
+      - check-version
+      - go-vendor
+    cmds:
+      - docker build -t {{ .REPO }}:{{ .TAG }} --platform {{ .OS }}/{{ .ARCH }} --build-arg WOLFI_DIGEST={{ .WOLFI_DIGEST }} --build-arg VERSION={{ .VERSION }}{{ .VERSION_SUFFIX }} --progress=plain .
+      - mkdir -p {{ .DIST }}
+      - docker run --platform {{ .OS }}/{{ .ARCH }} --rm --entrypoint /bin/cat {{ .REPO }}:{{ .TAG }} /usr/bin/unboxed > {{ .DIST }}/unboxed
+      - chmod +x {{ .DIST }}/unboxed
+      - rm -f {{ .DIST }}/._unboxed
+      - tar --no-xattrs -C {{ .DIST }} -czf {{ .DIST }}.tar.gz unboxed
+  build-amd64:
+    run: once
+    cmds:
+      - task: build-helper
+        vars:
+          OS: linux
+          ARCH: amd64
+  build-arm64:
+    run: once
+    cmds:
+      - task: build-helper
+        vars:
+          OS: linux
+          ARCH: arm64
+  docker-push-amd64:
+    vars:
+      TAG: "v{{ .VERSION }}{{ .VERSION_SUFFIX }}-amd64"
+    deps:
+      - build-amd64
+    cmds:
+      - docker push {{ .REPO }}:{{ .TAG }}
+  docker-push-arm64:
+    vars:
+      TAG: "v{{ .VERSION }}{{ .VERSION_SUFFIX }}-arm64"
+    deps:
+      - build-arm64
+    cmds:
+      - docker push {{ .REPO }}:{{ .TAG }}
+  docker-manifests-helper:
+    cmds:
+      - docker manifest rm {{ .REPO }}:{{ .TARGET_TAG }} || true
+      - docker manifest create {{ .REPO }}:{{ .TARGET_TAG }} {{ .REPO }}:{{ .SOURCE_BASE_TAG }}-amd64 {{ .REPO }}:{{ .SOURCE_BASE_TAG }}-arm64
+      - docker manifest push {{ .REPO }}:{{ .TARGET_TAG }}
+
+  docker-push:
+    vars:
+      SOURCE_BASE_TAG: v{{ .VERSION }}{{ .VERSION_SUFFIX }}
+    deps:
+      - docker-push-amd64
+      - docker-push-arm64
+    cmds:
+      - task: docker-manifests-helper
+        vars:
+          SOURCE_BASE_TAG: "{{ .SOURCE_BASE_TAG }}"
+          TARGET_TAG: v{{ .VERSION }}{{ .VERSION_SUFFIX }}
+      - task: docker-manifests-helper
+        vars:
+          SOURCE_BASE_TAG: "{{ .SOURCE_BASE_TAG }}"
+          TARGET_TAG: latest
+  upload-bin-s3:
+    deps:
+      - build-amd64
+      - build-arm64
+    cmds:
+      - cd dist && sha256sum unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_*.tar.gz > unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_checksums.txt
+      - mc cp hack/unboxed.sh dist/unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_checksums.txt dist/unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_*.tar.gz hetzner-unboxed-bin/unboxed-bin/
+  release:
+    deps:
+      - docker-push
+      #- upload-bin-s3
+
+  push-infra-image-helper:
+    cmds:
+      - docker buildx create --name container --driver=docker-container || true
+      - |
+        cd infra-image 
+        docker buildx build \
+          --tag {{ .INFRA_REPO }}:{{ .TAG }} \
+          --platform linux/amd64,linux/arm64 \
+          --builder container \
+          --build-arg WOLFI_DIGEST={{ .WOLFI_DIGEST }} \
+          --build-arg RUNC_VERSION={{ .RUNC_VERSION }} \
+          --build-arg NETBIRD_VERSION={{ .NETBIRD_VERSION }} \
+          --push .
+
+  push-infra-images:
+    cmds:
+      - cmd: docker buildx create --name container --driver=docker-container || true
+      - task: push-infra-image-helper
+        vars:
+          TAG: "v{{ .VERSION }}-rc130-nb049{{ .VERSION_SUFFIX }}"
+          RUNC_VERSION: 1.3.0
+          NETBIRD_VERSION: 0.49.0
