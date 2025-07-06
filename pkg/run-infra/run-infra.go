@@ -3,6 +3,7 @@ package run_infra
 import (
 	"context"
 	"encoding/json"
+	"github.com/hashicorp/serf/serf"
 	"github.com/koobox/unboxed/pkg/netbird"
 	"github.com/koobox/unboxed/pkg/types"
 	"log/slog"
@@ -13,6 +14,10 @@ type RunInfra struct {
 	boxSpec types.BoxSpec
 
 	runNetbird *netbird.RunNetbird
+
+	serf                   *serf.Serf
+	serfJoinedIps          map[string]struct{}
+	serfMembersFileContent []byte
 }
 
 func (rn *RunInfra) Start(ctx context.Context) error {
@@ -33,6 +38,11 @@ func (rn *RunInfra) Start(ctx context.Context) error {
 		NetbirdPeerName:      rn.boxSpec.Hostname,
 	}
 	err = rn.runNetbird.Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = rn.startSerf(ctx)
 	if err != nil {
 		return err
 	}

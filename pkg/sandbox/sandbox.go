@@ -34,7 +34,8 @@ type Sandbox struct {
 	vethNameHost string
 	vethNamePeer string
 
-	dnsProxy *dns_proxy.DnsProxy
+	DnsProxy            *dns_proxy.DnsProxy
+	staticHostsMapBytes []byte
 }
 
 func (rn *Sandbox) Start(ctx context.Context) error {
@@ -97,20 +98,20 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	rn.dnsProxy = &dns_proxy.DnsProxy{
+	rn.DnsProxy = &dns_proxy.DnsProxy{
 		ListenNamespace: rn.NetworkNamespace,
 		QueryNamespace:  rn.HostNetworkNamespace,
 		ListenIP:        dnsListenIp,
 	}
 
 	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
-		return rn.dnsProxy.WriteResolvConf(rn.getContainerRoot(c.Name))
+		return rn.DnsProxy.WriteResolvConf(rn.getContainerRoot(c.Name))
 	})
 	if err != nil {
 		return err
 	}
 
-	err = rn.dnsProxy.Start(ctx)
+	err = rn.DnsProxy.Start(ctx)
 	if err != nil {
 		return err
 	}
@@ -127,6 +128,8 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	go rn.runSerfStaticHosts(ctx)
 
 	return nil
 }

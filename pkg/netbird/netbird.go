@@ -9,9 +9,9 @@ import (
 	"github.com/koobox/unboxed/pkg/util"
 	"io"
 	"log/slog"
-	"net"
 	"os"
 	"os/exec"
+	"sync/atomic"
 	"time"
 )
 
@@ -20,7 +20,7 @@ type RunNetbird struct {
 	NetbirdSetupKey      string
 	NetbirdPeerName      string
 
-	NetbirdIP string
+	status atomic.Pointer[NetbirdStatus]
 
 	logNetbird io.WriteCloser
 }
@@ -51,9 +51,18 @@ func (rn *RunNetbird) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.waitForNetbirdService(ctx)
-	if err != nil {
-		return err
+
+	go rn.runNetbirdStatusLoop(ctx)
+
+	slog.InfoContext(ctx, "waiting for initial netbird status")
+	for {
+		s := rn.status.Load()
+		if s != nil {
+			break
+		}
+		if !util.SleepWithContext(ctx, time.Second) {
+			return ctx.Err()
+		}
 	}
 
 	return nil
@@ -101,24 +110,17 @@ func (rn *RunNetbird) runNetbirdStatus(ctx context.Context) (*NetbirdStatus, err
 	return &ret, nil
 }
 
-func (rn *RunNetbird) waitForNetbirdService(ctx context.Context) error {
+func (rn *RunNetbird) runNetbirdStatusLoop(ctx context.Context) {
 	slog.InfoContext(ctx, "waiting for netbird service to become ready")
 	for {
 		status, err := rn.runNetbirdStatus(ctx)
 		if err == nil {
-			ip, _, err := net.ParseCIDR(status.NetbirdIp)
-			if err != nil {
-				return err
-			}
-			rn.NetbirdIP = ip.String()
-			break
+			rn.status.Store(status)
 		}
 		if !util.SleepWithContext(ctx, 5*time.Second) {
-			return ctx.Err()
+			return
 		}
 	}
-	slog.InfoContext(ctx, "netbird service has become ready")
-	return nil
 }
 
 func (rn *RunNetbird) runNetbirdUp(ctx context.Context) error {
@@ -156,4 +158,9 @@ func (rn *RunNetbird) runNetbirdUp(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (rn *RunNetbird) GetLastStatus() NetbirdStatus {
+	s := rn.status.Load()
+	return *s
 }

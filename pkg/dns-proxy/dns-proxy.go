@@ -19,7 +19,7 @@ type DnsProxy struct {
 	QueryNamespace  netns.NsHandle
 	ListenIP        net.IP
 
-	staticPeersMapMutex sync.Mutex
+	staticHostsMapMutex sync.Mutex
 	staticHostsMap      map[string]string
 
 	udpServer *dns.Server
@@ -150,9 +150,16 @@ func (d *DnsProxy) handleRequest(ctx context.Context, dnsResolver string, r dnsR
 	}
 }
 
+func (d *DnsProxy) SetStaticHostsMap(m map[string]string) {
+	d.staticHostsMapMutex.Lock()
+	defer d.staticHostsMapMutex.Unlock()
+
+	d.staticHostsMap = m
+}
+
 func (d *DnsProxy) resolveStaticHost(name string) *dns.Msg {
-	d.staticPeersMapMutex.Lock()
-	defer d.staticPeersMapMutex.Unlock()
+	d.staticHostsMapMutex.Lock()
+	defer d.staticHostsMapMutex.Unlock()
 
 	ip := d.staticHostsMap[name]
 	if ip == "" {
