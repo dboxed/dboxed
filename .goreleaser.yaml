@@ -23,7 +23,10 @@ builds:
 
 archives:
   - formats: [tar.gz]
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
 
 dockers:
   - id: linux-amd64
@@ -102,12 +105,15 @@ changelog:
 
 nightly:
   publish_release: true
+  keep_single_release: true
 
 release:
   github:
     owner: koobox
     name: unboxed
   make_latest: "{{ not .IsNightly }}"
+  extra_files:
+    - glob: hack/unboxed.sh
   footer: >-
 
     ---
