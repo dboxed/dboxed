@@ -2,10 +2,12 @@ package sandbox
 
 import (
 	"context"
+	"fmt"
 	"github.com/koobox/unboxed/pkg/dns-proxy"
 	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/types"
 	net2 "github.com/koobox/unboxed/pkg/util/net"
+	"github.com/koobox/unboxed/pkg/version"
 	"github.com/vishvananda/netns"
 	"net"
 	"os"
@@ -147,9 +149,18 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 }
 
 func (rn *Sandbox) buildInfraContainerSpec() *types.ContainerSpec {
+	infraImage := rn.BoxSpec.InfraImage
+	if infraImage == "" {
+		tag := "nightly"
+		if !version.IsDummyVersion() {
+			tag = version.Version
+		}
+		infraImage = fmt.Sprintf("%s:%s", types.UnboxedInfraImage, tag)
+	}
+
 	return &types.ContainerSpec{
 		Name:  "_infra",
-		Image: rn.BoxSpec.InfraImage,
+		Image: infraImage,
 		Cmd: []string{
 			"/usr/bin/unboxed",
 			"run-infra",
