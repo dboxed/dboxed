@@ -1,0 +1,101 @@
+
+version: 2
+pro: true
+
+builds:
+  - builder: prebuilt
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    binary: bin/unboxed
+    prebuilt:
+      path: build/unboxed_{{ .Os }}_{{ .Arch }}
+    hooks:
+      pre:
+        - cmd: pwd
+          output: true
+        - cmd: docker build -t unboxed-builder-{{ .Os }}-{{ .Arch }}-{{ .Version | tolower }} --platform {{ .Os }}/{{ .Arch }} --build-arg VERSION={{ .Version }} -f Dockerfile.build .
+          output: true
+        - cmd: mkdir -p build
+        - cmd: sh -c "docker run --platform {{ .Os }}/{{ .Arch }} --rm --entrypoint /bin/cat unboxed-builder-{{ .Os }}-{{ .Arch }}-{{ .Version | tolower }} /unboxed > build/unboxed_{{ .Os }}_{{ .Arch }}"
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+dockers:
+  - id: linux-amd64
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+    image_templates:
+      - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
+  - id: linux-arm64
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/arm64"
+    image_templates:
+      - "ghcr.io/koobox/unboxed:{{ .Version }}-arm64"
+  - id: infra-linux-amd64
+    goos: linux
+    goarch: amd64
+    dockerfile: infra-image/Dockerfile
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}-infra"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+    image_templates:
+      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-amd64"
+  - id: infra-linux-arm64
+    goos: linux
+    goarch: arm64
+    dockerfile: infra-image/Dockerfile
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}-infra"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/arm64"
+    image_templates:
+      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
+
+docker_manifests:
+  - name_template: ghcr.io/koobox/unboxed:{{ .Version }}
+    image_templates:
+      - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
+      - "ghcr.io/koobox/unboxed:{{ .Version }}-arm64"
+  - name_template: ghcr.io/koobox/unboxed-infra:{{ .Version }}
+    image_templates:
+      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-amd64"
+      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: koobox
+    name: unboxed
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).

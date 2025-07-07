@@ -1,7 +1,5 @@
 # syntax=docker/dockerfile:1-labs
 
-ARG WOLFI_DIGEST
-
 ### download-helper
 FROM alpine AS download-helper
 ARG TARGETPLATFORM
@@ -11,12 +9,13 @@ WORKDIR /tools
 
 ### runc
 FROM download-helper AS runc
-ARG RUNC_VERSION
+ENV RUNC_VERSION=1.3.0
 RUN wget -q -O runc https://github.com/opencontainers/runc/releases/download/v${RUNC_VERSION}/runc.${TARGETARCH} \
     && chmod +x runc
 
 ### infra-image
-FROM --platform=$TARGETPLATFORM cgr.dev/chainguard/wolfi-base@$WOLFI_DIGEST
+# use `docker buildx imagetools inspect cgr.dev/chainguard/wolfi-base:latest` to find latest sha256 of multiarch image
+FROM --platform=$TARGETPLATFORM cgr.dev/chainguard/wolfi-base@sha256:1c6a85817d3a8787e094aae474e978d4ecdf634fd65e77ab28ffae513e35cca1
 
 # See https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ARG TARGETPLATFORM
