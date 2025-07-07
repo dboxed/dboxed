@@ -115,7 +115,7 @@ download_hash() {
 
 # Download binary from Github URL
 download_binary() {
-    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/v${UNBOXED_VERSION}/unboxed__${OS}_${ARCH}.tar.gz"
+    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/${UNBOXED_VERSION}/unboxed_${OS}_${ARCH}.tar.gz"
     info "Downloading binary ${BIN_URL}"
     download "${TMP_BIN}" "${BIN_URL}"
 }
@@ -151,7 +151,7 @@ setup_binary() {
     info "Installing unboxed to ${BIN_DIR}/unboxed"
     tar -xzof "${TMP_BIN}" -C "${TMP_DIR}"
 
-    local CMD_MOVE="mv -f \"${TMP_DIR}/unboxed\" \"${BIN_DIR}\""
+    local CMD_MOVE="mv -f \"${TMP_DIR}/bin/unboxed\" \"${BIN_DIR}\""
     if [[ -w "${BIN_DIR}" ]]; then
         eval "${CMD_MOVE}"
     else
