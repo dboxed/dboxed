@@ -16,9 +16,9 @@ import (
 const vethNamePrefix = "ub"
 
 func (rn *Sandbox) initNetworkNames() {
-	rn.NetworkNamespaceName = fmt.Sprintf("unboxed-%s", rn.SandboxName)
 	h := util.Sha256Sum([]byte(rn.SandboxName))
 	h = h[:6]
+	rn.NetworkNamespaceName = fmt.Sprintf("ub-%s", h)
 	rn.vethNameHost = fmt.Sprintf("%s-%s-host", vethNamePrefix, h)
 	rn.vethNamePeer = fmt.Sprintf("%s-%s-peer", vethNamePrefix, h)
 }
