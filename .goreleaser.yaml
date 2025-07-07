@@ -74,6 +74,16 @@ dockers:
       - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
 
 docker_manifests:
+  - name_template: ghcr.io/koobox/unboxed:nightly
+    image_templates:
+      - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
+      - "ghcr.io/koobox/unboxed:{{ .Version }}-arm64"
+    skip_push: "{{ not .IsNightly }}"
+  - name_template: ghcr.io/koobox/unboxed-infra:nightly
+    image_templates:
+      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-amd64"
+      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
+    skip_push: "{{ not .IsNightly }}"
   - name_template: ghcr.io/koobox/unboxed:{{ .Version }}
     image_templates:
       - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
@@ -90,10 +100,14 @@ changelog:
       - "^docs:"
       - "^test:"
 
+nightly:
+  publish_release: true
+
 release:
   github:
     owner: koobox
     name: unboxed
+  make_latest: "{{ not .IsNightly }}"
   footer: >-
 
     ---
