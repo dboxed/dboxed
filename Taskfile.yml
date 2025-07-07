@@ -103,12 +103,11 @@ tasks:
     cmds:
       - cd dist && sha256sum unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_*.tar.gz > unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_checksums.txt
       - mc cp hack/unboxed.sh dist/unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_checksums.txt dist/unboxed_v{{ .VERSION }}{{ .VERSION_SUFFIX }}_*.tar.gz hetzner-unboxed-bin/unboxed-bin/
-  release:
-    deps:
-      - docker-push
-      #- upload-bin-s3
 
-  push-infra-image-helper:
+  push-infra-image:
+    vars:
+      RUNC_VERSION: 1.3.0
+      TAG: "v{{ .VERSION }}{{ .VERSION_SUFFIX }}"
     cmds:
       - docker buildx create --name container --driver=docker-container || true
       - |
@@ -119,14 +118,10 @@ tasks:
           --builder container \
           --build-arg WOLFI_DIGEST={{ .WOLFI_DIGEST }} \
           --build-arg RUNC_VERSION={{ .RUNC_VERSION }} \
-          --build-arg NETBIRD_VERSION={{ .NETBIRD_VERSION }} \
           --push .
 
-  push-infra-images:
-    cmds:
-      - cmd: docker buildx create --name container --driver=docker-container || true
-      - task: push-infra-image-helper
-        vars:
-          TAG: "v{{ .VERSION }}-rc130-nb049{{ .VERSION_SUFFIX }}"
-          RUNC_VERSION: 1.3.0
-          NETBIRD_VERSION: 0.49.0
+  release:
+    deps:
+      - docker-push
+      #- upload-bin-s3
+      - push-infra-image

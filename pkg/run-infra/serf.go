@@ -42,7 +42,11 @@ func (rn *RunInfra) startSerf(ctx context.Context) error {
 }
 
 func (rn *RunInfra) runSerfJoin(ctx context.Context) error {
-	ips := rn.getNetbirdPeerIps()
+	ips, err := rn.getNetbirdPeerIps()
+	if err != nil {
+		return err
+	}
+
 	newMap := map[string]struct{}{}
 
 	var newIps []string
@@ -94,16 +98,4 @@ func (rn *RunInfra) writeSerfMembersList(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (rn *RunInfra) getNetbirdPeerIps() []string {
-	nbs := rn.runNetbird.GetLastStatus()
-
-	var ips []string
-	for _, p := range nbs.Peers.Details {
-		if p.Status == "Connected" {
-			ips = append(ips, p.NetbirdIp)
-		}
-	}
-	return ips
 }

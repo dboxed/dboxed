@@ -1,4 +1,4 @@
-package netbird
+package types
 
 import "time"
 

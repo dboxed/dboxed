@@ -18,8 +18,10 @@ type Sandbox struct {
 	SandboxName string
 	SandboxDir  string
 
-	BoxSpec            *types.BoxSpec
-	infraContainerSpec *types.ContainerSpec
+	BoxSpec *types.BoxSpec
+
+	netbirdContainerSpec *types.ContainerSpec
+	infraContainerSpec   *types.ContainerSpec
 
 	VethNetworkCidr *net.IPNet
 
@@ -56,6 +58,10 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	rn.infraContainerSpec = rn.buildInfraContainerSpec()
+	rn.netbirdContainerSpec, err = rn.buildNetbirdContainerSpec()
+	if err != nil {
+		return err
+	}
 
 	err = rn.pullImages(ctx)
 	if err != nil {
@@ -129,6 +135,12 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.runNetbirdUp(ctx)
+	if err != nil {
+		return err
+	}
+
+	go rn.runNetbirdStatusLoop(ctx)
 	go rn.runSerfStaticHosts(ctx)
 
 	return nil
@@ -148,15 +160,19 @@ func (rn *Sandbox) buildInfraContainerSpec() *types.ContainerSpec {
 }
 
 func (rn *Sandbox) forAllContainers(fn func(c *types.ContainerSpec) error) error {
-	err := fn(rn.infraContainerSpec)
+	err := fn(rn.netbirdContainerSpec)
+	if err != nil {
+		return err
+	}
+	err = fn(rn.infraContainerSpec)
 	if err != nil {
 		return err
 	}
 	for _, c := range rn.BoxSpec.Containers {
-		err = fn(&c)
+		err := fn(&c)
 		if err != nil {
 			return err
 		}
 	}
-	return err
+	return nil
 }

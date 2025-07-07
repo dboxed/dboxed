@@ -15,14 +15,6 @@ ARG RUNC_VERSION
 RUN wget -q -O runc https://github.com/opencontainers/runc/releases/download/v${RUNC_VERSION}/runc.${TARGETARCH} \
     && chmod +x runc
 
-### netbird
-FROM download-helper AS netbird
-ARG NETBIRD_VERSION
-RUN mkdir download && cd download \
-    && wget -q -O netbird.tgz https://github.com/netbirdio/netbird/releases/download/v${NETBIRD_VERSION}/netbird_${NETBIRD_VERSION}_linux_${TARGETARCH}.tar.gz \
-    && tar xzf netbird.tgz && mv netbird /tools/ \
-    && cd .. && rm -rf download
-
 ### infra-image
 FROM --platform=$TARGETPLATFORM cgr.dev/chainguard/wolfi-base@$WOLFI_DIGEST
 
@@ -39,4 +31,3 @@ RUN for i in iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/bin/$i; 
 RUN ln -s /run /var/run
 
 COPY --from=runc /tools/* /usr/sbin/
-COPY --from=netbird /tools/* /usr/bin/

@@ -18,6 +18,8 @@ type BoxSpec struct {
 }
 
 type NetbirdSpec struct {
+	Version       string `json:"version,omitempty"`
+	Image         string `json:"image,omitempty"`
 	ManagementUrl string `json:"managementUrl"`
 	SetupKey      string `json:"setupKey"`
 }
