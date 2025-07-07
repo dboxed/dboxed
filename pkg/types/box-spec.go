@@ -5,15 +5,15 @@ type BoxFile struct {
 }
 
 type BoxSpec struct {
-	UnboxedBinaryUrl  string `json:"unboxedBinaryUrl"`
-	UnboxedBinaryHash string `json:"unboxedBinaryHash"`
+	UnboxedBinaryUrl  string `json:"unboxedBinaryUrl,omitempty"`
+	UnboxedBinaryHash string `json:"unboxedBinaryHash,omitempty"`
 
 	Netbird NetbirdSpec `json:"netbird"`
 
 	Hostname      string `json:"hostname"`
 	NetworkDomain string `json:"networkDomain"`
 
-	InfraImage string          `json:"infraImage"`
+	InfraImage string          `json:"infraImage,omitempty"`
 	Containers []ContainerSpec `json:"containers"`
 }
 
@@ -29,11 +29,11 @@ type ContainerSpec struct {
 
 	Image string `json:"image"`
 
-	User       string   `json:"user"`
-	Env        []string `json:"env"`
-	Entrypoint []string `json:"entrypoint"`
-	Cmd        []string `json:"cmd"`
-	WorkingDir string   `json:"workingDir"`
+	User       string   `json:"user,omitempty"`
+	Env        []string `json:"env,omitempty"`
+	Entrypoint []string `json:"entrypoint,omitempty"`
+	Cmd        []string `json:"cmd,omitempty"`
+	WorkingDir string   `json:"workingDir,omitempty"`
 
 	Privileged  bool `json:"privileged"`
 	UseDevTmpFs bool `json:"useDevTmpFs"`
