@@ -2,19 +2,18 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/koobox/unboxed/pkg/run-box"
 	"github.com/spf13/cobra"
 	"net"
 	"time"
 )
 
-var workDirArg string
+var runWorkDirArg string
 
-var boxUrlArg string
-var boxFileArg string
-var boxNameArg string
-var vethCidrArgNode string
+var runBoxUrlArg string
+var runBoxFileArg string
+var runBoxNameArg string
+var runVethCidrArgNode string
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -24,39 +23,33 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-	runCmd.Flags().StringVar(&workDirArg, "work-dir", "/var/lib/unboxed", "unboxed work dir")
+	runCmd.Flags().StringVar(&runWorkDirArg, "work-dir", "/var/lib/unboxed", "unboxed work dir")
 
-	runCmd.Flags().StringVar(&boxUrlArg, "box-url", "", "box url")
-	runCmd.Flags().StringVar(&boxFileArg, "box-file", "", "box url")
-	runCmd.Flags().StringVar(&boxNameArg, "box-name", "", "box name")
+	runCmd.Flags().StringVar(&runBoxUrlArg, "box-url", "", "box url")
+	runCmd.Flags().StringVar(&runBoxFileArg, "box-file", "", "box url")
+	runCmd.Flags().StringVar(&runBoxNameArg, "box-name", "", "box name")
 	_ = runCmd.MarkFlagRequired("box-name")
 
-	runCmd.Flags().StringVar(&vethCidrArgNode, "veth-cidr", "1.2.3.0/30", "veth cidr")
+	runCmd.Flags().StringVar(&runVethCidrArgNode, "veth-cidr", "1.2.3.0/30", "veth cidr")
 
 	rootCmd.AddCommand(runCmd)
 }
 
 func doRun(cmd *cobra.Command, args []string) error {
-	if boxUrlArg == "" && boxFileArg == "" {
-		return fmt.Errorf("either --box-url or --box-file must be set")
-	} else if boxUrlArg != "" && boxFileArg != "" {
-		return fmt.Errorf("only one of --box-url or --box-file must be set")
+	url, err := getBoxUrl(runBoxUrlArg, runBoxFileArg)
+	if err != nil {
+		return err
 	}
 
-	url := boxUrlArg
-	if url == "" {
-		url = "file://" + boxFileArg
-	}
-
-	_, vethCidr, err := net.ParseCIDR(vethCidrArgNode)
+	_, vethCidr, err := net.ParseCIDR(runVethCidrArgNode)
 	if err != nil {
 		return err
 	}
 
 	runNode := run_box.RunBox{
 		BoxUrl:          url,
-		BoxName:         boxNameArg,
-		WorkDir:         workDirArg,
+		BoxName:         runBoxNameArg,
+		WorkDir:         runWorkDirArg,
 		VethNetworkCidr: vethCidr,
 	}
 
