@@ -39,7 +39,7 @@ func (n *Network) SetupPortForwards(ctx context.Context, pfs []types.PortForward
 		}
 		l += fmt.Sprintf(" --dport %s", dport)
 
-		dest := n.peerAddr.IP.String()
+		dest := n.PeerAddr.IP.String()
 		if pf.DestinationPort != 0 {
 			dest += fmt.Sprintf(":%d", pf.DestinationPort)
 		}

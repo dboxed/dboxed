@@ -33,7 +33,7 @@ func (rn *Sandbox) writeOciSpec(c *types.ContainerSpec, spec *specs.Spec) error 
 }
 
 func (rn *Sandbox) copyRuncFromInfraContainer() error {
-	infraPth := filepath.Join(rn.getContainerRoot("_infra"), "sbin/runc")
+	infraPth := filepath.Join(rn.getContainerRoot("_infra_sandbox"), "sbin/runc")
 	hostPth := filepath.Join(rn.SandboxDir, "runc")
 
 	r, err := os.ReadFile(infraPth)
@@ -60,6 +60,8 @@ func BuildRuncCmd(ctx context.Context, sandboxDir string, args ...string) (*exec
 		"--root", stateDir,
 	}
 	args2 = append(args2, args...)
+
+	//slog.InfoContext(ctx, "runc: "+strings.Join(args2, " "))
 
 	cmd := exec.CommandContext(ctx, binPath, args2...)
 	cmd.Stdout = os.Stdout
@@ -97,4 +99,13 @@ func RunRuncJson(ctx context.Context, sandboxDir string, result any, args ...str
 		return err
 	}
 	return nil
+}
+
+func RunRuncState(ctx context.Context, sandboxDir string, name string) (*types.RuncState, error) {
+	var ret types.RuncState
+	err := RunRuncJson(ctx, sandboxDir, &ret, "state", name)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }

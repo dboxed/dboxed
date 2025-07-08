@@ -59,7 +59,7 @@ func (n *Network) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerL
 		}
 	}
 
-	hostIP := n.hostAddr.IP
+	hostIP := n.HostAddr.IP
 
 	hostLinks, err := netlink.LinkList()
 	if err != nil {

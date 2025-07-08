@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/util"
@@ -12,6 +11,10 @@ import (
 	"path/filepath"
 	"time"
 )
+
+func (rn *Sandbox) getSharedDirOnHost() string {
+	return filepath.Join(rn.SandboxDir, "shared")
+}
 
 func (rn *Sandbox) getContainerBundleDir(name string) string {
 	return filepath.Join(rn.SandboxDir, "containers", name)
@@ -118,7 +121,7 @@ func (rn *Sandbox) createContainer(ctx context.Context, c *types.ContainerSpec) 
 		return err
 	}
 
-	slog.InfoContext(ctx, "container is running", slog.Any("name", c.Name))
+	slog.InfoContext(ctx, "container created", slog.Any("name", c.Name))
 
 	return nil
 }
@@ -134,8 +137,8 @@ func (rn *Sandbox) startContainer(ctx context.Context, c *types.ContainerSpec) e
 	return nil
 }
 
-func (rn *Sandbox) copyUnboxedBinIntoInfraContainer() error {
-	infraPth := filepath.Join(rn.getContainerRoot("_infra"), "bin/unboxed")
+func (rn *Sandbox) copyUnboxedBinIntoContainer(name string) error {
+	containerPth := filepath.Join(rn.getContainerRoot(name), "bin/unboxed")
 	hostPth, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to determine unboxed binary path: %w", err)
@@ -145,33 +148,9 @@ func (rn *Sandbox) copyUnboxedBinIntoInfraContainer() error {
 	if err != nil {
 		return fmt.Errorf("failed to read unboxed binary from host filesystem: %w", err)
 	}
-	err = os.WriteFile(infraPth+".tmp", r, 0777)
+	err = util.AtomicWriteFile(containerPth, r, 0777)
 	if err != nil {
-		return fmt.Errorf("failed to write unboxed binary into infra container: %w", err)
-	}
-	err = os.Rename(infraPth+".tmp", infraPth)
-	if err != nil {
-		return fmt.Errorf("failed to rename unboxed binary: %w", err)
-	}
-	return nil
-}
-
-func (rn *Sandbox) copyBoxSpecIntoInfraContainer() error {
-	infraPth := filepath.Join(rn.getContainerRoot("_infra"), "etc/unboxed/box-spec.json")
-
-	err := os.MkdirAll(filepath.Dir(infraPth), 0700)
-	if err != nil {
-		return err
-	}
-
-	b, err := json.Marshal(rn.BoxSpec)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(infraPth, b, 0600)
-	if err != nil {
-		return fmt.Errorf("failed to write unboxed binary into infra container: %w", err)
+		return fmt.Errorf("failed to write unboxed binary into infra container %s: %w", name, err)
 	}
 	return nil
 }

@@ -21,7 +21,7 @@ func (n *Network) Setup(ctx context.Context) error {
 		return err
 	}
 
-	slog.InfoContext(ctx, "setting up networking", slog.Any("hostAddr", n.hostAddr.String()), slog.Any("peerAddr", n.peerAddr.String()))
+	slog.InfoContext(ctx, "setting up networking", slog.Any("hostAddr", n.HostAddr.String()), slog.Any("peerAddr", n.PeerAddr.String()))
 
 	err = n.setupNamespaces(ctx)
 	if err != nil {
@@ -35,7 +35,7 @@ func (n *Network) Setup(ctx context.Context) error {
 	// route the peer veth IP into the host veth interface
 	err = netlink.RouteAdd(&netlink.Route{
 		Dst: &net.IPNet{
-			IP:   n.peerAddr.IP,
+			IP:   n.PeerAddr.IP,
 			Mask: net.CIDRMask(32, 32),
 		},
 		LinkIndex: hostLink.Attrs().Index,
@@ -112,7 +112,7 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 		}
 	}
 
-	err = setSingleAddress(ctx, hostLink, n.hostAddr)
+	err = setSingleAddress(ctx, hostLink, n.HostAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -138,7 +138,7 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 			return err
 		}
 
-		err = setSingleAddress(ctx, peerLink, n.peerAddr)
+		err = setSingleAddress(ctx, peerLink, n.PeerAddr)
 		if err != nil {
 			return err
 		}

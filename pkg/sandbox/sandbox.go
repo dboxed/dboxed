@@ -3,11 +3,9 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/dns-proxy"
 	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/types"
-	net2 "github.com/koobox/unboxed/pkg/util/net"
 	"github.com/koobox/unboxed/pkg/version"
 	"net"
 	"os"
@@ -22,18 +20,20 @@ type Sandbox struct {
 
 	BoxSpec *types.BoxSpec
 
-	netbirdContainerSpec *types.ContainerSpec
-	infraContainerSpec   *types.ContainerSpec
+	netbirdContainerSpec      types.ContainerSpec
+	infraHostContainerSpec    types.ContainerSpec
+	infraSandboxContainerSpec types.ContainerSpec
 
 	VethNetworkCidr *net.IPNet
 	network         *network.Network
-
-	DnsProxy            *dns_proxy.DnsProxy
-	staticHostsMapBytes []byte
 }
 
 func (rn *Sandbox) Start(ctx context.Context) error {
 	err := os.MkdirAll(filepath.Join(rn.SandboxDir, "containers"), 0700)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(rn.getSharedDirOnHost(), 0700)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,8 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	rn.infraContainerSpec = rn.buildInfraContainerSpec()
+	rn.infraHostContainerSpec = rn.buildInfraHostContainerSpec()
+	rn.infraSandboxContainerSpec = rn.buildInfraSandboxContainerSpec()
 	rn.netbirdContainerSpec, err = rn.buildNetbirdContainerSpec()
 	if err != nil {
 		return err
@@ -57,7 +58,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	networkConfig := rn.buildNetworkConfig()
 	rn.network = &network.Network{
 		Config:             networkConfig,
-		InfraContainerRoot: rn.getContainerRoot("_infra"),
+		InfraContainerRoot: rn.getContainerRoot("_infra_host"),
 	}
 
 	err = rn.network.Setup(ctx)
@@ -65,12 +66,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	// we mount the host log dir into the infra container, so we need to create it first
-	err = os.MkdirAll(filepath.Join(rn.getContainerRoot("_infra"), logs.RootLogDir[1:]), 0700)
-	if err != nil {
-		return err
-	}
-	// we also need it on the host
 	err = os.MkdirAll(logs.RootLogDir, 0700)
 	if err != nil {
 		return err
@@ -80,36 +75,35 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.copyUnboxedBinIntoInfraContainer()
-	if err != nil {
-		return err
-	}
-	err = rn.copyBoxSpecIntoInfraContainer()
+	err = rn.forInternalContainers(func(c *types.ContainerSpec) error {
+		err := os.MkdirAll(filepath.Join(rn.getContainerRoot(c.Name), types.SharedDir), 0700)
+		if err != nil {
+			return err
+		}
+		err = rn.copyUnboxedBinIntoContainer(c.Name)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
 		return rn.writeMiscFiles(c)
 	})
-
-	dnsListenIp, err := net2.GetIndexedIP(rn.VethNetworkCidr, 1)
 	if err != nil {
 		return err
 	}
-	rn.DnsProxy = &dns_proxy.DnsProxy{
-		ListenNamespace: rn.network.NetworkNamespace,
-		QueryNamespace:  rn.network.HostNetworkNamespace,
-		ListenIP:        dnsListenIp,
+
+	err = rn.writeInfraConf()
+	if err != nil {
+		return err
 	}
 
 	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
-		return rn.DnsProxy.WriteResolvConf(rn.getContainerRoot(c.Name))
+		return rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.PeerAddr.IP.String())
 	})
-	if err != nil {
-		return err
-	}
-
-	err = rn.DnsProxy.Start(ctx)
 	if err != nil {
 		return err
 	}
@@ -127,14 +121,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.runNetbirdUp(ctx)
-	if err != nil {
-		return err
-	}
-
-	go rn.runNetbirdStatusLoop(ctx)
-	go rn.runSerfStaticHosts(ctx)
-
 	return nil
 }
 
@@ -145,7 +131,7 @@ func (rn *Sandbox) buildNetworkConfig() types.NetworkConfig {
 	}
 }
 
-func (rn *Sandbox) buildInfraContainerSpec() *types.ContainerSpec {
+func (rn *Sandbox) getInfraImage() string {
 	infraImage := rn.BoxSpec.InfraImage
 	if infraImage == "" {
 		tag := "nightly"
@@ -154,29 +140,67 @@ func (rn *Sandbox) buildInfraContainerSpec() *types.ContainerSpec {
 		}
 		infraImage = fmt.Sprintf("%s:%s", types.UnboxedInfraImage, tag)
 	}
+	return infraImage
+}
 
-	return &types.ContainerSpec{
-		Name:  "_infra",
-		Image: infraImage,
+func (rn *Sandbox) buildInfraHostContainerSpec() types.ContainerSpec {
+	return types.ContainerSpec{
+		Name:  "_infra_host",
+		Image: rn.getInfraImage(),
 		Cmd: []string{
 			"/usr/bin/unboxed",
-			"run-infra",
+			"run-infra-host",
+		},
+		BindMounts: []types.BindMount{
+			{HostPath: "/", ContainerPath: "/hostfs", Shared: true},
+			{HostPath: "/run/netns", ContainerPath: "/run/netns", Shared: true},
+			{HostPath: rn.getSharedDirOnHost(), ContainerPath: types.SharedDir},
+			{HostPath: rn.SandboxDir, ContainerPath: rn.SandboxDir, Shared: true},
+		},
+		Privileged:  true,
+		UseDevTmpFs: true,
+		HostNetwork: true,
+		HostPid:     true,
+		HostCgroups: true,
+	}
+}
+
+func (rn *Sandbox) buildInfraSandboxContainerSpec() types.ContainerSpec {
+	return types.ContainerSpec{
+		Name:  "_infra_sandbox",
+		Image: rn.getInfraImage(),
+		Cmd: []string{
+			"/usr/bin/unboxed",
+			"run-infra-sandbox",
+		},
+		BindMounts: []types.BindMount{
+			{HostPath: rn.getSharedDirOnHost(), ContainerPath: types.SharedDir},
 		},
 		Privileged:  true,
 		UseDevTmpFs: true,
 	}
 }
 
+func (rn *Sandbox) internalContainers() []types.ContainerSpec {
+	return []types.ContainerSpec{
+		rn.infraHostContainerSpec,
+		rn.infraSandboxContainerSpec,
+		rn.netbirdContainerSpec,
+	}
+}
+
+func (rn *Sandbox) forInternalContainers(fn func(c *types.ContainerSpec) error) error {
+	return rn.forContainers(rn.internalContainers(), fn)
+}
+
 func (rn *Sandbox) forAllContainers(fn func(c *types.ContainerSpec) error) error {
-	err := fn(rn.netbirdContainerSpec)
-	if err != nil {
-		return err
-	}
-	err = fn(rn.infraContainerSpec)
-	if err != nil {
-		return err
-	}
-	for _, c := range rn.BoxSpec.Containers {
+	all := rn.internalContainers()
+	all = append(all, rn.BoxSpec.Containers...)
+	return rn.forContainers(all, fn)
+}
+
+func (rn *Sandbox) forContainers(containers []types.ContainerSpec, fn func(c *types.ContainerSpec) error) error {
+	for _, c := range containers {
 		err := fn(&c)
 		if err != nil {
 			return err

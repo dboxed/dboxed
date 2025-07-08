@@ -1,4 +1,4 @@
-package sandbox
+package run_infra_host
 
 import (
 	"bytes"
@@ -9,12 +9,11 @@ import (
 	"github.com/koobox/unboxed/pkg/util"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
-func (rn *Sandbox) runSerfStaticHosts(ctx context.Context) {
+func (rn *RunInfraHost) runSerfStaticHosts(ctx context.Context) {
 	for {
 		err := rn.runSerfStaticHostsOnce(ctx)
 		if err != nil {
@@ -27,8 +26,8 @@ func (rn *Sandbox) runSerfStaticHosts(ctx context.Context) {
 	}
 }
 
-func (rn *Sandbox) runSerfStaticHostsOnce(ctx context.Context) error {
-	b, err := os.ReadFile(filepath.Join(rn.getContainerRoot("_infra"), types.SerfMembersFile))
+func (rn *RunInfraHost) runSerfStaticHostsOnce(ctx context.Context) error {
+	b, err := os.ReadFile(types.SerfMembersFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -48,7 +47,7 @@ func (rn *Sandbox) runSerfStaticHostsOnce(ctx context.Context) error {
 
 	m := map[string]string{}
 	for _, sm := range serfMembers.Members {
-		fqdn := fmt.Sprintf("%s.%s", sm.Name, rn.BoxSpec.NetworkDomain)
+		fqdn := fmt.Sprintf("%s.%s", sm.Name, rn.conf.BoxSpec.NetworkDomain)
 		if !strings.HasSuffix(fqdn, ".") {
 			fqdn += "."
 		}

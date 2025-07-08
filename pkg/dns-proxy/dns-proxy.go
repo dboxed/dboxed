@@ -2,16 +2,16 @@ package dns_proxy
 
 import (
 	"context"
-	"fmt"
 	"github.com/koobox/unboxed/pkg/util"
 	"github.com/miekg/dns"
 	"github.com/vishvananda/netns"
 	"log/slog"
 	"net"
-	"os"
-	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type DnsProxy struct {
@@ -19,15 +19,18 @@ type DnsProxy struct {
 	QueryNamespace  netns.NsHandle
 	ListenIP        net.IP
 
+	HostResolveConf string
+
 	staticHostsMapMutex sync.Mutex
 	staticHostsMap      map[string]string
 
 	udpServer *dns.Server
 	tcpServer *dns.Server
 
-	resolveConf *dns.ClientConfig
-	udpClient   *dns.Client
-	tcpClient   *dns.Client
+	resolveConf atomic.Pointer[dns.ClientConfig]
+
+	udpClient *dns.Client
+	tcpClient *dns.Client
 
 	requests chan dnsRequest
 }
@@ -42,14 +45,12 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 	d.staticHostsMap = map[string]string{}
 	d.requests = make(chan dnsRequest)
 
-	var err error
-	d.resolveConf, err = dns.ClientConfigFromFile("/etc/resolv.conf")
+	err := d.readHostResolvConf(ctx)
 	if err != nil {
 		return err
 	}
 
 	slog.InfoContext(ctx, "starting dns proxy")
-	slog.InfoContext(ctx, "using host nameservers", slog.Any("nameservers", d.resolveConf.Servers), slog.Any("port", d.resolveConf.Port))
 
 	d.udpClient = &dns.Client{
 		Net: "udp",
@@ -76,19 +77,33 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 		}()
 	}
 
+	go func() {
+		for {
+			err := d.readHostResolvConf(ctx)
+			if err != nil {
+				slog.ErrorContext(ctx, "error while reading host resolv.conf", slog.Any("error", err))
+			}
+			if !util.SleepWithContext(ctx, 5*time.Second) {
+				return
+			}
+		}
+	}()
+
+	d.startServing(ctx, d.udpServer)
+	d.startServing(ctx, d.tcpServer)
+
 	return nil
 }
 
-func (d *DnsProxy) WriteResolvConf(root string) error {
-	resolveConf := fmt.Sprintf(`# This is the unboxed dns proxy, which listens inside the sandboxed network namespace
-# and forwards requests to the host's resolv.conf nameservers
-nameserver %s
-search .
-`, d.ListenIP.String())
-
-	err := os.WriteFile(filepath.Join(root, "etc/resolv.conf"), []byte(resolveConf), 0666)
+func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
+	c, err := dns.ClientConfigFromFile(d.HostResolveConf)
 	if err != nil {
 		return err
+	}
+	old := d.resolveConf.Swap(c)
+
+	if !reflect.DeepEqual(old, c) {
+		slog.InfoContext(ctx, "using host nameservers", slog.Any("nameservers", d.resolveConf.Load().Servers), slog.Any("port", d.resolveConf.Load().Port))
 	}
 	return nil
 }
@@ -100,15 +115,16 @@ func (d *DnsProxy) runRequestsThread(ctx context.Context) error {
 }
 
 func (d *DnsProxy) runRequestsThreadInNs(ctx context.Context) error {
-	dnsResolver := net.JoinHostPort(d.resolveConf.Servers[0], d.resolveConf.Port)
-
 	for r := range d.requests {
-		d.handleRequest(ctx, dnsResolver, r)
+		d.handleRequest(ctx, r)
 	}
 	return nil
 }
 
-func (d *DnsProxy) handleRequest(ctx context.Context, dnsResolver string, r dnsRequest) {
+func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
+	resolveConf := d.resolveConf.Load()
+	dnsResolver := net.JoinHostPort(resolveConf.Servers[0], resolveConf.Port)
+
 	log := slog.With(slog.Any("id", r.request.Id), slog.Any("tcp", r.tcp), slog.Any("dnsResolver", dnsResolver))
 	//log.DebugContext(ctx, "handling request"+r.request.String())
 
@@ -205,16 +221,28 @@ func (d *DnsProxy) startListen(ctx context.Context, dnsNet string) (*dns.Server,
 		Handler: mux,
 	}
 
-	log.InfoContext(ctx, "start listen and serve for dns server")
-
-	go func() {
-		err := util.RunInNetNs(d.ListenNamespace, func() error {
-			return dnsServer.ListenAndServe()
-		})
-		if err != nil {
-			slog.ErrorContext(ctx, "error while serving dns server")
+	log.InfoContext(ctx, "start listen")
+	err := util.RunInNetNs(d.ListenNamespace, func() error {
+		var err error
+		if isTcp {
+			dnsServer.Listener, err = net.Listen(dnsNet, dnsServer.Addr)
+		} else {
+			dnsServer.PacketConn, err = net.ListenPacket(dnsNet, dnsServer.Addr)
 		}
-	}()
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return dnsServer, nil
+}
+
+func (d *DnsProxy) startServing(ctx context.Context, dnsServer *dns.Server) {
+	go func() {
+		err := dnsServer.ActivateAndServe()
+		if err != nil {
+			slog.ErrorContext(ctx, "error while serving dns server", slog.Any("error", err))
+		}
+	}()
 }

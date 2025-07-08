@@ -24,9 +24,9 @@ RUN apk add --no-cache \
     iproute2 nftables losetup mount umount
 
 # wolfi comes with iptables-legacy as the default, but we want nft only
-RUN for i in iptables iptables-save iptables-restore iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/sbin/$i; done
-RUN for i in iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/bin/$i; done
-
-RUN ln -s /run /var/run
+RUN \
+    for i in iptables iptables-save iptables-restore iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/sbin/$i; done \
+    && for i in iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/bin/$i; done \
+    && ln -s /run /var/run
 
 COPY --from=runc /tools/* /usr/sbin/

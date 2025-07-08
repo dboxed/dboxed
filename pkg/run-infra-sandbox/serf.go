@@ -1,4 +1,4 @@
-package run_infra
+package run_infra_sandbox
 
 import (
 	"bytes"
@@ -8,11 +8,10 @@ import (
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/util"
 	"log/slog"
-	"os"
 	"time"
 )
 
-func (rn *RunInfra) startSerf(ctx context.Context) error {
+func (rn *RunInfraSandbox) startSerf(ctx context.Context) error {
 	rn.serfJoinedIps = map[string]struct{}{}
 
 	serfConfig := serf.DefaultConfig()
@@ -41,7 +40,7 @@ func (rn *RunInfra) startSerf(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunInfra) runSerfJoin(ctx context.Context) error {
+func (rn *RunInfraSandbox) runSerfJoin(ctx context.Context) error {
 	ips, err := rn.getNetbirdPeerIps()
 	if err != nil {
 		return err
@@ -70,7 +69,7 @@ func (rn *RunInfra) runSerfJoin(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunInfra) writeSerfMembersList(ctx context.Context) error {
+func (rn *RunInfraSandbox) writeSerfMembersList(ctx context.Context) error {
 	var sm types.SerfMembers
 	for _, m := range rn.serf.Memberlist().Members() {
 		sm.Members = append(sm.Members, types.SerfNode{
@@ -89,11 +88,7 @@ func (rn *RunInfra) writeSerfMembersList(ctx context.Context) error {
 	}
 	rn.serfMembersFileContent = b
 
-	err = os.WriteFile(types.SerfMembersFile+".tmp", b, 0600)
-	if err != nil {
-		return err
-	}
-	err = os.Rename(types.SerfMembersFile+".tmp", types.SerfMembersFile)
+	err = util.AtomicWriteFile(types.SerfMembersFile, b, 0600)
 	if err != nil {
 		return err
 	}

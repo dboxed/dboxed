@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"fmt"
-	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/moby/sys/user"
 	"github.com/opencontainers/cgroups"
@@ -14,7 +13,21 @@ import (
 )
 
 func (rn *Sandbox) buildMounts(c *types.ContainerSpec) []specs.Mount {
-	var mounts []specs.Mount
+	mounts := []specs.Mount{
+		{
+			Destination: "/proc",
+			Type:        "proc",
+			Source:      "proc",
+			Options:     nil,
+		},
+		{
+			Destination: "/sys",
+			Type:        "sysfs",
+			Source:      "sysfs",
+			Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+		},
+	}
+
 	devMount := specs.Mount{
 		Source:      "tmpfs",
 		Destination: "/dev",
@@ -27,13 +40,18 @@ func (rn *Sandbox) buildMounts(c *types.ContainerSpec) []specs.Mount {
 	}
 	mounts = append(mounts, devMount)
 
+	cgroupsMount := specs.Mount{
+		Destination: "/sys/fs/cgroup",
+		Type:        "cgroup",
+		Source:      "cgroup",
+		Options:     []string{"nosuid", "noexec", "nodev", "relatime"},
+	}
+	if !c.Privileged {
+		cgroupsMount.Options = append(cgroupsMount.Options, "ro")
+	}
+	mounts = append(mounts, cgroupsMount)
+
 	mounts = append(mounts, []specs.Mount{
-		{
-			Destination: "/proc",
-			Type:        "proc",
-			Source:      "proc",
-			Options:     nil,
-		},
 		{
 			Destination: "/dev/pts",
 			Type:        "devpts",
@@ -52,25 +70,20 @@ func (rn *Sandbox) buildMounts(c *types.ContainerSpec) []specs.Mount {
 			Source:      "mqueue",
 			Options:     []string{"nosuid", "noexec", "nodev"},
 		},
-		{
-			Destination: "/sys",
-			Type:        "sysfs",
-			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "ro"},
-		},
-		{
-			Destination: "/sys/fs/cgroup",
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-		},
-		{
-			Destination: logs.RootLogDir,
-			Type:        "bind",
-			Source:      logs.RootLogDir,
-			Options:     []string{"bind"},
-		},
 	}...)
+
+	for _, bm := range c.BindMounts {
+		opts := []string{"rbind"}
+		if bm.Shared {
+			opts = append(opts, "shared")
+		}
+		mounts = append(mounts, specs.Mount{
+			Type:        "rbind",
+			Source:      bm.HostPath,
+			Destination: bm.ContainerPath,
+			Options:     opts,
+		})
+	}
 
 	return mounts
 }
@@ -184,7 +197,6 @@ func (rn *Sandbox) buildOciSpec(c *types.ContainerSpec, image *v1.Image) (*specs
 		{Type: specs.MountNamespace},
 		{Type: specs.UTSNamespace},
 		{Type: specs.IPCNamespace},
-		{Type: specs.PIDNamespace},
 	}
 	if !c.HostNetwork {
 		namespaces = append(namespaces, specs.LinuxNamespace{
@@ -192,7 +204,12 @@ func (rn *Sandbox) buildOciSpec(c *types.ContainerSpec, image *v1.Image) (*specs
 			Path: filepath.Join("/run/netns", rn.network.NetworkNamespaceName),
 		})
 	}
-	if cgroups.IsCgroup2UnifiedMode() {
+	if !c.HostPid {
+		namespaces = append(namespaces, specs.LinuxNamespace{
+			Type: specs.PIDNamespace,
+		})
+	}
+	if !c.HostCgroups && cgroups.IsCgroup2UnifiedMode() {
 		namespaces = append(namespaces, specs.LinuxNamespace{
 			Type: specs.CgroupNamespace,
 		})

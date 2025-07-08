@@ -35,7 +35,18 @@ type ContainerSpec struct {
 	Cmd        []string `json:"cmd,omitempty"`
 	WorkingDir string   `json:"workingDir,omitempty"`
 
+	BindMounts []BindMount `json:"bindMounts"`
+
 	Privileged  bool `json:"privileged"`
 	UseDevTmpFs bool `json:"useDevTmpFs"`
+
 	HostNetwork bool `json:"hostNetwork"`
+	HostPid     bool `json:"hostPid"`
+	HostCgroups bool `json:"hostCgroups"`
+}
+
+type BindMount struct {
+	HostPath      string `json:"hostPath"`
+	ContainerPath string `json:"containerPath"`
+	Shared        bool   `json:"shared"`
 }

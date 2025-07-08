@@ -21,8 +21,8 @@ type Network struct {
 	NetworkNamespaceName string
 	vethNameHost         string
 	vethNamePeer         string
-	hostAddr             netlink.Addr
-	peerAddr             netlink.Addr
+	HostAddr             netlink.Addr
+	PeerAddr             netlink.Addr
 
 	HostNetworkNamespace netns.NsHandle
 	NetworkNamespace     netns.NsHandle
@@ -45,13 +45,13 @@ func (n *Network) initNamesAndIPs() error {
 	if err != nil {
 		return err
 	}
-	n.hostAddr = netlink.Addr{
+	n.HostAddr = netlink.Addr{
 		IPNet: &net.IPNet{
 			IP:   hostIP,
 			Mask: n.Config.VethNetworkCidr.Mask,
 		},
 	}
-	n.peerAddr = netlink.Addr{
+	n.PeerAddr = netlink.Addr{
 		IPNet: &net.IPNet{
 			IP:   peerIP,
 			Mask: n.Config.VethNetworkCidr.Mask,

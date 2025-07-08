@@ -98,7 +98,7 @@ $IPTABLES -t nat -N ${NAME_BASE}-pf-2
 	buf := bytes.NewBuffer(nil)
 	err = t.Execute(buf, map[string]string{
 		"HostInterface": n.vethNameHost,
-		"HostAddr":      n.hostAddr.IPNet.String(),
+		"HostAddr":      n.HostAddr.IPNet.String(),
 	})
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package run_infra
+package run_infra_sandbox
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func (rn *RunInfra) getNetbirdStatus() (*types.NetbirdStatus, error) {
+func (rn *RunInfraSandbox) getNetbirdStatus() (*types.NetbirdStatus, error) {
 	b, err := os.ReadFile(types.NetbirdStatusFile)
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func (rn *RunInfra) getNetbirdStatus() (*types.NetbirdStatus, error) {
 	return &s, nil
 }
 
-func (rn *RunInfra) getNetbirdPeerIps() ([]string, error) {
+func (rn *RunInfraSandbox) getNetbirdPeerIps() ([]string, error) {
 	s, err := rn.getNetbirdStatus()
 	if err != nil {
 		if os.IsNotExist(err) {
