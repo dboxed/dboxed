@@ -2,6 +2,7 @@ package run_box
 
 import (
 	"context"
+	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/koobox/unboxed/pkg/types"
 	"io"
@@ -56,5 +57,10 @@ func (rn *RunBox) retrieveBoxSpecHttp(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("failed to download box spec: status=%d, body=%s", resp.StatusCode, string(b))
+	}
+
 	return b, nil
 }
