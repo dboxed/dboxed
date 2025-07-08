@@ -25,12 +25,12 @@ func (rn *Sandbox) getContainerImageConfig(name string) string {
 	return filepath.Join(rn.getContainerBundleDir(name), "image-config.json")
 }
 
-func (rn *Sandbox) getRuncStateDir() string {
-	return filepath.Join(rn.SandboxDir, "runc-state")
+func getRuncStateDir(sandboxDir string) string {
+	return filepath.Join(sandboxDir, "runc-state")
 }
 
 func (rn *Sandbox) destroyContainers(ctx context.Context) error {
-	stateDir := rn.getRuncStateDir()
+	stateDir := getRuncStateDir(rn.SandboxDir)
 
 	if _, err := os.Stat(stateDir); err != nil {
 		if os.IsNotExist(err) {
@@ -40,7 +40,7 @@ func (rn *Sandbox) destroyContainers(ctx context.Context) error {
 	}
 
 	var l []types.RuncState
-	err := rn.runcJson(ctx, &l, "list", "--format=json")
+	err := RunRuncJson(ctx, rn.SandboxDir, &l, "list", "--format=json")
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (rn *Sandbox) destroyContainer(ctx context.Context, s types.RuncState) erro
 
 	if s.Status != "stopped" {
 		log.InfoContext(ctx, "killing old container")
-		_, err := rn.runc(ctx, false, "kill", s.Id)
+		_, err := RunRunc(ctx, rn.SandboxDir, false, "kill", s.Id)
 		if err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func (rn *Sandbox) destroyContainer(ctx context.Context, s types.RuncState) erro
 			args = append(args, "--force")
 		}
 		args = append(args, s.Id)
-		_, err := rn.runc(ctx, false, args...)
+		_, err := RunRunc(ctx, rn.SandboxDir, false, args...)
 		if err == nil {
 			break
 		}
@@ -113,7 +113,7 @@ func (rn *Sandbox) createContainer(ctx context.Context, c *types.ContainerSpec) 
 		return err
 	}
 
-	_, err = rn.runc(ctx, false, "create", "--bundle", rn.getContainerBundleDir(c.Name), c.Name)
+	_, err = RunRunc(ctx, rn.SandboxDir, false, "create", "--bundle", rn.getContainerBundleDir(c.Name), c.Name)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (rn *Sandbox) createContainer(ctx context.Context, c *types.ContainerSpec) 
 func (rn *Sandbox) startContainer(ctx context.Context, c *types.ContainerSpec) error {
 	slog.InfoContext(ctx, "starting container", slog.Any("name", c.Name))
 
-	_, err := rn.runc(ctx, false, "start", c.Name)
+	_, err := RunRunc(ctx, rn.SandboxDir, false, "start", c.Name)
 	if err != nil {
 		return err
 	}

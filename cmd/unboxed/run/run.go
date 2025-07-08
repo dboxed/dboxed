@@ -24,7 +24,7 @@ var RunCmd = &cobra.Command{
 }
 
 func init() {
-	RunCmd.Flags().StringVar(&workDirArg, "work-dir", "/var/lib/unboxed", "unboxed work dir")
+	RunCmd.Flags().StringVar(&workDirArg, "work-dir", utils.DefaultWorkdir, "unboxed work dir")
 
 	RunCmd.Flags().StringVar(&boxUrlArg, "box-url", "", "box url")
 	RunCmd.Flags().StringVar(&boxFileArg, "box-file", "", "box url")

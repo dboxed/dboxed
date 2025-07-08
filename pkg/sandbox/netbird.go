@@ -55,7 +55,7 @@ func (rn *Sandbox) runNetbirdUp(ctx context.Context) error {
 	args = append(args, "--management-url", rn.BoxSpec.Netbird.ManagementUrl)
 	args = append(args, "--setup-key-file", setupKeyFile)
 
-	_, err = rn.runc(ctx, false, args...)
+	_, err = RunRunc(ctx, rn.SandboxDir, false, args...)
 	if err != nil {
 		return fmt.Errorf("netbird up failed: %w", err)
 	}
@@ -81,7 +81,7 @@ func (rn *Sandbox) runNetbirdStatus(ctx context.Context) error {
 	args = append(args, "exec", "_netbird")
 	args = append(args, "netbird", "status", "--json")
 
-	s, err := rn.runc(ctx, true, args...)
+	s, err := RunRunc(ctx, rn.SandboxDir, true, args...)
 	if err != nil {
 		return fmt.Errorf("netbird status failed: %w", err)
 	}

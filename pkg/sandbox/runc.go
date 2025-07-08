@@ -47,16 +47,14 @@ func (rn *Sandbox) copyRuncFromInfraContainer() error {
 	return nil
 }
 
-func (rn *Sandbox) runc(ctx context.Context, captureStdout bool, args ...string) (string, error) {
-	binPath := filepath.Join(rn.SandboxDir, "runc")
-	stateDir := rn.getRuncStateDir()
+func BuildRuncCmd(ctx context.Context, sandboxDir string, args ...string) (*exec.Cmd, error) {
+	binPath := filepath.Join(sandboxDir, "runc")
+	stateDir := getRuncStateDir(sandboxDir)
 
 	err := os.MkdirAll(stateDir, 0700)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	stdout := bytes.NewBuffer(nil)
 
 	args2 := []string{
 		"--root", stateDir,
@@ -64,12 +62,24 @@ func (rn *Sandbox) runc(ctx context.Context, captureStdout bool, args ...string)
 	args2 = append(args2, args...)
 
 	cmd := exec.CommandContext(ctx, binPath, args2...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd, nil
+}
+
+func RunRunc(ctx context.Context, sandboxDir string, captureStdout bool, args ...string) (string, error) {
+	cmd, err := BuildRuncCmd(ctx, sandboxDir, args...)
+	if err != nil {
+		return "", err
+	}
+
+	stdout := bytes.NewBuffer(nil)
 	if captureStdout {
 		cmd.Stdout = stdout
 	} else {
 		cmd.Stdout = os.Stdout
 	}
-	cmd.Stderr = os.Stderr
+
 	err = cmd.Run()
 	if err != nil {
 		return "", err
@@ -77,8 +87,8 @@ func (rn *Sandbox) runc(ctx context.Context, captureStdout bool, args ...string)
 	return stdout.String(), nil
 }
 
-func (rn *Sandbox) runcJson(ctx context.Context, result any, args ...string) error {
-	stdout, err := rn.runc(ctx, true, args...)
+func RunRuncJson(ctx context.Context, sandboxDir string, result any, args ...string) error {
+	stdout, err := RunRunc(ctx, sandboxDir, true, args...)
 	if err != nil {
 		return err
 	}
