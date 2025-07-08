@@ -11,6 +11,11 @@ import (
 	"text/template"
 )
 
+type Iptables struct {
+	NamesAndIps        NamesAndIps
+	InfraContainerRoot string
+}
+
 // we can't rely on the host iptables binary to be present or functioning, so we enter the sandbox
 // via unshare+chroot, mount some necessary stuff and then perform the iptables inside the sandbox.
 // this will NOT change the network NS, so we actually modify the host iptables
@@ -36,9 +41,9 @@ else
 fi
 `
 
-func (n *Network) runIptablesScript(ctx context.Context, script string) error {
+func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 	script2 := baseScript + "\n"
-	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.buildNameBase()) + "\n"
+	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.NamesAndIps.Base) + "\n"
 	script2 += script
 
 	slog.InfoContext(ctx, "running iptables script:\n"+script2+"\n")
@@ -54,7 +59,7 @@ func (n *Network) runIptablesScript(ctx context.Context, script string) error {
 	return nil
 }
 
-func (n *Network) runPurgeOldRules(ctx context.Context) error {
+func (n *Iptables) runPurgeOldRules(ctx context.Context) error {
 	script := `
 OLD_RULES="$($IPTABLES_SAVE)"
 if echo "$OLD_RULES" | grep "\--comment ${NAME_BASE}" > /dev/null; then
@@ -73,7 +78,7 @@ fi
 	return n.runIptablesScript(ctx, script)
 }
 
-func (n *Network) setupIptables(ctx context.Context) error {
+func (n *Iptables) setupIptables(ctx context.Context) error {
 	log := slog.With()
 	log.InfoContext(ctx, "setting up iptables rules")
 
@@ -97,8 +102,8 @@ $IPTABLES -t nat -N ${NAME_BASE}-pf-2
 	}
 	buf := bytes.NewBuffer(nil)
 	err = t.Execute(buf, map[string]string{
-		"HostInterface": n.vethNameHost,
-		"HostAddr":      n.HostAddr.IPNet.String(),
+		"HostInterface": n.NamesAndIps.VethNameHost,
+		"HostAddr":      n.NamesAndIps.HostAddr.IPNet.String(),
 	})
 	if err != nil {
 		return err

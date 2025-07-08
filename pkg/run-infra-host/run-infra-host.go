@@ -3,6 +3,7 @@ package run_infra_host
 import (
 	"context"
 	dns_proxy "github.com/koobox/unboxed/pkg/dns-proxy"
+	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/sandbox"
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/vishvananda/netns"
@@ -15,6 +16,9 @@ type RunInfraHost struct {
 
 	DnsProxy            *dns_proxy.DnsProxy
 	staticHostsMapBytes []byte
+
+	routesMirror    network.RoutesMirror
+	netbirdRulesFix network.NetbirdRulesFix
 }
 
 func (rn *RunInfraHost) Start(ctx context.Context) error {
@@ -26,11 +30,31 @@ func (rn *RunInfraHost) Start(ctx context.Context) error {
 		return err
 	}
 
+	namesAndIps, err := network.NewNamesAndIPs(rn.conf.NetworkConfig)
+	if err != nil {
+		return err
+	}
+
 	hostNamespace, err := netns.Get()
 	if err != nil {
 		return err
 	}
-	sandboxNamespace, err := netns.GetFromName(rn.conf.NetworkNamespaceName)
+	sandboxNamespace, err := netns.GetFromName(namesAndIps.SandboxNamespaceName)
+	if err != nil {
+		return err
+	}
+
+	rn.routesMirror = network.RoutesMirror{
+		NamesAndIps: namesAndIps,
+	}
+	rn.netbirdRulesFix = network.NetbirdRulesFix{
+		SandboxNetworkNamespace: sandboxNamespace,
+	}
+	err = rn.routesMirror.Start(ctx)
+	if err != nil {
+		return err
+	}
+	err = rn.netbirdRulesFix.Start(ctx)
 	if err != nil {
 		return err
 	}

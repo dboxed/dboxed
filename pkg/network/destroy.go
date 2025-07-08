@@ -10,29 +10,35 @@ import (
 )
 
 func (n *Network) Destroy(ctx context.Context) error {
-	ns, err := netns.GetFromName(n.NetworkNamespaceName)
+	var err error
+	n.NamesAndIps, err = NewNamesAndIPs(n.Config)
+	if err != nil {
+		return err
+	}
+
+	ns, err := netns.GetFromName(n.NamesAndIps.SandboxNamespaceName)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	} else if err == nil {
-		slog.InfoContext(ctx, fmt.Sprintf("deleting network namespace %s", n.NetworkNamespaceName), slog.Any("handle", ns))
-		err = netns.DeleteNamed(n.NetworkNamespaceName)
+		slog.InfoContext(ctx, fmt.Sprintf("deleting network namespace %s", n.NamesAndIps.SandboxNamespaceName), slog.Any("handle", ns))
+		err = netns.DeleteNamed(n.NamesAndIps.SandboxNamespaceName)
 		if err != nil {
 			return err
 		}
 	}
 
-	l, err := netlink.LinkByName(n.vethNameHost)
+	l, err := netlink.LinkByName(n.NamesAndIps.VethNameHost)
 	if err == nil {
-		slog.InfoContext(ctx, fmt.Sprintf("deleting network interface %s", n.vethNameHost))
+		slog.InfoContext(ctx, fmt.Sprintf("deleting network interface %s", n.NamesAndIps.VethNameHost))
 		err = netlink.LinkDel(l)
 		if err != nil {
 			return err
 		}
 	}
 
-	l, err = netlink.LinkByName(n.vethNamePeer)
+	l, err = netlink.LinkByName(n.NamesAndIps.VethNamePeer)
 	if err == nil {
-		slog.InfoContext(ctx, fmt.Sprintf("deleting network interface %s", n.vethNamePeer))
+		slog.InfoContext(ctx, fmt.Sprintf("deleting network interface %s", n.NamesAndIps.VethNamePeer))
 		err = netlink.LinkDel(l)
 		if err != nil {
 			return err

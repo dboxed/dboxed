@@ -6,7 +6,7 @@ type InfraConfig struct {
 	BoxName    string `json:"boxName"`
 	SandboxDir string `json:"sandboxDir"`
 
-	NetworkNamespaceName string `json:"networkNamespaceName"`
+	NetworkConfig NetworkConfig `json:"networkConfig"`
 
 	DnsProxyIP string `json:"dnsProxyIP"`
 }

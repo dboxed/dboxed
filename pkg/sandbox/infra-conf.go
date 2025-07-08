@@ -11,11 +11,11 @@ import (
 
 func (rn *Sandbox) writeInfraConf() error {
 	infraConf := types.InfraConfig{
-		BoxSpec:              *rn.BoxSpec,
-		BoxName:              rn.SandboxName,
-		SandboxDir:           rn.SandboxDir,
-		NetworkNamespaceName: rn.network.NetworkNamespaceName,
-		DnsProxyIP:           rn.network.PeerAddr.IP.String(),
+		BoxSpec:       *rn.BoxSpec,
+		BoxName:       rn.SandboxName,
+		SandboxDir:    rn.SandboxDir,
+		NetworkConfig: rn.network.Config,
+		DnsProxyIP:    rn.network.NamesAndIps.PeerAddr.IP.String(),
 	}
 
 	b, err := json.Marshal(infraConf)

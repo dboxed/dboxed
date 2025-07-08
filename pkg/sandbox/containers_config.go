@@ -201,7 +201,7 @@ func (rn *Sandbox) buildOciSpec(c *types.ContainerSpec, image *v1.Image) (*specs
 	if !c.HostNetwork {
 		namespaces = append(namespaces, specs.LinuxNamespace{
 			Type: specs.NetworkNamespace,
-			Path: filepath.Join("/run/netns", rn.network.NetworkNamespaceName),
+			Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName),
 		})
 	}
 	if !c.HostPid {

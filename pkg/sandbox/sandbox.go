@@ -102,7 +102,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
-		return rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.PeerAddr.IP.String())
+		return rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.NamesAndIps.PeerAddr.IP.String())
 	})
 	if err != nil {
 		return err

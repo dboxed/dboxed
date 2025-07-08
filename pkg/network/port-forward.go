@@ -4,9 +4,18 @@ import (
 	"context"
 	"fmt"
 	"github.com/koobox/unboxed/pkg/types"
+	"sync"
 )
 
-func (n *Network) SetupPortForwards(ctx context.Context, pfs []types.PortForward) error {
+type PortForwards struct {
+	NamesAndIps        NamesAndIps
+	InfraContainerRoot string
+
+	portforwardMutex        sync.Mutex
+	portForwardsIptablesCnt int
+}
+
+func (n *PortForwards) SetupPortForwards(ctx context.Context, pfs []types.PortForward) error {
 	n.portforwardMutex.Lock()
 	defer n.portforwardMutex.Unlock()
 
@@ -39,7 +48,7 @@ func (n *Network) SetupPortForwards(ctx context.Context, pfs []types.PortForward
 		}
 		l += fmt.Sprintf(" --dport %s", dport)
 
-		dest := n.PeerAddr.IP.String()
+		dest := n.NamesAndIps.PeerAddr.IP.String()
 		if pf.DestinationPort != 0 {
 			dest += fmt.Sprintf(":%d", pf.DestinationPort)
 		}
@@ -52,5 +61,10 @@ func (n *Network) SetupPortForwards(ctx context.Context, pfs []types.PortForward
 	script += fmt.Sprintf("$IPTABLES -t nat -D PREROUTING -j %s -m comment --comment ${NAME_PREFIX} || true\n", oldChain)
 	script += fmt.Sprintf("$IPTABLES -t nat -F %s\n", oldChain)
 
-	return n.runIptablesScript(ctx, script)
+	ipt := Iptables{
+		NamesAndIps:        n.NamesAndIps,
+		InfraContainerRoot: n.InfraContainerRoot,
+	}
+
+	return ipt.runIptablesScript(ctx, script)
 }

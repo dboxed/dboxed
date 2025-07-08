@@ -5,14 +5,49 @@ import (
 	"fmt"
 	"github.com/koobox/unboxed/pkg/util"
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 	"log/slog"
+	"net"
 )
 
-// watchAndUpdateRoutes will watch for routes on the host network namespace and create mirrored routes inside the unboxed
+type RoutesMirror struct {
+	NamesAndIps NamesAndIps
+
+	sandboxNamespace netns.NsHandle
+}
+
+func (n *RoutesMirror) Start(ctx context.Context) error {
+	slog.InfoContext(ctx, "starting routes mirror")
+
+	var err error
+	n.sandboxNamespace, err = netns.GetFromName(n.NamesAndIps.SandboxNamespaceName)
+	if err != nil {
+		return err
+	}
+
+	var peerLink netlink.Link
+	err = util.RunInNetNs(n.sandboxNamespace, func() error {
+		var err error
+		peerLink, err = netlink.LinkByName(n.NamesAndIps.VethNamePeer)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	err = n.startWatchAndUpdateRoutes(ctx, peerLink)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// startWatchAndUpdateRoutes will watch for routes on the host network namespace and create mirrored routes inside the unboxed
 // network namespace. Each such route uses the host veth interface as gateway (NAT). A simpler solution would be to just
 // add a single default route, but this would not respect differences in MTUs per host network interface.
-func (n *Network) watchAndUpdateRoutes(ctx context.Context, peerLink netlink.Link) error {
+func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink netlink.Link) error {
 	routeUpdateChan := make(chan netlink.RouteUpdate)
 	err := netlink.RouteSubscribeWithOptions(routeUpdateChan, ctx.Done(), netlink.RouteSubscribeOptions{
 		ListExisting: true,
@@ -41,12 +76,22 @@ func (n *Network) watchAndUpdateRoutes(ctx context.Context, peerLink netlink.Lin
 	return nil
 }
 
-func (n *Network) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerLink netlink.Link) error {
+func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerLink netlink.Link) error {
+	isInternalIp := func(ip net.IP) bool {
+		if n.NamesAndIps.HostAddr.IP.Equal(ip) {
+			return true
+		}
+		if n.NamesAndIps.PeerAddr.IP.Equal(ip) {
+			return true
+		}
+		return false
+	}
+
 	if ru.Dst != nil {
 		if ru.Dst.IP.IsLoopback() {
 			return nil
 		}
-		if n.Config.VethNetworkCidr.Contains(ru.Dst.IP) {
+		if isInternalIp(ru.Dst.IP) {
 			return nil
 		}
 		if ru.Dst.IP.To4() == nil {
@@ -54,12 +99,12 @@ func (n *Network) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerL
 		}
 	}
 	if ru.Src != nil {
-		if n.Config.VethNetworkCidr.Contains(ru.Dst.IP) {
+		if isInternalIp(ru.Src) {
 			return nil
 		}
 	}
 
-	hostIP := n.HostAddr.IP
+	hostIP := n.NamesAndIps.HostAddr.IP
 
 	hostLinks, err := netlink.LinkList()
 	if err != nil {
@@ -97,7 +142,7 @@ func (n *Network) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerL
 			Gw:        hostIP,
 			MTU:       mtu,
 		}
-		err := util.RunInNetNs(n.NetworkNamespace, func() error {
+		err := util.RunInNetNs(n.sandboxNamespace, func() error {
 			return netlink.RouteAdd(&newRoute)
 		})
 		if err != nil {
@@ -116,7 +161,7 @@ func (n *Network) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerL
 			Gw:        hostIP,
 			//MTU:       getMtu(l),
 		}
-		err := util.RunInNetNs(n.NetworkNamespace, func() error {
+		err := util.RunInNetNs(n.sandboxNamespace, func() error {
 			return netlink.RouteDel(&delRoute)
 		})
 		if err != nil {

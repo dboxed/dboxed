@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/koobox/unboxed/pkg/util"
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 	"log/slog"
 	"syscall"
 	"time"
@@ -32,9 +33,13 @@ func getSetupRules() []ruleParams {
 	}
 }
 
-func (n *Network) startFixNetbirdRulesThread(ctx context.Context) {
+type NetbirdRulesFix struct {
+	SandboxNetworkNamespace netns.NsHandle
+}
+
+func (n *NetbirdRulesFix) Start(ctx context.Context) error {
 	go func() {
-		err := util.RunInNetNs(n.NetworkNamespace, func() error {
+		err := util.RunInNetNs(n.SandboxNetworkNamespace, func() error {
 			for {
 				err := n.fixNetbirdRulesOnce(ctx)
 				if err != nil {
@@ -50,9 +55,10 @@ func (n *Network) startFixNetbirdRulesThread(ctx context.Context) {
 			slog.ErrorContext(ctx, "error in fixNetbirdRules", slog.Any("error", err))
 		}
 	}()
+	return nil
 }
 
-func (n *Network) fixNetbirdRulesOnce(ctx context.Context) error {
+func (n *NetbirdRulesFix) fixNetbirdRulesOnce(ctx context.Context) error {
 	for _, r := range getSetupRules() {
 		err := removeRule(r)
 		if err != nil {
