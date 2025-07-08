@@ -37,4 +37,5 @@ type ContainerSpec struct {
 
 	Privileged  bool `json:"privileged"`
 	UseDevTmpFs bool `json:"useDevTmpFs"`
+	HostNetwork bool `json:"hostNetwork"`
 }

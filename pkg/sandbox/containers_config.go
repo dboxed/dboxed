@@ -185,7 +185,12 @@ func (rn *Sandbox) buildOciSpec(c *types.ContainerSpec, image *v1.Image) (*specs
 		{Type: specs.UTSNamespace},
 		{Type: specs.IPCNamespace},
 		{Type: specs.PIDNamespace},
-		{Type: specs.NetworkNamespace, Path: filepath.Join("/run/netns", rn.NetworkNamespaceName)},
+	}
+	if !c.HostNetwork {
+		namespaces = append(namespaces, specs.LinuxNamespace{
+			Type: specs.NetworkNamespace,
+			Path: filepath.Join("/run/netns", rn.network.NetworkNamespaceName),
+		})
 	}
 	if cgroups.IsCgroup2UnifiedMode() {
 		namespaces = append(namespaces, specs.LinuxNamespace{
