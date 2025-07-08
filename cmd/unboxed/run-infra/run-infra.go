@@ -1,4 +1,4 @@
-package main
+package run_infra
 
 import (
 	"context"
@@ -7,16 +7,12 @@ import (
 	"time"
 )
 
-var runInfraCmd = &cobra.Command{
+var RunInfraCmd = &cobra.Command{
 	Use:    "run-infra",
 	Short:  "Run infra",
 	Long:   ``,
 	RunE:   doRunInfra,
 	Hidden: true,
-}
-
-func init() {
-	rootCmd.AddCommand(runInfraCmd)
 }
 
 func doRunInfra(cmd *cobra.Command, args []string) error {

@@ -1,8 +1,8 @@
-package main
+package utils
 
 import "fmt"
 
-func getBoxUrl(urlArg string, fileArg string) (string, error) {
+func GetBoxUrl(urlArg string, fileArg string) (string, error) {
 	if urlArg == "" && fileArg == "" {
 		return "", fmt.Errorf("either --box-url or --box-file must be set")
 	} else if urlArg != "" && fileArg != "" {

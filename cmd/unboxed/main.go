@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/koobox/unboxed/cmd/unboxed/run"
+	run_infra "github.com/koobox/unboxed/cmd/unboxed/run-infra"
+	"github.com/koobox/unboxed/cmd/unboxed/systemd"
 	"github.com/koobox/unboxed/pkg/version"
 	"github.com/spf13/cobra"
 	"log/slog"
@@ -15,6 +18,9 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.AddCommand(run.RunCmd)
+	rootCmd.AddCommand(run_infra.RunInfraCmd)
+	rootCmd.AddCommand(systemd.SystemdCmd)
 }
 
 func Execute() {
