@@ -145,9 +145,13 @@ func (rn *Sandbox) copyUnboxedBinIntoInfraContainer() error {
 	if err != nil {
 		return fmt.Errorf("failed to read unboxed binary from host filesystem: %w", err)
 	}
-	err = os.WriteFile(infraPth, r, 0777)
+	err = os.WriteFile(infraPth+".tmp", r, 0777)
 	if err != nil {
 		return fmt.Errorf("failed to write unboxed binary into infra container: %w", err)
+	}
+	err = os.Rename(infraPth+".tmp", infraPth)
+	if err != nil {
+		return fmt.Errorf("failed to rename unboxed binary: %w", err)
 	}
 	return nil
 }

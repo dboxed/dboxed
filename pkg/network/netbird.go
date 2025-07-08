@@ -1,4 +1,4 @@
-package sandbox
+package network
 
 import (
 	"context"
@@ -32,11 +32,11 @@ func getSetupRules() []ruleParams {
 	}
 }
 
-func (rn *Sandbox) startFixNetbirdRulesThread(ctx context.Context) {
+func (n *Network) startFixNetbirdRulesThread(ctx context.Context) {
 	go func() {
-		err := util.RunInNetNs(rn.NetworkNamespace, func() error {
+		err := util.RunInNetNs(n.NetworkNamespace, func() error {
 			for {
-				err := rn.fixNetbirdRulesOnce(ctx)
+				err := n.fixNetbirdRulesOnce(ctx)
 				if err != nil {
 					slog.WarnContext(ctx, "error in fixNetbirdRules", slog.Any("error", err))
 				}
@@ -52,7 +52,7 @@ func (rn *Sandbox) startFixNetbirdRulesThread(ctx context.Context) {
 	}()
 }
 
-func (rn *Sandbox) fixNetbirdRulesOnce(ctx context.Context) error {
+func (n *Network) fixNetbirdRulesOnce(ctx context.Context) error {
 	for _, r := range getSetupRules() {
 		err := removeRule(r)
 		if err != nil {

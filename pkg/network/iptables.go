@@ -1,11 +1,9 @@
-package sandbox
+package network
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/util"
-	"github.com/vishvananda/netlink"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -38,14 +36,14 @@ else
 fi
 `
 
-func (rn *Sandbox) runIptablesScript(ctx context.Context, script string) error {
+func (n *Network) runIptablesScript(ctx context.Context, script string) error {
 	script2 := baseScript + "\n"
-	script2 += fmt.Sprintf("export NAME_PREFIX='%s'", rn.buildIptablesNamePrefix()) + "\n"
+	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.buildNameBase()) + "\n"
 	script2 += script
 
 	slog.InfoContext(ctx, "running iptables script:\n"+script2+"\n")
 
-	cmd := exec.CommandContext(ctx, "chroot", rn.getContainerRoot("_infra"), "/bin/sh", "-c", script2)
+	cmd := exec.CommandContext(ctx, "chroot", n.InfraContainerRoot, "/bin/sh", "-c", script2)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Unshareflags: syscall.CLONE_NEWNS}
@@ -56,62 +54,55 @@ func (rn *Sandbox) runIptablesScript(ctx context.Context, script string) error {
 	return nil
 }
 
-func (rn *Sandbox) runPurgeOldRules(ctx context.Context) error {
+func (n *Network) runPurgeOldRules(ctx context.Context) error {
 	script := `
 OLD_RULES="$($IPTABLES_SAVE)"
-if echo "$OLD_RULES" | grep "\--comment ${NAME_PREFIX}" > /dev/null; then
+if echo "$OLD_RULES" | grep "\--comment ${NAME_BASE}" > /dev/null; then
   echo "purging old unboxed iptables rules"
-  echo "$OLD_RULES" | grep -v "\--comment ${NAME_PREFIX}" | $IPTABLES_RESTORE
+  echo "$OLD_RULES" | grep -v "\--comment ${NAME_BASE}" | $IPTABLES_RESTORE
 fi
-if echo "$OLD_RULES" | grep "^:${NAME_PREFIX}-pf-1" > /dev/null; then
-  $IPTABLES -t nat -F ${NAME_PREFIX}-pf-1
-  $IPTABLES -t nat -X ${NAME_PREFIX}-pf-1
+if echo "$OLD_RULES" | grep "^:${NAME_BASE}-pf-1" > /dev/null; then
+  $IPTABLES -t nat -F ${NAME_BASE}-pf-1
+  $IPTABLES -t nat -X ${NAME_BASE}-pf-1
 fi
-if echo "$OLD_RULES" | grep "^:${NAME_PREFIX}-pf-2" > /dev/null; then
-  $IPTABLES -t nat -F ${NAME_PREFIX}-pf-2
-  $IPTABLES -t nat -X ${NAME_PREFIX}-pf-2
+if echo "$OLD_RULES" | grep "^:${NAME_BASE}-pf-2" > /dev/null; then
+  $IPTABLES -t nat -F ${NAME_BASE}-pf-2
+  $IPTABLES -t nat -X ${NAME_BASE}-pf-2
 fi
 `
-	return rn.runIptablesScript(ctx, script)
+	return n.runIptablesScript(ctx, script)
 }
 
-func (rn *Sandbox) setupIptables(ctx context.Context, hostAddr netlink.Addr) error {
+func (n *Network) setupIptables(ctx context.Context) error {
 	log := slog.With()
 	log.InfoContext(ctx, "setting up iptables rules")
 
-	err := rn.runPurgeOldRules(ctx)
+	err := n.runPurgeOldRules(ctx)
 	if err != nil {
 		return err
 	}
 
 	t, err := template.New("").Parse(`
-COMMENT="-m comment --comment ${NAME_PREFIX}"
+COMMENT="-m comment --comment ${NAME_BASE}"
 
 $IPTABLES $COMMENT -A FORWARD -o {{ .HostInterface }} -j ACCEPT
 $IPTABLES $COMMENT -A FORWARD -i {{ .HostInterface }} -j ACCEPT
 $IPTABLES $COMMENT -t nat -A POSTROUTING -s {{ .HostAddr }} -j MASQUERADE
 
-$IPTABLES -t nat -N ${NAME_PREFIX}-pf-1
-$IPTABLES -t nat -N ${NAME_PREFIX}-pf-2
+$IPTABLES -t nat -N ${NAME_BASE}-pf-1
+$IPTABLES -t nat -N ${NAME_BASE}-pf-2
 `)
 	if err != nil {
 		return err
 	}
 	buf := bytes.NewBuffer(nil)
 	err = t.Execute(buf, map[string]string{
-		"HostInterface": rn.vethNameHost,
-		"HostAddr":      hostAddr.IPNet.String(),
+		"HostInterface": n.vethNameHost,
+		"HostAddr":      n.hostAddr.IPNet.String(),
 	})
 	if err != nil {
 		return err
 	}
 
-	return rn.runIptablesScript(ctx, buf.String())
-}
-
-func (rn *Sandbox) buildIptablesNamePrefix() string {
-	h := util.Sha256Sum([]byte(rn.SandboxName))
-	h = h[:6]
-
-	return fmt.Sprintf("ub-%s", h)
+	return n.runIptablesScript(ctx, buf.String())
 }

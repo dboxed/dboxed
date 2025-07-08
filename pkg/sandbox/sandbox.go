@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/koobox/unboxed/pkg/dns-proxy"
 	"github.com/koobox/unboxed/pkg/logs"
+	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/types"
 	net2 "github.com/koobox/unboxed/pkg/util/net"
 	"github.com/koobox/unboxed/pkg/version"
-	"github.com/vishvananda/netns"
 	"net"
 	"os"
 	"path/filepath"
@@ -26,35 +26,19 @@ type Sandbox struct {
 	infraContainerSpec   *types.ContainerSpec
 
 	VethNetworkCidr *net.IPNet
-
-	HostNetworkNamespace netns.NsHandle
-
-	NetworkNamespaceName string
-	NetworkNamespace     netns.NsHandle
-
-	PortForwardsIptablesCnt int
-	PortForwardsHash        string
-
-	vethNameHost string
-	vethNamePeer string
+	network         *network.Network
 
 	DnsProxy            *dns_proxy.DnsProxy
 	staticHostsMapBytes []byte
 }
 
 func (rn *Sandbox) Start(ctx context.Context) error {
-	rn.initNetworkNames()
-
 	err := os.MkdirAll(filepath.Join(rn.SandboxDir, "containers"), 0700)
 	if err != nil {
 		return err
 	}
 
 	err = rn.destroyContainers(ctx)
-	if err != nil {
-		return err
-	}
-	err = rn.destroyNetworking(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,6 +50,17 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	err = rn.pullImages(ctx)
+	if err != nil {
+		return err
+	}
+
+	networkConfig := rn.buildNetworkConfig()
+	rn.network = &network.Network{
+		Config:             networkConfig,
+		InfraContainerRoot: rn.getContainerRoot("_infra"),
+	}
+
+	err = rn.network.Setup(ctx)
 	if err != nil {
 		return err
 	}
@@ -97,18 +92,13 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return rn.writeMiscFiles(c)
 	})
 
-	err = rn.setupNetworking(ctx)
-	if err != nil {
-		return err
-	}
-
 	dnsListenIp, err := net2.GetIndexedIP(rn.VethNetworkCidr, 1)
 	if err != nil {
 		return err
 	}
 	rn.DnsProxy = &dns_proxy.DnsProxy{
-		ListenNamespace: rn.NetworkNamespace,
-		QueryNamespace:  rn.HostNetworkNamespace,
+		ListenNamespace: rn.network.NetworkNamespace,
+		QueryNamespace:  rn.network.HostNetworkNamespace,
 		ListenIP:        dnsListenIp,
 	}
 
@@ -146,6 +136,13 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	go rn.runSerfStaticHosts(ctx)
 
 	return nil
+}
+
+func (rn *Sandbox) buildNetworkConfig() types.NetworkConfig {
+	return types.NetworkConfig{
+		SandboxName:     rn.SandboxName,
+		VethNetworkCidr: rn.VethNetworkCidr,
+	}
 }
 
 func (rn *Sandbox) buildInfraContainerSpec() *types.ContainerSpec {
