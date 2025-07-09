@@ -17,6 +17,7 @@ func (rn *Sandbox) buildNetbirdContainerSpec() (types.ContainerSpec, error) {
 
 	var entrypoint []string
 	entrypoint = append(entrypoint, "netbird", "service", "run")
+	entrypoint = append(entrypoint, "--log-file", "/dev/stdout")
 
 	var env []string
 	env = append(env, "NB_FOREGROUND_MODE=false")

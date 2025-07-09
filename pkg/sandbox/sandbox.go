@@ -3,7 +3,6 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/version"
@@ -62,11 +61,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	err = rn.network.Setup(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(logs.RootLogDir, 0700)
 	if err != nil {
 		return err
 	}

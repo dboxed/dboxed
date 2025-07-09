@@ -142,8 +142,7 @@ func (rn *Sandbox) buildProcessSpec(c *types.ContainerSpec, image *v1.Image) (*s
 	env = append(env, image.Config.Env...)
 	env = append(env, c.Env...)
 
-	env = append(env, fmt.Sprintf("UNBOXED_STDOUT_FILE=%s", filepath.Join(logsInContainerDir, "stdout.log")))
-	env = append(env, fmt.Sprintf("UNBOXED_STDERR_FILE=%s", filepath.Join(logsInContainerDir, "stderr.log")))
+	env = append(env, fmt.Sprintf("UNBOXED_LOG_FILE=%s", filepath.Join(logsInContainerDir, "logs.json")))
 
 	entrypoint := image.Config.Entrypoint
 	if c.Entrypoint != nil {

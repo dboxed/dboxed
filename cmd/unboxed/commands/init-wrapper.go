@@ -3,7 +3,7 @@ package commands
 import (
 	"context"
 	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/koobox/unboxed/pkg/logs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -43,35 +43,25 @@ func (cmd *InitWrapperCmd) Run(g *flags.GlobalFlags) error {
 		}()
 	}
 
-	stdoutFile := os.Getenv("UNBOXED_STDOUT_FILE")
-	stderrFile := os.Getenv("UNBOXED_STDERR_FILE")
-	_ = os.Unsetenv("UNBOXED_STDOUT_FILE")
-	_ = os.Unsetenv("UNBOXED_STDERR_FILE")
+	logFile := os.Getenv("UNBOXED_LOG_FILE")
+	_ = os.Unsetenv("UNBOXED_LOG_FILE")
 
 	slog.InfoContext(ctx, "in init-wrapper",
-		slog.Any("stdoutFile", stdoutFile),
-		slog.Any("stderrFile", stderrFile),
+		slog.Any("logFile", logFile),
 	)
 
-	stdout := &lumberjack.Logger{
-		Filename:   stdoutFile,
-		MaxSize:    100,
-		MaxBackups: 3,
-		MaxAge:     7,
-		Compress:   true,
-	}
-	stderr := &lumberjack.Logger{
-		Filename:   stderrFile,
-		MaxSize:    100,
-		MaxBackups: 3,
-		MaxAge:     7,
-		Compress:   true,
-	}
+	logRot := logs.BuildRotatingLogger(logFile)
+
+	stdout := logs.NewJsonFileLogger(logRot, "stdout")
+	stderr := logs.NewJsonFileLogger(logRot, "stderr")
 
 	c := exec.CommandContext(ctx, cmd.Args[0], cmd.Args[1:]...)
 	c.Stdout = stdout
 	c.Stderr = stderr
 	c.Stdin = os.Stdin
 
-	return c.Run()
+	err := c.Run()
+	_ = stdout.Wait()
+	_ = stderr.Wait()
+	return err
 }

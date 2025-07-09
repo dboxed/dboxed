@@ -16,6 +16,7 @@ type Cli struct {
 	Start   commands.StartCmd   `cmd:"" help:"Download, unpack and start a box"`
 	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control unboxed systemd integration"`
 	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
+	Logs    commands.LogsCmd    `cmd:"" help:"Show container logs"`
 
 	InitWrapper     commands.InitWrapperCmd     `cmd:"" help:"internal command" hidden:""`
 	RunInfraHost    commands.RunInfraHostCmd    `cmd:"" help:"internal command" hidden:""`

@@ -1,22 +1,11 @@
 package logs
 
 import (
-	"fmt"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
-	"os"
-	"path/filepath"
 )
 
-const RootLogDir = "/var/log/unboxed"
-
-func BuildRotatingLogger(name string) (io.WriteCloser, error) {
-	err := os.MkdirAll(RootLogDir, 0700)
-	if err != nil {
-		return nil, err
-	}
-
-	logFile := filepath.Join(RootLogDir, fmt.Sprintf("%s.log", name))
+func BuildRotatingLogger(logFile string) io.WriteCloser {
 	l := &lumberjack.Logger{
 		Filename:   logFile,
 		MaxSize:    100,
@@ -24,5 +13,5 @@ func BuildRotatingLogger(name string) (io.WriteCloser, error) {
 		MaxAge:     7,
 		Compress:   true,
 	}
-	return l, nil
+	return l
 }
