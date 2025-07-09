@@ -28,7 +28,7 @@ func (s *SystemdInstall) Run(ctx context.Context) error {
 
 	serviceName := fmt.Sprintf("unboxed-%s", s.BoxName)
 	systemdUnitContent := units.GetUnboxedUnit(s.BoxName)
-	err = os.WriteFile(fmt.Sprintf("/etc/systemd/system/%s.service", serviceName), []byte(systemdUnitContent), 0600)
+	err = os.WriteFile(fmt.Sprintf("/etc/systemd/system/%s.service", serviceName), []byte(systemdUnitContent), 0644)
 	if err != nil {
 		return err
 	}
