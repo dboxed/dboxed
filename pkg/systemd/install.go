@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/koobox/unboxed/pkg/systemd/units"
+	"net/url"
 	"os"
 	"os/exec"
 )
 
 type SystemdInstall struct {
-	BoxUrl  string
+	BoxUrl  *url.URL
 	BoxName string
 }
 

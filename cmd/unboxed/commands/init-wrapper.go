@@ -1,7 +1,8 @@
-package init_wrapper
+package commands
 
 import (
-	"github.com/spf13/cobra"
+	"context"
+	"github.com/koobox/unboxed/cmd/unboxed/flags"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"log/slog"
 	"os"
@@ -10,13 +11,8 @@ import (
 	"syscall"
 )
 
-var InitWrapperCmd = &cobra.Command{
-	Use:                "init-wrapper",
-	Short:              "",
-	Long:               ``,
-	Hidden:             true,
-	DisableFlagParsing: true,
-	RunE:               runInitWrapper,
+type InitWrapperCmd struct {
+	Args []string `arg:"" optional:"" passthrough:""`
 }
 
 func waitPidLoop() {
@@ -29,8 +25,8 @@ func waitPidLoop() {
 	}
 }
 
-func runInitWrapper(cmd *cobra.Command, args []string) error {
-	ctx := cmd.Context()
+func (cmd *InitWrapperCmd) Run(g *flags.GlobalFlags) error {
+	ctx := context.Background()
 
 	if os.Getpid() == 1 {
 		waitPidLoop()
@@ -72,7 +68,7 @@ func runInitWrapper(cmd *cobra.Command, args []string) error {
 		Compress:   true,
 	}
 
-	c := exec.CommandContext(ctx, args[0], args[1:]...)
+	c := exec.CommandContext(ctx, cmd.Args[0], cmd.Args[1:]...)
 	c.Stdout = stdout
 	c.Stderr = stderr
 	c.Stdin = os.Stdin

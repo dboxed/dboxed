@@ -3,8 +3,8 @@ module github.com/koobox/unboxed
 go 1.24.3
 
 require (
+	github.com/alecthomas/kong v1.12.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-containerregistry v0.20.6
 	github.com/hashicorp/serf v0.10.2
 	github.com/klauspost/compress v1.18.0
@@ -15,7 +15,6 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/rootless-containers/rootlesskit v1.1.1
-	github.com/spf13/cobra v1.9.1
 	github.com/vishvananda/netlink v1.3.0
 	github.com/vishvananda/netns v0.0.4
 	golang.org/x/sys v0.33.0
@@ -42,7 +41,6 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.5 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/memberlist v0.5.2 // indirect
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
@@ -52,7 +50,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/mod v0.25.0 // indirect

@@ -2,31 +2,24 @@ package main
 
 import (
 	"fmt"
-	pid1_init "github.com/koobox/unboxed/cmd/unboxed/init-wrapper"
-	run_infra_host "github.com/koobox/unboxed/cmd/unboxed/run-infra-host"
-	run_infra_sandbox "github.com/koobox/unboxed/cmd/unboxed/run-infra-sandbox"
-	"github.com/koobox/unboxed/cmd/unboxed/runc"
-	"github.com/koobox/unboxed/cmd/unboxed/start"
-	"github.com/koobox/unboxed/cmd/unboxed/systemd"
+	"github.com/alecthomas/kong"
+	"github.com/koobox/unboxed/cmd/unboxed/commands"
+	"github.com/koobox/unboxed/cmd/unboxed/flags"
 	"github.com/koobox/unboxed/pkg/version"
-	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "unboxed",
-	Short: "",
-	Long:  ``,
-}
+type Cli struct {
+	flags.GlobalFlags
 
-func init() {
-	rootCmd.AddCommand(pid1_init.InitWrapperCmd)
-	rootCmd.AddCommand(start.StartCmd)
-	rootCmd.AddCommand(run_infra_sandbox.RunInfraSandboxCmd)
-	rootCmd.AddCommand(run_infra_host.RunInfraHostCmd)
-	rootCmd.AddCommand(systemd.SystemdCmd)
-	rootCmd.AddCommand(runc.RuncCmd)
+	Start   commands.StartCmd   `cmd:"" help:"Download, unpack and start a box"`
+	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control unboxed systemd integration"`
+	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
+
+	InitWrapper     commands.InitWrapperCmd     `cmd:"" help:"internal command" hidden:""`
+	RunInfraHost    commands.RunInfraHostCmd    `cmd:"" help:"internal command" hidden:""`
+	RunInfraSandbox commands.RunInfraSandboxCmd `cmd:"" help:"internal command" hidden:""`
 }
 
 func Execute() {
@@ -35,7 +28,19 @@ func Execute() {
 	})
 	slog.SetDefault(slog.New(handler))
 
-	if err := rootCmd.Execute(); err != nil {
+	cli := &Cli{}
+
+	ctx := kong.Parse(cli,
+		kong.Name("unboxed"),
+		kong.Description("A simple container orchestrator."),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+			Summary: true,
+		}))
+
+	err := ctx.Run(&cli.GlobalFlags)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

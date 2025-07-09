@@ -7,25 +7,20 @@ import (
 	"github.com/koobox/unboxed/pkg/types"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
 
 func (rn *StartBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error) {
-	u, err := url.Parse(rn.BoxUrl)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	var b []byte
-	if u.Scheme == "file" {
-		b, err = os.ReadFile(filepath.FromSlash(u.Path))
+	if rn.BoxUrl.Scheme == "file" {
+		b, err = os.ReadFile(filepath.FromSlash(rn.BoxUrl.Path))
 		if err != nil {
 			return nil, err
 		}
-	} else if u.Scheme == "http" || u.Scheme == "https" {
+	} else if rn.BoxUrl.Scheme == "http" || rn.BoxUrl.Scheme == "https" {
 		b, err = rn.retrieveBoxSpecHttp(ctx)
 		if err != nil {
 			return nil, err
@@ -42,7 +37,7 @@ func (rn *StartBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error)
 }
 
 func (rn *StartBox) retrieveBoxSpecHttp(ctx context.Context) ([]byte, error) {
-	req, err := http.NewRequest("GET", rn.BoxUrl, nil)
+	req, err := http.NewRequest("GET", rn.BoxUrl.String(), nil)
 	if err != nil {
 		return nil, err
 	}

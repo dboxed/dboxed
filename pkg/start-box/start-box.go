@@ -9,13 +9,14 @@ import (
 	"github.com/rootless-containers/rootlesskit/pkg/parent/cgrouputil"
 	"log/slog"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 )
 
 type StartBox struct {
-	BoxUrl          string
+	BoxUrl          *url.URL
 	BoxName         string
 	WorkDir         string
 	VethNetworkCidr *net.IPNet

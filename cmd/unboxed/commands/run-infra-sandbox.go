@@ -1,24 +1,19 @@
-package run_infra_sandbox
+package commands
 
 import (
 	"context"
+	"github.com/koobox/unboxed/cmd/unboxed/flags"
 	run_infra "github.com/koobox/unboxed/pkg/run-infra-sandbox"
-	"github.com/spf13/cobra"
 	"time"
 )
 
-var RunInfraSandboxCmd = &cobra.Command{
-	Use:    "run-infra-sandbox",
-	Short:  "Run infra inside sandbox",
-	Long:   ``,
-	RunE:   doRunInfraSandbox,
-	Hidden: true,
+type RunInfraSandboxCmd struct {
 }
 
-func doRunInfraSandbox(cmd *cobra.Command, args []string) error {
+func (cmd *RunInfraSandboxCmd) Run(g *flags.GlobalFlags) error {
 	runInfraSandbox := run_infra.RunInfraSandbox{}
 
-	ctx := cmd.Context()
+	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
