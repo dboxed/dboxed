@@ -46,7 +46,7 @@ func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.NamesAndIps.Base) + "\n"
 	script2 += script
 
-	slog.InfoContext(ctx, "running iptables script:\n"+script2+"\n")
+	slog.DebugContext(ctx, "running iptables script:\n"+script2+"\n")
 
 	cmd := exec.CommandContext(ctx, "chroot", n.InfraContainerRoot, "/bin/sh", "-c", script2)
 	cmd.Stdout = os.Stdout
