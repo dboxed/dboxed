@@ -120,9 +120,6 @@ func (rn *Sandbox) createContainer(ctx context.Context, c *types.ContainerSpec) 
 	if err != nil {
 		return err
 	}
-
-	slog.InfoContext(ctx, "container created", slog.Any("name", c.Name))
-
 	return nil
 }
 
@@ -133,7 +130,6 @@ func (rn *Sandbox) startContainer(ctx context.Context, c *types.ContainerSpec) e
 	if err != nil {
 		return err
 	}
-	slog.InfoContext(ctx, "container is running", slog.Any("name", c.Name))
 	return nil
 }
 

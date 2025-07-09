@@ -1,4 +1,4 @@
-package run_box
+package start_box
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"runtime"
 )
 
-type RunBox struct {
+type StartBox struct {
 	BoxUrl          string
 	BoxName         string
 	WorkDir         string
@@ -25,7 +25,7 @@ type RunBox struct {
 	sandbox *sandbox.Sandbox
 }
 
-func (rn *RunBox) Start(ctx context.Context) error {
+func (rn *StartBox) Start(ctx context.Context) error {
 	// Lock the OS Thread so we don't accidentally switch namespaces
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

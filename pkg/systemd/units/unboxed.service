@@ -5,7 +5,8 @@ After=network.target local-fs.target
 
 [Service]
 EnvironmentFile=/etc/unboxed/box-url.env
-ExecStart=/usr/local/bin/unboxed run --box-url $UNBOXED_BOX_URL --box-name {{ .BoxName }}
+ExecStart=/usr/local/bin/unboxed start --box-url $UNBOXED_BOX_URL --box-name {{ .BoxName }}
+RemainAfterExit=yes
 
 Type=simple
 Delegate=yes

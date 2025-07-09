@@ -80,7 +80,29 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		err = rn.copyUnboxedBinIntoContainer(c.Name)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
+		err := rn.copyUnboxedBinIntoContainer(c.Name)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(filepath.Join(rn.getContainerBundleDir(c.Name), "logs"), 0700)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(filepath.Join(rn.getContainerRoot(c.Name), logsInContainerDir), 0700)
+		if err != nil {
+			return err
+		}
+		err = rn.writeMiscFiles(c)
+		if err != nil {
+			return err
+		}
+		err = rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.NamesAndIps.PeerAddr.IP.String())
 		if err != nil {
 			return err
 		}
@@ -89,21 +111,8 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
-		return rn.writeMiscFiles(c)
-	})
-	if err != nil {
-		return err
-	}
 
 	err = rn.writeInfraConf()
-	if err != nil {
-		return err
-	}
-
-	err = rn.forAllContainers(func(c *types.ContainerSpec) error {
-		return rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.NamesAndIps.PeerAddr.IP.String())
-	})
 	if err != nil {
 		return err
 	}

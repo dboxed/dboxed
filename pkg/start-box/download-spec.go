@@ -1,4 +1,4 @@
-package run_box
+package start_box
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func (rn *RunBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error) {
+func (rn *StartBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error) {
 	u, err := url.Parse(rn.BoxUrl)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (rn *RunBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error) {
 	return &boxFile.Spec, nil
 }
 
-func (rn *RunBox) retrieveBoxSpecHttp(ctx context.Context) ([]byte, error) {
+func (rn *StartBox) retrieveBoxSpecHttp(ctx context.Context) ([]byte, error) {
 	req, err := http.NewRequest("GET", rn.BoxUrl, nil)
 	if err != nil {
 		return nil, err

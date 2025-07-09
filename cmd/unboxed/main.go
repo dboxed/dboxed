@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/koobox/unboxed/cmd/unboxed/run"
+	pid1_init "github.com/koobox/unboxed/cmd/unboxed/init-wrapper"
 	run_infra_host "github.com/koobox/unboxed/cmd/unboxed/run-infra-host"
 	run_infra_sandbox "github.com/koobox/unboxed/cmd/unboxed/run-infra-sandbox"
 	"github.com/koobox/unboxed/cmd/unboxed/runc"
+	"github.com/koobox/unboxed/cmd/unboxed/start"
 	"github.com/koobox/unboxed/cmd/unboxed/systemd"
 	"github.com/koobox/unboxed/pkg/version"
 	"github.com/spf13/cobra"
@@ -20,7 +21,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(run.RunCmd)
+	rootCmd.AddCommand(pid1_init.InitWrapperCmd)
+	rootCmd.AddCommand(start.StartCmd)
 	rootCmd.AddCommand(run_infra_sandbox.RunInfraSandboxCmd)
 	rootCmd.AddCommand(run_infra_host.RunInfraHostCmd)
 	rootCmd.AddCommand(systemd.SystemdCmd)

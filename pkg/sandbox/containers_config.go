@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+const logsInContainerDir = "/var/lib/unboxed/logs"
+
 func (rn *Sandbox) buildMounts(c *types.ContainerSpec) []specs.Mount {
 	mounts := []specs.Mount{
 		{
@@ -85,6 +87,13 @@ func (rn *Sandbox) buildMounts(c *types.ContainerSpec) []specs.Mount {
 		})
 	}
 
+	mounts = append(mounts, specs.Mount{
+		Type:        "bind",
+		Source:      filepath.Join(rn.getContainerBundleDir(c.Name), "logs"),
+		Destination: logsInContainerDir,
+		Options:     []string{"bind"},
+	})
+
 	return mounts
 }
 
@@ -133,10 +142,16 @@ func (rn *Sandbox) buildProcessSpec(c *types.ContainerSpec, image *v1.Image) (*s
 	env = append(env, image.Config.Env...)
 	env = append(env, c.Env...)
 
+	env = append(env, fmt.Sprintf("UNBOXED_STDOUT_FILE=%s", filepath.Join(logsInContainerDir, "stdout.log")))
+	env = append(env, fmt.Sprintf("UNBOXED_STDERR_FILE=%s", filepath.Join(logsInContainerDir, "stderr.log")))
+
 	entrypoint := image.Config.Entrypoint
 	if c.Entrypoint != nil {
 		entrypoint = c.Entrypoint
 	}
+
+	entrypoint = append([]string{"/bin/unboxed", "init-wrapper"}, entrypoint...)
+
 	cmd := image.Config.Cmd
 	if c.Cmd != nil {
 		cmd = c.Cmd
@@ -175,7 +190,7 @@ func (rn *Sandbox) buildProcessSpec(c *types.ContainerSpec, image *v1.Image) (*s
 		Args:            args,
 		Env:             env,
 		Cwd:             workingDir,
-		NoNewPrivileges: false,
+		NoNewPrivileges: !c.Privileged,
 		Capabilities: &specs.LinuxCapabilities{
 			Bounding:  caps,
 			Permitted: caps,

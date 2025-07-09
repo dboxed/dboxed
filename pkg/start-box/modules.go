@@ -1,4 +1,4 @@
-package run_box
+package start_box
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-func (rn *RunBox) loadModules(ctx context.Context) {
+func (rn *StartBox) loadModules(ctx context.Context) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -19,7 +19,7 @@ func (rn *RunBox) loadModules(ctx context.Context) {
 	rn.loadModule(ctx, "nbd")
 }
 
-func (rn *RunBox) loadModule(ctx context.Context, name string) {
+func (rn *StartBox) loadModule(ctx context.Context, name string) {
 	// first try it while assuming that /lib/modules is usable
 	// (e.g. because we're bare-metal or inside a container with /lib/modules host mounted)
 	err := rn.runModprobeCmd(ctx, name, false)
@@ -35,7 +35,7 @@ func (rn *RunBox) loadModule(ctx context.Context, name string) {
 	slog.WarnContext(ctx, "modprobe with nsenter failed as well", slog.Any("error", err))
 }
 
-func (rn *RunBox) runModprobeCmd(ctx context.Context, name string, pid1Namespace bool) error {
+func (rn *StartBox) runModprobeCmd(ctx context.Context, name string, pid1Namespace bool) error {
 	cmd := exec.CommandContext(ctx, "modprobe", name)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
