@@ -2,7 +2,6 @@ package run_infra_sandbox
 
 import (
 	"context"
-	"github.com/hashicorp/serf/serf"
 	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/sandbox"
 	"github.com/koobox/unboxed/pkg/types"
@@ -11,10 +10,6 @@ import (
 
 type RunInfraSandbox struct {
 	conf *types.InfraConfig
-
-	serf                   *serf.Serf
-	serfJoinedIps          map[string]struct{}
-	serfMembersFileContent []byte
 }
 
 func (rn *RunInfraSandbox) Start(ctx context.Context) error {
@@ -25,13 +20,8 @@ func (rn *RunInfraSandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	
-	err = network.WaitForInterface(ctx, "wt0")
-	if err != nil {
-		return err
-	}
 
-	err = rn.startSerf(ctx)
+	err = network.WaitForInterface(ctx, "wt0")
 	if err != nil {
 		return err
 	}

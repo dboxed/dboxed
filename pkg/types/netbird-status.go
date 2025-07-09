@@ -3,6 +3,7 @@ package types
 import "time"
 
 type NetbirdStatus struct {
+	Name      string `json:"name"`
 	NetbirdIp string `json:"netbirdIp"`
 
 	Peers NetbirdPeers `json:"peers"`
@@ -15,6 +16,7 @@ type NetbirdPeers struct {
 }
 
 type NetbirdPeerStatus struct {
+	Name                   string    `json:"name"`
 	FQDN                   string    `json:"fqdn"`
 	NetbirdIp              string    `json:"netbirdIp"`
 	PublicKey              string    `json:"publicKey"`

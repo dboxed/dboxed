@@ -2,6 +2,7 @@ package run_infra_host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/koobox/unboxed/pkg/sandbox"
 	"github.com/koobox/unboxed/pkg/types"
@@ -57,28 +58,16 @@ func (rn *RunInfraHost) runNetbirdUp(ctx context.Context) error {
 	return err
 }
 
-func (rn *RunInfraHost) runNetbirdStatusLoop(ctx context.Context) {
-	for {
-		err := rn.runNetbirdStatus(ctx)
-		if err != nil {
-			slog.ErrorContext(ctx, "error in runNetbirdStatusLoop", slog.Any("error", err))
-		}
-		if !util.SleepWithContext(ctx, 5*time.Second) {
-			return
-		}
-	}
-}
-
-func (rn *RunInfraHost) runNetbirdStatus(ctx context.Context) error {
+func (rn *RunInfraHost) runNetbirdStatus(ctx context.Context) (*types.NetbirdStatus, error) {
 	s, err := rn.runNetbirdCli(ctx, true, "status", "--json")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = util.AtomicWriteFile(types.NetbirdStatusFile, []byte(s), 0600)
+	var ret types.NetbirdStatus
+	err = json.Unmarshal([]byte(s), &ret)
 	if err != nil {
-		return fmt.Errorf("failed to write netbird status into shared dir: %w", err)
+		return nil, err
 	}
-
-	return nil
+	return &ret, nil
 }

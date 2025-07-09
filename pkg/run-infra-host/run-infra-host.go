@@ -14,8 +14,8 @@ import (
 type RunInfraHost struct {
 	conf *types.InfraConfig
 
-	DnsProxy            *dns_proxy.DnsProxy
-	staticHostsMapBytes []byte
+	DnsProxy          *dns_proxy.DnsProxy
+	olsStaticHostsMap map[string]string
 
 	routesMirror    network.RoutesMirror
 	netbirdRulesFix network.NetbirdRulesFix
@@ -81,8 +81,7 @@ func (rn *RunInfraHost) Start(ctx context.Context) error {
 		return err
 	}
 
-	go rn.runNetbirdStatusLoop(ctx)
-	go rn.runSerfStaticHosts(ctx)
+	go rn.runNetbirdStatusToDns(ctx)
 
 	return nil
 }
