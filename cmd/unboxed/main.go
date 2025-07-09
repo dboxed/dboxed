@@ -5,7 +5,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/koobox/unboxed/cmd/unboxed/commands"
 	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	"github.com/koobox/unboxed/pkg/version"
+	versionpkg "github.com/koobox/unboxed/pkg/version"
 	"log/slog"
 	"os"
 )
@@ -46,13 +46,14 @@ func Execute() {
 	}
 }
 
-var Version = ""
+// set via ldflags
+var version = ""
 
 func main() {
 	// was it set via -ldflags -X
 	if //goland:noinspection ALL
-	Version != "" {
-		version.Version = Version
+	version != "" {
+		versionpkg.Version = version
 	}
 
 	Execute()

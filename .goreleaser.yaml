@@ -3,23 +3,19 @@ version: 2
 pro: true
 
 builds:
-  - builder: prebuilt
+  - id: unboxed
     goos:
       - linux
     goarch:
       - amd64
       - arm64
+    main: ./cmd/unboxed
     binary: bin/unboxed
-    prebuilt:
-      path: build/unboxed_{{ .Os }}_{{ .Arch }}
-    hooks:
-      pre:
-        - cmd: pwd
-          output: true
-        - cmd: docker build -t unboxed-builder-{{ .Os }}-{{ .Arch }}-{{ .Version | tolower }} --platform {{ .Os }}/{{ .Arch }} --build-arg VERSION={{ .Version }} -f Dockerfile.build .
-          output: true
-        - cmd: mkdir -p build
-        - cmd: sh -c "docker run --platform {{ .Os }}/{{ .Arch }} --rm --entrypoint /bin/cat unboxed-builder-{{ .Os }}-{{ .Arch }}-{{ .Version | tolower }} /unboxed > build/unboxed_{{ .Os }}_{{ .Arch }}"
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
+      - -extldflags=-static
 
 archives:
   - formats: [tar.gz]
