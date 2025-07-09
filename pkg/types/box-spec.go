@@ -15,6 +15,8 @@ type BoxSpec struct {
 
 	InfraImage string          `json:"infraImage,omitempty"`
 	Containers []ContainerSpec `json:"containers"`
+
+	FileBundles []FileBundle `json:"fileBundles"`
 }
 
 type NetbirdSpec struct {
@@ -35,7 +37,8 @@ type ContainerSpec struct {
 	Cmd        []string `json:"cmd,omitempty"`
 	WorkingDir string   `json:"workingDir,omitempty"`
 
-	BindMounts []BindMount `json:"bindMounts"`
+	BindMounts   []BindMount   `json:"bindMounts"`
+	BundleMounts []BundleMount `json:"bundleMounts"`
 
 	Privileged  bool `json:"privileged"`
 	UseDevTmpFs bool `json:"useDevTmpFs"`
@@ -49,4 +52,25 @@ type BindMount struct {
 	HostPath      string `json:"hostPath"`
 	ContainerPath string `json:"containerPath"`
 	Shared        bool   `json:"shared"`
+}
+
+type FileBundle struct {
+	Name  string            `json:"name"`
+	Files []FileBundleEntry `json:"files"`
+}
+
+type FileBundleEntry struct {
+	Path string `json:"path"`
+	Mode int    `json:"mode"`
+
+	// Data must be base64 encoded
+	Data string `json:"data"`
+
+	// StringData is an alternative to Data
+	StringData string `json:"stringData"`
+}
+
+type BundleMount struct {
+	Name          string `json:"name"`
+	ContainerPath string `json:"containerPath"`
 }
