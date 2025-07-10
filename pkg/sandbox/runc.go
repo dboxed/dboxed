@@ -13,7 +13,7 @@ import (
 )
 
 func (rn *Sandbox) writeOciSpec(c *types.ContainerSpec, spec *specs.Spec) error {
-	pth := filepath.Join(rn.getContainerBundleDir(c.Name), "config.json")
+	pth := filepath.Join(rn.getContainerDir(c.Name), "config.json")
 
 	err := os.MkdirAll(filepath.Dir(pth), 0700)
 	if err != nil {

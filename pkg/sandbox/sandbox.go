@@ -86,14 +86,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		err = os.MkdirAll(filepath.Join(rn.getContainerBundleDir(c.Name), "logs"), 0700)
-		if err != nil {
-			return err
-		}
-		err = os.MkdirAll(filepath.Join(rn.getContainerRoot(c.Name), logsInContainerDir), 0700)
-		if err != nil {
-			return err
-		}
 		err = rn.writeMiscFiles(c)
 		if err != nil {
 			return err
@@ -109,6 +101,11 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	err = rn.writeInfraConf()
+	if err != nil {
+		return err
+	}
+
+	err = rn.writeFileBundles(ctx)
 	if err != nil {
 		return err
 	}

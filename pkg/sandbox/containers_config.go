@@ -9,7 +9,6 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 	"path/filepath"
-	"strings"
 )
 
 const logsInContainerDir = "/var/lib/unboxed/logs"
@@ -86,10 +85,19 @@ func (rn *Sandbox) buildMounts(c *types.ContainerSpec) []specs.Mount {
 			Options:     opts,
 		})
 	}
+	for _, bm := range c.BundleMounts {
+		opts := []string{"bind"}
+		mounts = append(mounts, specs.Mount{
+			Type:        "bind",
+			Source:      rn.getBundlePathOnHost(bm.Name),
+			Destination: bm.ContainerPath,
+			Options:     opts,
+		})
+	}
 
 	mounts = append(mounts, specs.Mount{
 		Type:        "bind",
-		Source:      filepath.Join(rn.getContainerBundleDir(c.Name), "logs"),
+		Source:      rn.getContainerLogsDir(c.Name),
 		Destination: logsInContainerDir,
 		Options:     []string{"bind"},
 	})
@@ -106,8 +114,8 @@ func (rn *Sandbox) buildUserSpec(c *types.ContainerSpec, image *v1.Image) (*spec
 	if err != nil {
 		return nil, err
 	}
-	passwdPath = filepath.Join(rn.getContainerBundleDir(c.Name), strings.TrimPrefix(passwdPath, "/"))
-	groupPath = filepath.Join(rn.getContainerBundleDir(c.Name), strings.TrimPrefix(groupPath, "/"))
+	passwdPath = filepath.Join(rn.getContainerRoot(c.Name), passwdPath)
+	groupPath = filepath.Join(rn.getContainerRoot(c.Name), groupPath)
 
 	username := c.User
 	if username == "" {
@@ -118,10 +126,19 @@ func (rn *Sandbox) buildUserSpec(c *types.ContainerSpec, image *v1.Image) (*spec
 		return nil, err
 	}
 
+	additionalGids, err := user.GetAdditionalGroupsPath(c.AdditionalGroups, groupPath)
+	if err != nil {
+		return nil, err
+	}
+	additionalGids2 := make([]uint32, 0, len(additionalGids))
+	for _, gid := range additionalGids {
+		additionalGids2 = append(additionalGids2, uint32(gid))
+	}
+
 	ret := &specs.User{
 		UID:            uint32(u.Uid),
 		GID:            uint32(u.Gid),
-		AdditionalGids: []uint32{uint32(u.Gid)},
+		AdditionalGids: additionalGids2,
 	}
 	for _, g := range u.Sgids {
 		ret.AdditionalGids = append(ret.AdditionalGids, uint32(g))

@@ -6,9 +6,11 @@ import (
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
@@ -16,16 +18,20 @@ func (rn *Sandbox) getSharedDirOnHost() string {
 	return filepath.Join(rn.SandboxDir, "shared")
 }
 
-func (rn *Sandbox) getContainerBundleDir(name string) string {
+func (rn *Sandbox) getContainerDir(name string) string {
 	return filepath.Join(rn.SandboxDir, "containers", name)
 }
 
+func (rn *Sandbox) getContainerLogsDir(name string) string {
+	return filepath.Join(rn.getContainerDir(name), "logs")
+}
+
 func (rn *Sandbox) getContainerRoot(name string) string {
-	return filepath.Join(rn.getContainerBundleDir(name), "rootfs")
+	return filepath.Join(rn.getContainerDir(name), "rootfs")
 }
 
 func (rn *Sandbox) getContainerImageConfig(name string) string {
-	return filepath.Join(rn.getContainerBundleDir(name), "image-config.json")
+	return filepath.Join(rn.getContainerDir(name), "image-config.json")
 }
 
 func getRuncStateDir(sandboxDir string) string {
@@ -90,8 +96,8 @@ func (rn *Sandbox) destroyContainer(ctx context.Context, s types.RuncState) erro
 		force = true
 	}
 
-	log.InfoContext(ctx, "removing container bundle")
-	err := os.RemoveAll(rn.getContainerBundleDir(s.Id))
+	log.InfoContext(ctx, "removing container dir")
+	err := os.RemoveAll(rn.getContainerDir(s.Id))
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -116,7 +122,12 @@ func (rn *Sandbox) createContainer(ctx context.Context, c *types.ContainerSpec) 
 		return err
 	}
 
-	_, err = RunRunc(ctx, rn.SandboxDir, false, "create", "--bundle", rn.getContainerBundleDir(c.Name), c.Name)
+	err = rn.fixBindMountOwnerships(c, spec)
+	if err != nil {
+		return err
+	}
+
+	_, err = RunRunc(ctx, rn.SandboxDir, false, "create", "--bundle", rn.getContainerDir(c.Name), c.Name)
 	if err != nil {
 		return err
 	}
@@ -130,6 +141,38 @@ func (rn *Sandbox) startContainer(ctx context.Context, c *types.ContainerSpec) e
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (rn *Sandbox) fixBindMountOwnerships(c *types.ContainerSpec, spec *specs.Spec) error {
+	for _, m := range spec.Mounts {
+		if !slices.Contains(m.Options, "bind") && !slices.Contains(m.Options, "rbind") {
+			continue
+		}
+
+		hostPath := m.Source
+		containerPath := filepath.Join(rn.getContainerRoot(c.Name), m.Destination)
+
+		err := os.MkdirAll(hostPath, 0755)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(containerPath, 0755)
+		if err != nil {
+			return err
+		}
+
+		err = os.Chown(containerPath, int(spec.Process.User.UID), int(spec.Process.User.GID))
+		if err != nil {
+			return err
+		}
+	}
+
+	err := os.Chown(rn.getContainerLogsDir(c.Name), int(spec.Process.User.UID), int(spec.Process.User.GID))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
