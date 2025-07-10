@@ -90,7 +90,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		err = rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.NamesAndIps.PeerAddr.IP.String())
+		err = rn.writeResolvConf(rn.getContainerRoot(c.Name), rn.network.Config.DnsProxyIP)
 		if err != nil {
 			return err
 		}
@@ -130,6 +130,7 @@ func (rn *Sandbox) buildNetworkConfig() types.NetworkConfig {
 	return types.NetworkConfig{
 		SandboxName:     rn.SandboxName,
 		VethNetworkCidr: rn.VethNetworkCidr,
+		DnsProxyIP:      "127.0.0.1", // TODO
 	}
 }
 

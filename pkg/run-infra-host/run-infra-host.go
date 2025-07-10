@@ -62,7 +62,7 @@ func (rn *RunInfraHost) Start(ctx context.Context) error {
 	rn.DnsProxy = &dns_proxy.DnsProxy{
 		ListenNamespace: sandboxNamespace,
 		QueryNamespace:  hostNamespace,
-		ListenIP:        net.ParseIP(rn.conf.DnsProxyIP),
+		ListenIP:        net.ParseIP(rn.conf.NetworkConfig.DnsProxyIP),
 		HostResolveConf: "/hostfs/etc/resolv.conf",
 	}
 

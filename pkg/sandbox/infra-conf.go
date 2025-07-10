@@ -15,7 +15,6 @@ func (rn *Sandbox) writeInfraConf() error {
 		BoxName:       rn.SandboxName,
 		SandboxDir:    rn.SandboxDir,
 		NetworkConfig: rn.network.Config,
-		DnsProxyIP:    rn.network.NamesAndIps.PeerAddr.IP.String(),
 	}
 
 	b, err := json.Marshal(infraConf)
