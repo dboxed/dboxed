@@ -3,6 +3,7 @@ package logs
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"github.com/koobox/unboxed/pkg/logs/jsonlog"
 	"io"
 	"sync"
@@ -13,8 +14,8 @@ type JsonFileLogger struct {
 	Out    io.Writer
 	Stream string
 
-	r     io.Reader
-	w     io.Writer
+	r     io.ReadCloser
+	w     io.WriteCloser
 	s     *bufio.Scanner
 	errCh chan error
 
@@ -49,6 +50,14 @@ func NewJsonFileLogger(out io.Writer, stream string) *JsonFileLogger {
 	return l
 }
 
+func (l *JsonFileLogger) Close() error {
+	err := l.w.Close()
+	if err != nil {
+		return err
+	}
+	return l.Wait()
+}
+
 func (l *JsonFileLogger) Wait() error {
 	l.wg.Wait()
 	err := <-l.errCh
@@ -62,7 +71,11 @@ func (l *JsonFileLogger) start() {
 		for l.s.Scan() {
 			l.queueJsonLine(l.s.Bytes())
 		}
-		l.errCh <- l.s.Err()
+		err := l.s.Err()
+		if errors.Is(err, io.EOF) {
+			err = nil
+		}
+		l.errCh <- err
 		close(l.pendingLines)
 	}()
 	go func() {
@@ -70,6 +83,7 @@ func (l *JsonFileLogger) start() {
 		for e := range l.pendingLines {
 			l.writeJsonLine(e)
 		}
+		_ = l.r.Close()
 	}()
 }
 

@@ -16,6 +16,8 @@ import (
 )
 
 type StartBox struct {
+	Debug bool
+
 	BoxUrl          *url.URL
 	BoxName         string
 	WorkDir         string
@@ -58,6 +60,7 @@ func (rn *StartBox) Start(ctx context.Context) error {
 	rn.loadModules(ctx)
 
 	rn.sandbox = &sandbox.Sandbox{
+		Debug:           rn.Debug,
 		HostWorkDir:     rn.WorkDir,
 		SandboxName:     rn.BoxName,
 		SandboxDir:      filepath.Join(rn.WorkDir, "boxes", rn.BoxName),

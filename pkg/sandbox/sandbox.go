@@ -12,6 +12,8 @@ import (
 )
 
 type Sandbox struct {
+	Debug bool
+
 	HostWorkDir string
 
 	SandboxName string
