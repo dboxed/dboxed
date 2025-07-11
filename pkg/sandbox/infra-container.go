@@ -133,7 +133,7 @@ func (rn *Sandbox) startInfraContainer(ctx context.Context) error {
 }
 
 func (rn *Sandbox) copyRuncFromInfraContainer() error {
-	infraPth := filepath.Join(rn.getInfraRoot(), "bin/runc")
+	infraPth := filepath.Join(rn.getInfraRoot(), "usr/bin/runc")
 	hostPth := filepath.Join(rn.SandboxDir, "runc")
 
 	r, err := os.ReadFile(infraPth)

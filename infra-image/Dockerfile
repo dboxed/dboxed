@@ -17,38 +17,41 @@ RUN wget -q -O runc https://github.com/opencontainers/runc/releases/download/v${
 FROM download-helper AS containerd
 ENV CONTAINERD_VERSION=2.1.3
 RUN mkdir download && cd download \
-    && wget -q -O containerd.tar.gz https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-${TARGETARCH}.tar.gz \
-    && tar xzf containerd.tar.gz && mv bin/containerd bin/containerd-shim-runc-v2 bin/ctr /tools/ \
+    && wget -q -O download.tar.gz https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-static-${CONTAINERD_VERSION}-linux-${TARGETARCH}.tar.gz \
+    && tar xzf download.tar.gz && mv bin/containerd bin/containerd-shim-runc-v2 bin/ctr /tools/ \
     && cd .. && rm -rf download
 
 ### nerdctl
 FROM download-helper AS nerdctl
 ENV NERDCTL_VERSION=2.1.3
 RUN mkdir download && cd download \
-    && wget -q -O nerdctl.tar.gz https://github.com/containerd/nerdctl/releases/download/v${NERDCTL_VERSION}/nerdctl-${NERDCTL_VERSION}-linux-${TARGETARCH}.tar.gz \
-    && tar xzf nerdctl.tar.gz && mv nerdctl /tools/ \
+    && wget -q -O download.tar.gz https://github.com/containerd/nerdctl/releases/download/v${NERDCTL_VERSION}/nerdctl-${NERDCTL_VERSION}-linux-${TARGETARCH}.tar.gz \
+    && tar xzf download.tar.gz && mv nerdctl /tools/ \
+    && cd .. && rm -rf download
+
+### cni
+FROM download-helper AS cni
+ENV CNI_VERSION=1.7.1
+RUN mkdir download && cd download \
+    && wget -q -O download.tar.gz https://github.com/containernetworking/plugins/releases/download/v${CNI_VERSION}/cni-plugins-linux-${TARGETARCH}-v${CNI_VERSION}.tgz \
+    && tar xzf download.tar.gz && mv bridge firewall portmap tuning host-local /tools/ \
     && cd .. && rm -rf download
 
 ### infra-image
-# use `docker buildx imagetools inspect cgr.dev/chainguard/wolfi-base:latest` to find latest sha256 of multiarch image
-FROM --platform=$TARGETPLATFORM cgr.dev/chainguard/wolfi-base@sha256:1c6a85817d3a8787e094aae474e978d4ecdf634fd65e77ab28ffae513e35cca1
+FROM --platform=$TARGETPLATFORM alpine:3.22.0
 
 # See https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ARG TARGETPLATFORM
 
 RUN apk add --no-cache \
-    iproute2 nftables losetup mount umount tini
+    iproute2 iptables tini ca-certificates
 
 COPY --from=runc /tools/* /usr/bin/
 COPY --from=containerd /tools/* /usr/bin/
 COPY --from=nerdctl /tools/* /usr/bin/
+COPY --from=cni /tools/* /opt/cni/bin/
 
-# wolfi comes with iptables-legacy as the default, but we want nft only
-RUN \
-    for i in iptables iptables-save iptables-restore iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/sbin/$i; done \
-    && for i in iptables-xml; do ln -f -s /usr/sbin/xtables-nft-multi /usr/bin/$i; done \
-    && ln -s /run /var/run \
-    && mkdir -p /var/lib/containerd \
+RUN mkdir -p /var/lib/containerd \
     && mkdir -p /etc/unboxed \
     && mkdir -p /var/log/unboxed \
     && mkdir -p /run/netns \
