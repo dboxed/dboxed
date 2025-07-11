@@ -4,48 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/koobox/unboxed/pkg/types"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
-
-func (rn *Sandbox) writeOciSpec(c *types.ContainerSpec, spec *specs.Spec) error {
-	pth := filepath.Join(rn.getContainerDir(c.Name), "config.json")
-
-	err := os.MkdirAll(filepath.Dir(pth), 0700)
-	if err != nil {
-		return err
-	}
-
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(pth, b, 0600)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rn *Sandbox) copyRuncFromInfraContainer() error {
-	infraPth := filepath.Join(rn.getContainerRoot("_infra_sandbox"), "sbin/runc")
-	hostPth := filepath.Join(rn.SandboxDir, "runc")
-
-	r, err := os.ReadFile(infraPth)
-	if err != nil {
-		return fmt.Errorf("failed to read runc binary from infra container: %w", err)
-	}
-	err = os.WriteFile(hostPth, r, 0777)
-	if err != nil {
-		return fmt.Errorf("failed to write runc binary to work dir: %w", err)
-	}
-	return nil
-}
 
 func BuildRuncCmd(ctx context.Context, sandboxDir string, args ...string) (*exec.Cmd, error) {
 	binPath := filepath.Join(sandboxDir, "runc")
@@ -99,6 +62,15 @@ func RunRuncJson(ctx context.Context, sandboxDir string, result any, args ...str
 		return err
 	}
 	return nil
+}
+
+func RunRuncList(ctx context.Context, sandboxDir string) ([]types.RuncState, error) {
+	var ret []types.RuncState
+	err := RunRuncJson(ctx, sandboxDir, &ret, "list", "--format=json")
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func RunRuncState(ctx context.Context, sandboxDir string, name string) (*types.RuncState, error) {

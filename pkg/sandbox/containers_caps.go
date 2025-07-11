@@ -1,7 +1,5 @@
 package sandbox
 
-import "github.com/koobox/unboxed/pkg/types"
-
 var capsBase = []string{
 	"CAP_AUDIT_WRITE",
 	"CAP_CHOWN",
@@ -62,10 +60,10 @@ var capsPrivileged = []string{
 	"CAP_CHECKPOINT_RESTORE",
 }
 
-func (rn *Sandbox) buildContainerCaps(c *types.ContainerSpec) []string {
+func (rn *Sandbox) buildContainerCaps(provileged bool) []string {
 	var caps []string
 	caps = append(caps, capsBase...)
-	if c.Privileged {
+	if provileged {
 		caps = append(caps, capsPrivileged...)
 	}
 	return caps

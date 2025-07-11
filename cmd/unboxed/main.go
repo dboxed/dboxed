@@ -18,8 +18,6 @@ type Cli struct {
 	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
 	Logs    commands.LogsCmd    `cmd:"" help:"Show container logs"`
 
-	InitWrapper     commands.InitWrapperCmd     `cmd:"" help:"internal command" hidden:""`
-	RunInfraHost    commands.RunInfraHostCmd    `cmd:"" help:"internal command" hidden:""`
 	RunInfraSandbox commands.RunInfraSandboxCmd `cmd:"" help:"internal command" hidden:""`
 }
 

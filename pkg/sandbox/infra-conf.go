@@ -10,11 +10,13 @@ import (
 )
 
 func (rn *Sandbox) writeInfraConf() error {
+	networkConf := rn.buildNetworkConfig()
+
 	infraConf := types.InfraConfig{
 		BoxSpec:       *rn.BoxSpec,
 		BoxName:       rn.SandboxName,
 		SandboxDir:    rn.SandboxDir,
-		NetworkConfig: rn.network.Config,
+		NetworkConfig: networkConf,
 	}
 
 	b, err := json.Marshal(infraConf)
@@ -22,7 +24,7 @@ func (rn *Sandbox) writeInfraConf() error {
 		return err
 	}
 
-	err = util.AtomicWriteFile(filepath.Join(rn.getSharedDirOnHost(), filepath.Base(types.InfraConfFile)), b, 0600)
+	err = util.AtomicWriteFile(filepath.Join(rn.getInfraRoot(), types.InfraConfFile), b, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write infra conf into shared dir: %w", err)
 	}

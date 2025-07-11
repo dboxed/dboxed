@@ -1,4 +1,4 @@
-package run_infra_host
+package run_infra_sandbox
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (rn *RunInfraHost) runNetbirdStatusToDns(ctx context.Context) {
+func (rn *RunInfraSandbox) runNetbirdStatusToDns(ctx context.Context) {
 	for {
 		err := rn.runNetbirdStatusToDnsOnce(ctx)
 		if err != nil {
@@ -24,7 +24,7 @@ func (rn *RunInfraHost) runNetbirdStatusToDns(ctx context.Context) {
 	}
 }
 
-func (rn *RunInfraHost) runNetbirdStatusToDnsOnce(ctx context.Context) error {
+func (rn *RunInfraSandbox) runNetbirdStatusToDnsOnce(ctx context.Context) error {
 	s, err := rn.runNetbirdStatus(ctx)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (rn *RunInfraHost) runNetbirdStatusToDnsOnce(ctx context.Context) error {
 
 	if !reflect.DeepEqual(m, rn.olsStaticHostsMap) {
 		slog.InfoContext(ctx, "new static hosts map", slog.Any("staticHostsMap", m))
-		rn.DnsProxy.SetStaticHostsMap(m)
+		rn.dnsProxy.SetStaticHostsMap(m)
 		rn.olsStaticHostsMap = m
 	}
 

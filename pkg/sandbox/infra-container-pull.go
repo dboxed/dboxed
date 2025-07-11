@@ -7,38 +7,19 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/cache"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/koobox/unboxed/pkg/types"
 	"github.com/moby/go-archive"
-	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"os"
 	"path/filepath"
 )
 
-func (rn *Sandbox) pullImages(ctx context.Context) error {
-	var g errgroup.Group
-
-	err := rn.forAllContainers(func(c *types.ContainerSpec) error {
-		g.Go(func() error {
-			manifestPath := rn.getContainerImageConfig(c.Name)
-			dst := rn.getContainerRoot(c.Name)
-			err := rn.pullImage(ctx, c.Image, manifestPath, dst)
-			if err != nil {
-				return fmt.Errorf("failed to pull image for container %s: %w", c.Name, err)
-			}
-			return nil
-		})
-		return nil
-	})
+func (rn *Sandbox) pullInfraImage(ctx context.Context) error {
+	dst := rn.getInfraRoot()
+	manifestPath := rn.getInfraImageConfig()
+	err := rn.pullImage(ctx, rn.getInfraImage(), manifestPath, dst)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to pull imfra image: %w", err)
 	}
-
-	err = g.Wait()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

@@ -2,5 +2,7 @@ package types
 
 const UnboxedInfraImage = "ghcr.io/koobox/unboxed-infra"
 
-const SharedDir = "/var/lib/unboxed/shared"
-const InfraConfFile = SharedDir + "/infra-conf.json"
+const UnboxedConfDir = "/etc/unboxed"
+const UnboxedDataDir = "/var/lib/unboxed"
+
+const InfraConfFile = UnboxedConfDir + "/infra-conf.json"

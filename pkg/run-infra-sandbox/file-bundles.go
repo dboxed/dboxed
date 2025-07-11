@@ -1,44 +1,52 @@
-package sandbox
+package run_infra_sandbox
 
 import (
 	"context"
 	"fmt"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/koobox/unboxed/pkg/types"
+	"log/slog"
 	"os"
 	"path/filepath"
 )
 
-func (rn *Sandbox) getBaseBundlesPathOnHost() string {
-	return filepath.Join(rn.SandboxDir, "bundles")
-}
+func (rn *RunInfraSandbox) createBundleVolume(ctx context.Context, name string) (string, error) {
+	volumeName := fmt.Sprintf("unboxed-bundle-%s", name)
 
-func (rn *Sandbox) getBundlePathOnHost(name string) string {
-	return filepath.Join(rn.getBaseBundlesPathOnHost(), name)
-}
-
-func (rn *Sandbox) writeFileBundles(ctx context.Context) error {
-	err := os.RemoveAll(rn.getBaseBundlesPathOnHost())
+	slog.InfoContext(ctx, "creating bundle volumes", slog.Any("volumeName", volumeName))
+	_, err := rn.runNerdctl(ctx, true, "volume", "create", volumeName)
 	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(rn.getBaseBundlesPathOnHost(), 0700)
-	if err != nil {
-		return err
+		return "", err
 	}
 
-	for _, fb := range rn.BoxSpec.FileBundles {
-		err := rn.writeFileBundle(fb)
+	var volumeInfo types.NerdctlVolume
+	err = rn.runNerdctlJson(ctx, &volumeInfo, "volume", "inspect", volumeName, "--format", "json")
+	if err != nil {
+		return "", err
+	}
+	return volumeInfo.Mountpoint, nil
+}
+
+func (rn *RunInfraSandbox) writeFileBundles(ctx context.Context) error {
+	for _, fb := range rn.conf.BoxSpec.FileBundles {
+		volumePath, err := rn.createBundleVolume(ctx, fb.Name)
+		if err != nil {
+			return err
+		}
+
+		err = rn.writeFileBundle(fb, volumePath)
 		if err != nil {
 			return err
 		}
 	}
+
+	// let the GC free it up
+	rn.conf.BoxSpec.FileBundles = nil
+
 	return nil
 }
 
-func (rn *Sandbox) writeFileBundle(fb types.FileBundle) error {
-	bundlePath := rn.getBundlePathOnHost(fb.Name)
-
+func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath string) error {
 	for _, f := range fb.Files {
 		err := rn.writeFileBundleEntry(bundlePath, f)
 		if err != nil {
@@ -68,7 +76,7 @@ func (rn *Sandbox) writeFileBundle(fb types.FileBundle) error {
 	return nil
 }
 
-func (rn *Sandbox) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
+func (rn *RunInfraSandbox) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
 	fileMode := os.FileMode(f.Mode)
 	if fileMode & ^types.AllowedModeMask != 0 {
 		return fmt.Errorf("invalid file mode %o for entry '%s'", fileMode, f.Path)

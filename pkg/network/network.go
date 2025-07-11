@@ -10,8 +10,6 @@ const namePrefix = "ub"
 type Network struct {
 	Config types.NetworkConfig
 
-	InfraContainerRoot string
-
 	NamesAndIps NamesAndIps
 
 	HostNetworkNamespace netns.NsHandle

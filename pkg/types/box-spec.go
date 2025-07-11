@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/compose-spec/compose-go/v2/types"
 	"os"
 )
 
@@ -19,10 +20,11 @@ type BoxSpec struct {
 	Hostname      string `json:"hostname"`
 	NetworkDomain string `json:"networkDomain"`
 
-	InfraImage string          `json:"infraImage,omitempty"`
-	Containers []ContainerSpec `json:"containers"`
+	InfraImage string `json:"infraImage,omitempty"`
 
 	FileBundles []FileBundle `json:"fileBundles"`
+
+	Compose types.Config `json:"compose"`
 }
 
 type NetbirdSpec struct {
@@ -30,36 +32,6 @@ type NetbirdSpec struct {
 	Image         string `json:"image,omitempty"`
 	ManagementUrl string `json:"managementUrl"`
 	SetupKey      string `json:"setupKey"`
-}
-
-type ContainerSpec struct {
-	Name string `json:"name"`
-
-	Image string `json:"image"`
-
-	User             string   `json:"user,omitempty"`
-	AdditionalGroups []string `json:"additionalGroups,omitempty"`
-
-	Env        []string `json:"env,omitempty"`
-	Entrypoint []string `json:"entrypoint,omitempty"`
-	Cmd        []string `json:"cmd,omitempty"`
-	WorkingDir string   `json:"workingDir,omitempty"`
-
-	BindMounts   []BindMount   `json:"bindMounts,omitempty"`
-	BundleMounts []BundleMount `json:"bundleMounts,omitempty"`
-
-	Privileged  bool `json:"privileged"`
-	UseDevTmpFs bool `json:"useDevTmpFs"`
-
-	HostNetwork bool `json:"hostNetwork"`
-	HostPid     bool `json:"hostPid"`
-	HostCgroups bool `json:"hostCgroups"`
-}
-
-type BindMount struct {
-	HostPath      string `json:"hostPath"`
-	ContainerPath string `json:"containerPath"`
-	Shared        bool   `json:"shared"`
 }
 
 type FileBundle struct {
