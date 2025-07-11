@@ -28,6 +28,7 @@ type InitWrapperCmd struct {
 
 func (cmd *InitWrapperCmd) Run(g *flags.GlobalFlags) error {
 	exitCode := cmd.run2(g)
+	cmd.writeLog("exiting init-wrapper")
 	os.Exit(exitCode)
 	return nil
 }
@@ -121,6 +122,7 @@ func (cmd *InitWrapperCmd) startReaper() chan os.Signal {
 				cmd.waitPidLoop()
 			}
 		}
+		cmd.writeLog("reaper stopped")
 	}()
 	return sigs
 }
@@ -136,6 +138,7 @@ func (cmd *InitWrapperCmd) startSignalForward(process *os.Process) chan os.Signa
 				cmd.writeLog("failed signalling process: %s", err.Error())
 			}
 		}
+		cmd.writeLog("signal forwarder stopped")
 	}()
 	return sigs
 }
@@ -149,6 +152,7 @@ func (cmd *InitWrapperCmd) run2(g *flags.GlobalFlags) int {
 	if os.Getpid() == 1 {
 		sc := cmd.startReaper()
 		defer func() {
+			cmd.writeLog("stopping reaper")
 			signal.Stop(sc)
 			close(sc)
 		}()
@@ -169,21 +173,23 @@ func (cmd *InitWrapperCmd) run2(g *flags.GlobalFlags) int {
 	}
 	sc := cmd.startSignalForward(c.Process)
 	defer func() {
+		cmd.writeLog("stopping signal forwarder")
 		signal.Stop(sc)
 		close(sc)
 	}()
 
-	cmd.writeLog("waiting for process exit")
+	cmd.writeLog("waiting for process exit (pid=%d)", c.Process.Pid)
 	err = c.Wait()
 	if err != nil {
+		cmd.writeLog("wait returned error: %s", err.Error())
 		var err2 *exec.ExitError
 		if errors.As(err, &err2) {
 			return err2.ExitCode()
 		} else {
-			cmd.writeLog("wait returned error: %s", err.Error())
 			return -1
 		}
 	} else {
+		cmd.writeLog("wait returned with no error")
 		return 0
 	}
 }

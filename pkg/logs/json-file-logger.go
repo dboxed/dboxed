@@ -14,10 +14,9 @@ type JsonFileLogger struct {
 	Out    io.Writer
 	Stream string
 
-	r     io.ReadCloser
-	w     io.WriteCloser
-	s     *bufio.Scanner
-	errCh chan error
+	r io.ReadCloser
+	w io.WriteCloser
+	s *bufio.Scanner
 
 	pendingLines chan *bytes.Buffer
 
@@ -42,7 +41,6 @@ func NewJsonFileLogger(out io.Writer, stream string) *JsonFileLogger {
 		r:            r,
 		w:            w,
 		s:            s,
-		errCh:        make(chan error),
 		pendingLines: make(chan *bytes.Buffer),
 		p:            p,
 	}
@@ -60,8 +58,7 @@ func (l *JsonFileLogger) Close() error {
 
 func (l *JsonFileLogger) Wait() error {
 	l.wg.Wait()
-	err := <-l.errCh
-	return err
+	return l.s.Err()
 }
 
 func (l *JsonFileLogger) start() {
@@ -75,7 +72,6 @@ func (l *JsonFileLogger) start() {
 		if errors.Is(err, io.EOF) {
 			err = nil
 		}
-		l.errCh <- err
 		close(l.pendingLines)
 	}()
 	go func() {
