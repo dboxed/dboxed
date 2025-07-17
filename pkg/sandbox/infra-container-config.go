@@ -61,9 +61,9 @@ func (rn *Sandbox) buildInfraContainerMounts(hostNetwork bool) []specs.Mount {
 			Options:     []string{"rbind"},
 		},
 		{
-			Destination: "/var/lib/containerd",
+			Destination: "/var/lib/docker",
 			Type:        "rbind",
-			Source:      filepath.Join(rn.SandboxDir, "containerd"),
+			Source:      filepath.Join(rn.SandboxDir, "docker"),
 			Options:     []string{"rbind"},
 		},
 		{
@@ -185,7 +185,6 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image, hostNetwork bool,
 				"/proc/bus",
 				"/proc/fs",
 				"/proc/irq",
-				"/proc/sys",
 				"/proc/sysrq-trigger",
 			},
 			Resources: &specs.LinuxResources{

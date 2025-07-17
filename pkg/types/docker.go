@@ -1,6 +1,6 @@
 package types
 
-type NerdctlVolume struct {
+type DockerVolume struct {
 	Name       string `json:"Name"`
 	Mountpoint string `json:"Mountpoint"`
 }

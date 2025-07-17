@@ -38,7 +38,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.RemoveAll(filepath.Join(rn.SandboxDir, "containerd"))
+	err = os.RemoveAll(filepath.Join(rn.SandboxDir, "docker"))
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(rn.SandboxDir, "containerd"), 0700)
+	err = os.MkdirAll(filepath.Join(rn.SandboxDir, "docker"), 0700)
 	if err != nil {
 		return err
 	}

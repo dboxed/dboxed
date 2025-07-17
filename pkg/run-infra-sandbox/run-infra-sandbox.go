@@ -41,7 +41,7 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.startContainerd(ctx)
+	err = rn.startDockerd(ctx)
 	if err != nil {
 		return err
 	}

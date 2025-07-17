@@ -18,17 +18,17 @@ func (rn *RunInfraSandbox) createBundleVolume(ctx context.Context, name string) 
 	volumeName := rn.getBundleVolumeName(name)
 
 	slog.InfoContext(ctx, "creating bundle volumes", slog.Any("volumeName", volumeName))
-	_, err := rn.runNerdctl(ctx, true, "volume", "create", volumeName)
+	_, err := rn.runDockerCli(ctx, true, "volume", "create", volumeName)
 	if err != nil {
 		return "", err
 	}
 
-	var volumeInfo types.NerdctlVolume
-	err = rn.runNerdctlJson(ctx, &volumeInfo, "volume", "inspect", volumeName, "--format", "json")
+	var volumeInfos []types.DockerVolume
+	err = rn.runDockerCliJson(ctx, &volumeInfos, "volume", "inspect", volumeName, "--format", "json")
 	if err != nil {
 		return "", err
 	}
-	return volumeInfo.Mountpoint, nil
+	return volumeInfos[0].Mountpoint, nil
 }
 
 func (rn *RunInfraSandbox) createBundleVolumes(ctx context.Context) error {

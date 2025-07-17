@@ -42,6 +42,8 @@ func (rn *RunInfraSandbox) runComposeUp(ctx context.Context) error {
 }
 
 func (rn *RunInfraSandbox) setupComposeFile(ctx context.Context, compose *ctypes.Project) error {
+	compose.Name = rn.conf.BoxName
+
 	if compose.Volumes == nil {
 		compose.Volumes = map[string]ctypes.VolumeConfig{}
 	}
