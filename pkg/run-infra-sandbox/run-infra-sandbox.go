@@ -85,24 +85,6 @@ func (rn *RunInfraSandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.startNetbirdServiceContainer(ctx)
-	if err != nil {
-		return err
-	}
-	err = rn.runNetbirdUp(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = util.RunInNetNs(rn.network.NetworkNamespace, func() error {
-		return network.WaitForInterface(ctx, "wt0")
-	})
-	if err != nil {
-		return err
-	}
-
-	go rn.runNetbirdStatusToDns(ctx)
-
 	err = rn.runComposeUp(ctx)
 	if err != nil {
 		return err

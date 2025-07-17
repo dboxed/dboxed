@@ -18,8 +18,6 @@ type BoxSpec struct {
 	UnboxedBinaryUrl  string `json:"unboxedBinaryUrl,omitempty"`
 	UnboxedBinaryHash string `json:"unboxedBinaryHash,omitempty"`
 
-	Netbird NetbirdSpec `json:"netbird"`
-
 	Hostname      string `json:"hostname"`
 	NetworkDomain string `json:"networkDomain"`
 
@@ -28,13 +26,6 @@ type BoxSpec struct {
 	FileBundles []FileBundle `json:"fileBundles"`
 
 	Compose string `json:"compose"`
-}
-
-type NetbirdSpec struct {
-	Version       string `json:"version,omitempty"`
-	Image         string `json:"image,omitempty"`
-	ManagementUrl string `json:"managementUrl"`
-	SetupKey      string `json:"setupKey"`
 }
 
 type FileBundle struct {

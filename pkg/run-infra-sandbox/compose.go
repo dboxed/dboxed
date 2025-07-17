@@ -57,16 +57,6 @@ func (rn *RunInfraSandbox) setupComposeFile(ctx context.Context, compose *ctypes
 		}
 	}
 
-	for k, service := range compose.Services {
-		if service.NetworkMode == "" && len(service.Networks) == 0 {
-			service.NetworkMode = fmt.Sprintf("ns:/run/netns/%s", rn.network.NamesAndIps.SandboxNamespaceName)
-		}
-		if len(service.DNS) == 0 {
-			service.DNS = append(service.DNS, rn.conf.NetworkConfig.DnsProxyIP)
-		}
-		compose.Services[k] = service
-	}
-
 	for _, service := range compose.Services {
 		for i, _ := range service.Volumes {
 			volume := &service.Volumes[i]
