@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func (rn *Sandbox) buildInfraContainerMounts() []specs.Mount {
+func (rn *Sandbox) buildInfraContainerMounts(hostNetwork bool) []specs.Mount {
 	mounts := []specs.Mount{
 		{
 			Destination: "/proc",
@@ -67,12 +67,6 @@ func (rn *Sandbox) buildInfraContainerMounts() []specs.Mount {
 			Options:     []string{"rbind"},
 		},
 		{
-			Destination: "/run/netns",
-			Type:        "rbind",
-			Source:      "/run/netns",
-			Options:     []string{"rbind"},
-		},
-		{
 			Destination: "/var/log/unboxed",
 			Type:        "bind",
 			Source:      filepath.Join(rn.SandboxDir, "logs"),
@@ -80,10 +74,19 @@ func (rn *Sandbox) buildInfraContainerMounts() []specs.Mount {
 		},
 	}
 
+	if hostNetwork {
+		mounts = append(mounts, specs.Mount{
+			Destination: "/run/netns",
+			Type:        "rbind",
+			Source:      "/run/netns",
+			Options:     []string{"rbind"},
+		})
+	}
+
 	return mounts
 }
 
-func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image) (*specs.Process, error) {
+func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image, cmd []string) (*specs.Process, error) {
 	caps := rn.buildContainerCaps(true)
 
 	usr := specs.User{} // root user
@@ -91,7 +94,8 @@ func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image) (*specs.Proce
 	var env []string
 	env = append(env, image.Config.Env...)
 
-	args := []string{"tini", "unboxed", "run-infra-sandbox"}
+	args := []string{"tini"}
+	args = append(args, cmd...)
 
 	workingDir := image.Config.WorkingDir
 	if workingDir == "" {
@@ -133,13 +137,12 @@ func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image) (*specs.Proce
 	return process, nil
 }
 
-func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image) (*specs.Spec, error) {
-	process, err := rn.buildInfraContainerProcessSpec(image)
+func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image, hostNetwork bool, name string, cmd []string) (*specs.Spec, error) {
+	process, err := rn.buildInfraContainerProcessSpec(image, cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	// excluding network namespace
 	namespaces := []specs.LinuxNamespace{
 		{Type: specs.MountNamespace},
 		{Type: specs.UTSNamespace},
@@ -147,8 +150,14 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image) (*specs.Spec, err
 		{Type: specs.PIDNamespace},
 		{Type: specs.CgroupNamespace},
 	}
+	if !hostNetwork {
+		namespaces = append(namespaces, specs.LinuxNamespace{
+			Type: specs.NetworkNamespace,
+			Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName),
+		})
+	}
 
-	mounts := rn.buildInfraContainerMounts()
+	mounts := rn.buildInfraContainerMounts(hostNetwork)
 
 	spec := &specs.Spec{
 		Version: specs.Version,
@@ -156,9 +165,9 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image) (*specs.Spec, err
 			Path:     rn.getInfraRoot(),
 			Readonly: false,
 		},
-		Process:  process,
-		Hostname: rn.BoxSpec.Hostname,
-		Mounts:   mounts,
+		Process: process,
+		//Hostname: rn.BoxSpec.Hostname,
+		Mounts: mounts,
 		Linux: &specs.Linux{
 			MaskedPaths: []string{
 				"/proc/acpi",
@@ -188,15 +197,15 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image) (*specs.Spec, err
 				},
 			},
 			Namespaces:  namespaces,
-			CgroupsPath: fmt.Sprintf(":unboxed:%s", rn.SandboxName),
+			CgroupsPath: fmt.Sprintf(":unboxed:%s:%s", rn.SandboxName, name),
 		},
 	}
 
 	return spec, nil
 }
 
-func (rn *Sandbox) writeInfraContainerOciSpec(spec *specs.Spec) error {
-	pth := filepath.Join(rn.getInfraContainerDir(), "config.json")
+func (rn *Sandbox) writeInfraContainerOciSpec(name string, spec *specs.Spec) error {
+	pth := filepath.Join(rn.getInfraContainerDir(name), "config.json")
 
 	err := os.MkdirAll(filepath.Dir(pth), 0700)
 	if err != nil {

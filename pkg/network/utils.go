@@ -3,12 +3,9 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/util"
 	"github.com/vishvananda/netlink"
 	"log/slog"
-	"net"
 	"slices"
-	"time"
 )
 
 func isLinkNotFoundError(err error) bool {
@@ -38,28 +35,8 @@ func setSingleAddress(ctx context.Context, link netlink.Link, addr netlink.Addr)
 		if err != nil {
 			return err
 		}
+	} else {
+		slog.InfoContext(ctx, fmt.Sprintf("link %s already has address %s", link.Attrs().Name, addr.String()))
 	}
 	return nil
-}
-
-func WaitForInterface(ctx context.Context, name string) error {
-	slog.InfoContext(ctx, fmt.Sprintf("waiting for %s to come up", name))
-
-	for {
-		l, err := netlink.LinkByName(name)
-		if err != nil {
-			if !isLinkNotFoundError(err) {
-				return err
-			}
-		} else {
-			if l.Attrs().Flags&net.FlagUp != 0 {
-				slog.InfoContext(ctx, fmt.Sprintf("%s is up", name))
-				return nil
-			}
-		}
-
-		if !util.SleepWithContext(ctx, time.Second) {
-			return ctx.Err()
-		}
-	}
 }

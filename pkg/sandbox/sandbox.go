@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/types"
 	"log/slog"
 	"net"
@@ -20,6 +21,8 @@ type Sandbox struct {
 	BoxSpec *types.BoxSpec
 
 	VethNetworkCidr *net.IPNet
+
+	network *network.Network
 }
 
 func (rn *Sandbox) Start(ctx context.Context) error {
@@ -27,7 +30,11 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.destroyInfraContainer(ctx)
+	err = rn.destroyInfraContainer(ctx, "infra-sandbox")
+	if err != nil {
+		return err
+	}
+	err = rn.destroyInfraContainer(ctx, "infra-host")
 	if err != nil {
 		return err
 	}
@@ -35,8 +42,16 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	err = os.RemoveAll(rn.getInfraRoot())
+	if err != nil {
+		return err
+	}
 
-	err = os.MkdirAll(rn.getInfraContainerDir(), 0700)
+	err = os.MkdirAll(rn.getInfraContainerDir("infra-host"), 0700)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(rn.getInfraContainerDir("infra-sandbox"), 0700)
 	if err != nil {
 		return err
 	}
@@ -54,11 +69,23 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.copyRuncFromInfraContainer()
+	err = rn.copyRuncFromInfraRoot()
 	if err != nil {
 		return err
 	}
 	err = rn.copyUnboxedBinIntoInfraRoot()
+	if err != nil {
+		return err
+	}
+
+	rn.network = &network.Network{
+		Config: rn.buildNetworkConfig(),
+	}
+	err = rn.network.InitNamesAndIPs()
+	if err != nil {
+		return err
+	}
+	err = rn.network.SetupNamespaces(ctx)
 	if err != nil {
 		return err
 	}
@@ -68,23 +95,32 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
+	_ = os.Remove(filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
 	err = os.Symlink("/hostfs/etc/resolv.conf", filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
 	if err != nil {
 		return err
 	}
 
-	// TODO move this into the sandbox container when https://github.com/opencontainers/runc/issues/2826 gets fixed
+	// TODO move this into the infra-host container when https://github.com/opencontainers/runc/issues/2826 gets fixed
 	slog.InfoContext(ctx, "enabling ip forwarding")
 	err = os.WriteFile("/proc/sys/net/ipv4/ip_forward", []byte("1"), 0600)
 	if err != nil {
 		return err
 	}
 
-	err = rn.createInfraContainer(ctx)
+	err = rn.createInfraContainer(ctx, true, "infra-host", []string{"unboxed", "run-infra-host"})
 	if err != nil {
 		return err
 	}
-	err = rn.startInfraContainer(ctx)
+	err = rn.createInfraContainer(ctx, false, "infra-sandbox", []string{"unboxed", "run-infra-sandbox"})
+	if err != nil {
+		return err
+	}
+	err = rn.startInfraContainer(ctx, "infra-host")
+	if err != nil {
+		return err
+	}
+	err = rn.startInfraContainer(ctx, "infra-sandbox")
 	if err != nil {
 		return err
 	}

@@ -12,25 +12,24 @@ import (
 	"runtime"
 )
 
-func (n *Network) Setup(ctx context.Context) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
+func (n *Network) InitNamesAndIPs() error {
 	var err error
 	n.NamesAndIps, err = NewNamesAndIPs(n.Config)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (n *Network) Setup(ctx context.Context) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	slog.InfoContext(ctx, "setting up networking",
 		slog.Any("hostAddr", n.NamesAndIps.HostAddr.String()),
 		slog.Any("peerAddr", n.NamesAndIps.PeerAddr.String()),
 	)
 
-	err = n.setupNamespaces(ctx)
-	if err != nil {
-		return err
-	}
 	hostLink, _, err := n.setupVethPair(ctx)
 	if err != nil {
 		return err
@@ -63,7 +62,7 @@ func (n *Network) Setup(ctx context.Context) error {
 	return nil
 }
 
-func (n *Network) setupNamespaces(ctx context.Context) error {
+func (n *Network) SetupNamespaces(ctx context.Context) error {
 	slog.InfoContext(ctx, "setting up network namespace", slog.Any("namespaceName", n.NamesAndIps.SandboxNamespaceName))
 
 	var err error
@@ -89,7 +88,7 @@ func (n *Network) setupNamespaces(ctx context.Context) error {
 }
 
 func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link, error) {
-	slog.InfoContext(ctx, "setting up veth path",
+	slog.InfoContext(ctx, "setting up veth pair",
 		slog.Any("nameHost", n.NamesAndIps.VethNameHost),
 		slog.Any("namePeer", n.NamesAndIps.VethNamePeer),
 	)
@@ -119,16 +118,19 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 		}
 	}
 
-	slog.InfoContext(ctx, "setting veth host link address", slog.Any("hostAddr", n.NamesAndIps.HostAddr.IP.String()))
 	err = setSingleAddress(ctx, hostLink, n.NamesAndIps.HostAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	slog.InfoContext(ctx, "bringing veth host link up")
-	err = netlink.LinkSetUp(hostLink)
-	if err != nil {
-		return nil, nil, err
+	if hostLink.Attrs().Flags&net.FlagUp == 0 {
+		slog.InfoContext(ctx, "bringing veth host link up")
+		err = netlink.LinkSetUp(hostLink)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		slog.InfoContext(ctx, "veth host link is already up")
 	}
 
 	var peerLink netlink.Link
@@ -139,9 +141,11 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 		if err != nil {
 			return err
 		}
-		err = netlink.LinkSetUp(loLink)
-		if err != nil {
-			return err
+		if loLink.Attrs().Flags&net.FlagUp == 0 {
+			err = netlink.LinkSetUp(loLink)
+			if err != nil {
+				return err
+			}
 		}
 
 		peerLink, err = netlink.LinkByName(n.NamesAndIps.VethNamePeer)
@@ -149,7 +153,6 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 			return err
 		}
 
-		slog.InfoContext(ctx, "setting veth peer link address", slog.Any("peerAddr", n.NamesAndIps.PeerAddr.IP.String()))
 		err = setSingleAddress(ctx, peerLink, n.NamesAndIps.PeerAddr)
 		if err != nil {
 			return err

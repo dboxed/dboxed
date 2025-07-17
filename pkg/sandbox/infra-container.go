@@ -13,16 +13,16 @@ import (
 	"time"
 )
 
-func (rn *Sandbox) getInfraContainerDir() string {
-	return filepath.Join(rn.SandboxDir, "infra")
+func (rn *Sandbox) getInfraContainerDir(name string) string {
+	return filepath.Join(rn.SandboxDir, name)
 }
 
 func (rn *Sandbox) getInfraRoot() string {
-	return filepath.Join(rn.getInfraContainerDir(), "rootfs")
+	return filepath.Join(rn.SandboxDir, "infra-rootfs")
 }
 
 func (rn *Sandbox) getInfraImageConfig() string {
-	return filepath.Join(rn.getInfraContainerDir(), "image-config.json")
+	return filepath.Join(rn.SandboxDir, "infra-image-config.json")
 }
 
 func getRuncStateDir(sandboxDir string) string {
@@ -41,7 +41,7 @@ func (rn *Sandbox) getInfraImage() string {
 	return infraImage
 }
 
-func (rn *Sandbox) destroyInfraContainer(ctx context.Context) error {
+func (rn *Sandbox) destroyInfraContainer(ctx context.Context, name string) error {
 	l, err := RunRuncList(ctx, rn.SandboxDir)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -51,7 +51,7 @@ func (rn *Sandbox) destroyInfraContainer(ctx context.Context) error {
 	}
 	var s *types.RuncState
 	for _, x := range l {
-		if x.Id == "infra" {
+		if x.Id == name {
 			s = &x
 			break
 		}
@@ -61,7 +61,7 @@ func (rn *Sandbox) destroyInfraContainer(ctx context.Context) error {
 	}
 
 	if s.Status != "stopped" {
-		slog.InfoContext(ctx, "killing old infra container")
+		slog.InfoContext(ctx, fmt.Sprintf("killing old %s container", name))
 		_, err := RunRunc(ctx, rn.SandboxDir, false, "kill", s.Id)
 		if err != nil {
 			return err
@@ -75,7 +75,7 @@ func (rn *Sandbox) destroyInfraContainer(ctx context.Context) error {
 			return fmt.Errorf("timed out while trying to delete container %s", s.Id)
 		}
 
-		slog.InfoContext(ctx, "deleting old infra container")
+		slog.InfoContext(ctx, fmt.Sprintf("deleting old %s container", name))
 		args := []string{"delete"}
 		if force {
 			args = append(args, "--force")
@@ -89,8 +89,8 @@ func (rn *Sandbox) destroyInfraContainer(ctx context.Context) error {
 		force = true
 	}
 
-	slog.InfoContext(ctx, "removing infra container dir")
-	err = os.RemoveAll(rn.getInfraContainerDir())
+	slog.InfoContext(ctx, fmt.Sprintf("removing %s container dir", name))
+	err = os.RemoveAll(rn.getInfraContainerDir(name))
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -98,7 +98,7 @@ func (rn *Sandbox) destroyInfraContainer(ctx context.Context) error {
 	return nil
 }
 
-func (rn *Sandbox) createInfraContainer(ctx context.Context) error {
+func (rn *Sandbox) createInfraContainer(ctx context.Context, hostNetwork bool, name string, cmd []string) error {
 	slog.InfoContext(ctx, "creating infra container")
 
 	imageConfig, err := util.ReadJsonFile[v1.Image](rn.getInfraImageConfig())
@@ -106,33 +106,33 @@ func (rn *Sandbox) createInfraContainer(ctx context.Context) error {
 		return err
 	}
 
-	spec, err := rn.buildInfraContainerOciSpec(imageConfig)
+	spec, err := rn.buildInfraContainerOciSpec(imageConfig, hostNetwork, name, cmd)
 	if err != nil {
 		return err
 	}
-	err = rn.writeInfraContainerOciSpec(spec)
+	err = rn.writeInfraContainerOciSpec(name, spec)
 	if err != nil {
 		return err
 	}
 
-	_, err = RunRunc(ctx, rn.SandboxDir, false, "create", "--bundle", rn.getInfraContainerDir(), "infra")
+	_, err = RunRunc(ctx, rn.SandboxDir, false, "create", "--bundle", rn.getInfraContainerDir(name), name)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (rn *Sandbox) startInfraContainer(ctx context.Context) error {
+func (rn *Sandbox) startInfraContainer(ctx context.Context, name string) error {
 	slog.InfoContext(ctx, "starting infra container")
 
-	_, err := RunRunc(ctx, rn.SandboxDir, false, "start", "infra")
+	_, err := RunRunc(ctx, rn.SandboxDir, false, "start", name)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (rn *Sandbox) copyRuncFromInfraContainer() error {
+func (rn *Sandbox) copyRuncFromInfraRoot() error {
 	infraPth := filepath.Join(rn.getInfraRoot(), "usr/bin/runc")
 	hostPth := filepath.Join(rn.SandboxDir, "runc")
 

@@ -48,11 +48,11 @@ func (rn *RunInfraSandbox) runNerdctl(ctx context.Context, captureStdout bool, a
 	stdoutBuf := bytes.NewBuffer(nil)
 
 	cmd := exec.CommandContext(ctx, "nerdctl", args...)
-	cmd.Stdout = rn.sandboxStdout
+	cmd.Stdout = rn.infraStdout
 	if captureStdout {
 		cmd.Stdout = stdoutBuf
 	}
-	cmd.Stderr = rn.sandboxStderr
+	cmd.Stderr = rn.infraStderr
 	err := cmd.Run()
 	if err != nil {
 		return "", err

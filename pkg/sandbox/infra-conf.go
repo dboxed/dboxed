@@ -10,13 +10,11 @@ import (
 )
 
 func (rn *Sandbox) writeInfraConf() error {
-	networkConf := rn.buildNetworkConfig()
-
 	infraConf := types.InfraConfig{
 		BoxSpec:       *rn.BoxSpec,
 		BoxName:       rn.SandboxName,
 		SandboxDir:    rn.SandboxDir,
-		NetworkConfig: networkConf,
+		NetworkConfig: rn.network.Config,
 	}
 
 	b, err := json.Marshal(infraConf)
