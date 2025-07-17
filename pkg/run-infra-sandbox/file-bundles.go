@@ -10,8 +10,12 @@ import (
 	"path/filepath"
 )
 
+func (rn *RunInfraSandbox) getBundleVolumeName(name string) string {
+	return fmt.Sprintf("unboxed-bundle-%s", name)
+}
+
 func (rn *RunInfraSandbox) createBundleVolume(ctx context.Context, name string) (string, error) {
-	volumeName := fmt.Sprintf("unboxed-bundle-%s", name)
+	volumeName := rn.getBundleVolumeName(name)
 
 	slog.InfoContext(ctx, "creating bundle volumes", slog.Any("volumeName", volumeName))
 	_, err := rn.runNerdctl(ctx, true, "volume", "create", volumeName)
@@ -27,7 +31,7 @@ func (rn *RunInfraSandbox) createBundleVolume(ctx context.Context, name string) 
 	return volumeInfo.Mountpoint, nil
 }
 
-func (rn *RunInfraSandbox) writeFileBundles(ctx context.Context) error {
+func (rn *RunInfraSandbox) createBundleVolumes(ctx context.Context) error {
 	for _, fb := range rn.conf.BoxSpec.FileBundles {
 		volumePath, err := rn.createBundleVolume(ctx, fb.Name)
 		if err != nil {
@@ -40,13 +44,15 @@ func (rn *RunInfraSandbox) writeFileBundles(ctx context.Context) error {
 		}
 	}
 
-	// let the GC free it up
-	rn.conf.BoxSpec.FileBundles = nil
-
 	return nil
 }
 
 func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath string) error {
+	err := os.MkdirAll(bundlePath, 0700)
+	if err != nil {
+		return err
+	}
+
 	for _, f := range fb.Files {
 		err := rn.writeFileBundleEntry(bundlePath, f)
 		if err != nil {
@@ -68,6 +74,20 @@ func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath strin
 		}
 
 		err = os.Chown(p, f.Uid, f.Gid)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = os.Chown(bundlePath, int(fb.RootUid), int(fb.RootGid))
+	if err != nil {
+		return err
+	}
+	if fb.RootMode != 0 {
+		if os.FileMode(fb.RootMode) & ^os.ModePerm != 0 {
+			return fmt.Errorf("not allowed mode %o", fb.RootMode)
+		}
+		err = os.Chmod(bundlePath, os.FileMode(fb.RootMode))
 		if err != nil {
 			return err
 		}

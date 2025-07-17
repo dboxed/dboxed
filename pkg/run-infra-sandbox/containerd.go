@@ -33,7 +33,7 @@ func (rn *RunInfraSandbox) startContainerd(ctx context.Context) error {
 	slog.InfoContext(ctx, "waiting for containerd to become ready")
 	time.Sleep(500 * time.Millisecond)
 	for {
-		_, err = rn.runNerdctl(ctx, false, []string{"ps"})
+		_, err = rn.runNerdctl(ctx, false, "ps")
 		if err == nil {
 			break
 		}

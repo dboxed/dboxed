@@ -32,20 +32,10 @@ func (rn *RunInfraSandbox) Start(ctx context.Context) error {
 	rn.initLogging()
 	defer rn.stopLogging()
 
-	defer func() {
-		slog.InfoContext(ctx, "exiting...")
-		time.Sleep(60 * time.Minute)
-	}()
-
 	slog.InfoContext(ctx, "running in sandbox container")
 
 	var err error
 	rn.conf, err = sandbox.ReadInfraConf(types.InfraConfFile)
-	if err != nil {
-		return err
-	}
-
-	err = rn.writeFileBundles(ctx)
 	if err != nil {
 		return err
 	}
@@ -90,6 +80,11 @@ func (rn *RunInfraSandbox) Start(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.createBundleVolumes(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = rn.startNetbirdServiceContainer(ctx)
 	if err != nil {
 		return err
@@ -112,6 +107,9 @@ func (rn *RunInfraSandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// let the GC free it up
+	rn.conf.BoxSpec.FileBundles = nil
 
 	slog.InfoContext(ctx, "up and running")
 	for {

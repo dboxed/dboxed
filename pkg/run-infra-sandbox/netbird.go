@@ -33,7 +33,7 @@ func (rn *RunInfraSandbox) startNetbirdServiceContainer(ctx context.Context) err
 		"--log-file", "/dev/stdout",
 	}
 
-	_, err := rn.runNerdctl(ctx, false, args)
+	_, err := rn.runNerdctl(ctx, false, args...)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (rn *RunInfraSandbox) runNetbirdCli(ctx context.Context, captureStdout bool
 	var args2 []string
 	args2 = append(args2, "exec", "-i", "unboxed-netbird", "netbird")
 	args2 = append(args2, args...)
-	stdout, err := rn.runNerdctl(ctx, captureStdout, args2)
+	stdout, err := rn.runNerdctl(ctx, captureStdout, args2...)
 	if err != nil {
 		return stdout, fmt.Errorf("netbird cli failed: %w", err)
 	}
