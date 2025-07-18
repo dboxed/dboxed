@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/types"
-	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -97,13 +96,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 
 	_ = os.Remove(filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
 	err = os.Symlink("/hostfs/etc/resolv.conf", filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
-	if err != nil {
-		return err
-	}
-
-	// TODO move this into the infra-host container when https://github.com/opencontainers/runc/issues/2826 gets fixed
-	slog.InfoContext(ctx, "enabling ip forwarding")
-	err = os.WriteFile("/proc/sys/net/ipv4/ip_forward", []byte("1"), 0600)
 	if err != nil {
 		return err
 	}
