@@ -96,6 +96,11 @@ func (rn *RunInfraHost) doRun(ctx context.Context) error {
 	// let the GC free it up
 	rn.conf.BoxSpec.FileBundles = nil
 
+	err = os.WriteFile(types.InfraHostReadyMarkerFile, nil, 0644)
+	if err != nil {
+		return err
+	}
+
 	slog.InfoContext(ctx, "up and running")
 	for {
 		if !util.SleepWithContext(ctx, 1*time.Second) {

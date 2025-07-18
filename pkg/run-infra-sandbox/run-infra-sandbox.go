@@ -41,6 +41,16 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 		return err
 	}
 
+	slog.InfoContext(ctx, "waiting for infra-host to become ready")
+	for {
+		if _, err := os.Stat(types.InfraHostReadyMarkerFile); err == nil {
+			break
+		}
+		if !util.SleepWithContext(ctx, time.Second) {
+			return ctx.Err()
+		}
+	}
+
 	err = rn.startDockerd(ctx)
 	if err != nil {
 		return err
