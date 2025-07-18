@@ -99,7 +99,7 @@ func (rn *Sandbox) destroyInfraContainer(ctx context.Context, name string) error
 }
 
 func (rn *Sandbox) createInfraContainer(ctx context.Context, hostNetwork bool, name string, cmd []string) error {
-	slog.InfoContext(ctx, "creating infra container")
+	slog.InfoContext(ctx, fmt.Sprintf("creating %s container", name))
 
 	imageConfig, err := util.ReadJsonFile[v1.Image](rn.getInfraImageConfig())
 	if err != nil {
@@ -123,7 +123,7 @@ func (rn *Sandbox) createInfraContainer(ctx context.Context, hostNetwork bool, n
 }
 
 func (rn *Sandbox) startInfraContainer(ctx context.Context, name string) error {
-	slog.InfoContext(ctx, "starting infra container")
+	slog.InfoContext(ctx, fmt.Sprintf("starting %s container", name))
 
 	_, err := RunRunc(ctx, rn.SandboxDir, false, "start", name)
 	if err != nil {
