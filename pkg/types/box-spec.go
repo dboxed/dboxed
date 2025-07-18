@@ -21,11 +21,22 @@ type BoxSpec struct {
 	Hostname      string `json:"hostname"`
 	NetworkDomain string `json:"networkDomain"`
 
+	Dns *DnsSpec `json:"dns,omitempty"`
+
 	InfraImage string `json:"infraImage,omitempty"`
 
 	FileBundles []FileBundle `json:"fileBundles"`
 
 	Compose string `json:"compose"`
+}
+
+type DnsSpec struct {
+	NetworkInterface string `json:"networkInterface"`
+
+	LibP2P *DnsLibP2PSpec `json:"libp2p,omitempty"`
+}
+
+type DnsLibP2PSpec struct {
 }
 
 type FileBundle struct {

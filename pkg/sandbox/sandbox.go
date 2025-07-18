@@ -95,7 +95,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	_ = os.Remove(filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
-	err = os.Symlink("/hostfs/etc/resolv.conf", filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
+	err = rn.writeResolvConf(rn.getInfraRoot(), rn.network.Config.DnsProxyIP)
 	if err != nil {
 		return err
 	}

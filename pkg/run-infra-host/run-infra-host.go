@@ -22,8 +22,8 @@ type RunInfraHost struct {
 	routesMirror    network.RoutesMirror
 	netbirdRulesFix network.NetbirdRulesFix
 
-	dnsProxy          *dns_proxy.DnsProxy
-	olsStaticHostsMap map[string]string
+	dnsProxy      *dns_proxy.DnsProxy
+	oldDnsMapHash string
 
 	infraStdout io.WriteCloser
 	infraStderr io.WriteCloser
@@ -92,6 +92,8 @@ func (rn *RunInfraHost) doRun(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	go rn.runReadDnsMap(ctx)
 
 	// let the GC free it up
 	rn.conf.BoxSpec.FileBundles = nil

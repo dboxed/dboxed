@@ -2,6 +2,7 @@ package run_infra_sandbox
 
 import (
 	"context"
+	"github.com/koobox/unboxed/pkg/dns"
 	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/sandbox"
 	"github.com/koobox/unboxed/pkg/types"
@@ -14,6 +15,10 @@ import (
 
 type RunInfraSandbox struct {
 	conf *types.InfraConfig
+
+	dnsStore      *dns.DnsStore
+	dnsPubSub     dns.DnsPubSub
+	oldDnsMapHash string
 
 	infraStdout io.WriteCloser
 	infraStderr io.WriteCloser
@@ -49,6 +54,11 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 		if !util.SleepWithContext(ctx, time.Second) {
 			return ctx.Err()
 		}
+	}
+
+	err = rn.startDnsPubSub(ctx)
+	if err != nil {
+		return err
 	}
 
 	err = rn.startDockerd(ctx)
