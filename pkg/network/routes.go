@@ -9,6 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 	"log/slog"
 	"net"
+	"time"
 )
 
 type RoutesMirror struct {
@@ -52,14 +53,14 @@ func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink n
 	err := netlink.RouteSubscribeWithOptions(routeUpdateChan, ctx.Done(), netlink.RouteSubscribeOptions{
 		ListExisting: true,
 		ErrorCallback: func(err error) {
-			slog.ErrorContext(ctx, err.Error())
+			slog.ErrorContext(ctx, "error in RouteSubscribeWithOptions", slog.Any("error", err))
 		},
 	})
 	if err != nil {
 		return err
 	}
 
-	go func() {
+	doWork := func(tc <-chan time.Time) {
 		for {
 			select {
 			case ru := <-routeUpdateChan:
@@ -69,8 +70,18 @@ func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink n
 				}
 			case <-ctx.Done():
 				return
+			case <-tc:
+				return
 			}
 		}
+	}
+
+	// first, proceed until no route updates happen for at least a second. This ensures that basic routes are ready.
+	doWork(time.After(time.Second))
+
+	// now proceed with the rest until the context is cancelled
+	go func() {
+		doWork(nil)
 	}()
 
 	return nil
