@@ -5,6 +5,7 @@ import (
 	"fmt"
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/koobox/unboxed/pkg/types"
+	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -34,6 +35,21 @@ func (rn *RunInfraSandbox) runComposeUp(ctx context.Context) error {
 	}
 
 	err = os.WriteFile(configPath, b, 0600)
+	if err != nil {
+		return err
+	}
+
+	cmd := rn.buildDockerCliCmd(ctx, "compose", "pull", "-q")
+	cmd.Dir = projectPath
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(ctx, "running docker compose up")
+	cmd = rn.buildDockerCliCmd(ctx, "compose", "up", "-d")
+	cmd.Dir = projectPath
+	err = cmd.Run()
 	if err != nil {
 		return err
 	}

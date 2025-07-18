@@ -46,15 +46,21 @@ func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunInfraSandbox) runDockerCli(ctx context.Context, captureStdout bool, args ...string) (string, error) {
-	stdoutBuf := bytes.NewBuffer(nil)
+func (rn *RunInfraSandbox) buildDockerCliCmd(ctx context.Context, args ...string) *exec.Cmd {
 
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	cmd.Stdout = rn.infraStdout
+	cmd.Stderr = rn.infraStderr
+	return cmd
+}
+
+func (rn *RunInfraSandbox) runDockerCli(ctx context.Context, captureStdout bool, args ...string) (string, error) {
+	stdoutBuf := bytes.NewBuffer(nil)
+
+	cmd := rn.buildDockerCliCmd(ctx, args...)
 	if captureStdout {
 		cmd.Stdout = stdoutBuf
 	}
-	cmd.Stderr = rn.infraStderr
 	err := cmd.Run()
 	if err != nil {
 		return "", err
