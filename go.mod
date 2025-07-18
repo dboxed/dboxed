@@ -8,6 +8,7 @@ require (
 	github.com/compose-spec/compose-go/v2 v2.7.1
 	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/dustin/go-humanize v1.0.1
+	github.com/gofrs/flock v0.8.1
 	github.com/google/go-containerregistry v0.20.6
 	github.com/klauspost/compress v1.18.0
 	github.com/miekg/dns v1.1.66
@@ -18,6 +19,7 @@ require (
 	github.com/rootless-containers/rootlesskit v1.1.1
 	github.com/vishvananda/netlink v1.3.0
 	github.com/vishvananda/netns v0.0.4
+	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/sys v0.33.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gotest.tools/v3 v3.5.2

@@ -5,7 +5,6 @@ import (
 	"github.com/koobox/unboxed/cmd/unboxed/flags"
 	"github.com/koobox/unboxed/pkg/start-box"
 	"log/slog"
-	"net"
 	"time"
 )
 
@@ -13,7 +12,7 @@ type StartCmd struct {
 	flags.BoxUrlFlags
 
 	BoxName     string `help:"Specify the box name" required:""`
-	VethCidrArg string `help:"CIDR to use for veth pair" default:"1.2.3.0/30"`
+	VethCidrArg string `help:"CIDR to use for veth pairs. Unboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
 
 	WaitBeforeExit *time.Duration `help:"Wait before finally exiting. This gives the process time to print stdout/stderr messages that might be lost. Especially useful in combination with --debug"`
 }
@@ -31,17 +30,12 @@ func (cmd *StartCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	_, vethCidr, err := net.ParseCIDR(cmd.VethCidrArg)
-	if err != nil {
-		return err
-	}
-
 	startBox := start_box.StartBox{
 		Debug:           g.Debug,
 		BoxUrl:          url,
 		BoxName:         cmd.BoxName,
 		WorkDir:         g.WorkDir,
-		VethNetworkCidr: vethCidr,
+		VethNetworkCidr: cmd.VethCidrArg,
 	}
 
 	ctx := context.Background()
