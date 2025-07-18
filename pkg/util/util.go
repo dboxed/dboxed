@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -21,6 +22,17 @@ func SleepWithContext(ctx context.Context, d time.Duration) bool {
 	}
 }
 
+func LoopWithPrintErr(ctx context.Context, name string, interval time.Duration, fn func() error) {
+	for {
+		err := fn()
+		if err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("error in %s", name), slog.Any("error", err))
+		}
+		if !SleepWithContext(ctx, interval) {
+			return
+		}
+	}
+}
 func AtomicWriteFile(path string, b []byte, perm os.FileMode) error {
 	tmpFile, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*")
 	if err != nil {

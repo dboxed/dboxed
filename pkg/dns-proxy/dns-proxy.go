@@ -78,15 +78,9 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		for {
-			err := d.readHostResolvConf(ctx)
-			if err != nil {
-				slog.ErrorContext(ctx, "error while reading host resolv.conf", slog.Any("error", err))
-			}
-			if !util.SleepWithContext(ctx, 5*time.Second) {
-				return
-			}
-		}
+		util.LoopWithPrintErr(ctx, "readHostResolvConf", 5*time.Second, func() error {
+			return d.readHostResolvConf(ctx)
+		})
 	}()
 
 	d.startServing(ctx, d.udpServer)

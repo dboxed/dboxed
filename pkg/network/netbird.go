@@ -40,16 +40,10 @@ type NetbirdRulesFix struct {
 func (n *NetbirdRulesFix) Start(ctx context.Context) error {
 	go func() {
 		err := util.RunInNetNs(n.SandboxNetworkNamespace, func() error {
-			for {
-				err := n.fixNetbirdRulesOnce(ctx)
-				if err != nil {
-					slog.WarnContext(ctx, "error in fixNetbirdRules", slog.Any("error", err))
-				}
-
-				if !util.SleepWithContext(ctx, 5*time.Second) {
-					return ctx.Err()
-				}
-			}
+			util.LoopWithPrintErr(ctx, "fixNetbirdRulesOnce", 5*time.Second, func() error {
+				return n.fixNetbirdRulesOnce(ctx)
+			})
+			return ctx.Err()
 		})
 		if err != nil {
 			slog.ErrorContext(ctx, "error in fixNetbirdRules", slog.Any("error", err))
