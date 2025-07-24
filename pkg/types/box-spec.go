@@ -43,7 +43,7 @@ type FileBundle struct {
 	Name     string            `json:"name"`
 	RootUid  uint32            `json:"rootUid"`
 	RootGid  uint32            `json:"rootGid"`
-	RootMode uint32            `json:"rootMode"`
+	RootMode string            `json:"rootMode"`
 	Files    []FileBundleEntry `json:"files"`
 }
 
@@ -51,7 +51,8 @@ const AllowedModeMask = os.ModeDir | os.ModeSymlink | os.ModePerm
 
 type FileBundleEntry struct {
 	Path string `json:"path"`
-	Mode uint32 `json:"mode"`
+	Type string `json:"type,omitempty"` // file, dir, or symlink
+	Mode string `json:"mode"`
 
 	Uid int `json:"uid"`
 	Gid int `json:"gid"`

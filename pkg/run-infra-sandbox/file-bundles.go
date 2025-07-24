@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 func (rn *RunInfraSandbox) getBundleVolumeName(name string) string {
@@ -62,13 +63,16 @@ func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath strin
 
 	// now fix permissions
 	for _, f := range fb.Files {
-		fileMode := os.FileMode(f.Mode)
+		fm, err := parseMode(f.Mode)
+		if err != nil {
+			return err
+		}
 
 		p, err := securejoin.SecureJoin(bundlePath, f.Path)
 		if err != nil {
 			return err
 		}
-		err = os.Chmod(p, fileMode.Perm())
+		err = os.Chmod(p, fm)
 		if err != nil {
 			return err
 		}
@@ -83,11 +87,12 @@ func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath strin
 	if err != nil {
 		return err
 	}
-	if fb.RootMode != 0 {
-		if os.FileMode(fb.RootMode) & ^os.ModePerm != 0 {
-			return fmt.Errorf("not allowed mode %o", fb.RootMode)
-		}
-		err = os.Chmod(bundlePath, os.FileMode(fb.RootMode))
+	rootMode, err := parseMode(fb.RootMode)
+	if err != nil {
+		return fmt.Errorf("failed to parse root dir mode: %w", err)
+	}
+	if rootMode != 0 {
+		err = os.Chmod(bundlePath, rootMode)
 		if err != nil {
 			return err
 		}
@@ -97,9 +102,9 @@ func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath strin
 }
 
 func (rn *RunInfraSandbox) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
-	fileMode := os.FileMode(f.Mode)
-	if fileMode & ^types.AllowedModeMask != 0 {
-		return fmt.Errorf("invalid file mode %o for entry '%s'", fileMode, f.Path)
+	fileMode, err := parseMode(f.Mode)
+	if err != nil {
+		return fmt.Errorf("failed to parse file mode for %s: %w", f.Path, err)
 	}
 
 	p, err := securejoin.SecureJoin(bundlePath, f.Path)
@@ -117,17 +122,18 @@ func (rn *RunInfraSandbox) writeFileBundleEntry(bundlePath string, f types.FileB
 	if err != nil {
 		return err
 	}
-	if fileMode.IsDir() {
-		err = os.Mkdir(p, fileMode.Perm())
-		if err != nil {
-			return err
-		}
-	} else if fileMode.IsRegular() {
+	switch f.Type {
+	case "file", "":
 		err = os.WriteFile(p, d, fileMode.Perm())
 		if err != nil {
 			return err
 		}
-	} else if fileMode.Type() == os.ModeSymlink {
+	case "dir":
+		err = os.Mkdir(p, fileMode.Perm())
+		if err != nil {
+			return err
+		}
+	case "symlink":
 		err = os.Symlink(string(d), p)
 		if err != nil {
 			return err
@@ -141,7 +147,21 @@ func (rn *RunInfraSandbox) writeFileBundleEntry(bundlePath string, f types.FileB
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("unsupported file type %s for %s", f.Type, f.Path)
 	}
 
 	return nil
+}
+
+func parseMode(s string) (os.FileMode, error) {
+	n, err := strconv.ParseInt(s, 8, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid file mode %s: %w", s, err)
+	}
+	fm := os.FileMode(n)
+	if fm & ^os.ModePerm != 0 {
+		return 0, fmt.Errorf("invalid file mode %s", s)
+	}
+	return fm, nil
 }
