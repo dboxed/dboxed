@@ -57,6 +57,10 @@ func (rn *StartBox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	err = os.MkdirAll(filepath.Join(rn.WorkDir, "boxes", rn.BoxName), 0700)
+	if err != nil {
+		return err
+	}
 
 	err = selfupdate.SelfUpdateIfNeeded(ctx, rn.boxSpec.UnboxedBinaryUrl, rn.boxSpec.UnboxedBinaryHash, rn.WorkDir)
 	if err != nil {
