@@ -18,10 +18,7 @@ type BoxSpec struct {
 	UnboxedBinaryUrl  string `json:"unboxedBinaryUrl,omitempty"`
 	UnboxedBinaryHash string `json:"unboxedBinaryHash,omitempty"`
 
-	Hostname      string `json:"hostname"`
-	NetworkDomain string `json:"networkDomain"`
-
-	Dns *DnsSpec `json:"dns,omitempty"`
+	Dns DnsSpec `json:"dns"`
 
 	InfraImage string `json:"infraImage,omitempty"`
 
@@ -31,6 +28,9 @@ type BoxSpec struct {
 }
 
 type DnsSpec struct {
+	Hostname      string `json:"hostname"`
+	NetworkDomain string `json:"networkDomain"`
+
 	NetworkInterface string `json:"networkInterface"`
 
 	LibP2P *DnsLibP2PSpec `json:"libp2p,omitempty"`

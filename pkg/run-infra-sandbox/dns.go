@@ -3,7 +3,6 @@ package run_infra_sandbox
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/koobox/unboxed/pkg/dns"
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/util"
@@ -13,10 +12,6 @@ import (
 )
 
 func (rn *RunInfraSandbox) startDnsPubSub(ctx context.Context) error {
-	if rn.conf.BoxSpec.Dns == nil {
-		return nil
-	}
-
 	rn.dnsStore = dns.NewDnsStore(30 * time.Second)
 
 	if rn.conf.BoxSpec.Dns.LibP2P != nil {
@@ -25,12 +20,13 @@ func (rn *RunInfraSandbox) startDnsPubSub(ctx context.Context) error {
 			return err
 		}
 	} else {
-		return fmt.Errorf("missing dns configuration")
+		slog.InfoContext(ctx, "no dns publisher configured")
+		return nil
 	}
 
 	err := rn.watchDnsNetworkInterface(ctx, func(ip string) {
 		slog.InfoContext(ctx, "setting dns announcement", slog.Any("ip", ip))
-		rn.dnsPubSub.SetDnsAnnouncement(rn.conf.BoxSpec.Hostname, ip)
+		rn.dnsPubSub.SetDnsAnnouncement(rn.conf.BoxSpec.Dns.Hostname, ip)
 	})
 	if err != nil {
 		return err
@@ -44,7 +40,7 @@ func (rn *RunInfraSandbox) startDnsPubSub(ctx context.Context) error {
 func (rn *RunInfraSandbox) startDnsPubSubLibP2P(ctx context.Context) error {
 	dnsP2P := &dns.DnsLibP2P{
 		Store:         rn.dnsStore,
-		NetworkDomain: rn.conf.BoxSpec.NetworkDomain,
+		NetworkDomain: rn.conf.BoxSpec.Dns.NetworkDomain,
 	}
 	err := dnsP2P.Start(ctx)
 	if err != nil {
