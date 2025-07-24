@@ -1,12 +1,15 @@
 package dns_proxy
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"github.com/koobox/unboxed/pkg/util"
 	"github.com/miekg/dns"
 	"github.com/vishvananda/netns"
 	"log/slog"
 	"net"
+	"os/exec"
 	"reflect"
 	"strings"
 	"sync"
@@ -19,7 +22,7 @@ type DnsProxy struct {
 	QueryNamespace  netns.NsHandle
 	ListenIP        net.IP
 
-	HostResolveConf string
+	HostFsPath string
 
 	staticHostsMapMutex sync.Mutex
 	staticHostsMap      map[string]string
@@ -90,7 +93,17 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 }
 
 func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
-	c, err := dns.ClientConfigFromFile(d.HostResolveConf)
+	// we need to enter the hostfs with chroot as otherwise links won't resolver properly
+	// using chroot+cat is the simplest way here, but we might need to consider using unshare in some way
+	buf := bytes.NewBuffer(nil)
+	cmd := exec.CommandContext(ctx, "chroot", d.HostFsPath, "cat", "/etc/resolv.conf")
+	cmd.Stdout = buf
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to read host resolv.conf: %w", err)
+	}
+
+	c, err := dns.ClientConfigFromReader(buf)
 	if err != nil {
 		return err
 	}
