@@ -12,54 +12,63 @@ import (
 
 func (rn *RunInfraSandbox) runComposeUp(ctx context.Context) error {
 	projectPath := filepath.Join(types.UnboxedDataDir, "compose")
-	configPath := filepath.Join(projectPath, "compose.yaml")
 
 	err := os.MkdirAll(projectPath, 0700)
 	if err != nil {
 		return err
 	}
 
-	compose, err := rn.conf.BoxSpec.LoadComposeProject()
+	composeProjects, err := rn.conf.BoxSpec.LoadComposeProjects()
 	if err != nil {
 		return err
 	}
 
-	err = rn.setupComposeFile(ctx, compose)
-	if err != nil {
-		return err
+	for i, composeProject := range composeProjects {
+		err = rn.setupComposeFile(ctx, composeProject)
+		if err != nil {
+			return err
+		}
+
+		if composeProject.Name == "" {
+			composeProject.Name = fmt.Sprintf("tmp-%d", i)
+		}
+
+		b, err := composeProject.MarshalYAML()
+		if err != nil {
+			return err
+		}
+
+		configName := fmt.Sprintf("compose-%s.yaml", composeProject.Name)
+		err = os.WriteFile(filepath.Join(projectPath, configName), b, 0600)
+		if err != nil {
+			return err
+		}
 	}
 
-	b, err := compose.MarshalYAML()
-	if err != nil {
-		return err
+	for _, composeProject := range composeProjects {
+		configFile := fmt.Sprintf("compose-%s.yaml", composeProject.Name)
+		cmd := rn.buildDockerCliCmd(ctx, "compose", "-f", configFile, "pull", "-q")
+		cmd.Dir = projectPath
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = os.WriteFile(configPath, b, 0600)
-	if err != nil {
-		return err
+	for _, composeProject := range composeProjects {
+		slog.InfoContext(ctx, "running docker compose up", slog.Any("projectName", composeProject.Name))
+		configFile := fmt.Sprintf("compose-%s.yaml", composeProject.Name)
+		cmd := rn.buildDockerCliCmd(ctx, "compose", "-f", configFile, "up", "-d")
+		cmd.Dir = projectPath
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
 	}
-
-	cmd := rn.buildDockerCliCmd(ctx, "compose", "pull", "-q")
-	cmd.Dir = projectPath
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	slog.InfoContext(ctx, "running docker compose up")
-	cmd = rn.buildDockerCliCmd(ctx, "compose", "up", "-d")
-	cmd.Dir = projectPath
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (rn *RunInfraSandbox) setupComposeFile(ctx context.Context, compose *ctypes.Project) error {
-	compose.Name = rn.conf.BoxName
-
 	if compose.Volumes == nil {
 		compose.Volumes = map[string]ctypes.VolumeConfig{}
 	}

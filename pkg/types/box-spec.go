@@ -24,7 +24,7 @@ type BoxSpec struct {
 
 	FileBundles []FileBundle `json:"fileBundles"`
 
-	Compose string `json:"compose"`
+	ComposeProjects []string `json:"composeProjects"`
 }
 
 type DnsSpec struct {
@@ -86,7 +86,19 @@ type BundleMount struct {
 	ContainerPath string `json:"containerPath"`
 }
 
-func (s *BoxSpec) LoadComposeProject() (*ctypes.Project, error) {
+func (s *BoxSpec) LoadComposeProjects() ([]*ctypes.Project, error) {
+	var ret []*ctypes.Project
+	for _, str := range s.ComposeProjects {
+		p, err := s.loadComposeProject(str)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, p)
+	}
+	return ret, nil
+}
+
+func (s *BoxSpec) loadComposeProject(str string) (*ctypes.Project, error) {
 	tmpFile, err := os.CreateTemp("", "")
 	if err != nil {
 		return nil, err
@@ -94,7 +106,7 @@ func (s *BoxSpec) LoadComposeProject() (*ctypes.Project, error) {
 	defer tmpFile.Close()
 	defer os.Remove(tmpFile.Name())
 
-	_, err = tmpFile.Write([]byte(s.Compose))
+	_, err = tmpFile.Write([]byte(str))
 	if err != nil {
 		return nil, err
 	}
