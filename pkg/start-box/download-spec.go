@@ -8,15 +8,16 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sigs.k8s.io/yaml"
+	"strings"
 )
 
 func (rn *StartBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error) {
 	var err error
 	var b []byte
 	if rn.BoxUrl.Scheme == "file" {
-		b, err = os.ReadFile(filepath.FromSlash(rn.BoxUrl.Path))
+		path := strings.TrimPrefix(rn.BoxUrl.String(), "file://")
+		b, err = os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
