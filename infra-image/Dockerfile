@@ -6,7 +6,8 @@ RUN apk add --no-cache \
     tini
 
 RUN mkdir -p /etc/unboxed \
-    && mkdir -p /var/log/unboxed \
+    && mkdir -p /var/lib/unboxed \
+    && mkdir -p /var/lib/unboxed/logs \
     && mkdir -p /run/netns \
     && mkdir -p /hostfs
 

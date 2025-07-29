@@ -18,7 +18,8 @@ type BoxSpec struct {
 	UnboxedBinaryUrl  string `json:"unboxedBinaryUrl,omitempty"`
 	UnboxedBinaryHash string `json:"unboxedBinaryHash,omitempty"`
 
-	Dns DnsSpec `json:"dns"`
+	Dns  DnsSpec   `json:"dns"`
+	Logs *LogsSpec `json:"logs,omitempty"`
 
 	InfraImage string `json:"infraImage,omitempty"`
 
@@ -37,6 +38,20 @@ type DnsSpec struct {
 }
 
 type DnsLibP2PSpec struct {
+}
+
+type LogsSpec struct {
+	Nats *LogsNatsSpec `json:"nats,omitempty"`
+}
+
+type LogsNatsSpec struct {
+	Url string `json:"url"`
+
+	MetadataKVStore string `json:"metadataKVStore"`
+	LogStream       string `json:"logStream"`
+	LogId           string `json:"logId"`
+
+	NKeySeed string `json:"nkeySeed"`
 }
 
 type FileBundle struct {

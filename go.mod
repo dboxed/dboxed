@@ -7,7 +7,9 @@ require (
 	github.com/alecthomas/kong v1.12.0
 	github.com/compose-spec/compose-go/v2 v2.7.1
 	github.com/cyphar/filepath-securejoin v0.4.1
+	github.com/dgraph-io/badger/v4 v4.8.0
 	github.com/dustin/go-humanize v1.0.1
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gofrs/flock v0.8.1
 	github.com/google/go-containerregistry v0.20.6
 	github.com/klauspost/compress v1.18.0
@@ -17,6 +19,8 @@ require (
 	github.com/miekg/dns v1.1.66
 	github.com/moby/go-archive v0.1.0
 	github.com/multiformats/go-multiaddr v0.16.0
+	github.com/nats-io/nats.go v1.43.0
+	github.com/nats-io/nkeys v0.4.11
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/pkg/errors v0.9.1
@@ -24,7 +28,7 @@ require (
 	github.com/vishvananda/netlink v1.3.0
 	github.com/vishvananda/netns v0.0.4
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/sys v0.33.0
+	golang.org/x/sys v0.34.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gotest.tools/v3 v3.5.2
 	sigs.k8s.io/yaml v1.5.0
@@ -38,6 +42,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v28.3.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
@@ -51,6 +56,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250607225305-033d6d78b36a // indirect
@@ -102,6 +108,7 @@ require (
 	github.com/multiformats/go-multistream v0.6.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.23.4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
@@ -140,9 +147,9 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel v1.36.0 // indirect
-	go.opentelemetry.io/otel/metric v1.36.0 // indirect
-	go.opentelemetry.io/otel/trace v1.36.0 // indirect
+	go.opentelemetry.io/otel v1.37.0 // indirect
+	go.opentelemetry.io/otel/metric v1.37.0 // indirect
+	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/fx v1.24.0 // indirect

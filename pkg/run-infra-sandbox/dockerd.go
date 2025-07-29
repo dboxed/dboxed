@@ -5,16 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/koobox/unboxed/pkg/logs"
+	"github.com/koobox/unboxed/pkg/types"
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
 func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {
 	slog.InfoContext(ctx, "starting dockerd")
 
-	logRot := logs.BuildRotatingLogger("/var/log/unboxed/dockerd.log")
+	logRot := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "dockerd.log"))
 	stdout := logs.NewJsonFileLogger(logRot, "stdout")
 	stderr := logs.NewJsonFileLogger(logRot, "stderr")
 	defer func() {
@@ -47,7 +49,6 @@ func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {
 }
 
 func (rn *RunInfraSandbox) buildDockerCliCmd(ctx context.Context, args ...string) *exec.Cmd {
-
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	cmd.Stdout = rn.infraStdout
 	cmd.Stderr = rn.infraStderr

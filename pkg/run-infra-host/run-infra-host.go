@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -114,11 +115,11 @@ func (rn *RunInfraHost) doRun(ctx context.Context) error {
 }
 
 func (rn *RunInfraHost) initLogging() {
-	infraLog := logs.BuildRotatingLogger("/var/log/unboxed/infra-host.log")
+	infraLog := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "infra-host.log"))
 	rn.infraStdout = logs.NewJsonFileLogger(infraLog, "stdout")
 	rn.infraStderr = logs.NewJsonFileLogger(infraLog, "stderr")
 
-	handler := slog.NewTextHandler(rn.infraStderr, &slog.HandlerOptions{
+	handler := slog.NewJSONHandler(rn.infraStderr, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})
 	slog.SetDefault(slog.New(handler))

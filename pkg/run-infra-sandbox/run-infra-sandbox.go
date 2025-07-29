@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -19,6 +20,8 @@ type RunInfraSandbox struct {
 	dnsStore      *dns.DnsStore
 	dnsPubSub     dns.DnsPubSub
 	oldDnsMapHash string
+
+	logsPublisher logs.LogsPublisher
 
 	infraStdout io.WriteCloser
 	infraStderr io.WriteCloser
@@ -56,6 +59,12 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 		}
 	}
 
+	err = rn.initLogsPublishing(ctx)
+	if err != nil {
+		return err
+	}
+	defer rn.logsPublisher.Stop()
+
 	err = rn.startDnsPubSub(ctx)
 	if err != nil {
 		return err
@@ -90,11 +99,11 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 }
 
 func (rn *RunInfraSandbox) initLogging() {
-	infraLog := logs.BuildRotatingLogger("/var/log/unboxed/infra-sandbox.log")
+	infraLog := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "infra-sandbox.log"))
 	rn.infraStdout = logs.NewJsonFileLogger(infraLog, "stdout")
 	rn.infraStderr = logs.NewJsonFileLogger(infraLog, "stderr")
 
-	handler := slog.NewTextHandler(rn.infraStderr, &slog.HandlerOptions{
+	handler := slog.NewJSONHandler(rn.infraStderr, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})
 	slog.SetDefault(slog.New(handler))

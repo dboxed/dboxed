@@ -24,24 +24,34 @@ type Sandbox struct {
 	network *network.Network
 }
 
-func (rn *Sandbox) Start(ctx context.Context) error {
-	err := os.MkdirAll(getRuncStateDir(rn.SandboxDir), 0700)
-	if err != nil {
-		return err
+func (rn *Sandbox) Destroy(ctx context.Context) error {
+	if _, err := os.Stat(getRuncStateDir(rn.SandboxDir)); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		err := rn.destroyInfraContainer(ctx, "infra-sandbox")
+		if err != nil {
+			return err
+		}
+		err = rn.destroyInfraContainer(ctx, "infra-host")
+		if err != nil {
+			return err
+		}
 	}
-	err = rn.destroyInfraContainer(ctx, "infra-sandbox")
-	if err != nil {
-		return err
-	}
-	err = rn.destroyInfraContainer(ctx, "infra-host")
-	if err != nil {
-		return err
-	}
-	err = os.RemoveAll(filepath.Join(rn.SandboxDir, "docker"))
+	err := os.RemoveAll(filepath.Join(rn.SandboxDir, "docker"))
 	if err != nil {
 		return err
 	}
 	err = os.RemoveAll(rn.getInfraRoot())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rn *Sandbox) Start(ctx context.Context) error {
+	err := os.MkdirAll(getRuncStateDir(rn.SandboxDir), 0700)
 	if err != nil {
 		return err
 	}

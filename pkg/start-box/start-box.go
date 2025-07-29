@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gofrs/flock"
+	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/sandbox"
 	"github.com/koobox/unboxed/pkg/selfupdate"
 	"github.com/koobox/unboxed/pkg/types"
@@ -31,13 +32,34 @@ type StartBox struct {
 
 	boxSpec *types.BoxSpec
 
-	sandbox *sandbox.Sandbox
+	logsPublisher logs.LogsPublisher
+	sandbox       *sandbox.Sandbox
 }
 
 func (rn *StartBox) Start(ctx context.Context) error {
 	// Lock the OS Thread so we don't accidentally switch namespaces
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+
+	sandboxDir := filepath.Join(rn.WorkDir, "boxes", rn.BoxName)
+
+	err := os.MkdirAll(rn.WorkDir, 0700)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(sandboxDir, 0700)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(filepath.Join(sandboxDir, "logs"), 0700)
+	if err != nil {
+		return err
+	}
+
+	err = rn.initFileLogging(ctx, sandboxDir)
+	if err != nil {
+		return err
+	}
 
 	if os.Getpid() == 1 {
 		slog.InfoContext(ctx, "evacuating cgroup2")
@@ -47,20 +69,34 @@ func (rn *StartBox) Start(ctx context.Context) error {
 		}
 	}
 
-	var err error
 	rn.boxSpec, err = rn.retrieveBoxSpec(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(rn.WorkDir, 0700)
+	rn.sandbox = &sandbox.Sandbox{
+		Debug:       rn.Debug,
+		HostWorkDir: rn.WorkDir,
+		SandboxName: rn.BoxName,
+		SandboxDir:  sandboxDir,
+		BoxSpec:     rn.boxSpec,
+	}
+
+	err = rn.sandbox.Destroy(ctx)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(rn.WorkDir, "boxes", rn.BoxName), 0700)
+
+	// this will start publishing logs to the logs receiver configured in the box spec.
+	// it will publish logs until the start-box process exists. At that time, the infra-sandbox
+	// container will already be running and will wait for the multitails db to get available.
+	// when start-box exits, the db lock gets freed and infra-sandbox can take over publishing
+	// logs from where start-box stopped.
+	err = rn.initLogsPublishing(ctx, sandboxDir)
 	if err != nil {
 		return err
 	}
+	defer rn.logsPublisher.Stop()
 
 	err = selfupdate.SelfUpdateIfNeeded(ctx, rn.boxSpec.UnboxedBinaryUrl, rn.boxSpec.UnboxedBinaryHash, rn.WorkDir)
 	if err != nil {
@@ -71,18 +107,11 @@ func (rn *StartBox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	rn.sandbox.VethNetworkCidr = rn.acquiredVethNetworkCidr
 	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr.String()))
 
 	rn.loadModules(ctx)
 
-	rn.sandbox = &sandbox.Sandbox{
-		Debug:           rn.Debug,
-		HostWorkDir:     rn.WorkDir,
-		SandboxName:     rn.BoxName,
-		SandboxDir:      filepath.Join(rn.WorkDir, "boxes", rn.BoxName),
-		BoxSpec:         rn.boxSpec,
-		VethNetworkCidr: rn.acquiredVethNetworkCidr,
-	}
 	err = rn.sandbox.Start(ctx)
 	if err != nil {
 		return err
