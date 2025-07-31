@@ -23,8 +23,10 @@ type RunInfraSandbox struct {
 
 	logsPublisher logs.LogsPublisher
 
-	infraStdout io.WriteCloser
-	infraStderr io.WriteCloser
+	infraStdout  io.WriteCloser
+	infraStderr  io.WriteCloser
+	dockerStdout io.WriteCloser
+	dockerStderr io.WriteCloser
 }
 
 func (rn *RunInfraSandbox) Run(ctx context.Context) {
@@ -100,8 +102,11 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 
 func (rn *RunInfraSandbox) initLogging() {
 	infraLog := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "infra-sandbox.log"))
+	dockerLog := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "docker-cli.log"))
 	rn.infraStdout = logs.NewJsonFileLogger(infraLog, "stdout")
 	rn.infraStderr = logs.NewJsonFileLogger(infraLog, "stderr")
+	rn.dockerStdout = logs.NewJsonFileLogger(dockerLog, "stdout")
+	rn.dockerStderr = logs.NewJsonFileLogger(dockerLog, "stderr")
 
 	handler := slog.NewJSONHandler(rn.infraStderr, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -112,4 +117,6 @@ func (rn *RunInfraSandbox) initLogging() {
 func (rn *RunInfraSandbox) stopLogging() {
 	_ = rn.infraStderr.Close()
 	_ = rn.infraStdout.Close()
+	_ = rn.dockerStdout.Close()
+	_ = rn.dockerStderr.Close()
 }

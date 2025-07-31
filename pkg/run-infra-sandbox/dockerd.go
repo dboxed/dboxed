@@ -50,8 +50,8 @@ func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {
 
 func (rn *RunInfraSandbox) buildDockerCliCmd(ctx context.Context, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "docker", args...)
-	cmd.Stdout = rn.infraStdout
-	cmd.Stderr = rn.infraStderr
+	cmd.Stdout = rn.dockerStdout
+	cmd.Stderr = rn.dockerStderr
 	return cmd
 }
 
