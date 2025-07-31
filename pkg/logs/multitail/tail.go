@@ -104,6 +104,9 @@ func (t *Tail) runLineReader() error {
 		return offset - int64(br.Buffered())
 	}
 	handleLine := func(line string, offset int64) {
+		if len(line) > 0 && line[len(line)-1] == '\n' {
+			line = line[:len(line)-1]
+		}
 		t.Lines <- &Line{
 			Offset: offset,
 			Line:   line,
