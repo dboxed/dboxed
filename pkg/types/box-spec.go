@@ -23,9 +23,9 @@ type BoxSpec struct {
 
 	InfraImage string `json:"infraImage,omitempty"`
 
-	FileBundles []FileBundle `json:"fileBundles"`
+	FileBundles []FileBundle `json:"fileBundles,omitempty"`
 
-	ComposeProjects []string `json:"composeProjects"`
+	ComposeProjects []string `json:"composeProjects,omitempty"`
 }
 
 type DnsSpec struct {
