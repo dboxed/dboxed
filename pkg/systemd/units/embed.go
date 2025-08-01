@@ -11,10 +11,11 @@ var f embed.FS
 
 var templates, _ = template.New("").ParseFS(f, "*")
 
-func GetUnboxedUnit(boxName string) string {
+func GetUnboxedUnit(boxName string, extraArgs string) string {
 	buf := bytes.NewBuffer(nil)
 	err := templates.Lookup("unboxed.service").Execute(buf, map[string]any{
-		"BoxName": boxName,
+		"BoxName":   boxName,
+		"ExtraArgs": extraArgs,
 	})
 	if err != nil {
 		panic(err)

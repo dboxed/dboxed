@@ -11,7 +11,7 @@ type SystemdCmd struct {
 }
 
 type SystemdInstallCmd struct {
-	flags.BoxUrlFlags
+	flags.BoxSourceFlags
 
 	BoxName string `help:"Specify the box name" required:""`
 }
@@ -26,6 +26,7 @@ func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
 
 	s := systemd.SystemdInstall{
 		BoxUrl:  u,
+		Nkey:    cmd.Nkey,
 		BoxName: cmd.BoxName,
 	}
 

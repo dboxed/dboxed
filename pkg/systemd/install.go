@@ -11,6 +11,7 @@ import (
 
 type SystemdInstall struct {
 	BoxUrl  *url.URL
+	Nkey    string
 	BoxName string
 }
 
@@ -27,7 +28,13 @@ func (s *SystemdInstall) Run(ctx context.Context) error {
 	}
 
 	serviceName := fmt.Sprintf("unboxed-%s", s.BoxName)
-	systemdUnitContent := units.GetUnboxedUnit(s.BoxName)
+
+	extraArgs := ""
+	if s.Nkey != "" {
+		extraArgs += " --nkey=" + s.Nkey
+	}
+
+	systemdUnitContent := units.GetUnboxedUnit(s.BoxName, extraArgs)
 	err = os.WriteFile(fmt.Sprintf("/etc/systemd/system/%s.service", serviceName), []byte(systemdUnitContent), 0644)
 	if err != nil {
 		return err

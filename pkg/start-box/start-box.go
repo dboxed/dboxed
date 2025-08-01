@@ -24,6 +24,7 @@ type StartBox struct {
 	Debug bool
 
 	BoxUrl          *url.URL
+	Nkey            string
 	BoxName         string
 	WorkDir         string
 	VethNetworkCidr string
