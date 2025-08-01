@@ -1,12 +1,11 @@
 package logs
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/logs/jsonlog"
 	"github.com/koobox/unboxed/pkg/logs/multitail"
+	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/util"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -130,26 +129,25 @@ func (ttn *TailToNats) handleLineBatch(metadata multitail.LogMetadata, lines []*
 	}
 	sub := fmt.Sprintf("%s.%s.%s", ttn.logStreamName, ttn.logId, hash)
 
-	buf := bytes.NewBuffer(nil)
+	var batch types.LogsBatch
+	batch.Lines = make([]types.LogsLine, 0, len(lines))
 
-	var nl jsonlog.JSONLogs
-
-	for i, l := range lines {
+	for _, l := range lines {
 		if l.Err != nil {
 			continue
 		}
-		if i != 0 {
-			buf.Write([]byte("\n"))
-		}
-		nl.Log = []byte(l.Line)
-		nl.Created = l.Time
-		err := nl.MarshalJSONBuf(buf)
-		if err != nil {
-			return err
-		}
+		batch.Lines = append(batch.Lines, types.LogsLine{
+			Line: l.Line,
+			Time: l.Time,
+		})
 	}
 
-	_, err = ttn.jetStream.Publish(ttn.ctx, sub, buf.Bytes())
+	b, err := json.Marshal(batch)
+	if err != nil {
+		return err
+	}
+
+	_, err = ttn.jetStream.Publish(ttn.ctx, sub, b)
 	if err != nil {
 		return err
 	}

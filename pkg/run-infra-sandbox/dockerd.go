@@ -16,15 +16,15 @@ import (
 func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {
 	slog.InfoContext(ctx, "starting dockerd")
 
-	logRot := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "dockerd.log"))
-	stdout := logs.NewJsonFileLogger(logRot, "stdout")
-	stderr := logs.NewJsonFileLogger(logRot, "stderr")
-	defer func() {
-		_ = stdout.Close()
-		_ = stderr.Close()
-	}()
+	stdout := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "dockerd.stdout.log")) // this should actually never get stuff written to
+	stderr := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "dockerd.log"))        // gets structured json logs written to
 
-	cmd := exec.CommandContext(ctx, "dockerd-entrypoint.sh", "dockerd", "--host", "unix:///var/run/docker.sock")
+	cmd := exec.CommandContext(ctx,
+		"dockerd-entrypoint.sh",
+		"dockerd", "--host",
+		"unix:///var/run/docker.sock",
+		"--log-format=json",
+	)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Env = os.Environ()
@@ -50,8 +50,8 @@ func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {
 
 func (rn *RunInfraSandbox) buildDockerCliCmd(ctx context.Context, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "docker", args...)
-	cmd.Stdout = rn.dockerStdout
-	cmd.Stderr = rn.dockerStderr
+	cmd.Stdout = rn.dockerCliStdout
+	cmd.Stderr = rn.dockerCliStderr
 	return cmd
 }
 

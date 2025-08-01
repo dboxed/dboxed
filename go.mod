@@ -3,7 +3,6 @@ module github.com/koobox/unboxed
 go 1.24.3
 
 require (
-	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 	github.com/alecthomas/kong v1.12.0
 	github.com/compose-spec/compose-go/v2 v2.7.1
 	github.com/cyphar/filepath-securejoin v0.4.1
@@ -23,14 +22,12 @@ require (
 	github.com/nats-io/nkeys v0.4.11
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.2.1
-	github.com/pkg/errors v0.9.1
 	github.com/rootless-containers/rootlesskit v1.1.1
 	github.com/vishvananda/netlink v1.3.0
 	github.com/vishvananda/netns v0.0.4
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/sys v0.34.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gotest.tools/v3 v3.5.2
 	sigs.k8s.io/yaml v1.5.0
 )
 
@@ -57,7 +54,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250607225305-033d6d78b36a // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -131,6 +127,7 @@ require (
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pion/turn/v4 v4.0.2 // indirect
 	github.com/pion/webrtc/v4 v4.1.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect

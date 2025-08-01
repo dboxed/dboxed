@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type LogsPublisher struct {
@@ -57,11 +58,14 @@ func (lp *LogsPublisher) PublishUnboxedLogsDir(dir string) error {
 
 	buildMetadata := func(path string) (multitail.LogMetadata, error) {
 		fileName := filepath.Base(path)
+		format := "slog-json"
+		if strings.HasSuffix(fileName, ".stdout.log") {
+			format = "raw"
+		}
 		return multitail.LogMetadata{
 			FileName: fileName,
-			Metadata: map[string]any{
-				"type": "unboxed",
-			},
+			Format:   format,
+			Metadata: map[string]any{},
 		}, nil
 	}
 
@@ -112,8 +116,8 @@ func (lp *LogsPublisher) buildDockerContainerLogMetadata(dockerDataDir string, l
 
 	return multitail.LogMetadata{
 		FileName: relPath,
+		Format:   "docker-logs",
 		Metadata: map[string]any{
-			"type":      "docker-container",
 			"container": config,
 		},
 	}, nil

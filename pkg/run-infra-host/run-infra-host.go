@@ -3,16 +3,13 @@ package run_infra_host
 import (
 	"context"
 	dns_proxy "github.com/koobox/unboxed/pkg/dns-proxy"
-	"github.com/koobox/unboxed/pkg/logs"
 	"github.com/koobox/unboxed/pkg/network"
 	"github.com/koobox/unboxed/pkg/sandbox"
 	"github.com/koobox/unboxed/pkg/types"
 	"github.com/koobox/unboxed/pkg/util"
-	"io"
 	"log/slog"
 	"net"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -25,9 +22,6 @@ type RunInfraHost struct {
 
 	dnsProxy      *dns_proxy.DnsProxy
 	oldDnsMapHash string
-
-	infraStdout io.WriteCloser
-	infraStderr io.WriteCloser
 }
 
 func (rn *RunInfraHost) Run(ctx context.Context) {
@@ -112,20 +106,4 @@ func (rn *RunInfraHost) doRun(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (rn *RunInfraHost) initLogging() {
-	infraLog := logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "infra-host.log"))
-	rn.infraStdout = logs.NewJsonFileLogger(infraLog, "stdout")
-	rn.infraStderr = logs.NewJsonFileLogger(infraLog, "stderr")
-
-	handler := slog.NewJSONHandler(rn.infraStderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})
-	slog.SetDefault(slog.New(handler))
-}
-
-func (rn *RunInfraHost) stopLogging() {
-	_ = rn.infraStderr.Close()
-	_ = rn.infraStdout.Close()
 }
