@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 	"log/slog"

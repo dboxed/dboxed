@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"os"
 	"path/filepath"

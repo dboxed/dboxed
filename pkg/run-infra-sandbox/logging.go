@@ -2,9 +2,9 @@ package run_infra_sandbox
 
 import (
 	"context"
-	"github.com/koobox/unboxed/pkg/logs"
-	"github.com/koobox/unboxed/pkg/logs/line_handler"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/logs/line_handler"
+	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"path/filepath"
 	"strings"

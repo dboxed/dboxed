@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	"github.com/koobox/unboxed/pkg/start-box"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/start-box"
 	"log/slog"
 	"time"
 )

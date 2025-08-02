@@ -3,8 +3,8 @@ package run_infra_host
 import (
 	"context"
 	"encoding/json"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 	"log/slog"
 	"os"
 	"time"

@@ -1,4 +1,4 @@
-module github.com/koobox/unboxed
+module github.com/dboxed/dboxed
 
 go 1.24.3
 

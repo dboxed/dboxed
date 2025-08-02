@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	run_infra_host "github.com/koobox/unboxed/pkg/run-infra-host"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	run_infra_host "github.com/dboxed/dboxed/pkg/run-infra-host"
 )
 
 type RunInfraHostCmd struct {

@@ -3,8 +3,8 @@ package logs
 import (
 	"context"
 	"encoding/json"
-	"github.com/koobox/unboxed/pkg/logs/multitail"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/logs/multitail"
+	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"os"
 	"path/filepath"

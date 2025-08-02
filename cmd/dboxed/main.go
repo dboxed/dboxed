@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/alecthomas/kong"
-	"github.com/koobox/unboxed/cmd/unboxed/commands"
-	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	versionpkg "github.com/koobox/unboxed/pkg/version"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	versionpkg "github.com/dboxed/dboxed/pkg/version"
 	"log/slog"
 	"os"
 )

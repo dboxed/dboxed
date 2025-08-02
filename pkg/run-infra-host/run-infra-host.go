@@ -2,11 +2,11 @@ package run_infra_host
 
 import (
 	"context"
-	dns_proxy "github.com/koobox/unboxed/pkg/dns-proxy"
-	"github.com/koobox/unboxed/pkg/network"
-	"github.com/koobox/unboxed/pkg/sandbox"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
+	dns_proxy "github.com/dboxed/dboxed/pkg/dns-proxy"
+	"github.com/dboxed/dboxed/pkg/network"
+	"github.com/dboxed/dboxed/pkg/sandbox"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 	"log/slog"
 	"net"
 	"os"

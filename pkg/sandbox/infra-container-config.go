@@ -3,7 +3,7 @@ package sandbox
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"

@@ -2,11 +2,11 @@ package run_infra_sandbox
 
 import (
 	"context"
-	"github.com/koobox/unboxed/pkg/dns"
-	"github.com/koobox/unboxed/pkg/logs"
-	"github.com/koobox/unboxed/pkg/sandbox"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/dns"
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/sandbox"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 	"io"
 	"log/slog"
 	"os"

@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	run_infra_sandbox "github.com/koobox/unboxed/pkg/run-infra-sandbox"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	run_infra_sandbox "github.com/dboxed/dboxed/pkg/run-infra-sandbox"
 )
 
 type RunInfraSandboxCmd struct {

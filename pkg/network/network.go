@@ -1,7 +1,7 @@
 package network
 
 import (
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/vishvananda/netns"
 )
 

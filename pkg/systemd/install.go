@@ -3,7 +3,7 @@ package systemd
 import (
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/systemd/units"
+	"github.com/dboxed/dboxed/pkg/systemd/units"
 	"net/url"
 	"os"
 	"os/exec"

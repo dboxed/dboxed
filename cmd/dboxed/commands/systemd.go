@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	"github.com/koobox/unboxed/pkg/systemd"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/systemd"
 )
 
 type SystemdCmd struct {

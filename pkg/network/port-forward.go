@@ -3,7 +3,7 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/types"
 	"sync"
 )
 

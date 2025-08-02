@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"github.com/koobox/unboxed/cmd/unboxed/flags"
-	"github.com/koobox/unboxed/pkg/sandbox"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/sandbox"
 	"os"
 	"path/filepath"
 )

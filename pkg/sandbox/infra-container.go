@@ -3,9 +3,9 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
-	"github.com/koobox/unboxed/pkg/version"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/version"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"log/slog"
 	"os"

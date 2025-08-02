@@ -3,8 +3,8 @@ package sandbox
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 	"os"
 	"path/filepath"
 )

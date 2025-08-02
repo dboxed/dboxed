@@ -1,8 +1,8 @@
 package run_infra_host
 
 import (
-	"github.com/koobox/unboxed/pkg/logs"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"path/filepath"
 )

@@ -2,9 +2,9 @@ package network
 
 import (
 	"fmt"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
-	net2 "github.com/koobox/unboxed/pkg/util/net"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
+	net2 "github.com/dboxed/dboxed/pkg/util/net"
 	"github.com/vishvananda/netlink"
 	"net"
 )

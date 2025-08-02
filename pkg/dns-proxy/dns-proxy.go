@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/koobox/unboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/miekg/dns"
 	"github.com/vishvananda/netns"
 	"log/slog"

@@ -3,9 +3,9 @@ package run_infra_sandbox
 import (
 	"context"
 	"encoding/json"
-	"github.com/koobox/unboxed/pkg/dns"
-	"github.com/koobox/unboxed/pkg/types"
-	"github.com/koobox/unboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/dns"
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/vishvananda/netlink"
 	"log/slog"
 	"time"

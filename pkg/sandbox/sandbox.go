@@ -2,8 +2,8 @@ package sandbox
 
 import (
 	"context"
-	"github.com/koobox/unboxed/pkg/network"
-	"github.com/koobox/unboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/network"
+	"github.com/dboxed/dboxed/pkg/types"
 	"net"
 	"os"
 	"path/filepath"
