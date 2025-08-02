@@ -7,7 +7,7 @@ import (
 )
 
 type SystemdCmd struct {
-	Install SystemdInstallCmd `cmd:"" help:"Install unboxed as a systemd service"`
+	Install SystemdInstallCmd `cmd:"" help:"Install dboxed as a systemd service"`
 }
 
 type SystemdInstallCmd struct {

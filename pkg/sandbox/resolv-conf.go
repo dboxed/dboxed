@@ -7,7 +7,7 @@ import (
 )
 
 func (rn *Sandbox) writeResolvConf(root string, dnsProxyIp string) error {
-	resolveConf := fmt.Sprintf(`# This is the unboxed dns proxy, which listens inside the sandboxed network namespace
+	resolveConf := fmt.Sprintf(`# This is the dboxed dns proxy, which listens inside the sandboxed network namespace
 # and forwards requests to the host's resolv.conf nameservers
 nameserver %s
 search .

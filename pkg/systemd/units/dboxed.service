@@ -1,11 +1,11 @@
 [Unit]
-Description=unboxed-{{ .BoxName }}
-Documentation=https://koobox.io
+Description=dboxed-{{ .BoxName }}
+Documentation=https://dboxed.io
 After=network.target local-fs.target
 
 [Service]
-EnvironmentFile=/etc/unboxed/box-url.env
-ExecStart=/usr/local/bin/unboxed start --box-url $UNBOXED_BOX_URL --box-name {{ .BoxName }} {{ .ExtraArgs }}
+EnvironmentFile=/etc/dboxed/box-url.env
+ExecStart=/usr/local/bin/dboxed start --box-url $DBOXED_BOX_URL --box-name {{ .BoxName }} {{ .ExtraArgs }}
 RemainAfterExit=yes
 
 Type=simple

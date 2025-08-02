@@ -15,8 +15,8 @@ type BoxFile struct {
 }
 
 type BoxSpec struct {
-	UnboxedBinaryUrl  string `json:"unboxedBinaryUrl,omitempty"`
-	UnboxedBinaryHash string `json:"unboxedBinaryHash,omitempty"`
+	DboxedBinaryUrl  string `json:"dboxedBinaryUrl,omitempty"`
+	DboxedBinaryHash string `json:"dboxedBinaryHash,omitempty"`
 
 	Dns  DnsSpec   `json:"dns"`
 	Logs *LogsSpec `json:"logs,omitempty"`

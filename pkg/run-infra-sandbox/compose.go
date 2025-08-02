@@ -11,7 +11,7 @@ import (
 )
 
 func (rn *RunInfraSandbox) runComposeUp(ctx context.Context) error {
-	projectPath := filepath.Join(types.UnboxedDataDir, "compose")
+	projectPath := filepath.Join(types.DboxedDataDir, "compose")
 
 	err := os.MkdirAll(projectPath, 0700)
 	if err != nil {

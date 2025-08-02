@@ -3,8 +3,8 @@ set -e
 
 DEFAULT_BIN_DIR="/usr/local/bin"
 BIN_DIR=${1:-"${DEFAULT_BIN_DIR}"}
-GITHUB_REPO="koobox/unboxed"
-UNBOXED_VERSION=${UNBOXED_VERSION:-latest}
+GITHUB_REPO="dboxed/dboxed"
+DBOXED_VERSION=${DBOXED_VERSION:-latest}
 
 # Helper functions for logs
 info() {
@@ -69,10 +69,10 @@ verify_downloader() {
 
 # Create tempory directory and cleanup when done
 setup_tmp() {
-    TMP_DIR=$(mktemp -d -t unboxed-install.XXXXXXXXXX)
-    TMP_METADATA="${TMP_DIR}/unboxed.json"
-    TMP_HASH="${TMP_DIR}/unboxed.hash"
-    TMP_BIN="${TMP_DIR}/unboxed.tar.gz"
+    TMP_DIR=$(mktemp -d -t dboxed-install.XXXXXXXXXX)
+    TMP_METADATA="${TMP_DIR}/dboxed.json"
+    TMP_HASH="${TMP_DIR}/dboxed.hash"
+    TMP_BIN="${TMP_DIR}/dboxed.tar.gz"
     cleanup() {
         local code=$?
         set +e
@@ -105,17 +105,17 @@ download() {
 
 # Download hash from Github URL
 download_hash() {
-    HASH_URL="https://github.com/${GITHUB_REPO}/releases/download/${UNBOXED_VERSION}/unboxed_checksums.txt"
+    HASH_URL="https://github.com/${GITHUB_REPO}/releases/download/${DBOXED_VERSION}/dboxed_checksums.txt"
 
     info "Downloading hash ${HASH_URL}"
     download "${TMP_HASH}" "${HASH_URL}"
-    HASH_EXPECTED=$(grep " unboxed_${OS}_${ARCH}.tar.gz$" "${TMP_HASH}")
+    HASH_EXPECTED=$(grep " dboxed_${OS}_${ARCH}.tar.gz$" "${TMP_HASH}")
     HASH_EXPECTED=${HASH_EXPECTED%%[[:blank:]]*}
 }
 
 # Download binary from Github URL
 download_binary() {
-    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/${UNBOXED_VERSION}/unboxed_${OS}_${ARCH}.tar.gz"
+    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/${DBOXED_VERSION}/dboxed_${OS}_${ARCH}.tar.gz"
     info "Downloading binary ${BIN_URL}"
     download "${TMP_BIN}" "${BIN_URL}"
 }
@@ -148,10 +148,10 @@ verify_binary() {
 # Setup permissions and move binary
 setup_binary() {
     chmod 755 "${TMP_BIN}"
-    info "Installing unboxed to ${BIN_DIR}/unboxed"
+    info "Installing dboxed to ${BIN_DIR}/dboxed"
     tar -xzof "${TMP_BIN}" -C "${TMP_DIR}"
 
-    local CMD_MOVE="mv -f \"${TMP_DIR}/bin/unboxed\" \"${BIN_DIR}\""
+    local CMD_MOVE="mv -f \"${TMP_DIR}/bin/dboxed\" \"${BIN_DIR}\""
     if [[ -w "${BIN_DIR}" ]]; then
         eval "${CMD_MOVE}"
     else

@@ -3,14 +3,14 @@ version: 2
 pro: true
 
 builds:
-  - id: unboxed
+  - id: dboxed
     goos:
       - linux
     goarch:
       - amd64
       - arm64
-    main: ./cmd/unboxed
-    binary: bin/unboxed
+    main: ./cmd/dboxed
+    binary: bin/dboxed
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -35,7 +35,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/amd64"
     image_templates:
-      - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
+      - "ghcr.io/dboxed/dboxed:{{ .Version }}-amd64"
   - id: linux-arm64
     goos: linux
     goarch: arm64
@@ -46,7 +46,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/arm64"
     image_templates:
-      - "ghcr.io/koobox/unboxed:{{ .Version }}-arm64"
+      - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
   - id: infra-linux-amd64
     goos: linux
     goarch: amd64
@@ -58,7 +58,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/amd64"
     image_templates:
-      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-amd64"
+      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64"
   - id: infra-linux-arm64
     goos: linux
     goarch: arm64
@@ -70,27 +70,27 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/arm64"
     image_templates:
-      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
+      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64"
 
 docker_manifests:
-  - name_template: ghcr.io/koobox/unboxed:nightly
+  - name_template: ghcr.io/dboxed/dboxed:nightly
     image_templates:
-      - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
-      - "ghcr.io/koobox/unboxed:{{ .Version }}-arm64"
+      - "ghcr.io/dboxed/dboxed:{{ .Version }}-amd64"
+      - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
     skip_push: "{{ not .IsNightly }}"
-  - name_template: ghcr.io/koobox/unboxed-infra:nightly
+  - name_template: ghcr.io/dboxed/dboxed-infra:nightly
     image_templates:
-      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-amd64"
-      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
+      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64"
+      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64"
     skip_push: "{{ not .IsNightly }}"
-  - name_template: ghcr.io/koobox/unboxed:{{ .Version }}
+  - name_template: ghcr.io/dboxed/dboxed:{{ .Version }}
     image_templates:
-      - "ghcr.io/koobox/unboxed:{{ .Version }}-amd64"
-      - "ghcr.io/koobox/unboxed:{{ .Version }}-arm64"
-  - name_template: ghcr.io/koobox/unboxed-infra:{{ .Version }}
+      - "ghcr.io/dboxed/dboxed:{{ .Version }}-amd64"
+      - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
+  - name_template: ghcr.io/dboxed/dboxed-infra:{{ .Version }}
     image_templates:
-      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-amd64"
-      - "ghcr.io/koobox/unboxed-infra:{{ .Version }}-arm64"
+      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64"
+      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64"
 
 changelog:
   sort: asc
@@ -105,11 +105,11 @@ nightly:
 
 release:
   github:
-    owner: koobox
-    name: unboxed
+    owner: dboxed
+    name: dboxed
   make_latest: "{{ not .IsNightly }}"
   extra_files:
-    - glob: hack/unboxed.sh
+    - glob: hack/dboxed.sh
   footer: >-
 
     ---

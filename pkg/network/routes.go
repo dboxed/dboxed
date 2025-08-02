@@ -45,7 +45,7 @@ func (n *RoutesMirror) Start(ctx context.Context) error {
 	return nil
 }
 
-// startWatchAndUpdateRoutes will watch for routes on the host network namespace and create mirrored routes inside the unboxed
+// startWatchAndUpdateRoutes will watch for routes on the host network namespace and create mirrored routes inside the dboxed
 // network namespace. Each such route uses the host veth interface as gateway (NAT). A simpler solution would be to just
 // add a single default route, but this would not respect differences in MTUs per host network interface.
 func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink netlink.Link) error {

@@ -27,7 +27,7 @@ func setSingleAddress(ctx context.Context, link netlink.Link, addr netlink.Addr)
 		return addr.Equal(addr)
 	}) {
 		if len(addrs) != 0 {
-			return fmt.Errorf("link %s already contains an IP address that does not belong to unboxed", link.Attrs().Name)
+			return fmt.Errorf("link %s already contains an IP address that does not belong to dboxed", link.Attrs().Name)
 		}
 
 		slog.InfoContext(ctx, fmt.Sprintf("adding address %s to link %s", addr.String(), link.Attrs().Name))

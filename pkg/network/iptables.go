@@ -35,7 +35,7 @@ func (n *Iptables) runPurgeOldRules(ctx context.Context) error {
 	script := `
 OLD_RULES="$(iptables-save)"
 if echo "$OLD_RULES" | grep "\--comment ${NAME_BASE}" > /dev/null; then
-  echo "purging old unboxed iptables rules"
+  echo "purging old dboxed iptables rules"
   echo "$OLD_RULES" | grep -v "\--comment ${NAME_BASE}" | iptables-restore
 fi
 if echo "$OLD_RULES" | grep "^:${NAME_BASE}-pf-1" > /dev/null; then

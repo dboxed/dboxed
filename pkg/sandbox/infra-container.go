@@ -36,7 +36,7 @@ func (rn *Sandbox) getInfraImage() string {
 		if !version.IsDummyVersion() {
 			tag = version.Version
 		}
-		infraImage = fmt.Sprintf("%s:%s", types.UnboxedInfraImage, tag)
+		infraImage = fmt.Sprintf("%s:%s", types.DboxedInfraImage, tag)
 	}
 	return infraImage
 }
@@ -147,20 +147,20 @@ func (rn *Sandbox) copyRuncFromInfraRoot() error {
 	return nil
 }
 
-func (rn *Sandbox) copyUnboxedBinIntoInfraRoot() error {
-	containerPth := filepath.Join(rn.getInfraRoot(), "bin/unboxed")
+func (rn *Sandbox) copyDboxedBinIntoInfraRoot() error {
+	containerPth := filepath.Join(rn.getInfraRoot(), "bin/dboxed")
 	hostPth, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to determine unboxed binary path: %w", err)
+		return fmt.Errorf("failed to determine dboxed binary path: %w", err)
 	}
 
 	r, err := os.ReadFile(hostPth)
 	if err != nil {
-		return fmt.Errorf("failed to read unboxed binary from host filesystem: %w", err)
+		return fmt.Errorf("failed to read dboxed binary from host filesystem: %w", err)
 	}
 	err = util.AtomicWriteFile(containerPth, r, 0777)
 	if err != nil {
-		return fmt.Errorf("failed to write unboxed binary into infra container: %w", err)
+		return fmt.Errorf("failed to write dboxed binary into infra container: %w", err)
 	}
 	return nil
 }

@@ -16,25 +16,25 @@ type SystemdInstall struct {
 }
 
 func (s *SystemdInstall) Run(ctx context.Context) error {
-	err := os.MkdirAll("/etc/unboxed", 0700)
+	err := os.MkdirAll("/etc/dboxed", 0700)
 	if err != nil {
 		return err
 	}
 
-	envFileContent := fmt.Sprintf("UNBOXED_BOX_URL=%s\n", s.BoxUrl)
-	err = os.WriteFile("/etc/unboxed/box-url.env", []byte(envFileContent), 0600)
+	envFileContent := fmt.Sprintf("DBOXED_BOX_URL=%s\n", s.BoxUrl)
+	err = os.WriteFile("/etc/dboxed/box-url.env", []byte(envFileContent), 0600)
 	if err != nil {
 		return err
 	}
 
-	serviceName := fmt.Sprintf("unboxed-%s", s.BoxName)
+	serviceName := fmt.Sprintf("dboxed-%s", s.BoxName)
 
 	extraArgs := ""
 	if s.Nkey != "" {
 		extraArgs += " --nkey=" + s.Nkey
 	}
 
-	systemdUnitContent := units.GetUnboxedUnit(s.BoxName, extraArgs)
+	systemdUnitContent := units.GetDboxedUnit(s.BoxName, extraArgs)
 	err = os.WriteFile(fmt.Sprintf("/etc/systemd/system/%s.service", serviceName), []byte(systemdUnitContent), 0644)
 	if err != nil {
 		return err

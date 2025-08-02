@@ -12,7 +12,7 @@ type StartCmd struct {
 	flags.BoxSourceFlags
 
 	BoxName     string `help:"Specify the box name" required:""`
-	VethCidrArg string `help:"CIDR to use for veth pairs. Unboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
+	VethCidrArg string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
 
 	WaitBeforeExit *time.Duration `help:"Wait before finally exiting. This gives the process time to print stdout/stderr messages that might be lost. Especially useful in combination with --debug"`
 }

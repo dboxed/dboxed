@@ -7,8 +7,8 @@ ARG TARGETPLATFORM
 RUN apk add --no-cache kmod iproute2 nftables
 RUN for i in iptables iptables-save iptables-restore; do ln -f -s /sbin/xtables-nft-multi /sbin/$i; done
 
-VOLUME /var/lib/unboxed
+VOLUME /var/lib/dboxed
 
-COPY bin/unboxed /usr/bin/unboxed
+COPY bin/dboxed /usr/bin/dboxed
 
-ENTRYPOINT ["unboxed"]
+ENTRYPOINT ["dboxed"]

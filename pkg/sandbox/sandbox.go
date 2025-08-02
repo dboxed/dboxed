@@ -82,7 +82,7 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.copyUnboxedBinIntoInfraRoot()
+	err = rn.copyDboxedBinIntoInfraRoot()
 	if err != nil {
 		return err
 	}
@@ -110,11 +110,11 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.createInfraContainer(ctx, true, "infra-host", []string{"unboxed", "run-infra-host"})
+	err = rn.createInfraContainer(ctx, true, "infra-host", []string{"dboxed", "run-infra-host"})
 	if err != nil {
 		return err
 	}
-	err = rn.createInfraContainer(ctx, false, "infra-sandbox", []string{"unboxed", "run-infra-sandbox"})
+	err = rn.createInfraContainer(ctx, false, "infra-sandbox", []string{"dboxed", "run-infra-sandbox"})
 	if err != nil {
 		return err
 	}

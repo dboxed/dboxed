@@ -48,7 +48,7 @@ func (rn *RunInfraSandbox) initLogsPublishing(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.logsPublisher.PublishUnboxedLogsDir("/var/lib/unboxed/logs")
+	err = rn.logsPublisher.PublishDboxedLogsDir("/var/lib/dboxed/logs")
 	if err != nil {
 		return err
 	}

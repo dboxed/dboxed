@@ -99,7 +99,7 @@ func (rn *StartBox) Start(ctx context.Context) error {
 	}
 	defer rn.logsPublisher.Stop()
 
-	err = selfupdate.SelfUpdateIfNeeded(ctx, rn.boxSpec.UnboxedBinaryUrl, rn.boxSpec.UnboxedBinaryHash, rn.WorkDir)
+	err = selfupdate.SelfUpdateIfNeeded(ctx, rn.boxSpec.DboxedBinaryUrl, rn.boxSpec.DboxedBinaryHash, rn.WorkDir)
 	if err != nil {
 		return err
 	}

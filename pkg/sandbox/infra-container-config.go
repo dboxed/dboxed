@@ -197,7 +197,7 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image, hostNetwork bool,
 				},
 			},
 			Namespaces:  namespaces,
-			CgroupsPath: fmt.Sprintf(":unboxed:%s:%s", rn.SandboxName, name),
+			CgroupsPath: fmt.Sprintf(":dboxed:%s:%s", rn.SandboxName, name),
 		},
 	}
 

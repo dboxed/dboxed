@@ -5,9 +5,9 @@ FROM docker:28.3.2-dind as initial
 RUN apk add --no-cache \
     tini
 
-RUN mkdir -p /etc/unboxed \
-    && mkdir -p /var/lib/unboxed \
-    && mkdir -p /var/lib/unboxed/logs \
+RUN mkdir -p /etc/dboxed \
+    && mkdir -p /var/lib/dboxed \
+    && mkdir -p /var/lib/dboxed/logs \
     && mkdir -p /run/netns \
     && mkdir -p /hostfs
 

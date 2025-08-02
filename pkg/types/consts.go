@@ -1,15 +1,15 @@
 package types
 
-const UnboxedInfraImage = "ghcr.io/koobox/unboxed-infra"
+const DboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
 
-const UnboxedConfDir = "/etc/unboxed"
-const UnboxedDataDir = "/var/lib/unboxed"
+const DboxedConfDir = "/etc/dboxed"
+const DboxedDataDir = "/var/lib/dboxed"
 
-const LogsDir = UnboxedDataDir + "/logs"
+const LogsDir = DboxedDataDir + "/logs"
 
-const InfraConfFile = UnboxedConfDir + "/infra-conf.json"
+const InfraConfFile = DboxedConfDir + "/infra-conf.json"
 const LogsTailDbFilename = "tail.db"
-const InfraHostReadyMarkerFile = UnboxedConfDir + "/infra-host-ready"
-const DnsMapFile = UnboxedConfDir + "/dns-map.json"
+const InfraHostReadyMarkerFile = DboxedConfDir + "/infra-host-ready"
+const DnsMapFile = DboxedConfDir + "/dns-map.json"
 
 const VethIPStoreFile = "veth-ip"

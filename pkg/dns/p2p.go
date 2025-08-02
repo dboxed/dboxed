@@ -68,7 +68,7 @@ func (d *DnsLibP2P) Start(ctx context.Context) error {
 		return err
 	}
 
-	topicName := fmt.Sprintf("_unboxed.%s", d.NetworkDomain)
+	topicName := fmt.Sprintf("_dboxed.%s", d.NetworkDomain)
 	slog.InfoContext(ctx, "joining topic", slog.Any("topic", topicName))
 	d.topic, err = gossipSub.Join(topicName)
 	if err != nil {
@@ -145,7 +145,7 @@ func (d *DnsLibP2P) createDHT(ctx context.Context) error {
 }
 
 func (d *DnsLibP2P) runPeerDiscovery(ctx context.Context) {
-	discoveryNamespace := fmt.Sprintf("_unboxed.%s", d.NetworkDomain)
+	discoveryNamespace := fmt.Sprintf("_dboxed.%s", d.NetworkDomain)
 
 	slog.InfoContext(ctx, "announcing ourselves")
 	routingDiscovery := drouting.NewRoutingDiscovery(d.dht)

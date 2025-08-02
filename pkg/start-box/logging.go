@@ -30,7 +30,7 @@ func (rn *StartBox) initLogsPublishing(ctx context.Context, sandboxDir string) e
 		return err
 	}
 
-	err = rn.logsPublisher.PublishUnboxedLogsDir(logsDir)
+	err = rn.logsPublisher.PublishDboxedLogsDir(logsDir)
 	if err != nil {
 		return err
 	}

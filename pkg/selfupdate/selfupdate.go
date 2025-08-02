@@ -14,7 +14,7 @@ func SelfUpdateIfNeeded(ctx context.Context, binaryUrl, binaryHash string, workD
 		return nil
 	}
 
-	if os.Getenv("UNBOXED_SELFUPDATED") == "true" {
+	if os.Getenv("DBOXED_SELFUPDATED") == "true" {
 		slog.Info("skipping selfupdate as we're already running an updated binary")
 		return nil
 	}
@@ -50,7 +50,7 @@ func SelfUpdateIfNeeded(ctx context.Context, binaryUrl, binaryHash string, workD
 	slog.Info("exec into selfupdated binary")
 
 	env := os.Environ()
-	env = append(env, "UNBOXED_SELFUPDATED=true")
+	env = append(env, "DBOXED_SELFUPDATED=true")
 	err = unix.Exec(pth, os.Args, env)
 	if err != nil {
 		return err

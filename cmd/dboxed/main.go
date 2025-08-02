@@ -14,7 +14,7 @@ type Cli struct {
 	flags.GlobalFlags
 
 	Start   commands.StartCmd   `cmd:"" help:"Download, unpack and start a box"`
-	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control unboxed systemd integration"`
+	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control dboxed systemd integration"`
 	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
 
 	RunInfraHost    commands.RunInfraHostCmd    `cmd:"" help:"internal command" hidden:""`
@@ -30,7 +30,7 @@ func Execute() {
 	cli := &Cli{}
 
 	ctx := kong.Parse(cli,
-		kong.Name("unboxed"),
+		kong.Name("dboxed"),
 		kong.Description("A simple container orchestrator."),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{

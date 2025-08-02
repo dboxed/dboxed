@@ -50,7 +50,7 @@ func (lp *LogsPublisher) startLogsPublishingNats(ctx context.Context, boxSpec ty
 	return nil
 }
 
-func (lp *LogsPublisher) PublishUnboxedLogsDir(dir string) error {
+func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 	err := os.MkdirAll(dir, 0700)
 	if err != nil {
 		return err

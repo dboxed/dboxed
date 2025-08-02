@@ -12,7 +12,7 @@ import (
 )
 
 func (rn *RunInfraSandbox) getBundleVolumeName(name string) string {
-	return fmt.Sprintf("unboxed-bundle-%s", name)
+	return fmt.Sprintf("dboxed-bundle-%s", name)
 }
 
 func (rn *RunInfraSandbox) createBundleVolume(ctx context.Context, name string) (string, error) {
