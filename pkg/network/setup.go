@@ -52,7 +52,8 @@ func (n *Network) Setup(ctx context.Context) error {
 	}
 
 	ipt := Iptables{
-		NamesAndIps: n.NamesAndIps,
+		InfraContainerRoot: n.InfraContainerRoot,
+		NamesAndIps:        n.NamesAndIps,
 	}
 
 	err = ipt.setupIptables(ctx)

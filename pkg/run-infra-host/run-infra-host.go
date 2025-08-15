@@ -47,7 +47,8 @@ func (rn *RunInfraHost) doRun(ctx context.Context) error {
 	}
 
 	rn.network = &network.Network{
-		Config: rn.conf.NetworkConfig,
+		InfraContainerRoot: "/",
+		Config:             rn.conf.NetworkConfig,
 	}
 	err = rn.network.InitNamesAndIPs()
 	if err != nil {

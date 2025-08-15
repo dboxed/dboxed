@@ -89,7 +89,8 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	rn.network = &network.Network{
-		Config: rn.buildNetworkConfig(),
+		InfraContainerRoot: rn.getInfraRoot(),
+		Config:             rn.buildNetworkConfig(),
 	}
 	err = rn.network.InitNamesAndIPs()
 	if err != nil {

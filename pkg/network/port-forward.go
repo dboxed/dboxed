@@ -9,7 +9,8 @@ import (
 )
 
 type PortForwards struct {
-	NamesAndIps NamesAndIps
+	InfraContainerRoot string
+	NamesAndIps        NamesAndIps
 
 	portforwardMutex        sync.Mutex
 	portForwardsIptablesCnt int
@@ -62,7 +63,8 @@ func (n *PortForwards) SetupPortForwards(ctx context.Context, pfs []types.PortFo
 	script += fmt.Sprintf("$IPTABLES -t nat -F %s\n", oldChain)
 
 	ipt := Iptables{
-		NamesAndIps: n.NamesAndIps,
+		InfraContainerRoot: n.InfraContainerRoot,
+		NamesAndIps:        n.NamesAndIps,
 	}
 
 	return ipt.runIptablesScript(ctx, script)

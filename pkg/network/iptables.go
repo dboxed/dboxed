@@ -7,23 +7,41 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"syscall"
 	"text/template"
 )
 
+// we can't rely on the host iptables binary to be present or functioning, so we enter the sandbox
+// via unshare+chroot, mount some necessary stuff and then perform the iptables inside the sandbox.
+// this will NOT change the network NS, so we actually modify the host iptables
+const baseScript = `
+set -e
+
+mount -t proc none /proc
+mount -t sysfs none /sys
+`
+
 type Iptables struct {
-	NamesAndIps NamesAndIps
+	InfraContainerRoot string
+	NamesAndIps        NamesAndIps
 }
 
 func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
-	script2 := "set -e\n"
+	script2 := baseScript
 	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.NamesAndIps.Base) + "\n"
 	script2 += script
 
 	slog.InfoContext(ctx, "running iptables script:\n"+script2+"\n")
 
-	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", script2)
+	chrootBin := filepath.Join(n.InfraContainerRoot, "/usr/sbin/chroot")
+	cmd := exec.CommandContext(ctx, chrootBin, n.InfraContainerRoot, "/bin/sh", "-c", script2)
+	cmd.Env = []string{
+		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Unshareflags: syscall.CLONE_NEWNS}
 	err := cmd.Run()
 	if err != nil {
 		return err
