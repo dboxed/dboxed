@@ -3,10 +3,11 @@ package systemd
 import (
 	"context"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/systemd/units"
 	"net/url"
 	"os"
 	"os/exec"
+
+	"github.com/dboxed/dboxed/pkg/systemd/units"
 )
 
 type SystemdInstall struct {

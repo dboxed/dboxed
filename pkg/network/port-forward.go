@@ -3,8 +3,9 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/types"
 	"sync"
+
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 type PortForwards struct {

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/dboxed/dboxed/pkg/logs"
-	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 func (rn *RunInfraSandbox) startDockerd(ctx context.Context) error {

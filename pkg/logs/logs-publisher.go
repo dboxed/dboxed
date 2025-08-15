@@ -3,12 +3,13 @@ package logs
 import (
 	"context"
 	"encoding/json"
-	"github.com/dboxed/dboxed/pkg/logs/multitail"
-	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dboxed/dboxed/pkg/logs/multitail"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 type LogsPublisher struct {

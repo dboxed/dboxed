@@ -1,10 +1,11 @@
 package run_infra_host
 
 import (
-	"github.com/dboxed/dboxed/pkg/logs"
-	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"path/filepath"
+
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 func (rn *RunInfraHost) initLogging() {

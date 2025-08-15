@@ -2,15 +2,16 @@ package run_infra_sandbox
 
 import (
 	"context"
+	"io"
+	"log/slog"
+	"os"
+	"time"
+
 	"github.com/dboxed/dboxed/pkg/dns"
 	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
-	"io"
-	"log/slog"
-	"os"
-	"time"
 )
 
 type RunInfraSandbox struct {

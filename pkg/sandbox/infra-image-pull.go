@@ -3,14 +3,15 @@ package sandbox
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
+
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/cache"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/moby/go-archive"
-	"log/slog"
-	"os"
-	"path/filepath"
 )
 
 func (rn *Sandbox) pullInfraImage(ctx context.Context) error {

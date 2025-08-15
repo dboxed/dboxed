@@ -3,10 +3,11 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
 	"log/slog"
 	"os"
+
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 )
 
 func (n *Network) Destroy(ctx context.Context) error {

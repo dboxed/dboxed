@@ -2,11 +2,12 @@ package selfupdate
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/pkg/util"
-	"golang.org/x/sys/unix"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"golang.org/x/sys/unix"
 )
 
 func SelfUpdateIfNeeded(ctx context.Context, binaryUrl, binaryHash string, workDir string) error {

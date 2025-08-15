@@ -3,13 +3,14 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
 	"log/slog"
 	"net"
 	"os"
 	"runtime"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 )
 
 func (n *Network) InitNamesAndIPs() error {

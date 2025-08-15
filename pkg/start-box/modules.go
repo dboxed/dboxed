@@ -2,12 +2,13 @@ package start_box
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/pkg/util"
-	"golang.org/x/sys/unix"
 	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"golang.org/x/sys/unix"
 )
 
 func (rn *StartBox) loadModules(ctx context.Context) {

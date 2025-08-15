@@ -3,13 +3,14 @@ package network
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net"
+	"time"
+
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
-	"log/slog"
-	"net"
-	"time"
 )
 
 type RoutesMirror struct {

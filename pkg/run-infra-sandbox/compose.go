@@ -3,11 +3,12 @@ package run_infra_sandbox
 import (
 	"context"
 	"fmt"
-	ctypes "github.com/compose-spec/compose-go/v2/types"
-	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	ctypes "github.com/compose-spec/compose-go/v2/types"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 func (rn *RunInfraSandbox) runComposeUp(ctx context.Context) error {

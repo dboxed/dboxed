@@ -3,11 +3,12 @@ package run_infra_host
 import (
 	"context"
 	"encoding/json"
-	"github.com/dboxed/dboxed/pkg/types"
-	"github.com/dboxed/dboxed/pkg/util"
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (rn *RunInfraHost) runReadDnsMap(ctx context.Context) {

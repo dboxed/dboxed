@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	versionpkg "github.com/dboxed/dboxed/pkg/version"
-	"log/slog"
-	"os"
 )
 
 type Cli struct {

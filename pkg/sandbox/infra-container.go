@@ -3,14 +3,15 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/types"
-	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/dboxed/dboxed/pkg/version"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/version"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func (rn *Sandbox) getInfraContainerDir(name string) string {

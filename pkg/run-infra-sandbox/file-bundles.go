@@ -3,12 +3,13 @@ package run_infra_sandbox
 import (
 	"context"
 	"fmt"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 func (rn *RunInfraSandbox) getBundleVolumeName(name string) string {

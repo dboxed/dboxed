@@ -2,12 +2,13 @@ package start_box
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/pkg/logs"
-	"github.com/dboxed/dboxed/pkg/types"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 func (rn *StartBox) initFileLogging(ctx context.Context, sandboxDir string) error {

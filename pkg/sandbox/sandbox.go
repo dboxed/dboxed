@@ -2,11 +2,12 @@ package sandbox
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/pkg/network"
-	"github.com/dboxed/dboxed/pkg/types"
 	"net"
 	"os"
 	"path/filepath"
+
+	"github.com/dboxed/dboxed/pkg/network"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 type Sandbox struct {

@@ -2,12 +2,13 @@ package run_infra_sandbox
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/pkg/logs"
-	"github.com/dboxed/dboxed/pkg/logs/line_handler"
-	"github.com/dboxed/dboxed/pkg/types"
 	"log/slog"
 	"path/filepath"
 	"strings"
+
+	"github.com/dboxed/dboxed/pkg/logs"
+	"github.com/dboxed/dboxed/pkg/logs/line_handler"
+	"github.com/dboxed/dboxed/pkg/types"
 )
 
 func (rn *RunInfraSandbox) initLogging() {

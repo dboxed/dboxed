@@ -3,17 +3,18 @@ package start_box
 import (
 	"context"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/types"
-	"github.com/dustin/go-humanize"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nkeys"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
+
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dustin/go-humanize"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
+	"sigs.k8s.io/yaml"
 )
 
 func (rn *StartBox) retrieveBoxSpec(ctx context.Context) (*types.BoxSpec, error) {

@@ -3,6 +3,14 @@ package start_box
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/netip"
+	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
+
 	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/selfupdate"
@@ -11,13 +19,6 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/rootless-containers/rootlesskit/pkg/parent/cgrouputil"
 	"go4.org/netipx"
-	"log/slog"
-	"net"
-	"net/netip"
-	"net/url"
-	"os"
-	"path/filepath"
-	"runtime"
 )
 
 type StartBox struct {

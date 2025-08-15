@@ -2,10 +2,11 @@ package commands
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/start-box"
 	"log/slog"
 	"time"
+
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/start-box"
 )
 
 type StartCmd struct {

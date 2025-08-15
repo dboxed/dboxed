@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/loader"
 	ctypes "github.com/compose-spec/compose-go/v2/types"
-	"os"
 )
 
 type BoxFile struct {

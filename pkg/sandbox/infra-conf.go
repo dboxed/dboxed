@@ -3,10 +3,11 @@ package sandbox
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/types"
-	"github.com/dboxed/dboxed/pkg/util"
 	"os"
 	"path/filepath"
+
+	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (rn *Sandbox) writeInfraConf() error {

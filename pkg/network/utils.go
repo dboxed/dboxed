@@ -3,9 +3,10 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/vishvananda/netlink"
 	"log/slog"
 	"slices"
+
+	"github.com/vishvananda/netlink"
 )
 
 func isLinkNotFoundError(err error) bool {

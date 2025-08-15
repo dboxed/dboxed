@@ -3,12 +3,13 @@ package run_infra_sandbox
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
+	"time"
+
 	"github.com/dboxed/dboxed/pkg/dns"
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/vishvananda/netlink"
-	"log/slog"
-	"time"
 )
 
 func (rn *RunInfraSandbox) startDnsPubSub(ctx context.Context) error {

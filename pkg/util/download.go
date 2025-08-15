@@ -5,15 +5,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"github.com/klauspost/compress/gzip"
-	"github.com/klauspost/compress/zstd"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/dustin/go-humanize"
+	"github.com/klauspost/compress/gzip"
+	"github.com/klauspost/compress/zstd"
 )
 
 type CompressionType int

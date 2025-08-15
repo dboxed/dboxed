@@ -2,8 +2,9 @@ package util
 
 import (
 	"fmt"
-	"github.com/vishvananda/netns"
 	"runtime"
+
+	"github.com/vishvananda/netns"
 )
 
 func NewNetNsWithoutEnter(name string) (netns.NsHandle, error) {

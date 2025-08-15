@@ -3,12 +3,13 @@ package sandbox
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/dboxed/dboxed/pkg/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
-	"os"
-	"path/filepath"
 )
 
 func (rn *Sandbox) buildInfraContainerMounts(hostNetwork bool) []specs.Mount {

@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
-	"golang.org/x/sys/unix"
 	"os/exec"
 	"runtime"
+
+	"golang.org/x/sys/unix"
 )
 
 type nsInfo struct {

@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/badger/v4"
-	"github.com/fsnotify/fsnotify"
-	"github.com/gofrs/flock"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -15,6 +12,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/dgraph-io/badger/v4"
+	"github.com/fsnotify/fsnotify"
+	"github.com/gofrs/flock"
 )
 
 type MultiTail struct {

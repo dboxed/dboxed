@@ -1,8 +1,9 @@
 package logs
 
 import (
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func BuildRotatingLogger(logFile string) io.WriteCloser {

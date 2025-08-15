@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/miekg/dns"
-	"github.com/vishvananda/netns"
 	"log/slog"
 	"net"
 	"os/exec"
@@ -15,6 +12,10 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/miekg/dns"
+	"github.com/vishvananda/netns"
 )
 
 type DnsProxy struct {

@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/libp2p/go-libp2p"
@@ -14,10 +19,6 @@ import (
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/multiformats/go-multiaddr"
-	"log/slog"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 type DnsLibP2P struct {

@@ -2,15 +2,16 @@ package run_infra_host
 
 import (
 	"context"
+	"log/slog"
+	"net"
+	"os"
+	"time"
+
 	dns_proxy "github.com/dboxed/dboxed/pkg/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/network"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
-	"log/slog"
-	"net"
-	"os"
-	"time"
 )
 
 type RunInfraHost struct {

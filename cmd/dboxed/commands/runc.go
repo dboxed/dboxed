@@ -2,10 +2,11 @@ package commands
 
 import (
 	"context"
-	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/sandbox"
 	"os"
 	"path/filepath"
+
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/sandbox"
 )
 
 type RuncCmd struct {

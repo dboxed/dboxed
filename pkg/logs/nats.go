@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"sync"
+	"time"
+
 	"github.com/dboxed/dboxed/pkg/logs/multitail"
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/nats-io/nkeys"
-	"log/slog"
-	"sync"
-	"time"
 )
 
 type TailToNats struct {

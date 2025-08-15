@@ -2,11 +2,12 @@ package network
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
 	net2 "github.com/dboxed/dboxed/pkg/util/net"
 	"github.com/vishvananda/netlink"
-	"net"
 )
 
 type NamesAndIps struct {

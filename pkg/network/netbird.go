@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
 	"log/slog"
 	"syscall"
 	"time"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 )
 
 // some code here is copied from netbird (client/internal/routemanager/systemops/systemops_linux.go)
