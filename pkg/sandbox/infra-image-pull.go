@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/cache"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -34,7 +36,11 @@ func (rn *Sandbox) pullImage(ctx context.Context, imageRef string, configPath, r
 
 	slog.InfoContext(ctx, "pulling image", slog.Any("imageRef", ref.String()))
 
-	image, err := remote.Image(ref, remote.WithContext(ctx))
+	platform := v1.Platform{
+		Architecture: runtime.GOARCH,
+		OS:           "linux",
+	}
+	image, err := remote.Image(ref, remote.WithContext(ctx), remote.WithPlatform(platform))
 	if err != nil {
 		return err
 	}
