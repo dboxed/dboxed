@@ -122,8 +122,6 @@ func (rn *StartBox) Start(ctx context.Context) error {
 	rn.sandbox.VethNetworkCidr = rn.acquiredVethNetworkCidr
 	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr.String()))
 
-	rn.loadModules(ctx)
-
 	err = rn.sandbox.Start(ctx)
 	if err != nil {
 		return err
