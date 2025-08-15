@@ -62,7 +62,11 @@ func NewMultiTail(ctx context.Context, tailDbFile string, opts MultiTailOptions)
 	}
 	slog.InfoContext(ctx, "multitail: db lock acquired")
 
-	bdb, err := badger.Open(badger.DefaultOptions(tailDbFile))
+	bopts := badger.
+		DefaultOptions(tailDbFile).
+		WithLoggingLevel(badger.WARNING)
+
+	bdb, err := badger.Open(bopts)
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,7 @@ const DboxedDataDir = "/var/lib/dboxed"
 const LogsDir = DboxedDataDir + "/logs"
 
 const InfraConfFile = DboxedConfDir + "/infra-conf.json"
-const LogsTailDbFilename = "tail.db"
+const LogsTailDbFilename = "multitail.db"
 const InfraHostReadyMarkerFile = DboxedConfDir + "/infra-host-ready"
 const DnsMapFile = DboxedConfDir + "/dns-map.json"
 
