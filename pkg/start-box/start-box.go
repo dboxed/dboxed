@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	box_spec "github.com/dboxed/dboxed/pkg/box-spec"
 	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/selfupdate"
@@ -71,10 +72,19 @@ func (rn *StartBox) Start(ctx context.Context) error {
 		}
 	}
 
-	rn.boxSpec, err = rn.retrieveBoxSpec(ctx)
+	var nkeySeed []byte
+	if rn.Nkey != "" {
+		nkeySeed, err = os.ReadFile(rn.Nkey)
+		if err != nil {
+			return err
+		}
+	}
+	boxSpecSource, err := box_spec.NewUrlSource(ctx, *rn.BoxUrl, nkeySeed)
 	if err != nil {
 		return err
 	}
+
+	rn.boxSpec = &boxSpecSource.GetCurSpec().Spec
 
 	rn.sandbox = &sandbox.Sandbox{
 		Debug:       rn.Debug,
