@@ -14,11 +14,10 @@ import (
 type Cli struct {
 	flags.GlobalFlags
 
-	Start   commands.StartCmd   `cmd:"" help:"Download, unpack and start a box"`
+	Run     commands.RunCmd     `cmd:"" help:"Download, unpack and run a box"`
 	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control dboxed systemd integration"`
 	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
 
-	RunInfraHost    commands.RunInfraHostCmd    `cmd:"" help:"internal command" hidden:""`
 	RunInfraSandbox commands.RunInfraSandboxCmd `cmd:"" help:"internal command" hidden:""`
 }
 

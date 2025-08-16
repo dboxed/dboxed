@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	dns_proxy "github.com/dboxed/dboxed/pkg/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/network"
 	"github.com/dboxed/dboxed/pkg/types"
 )
@@ -22,7 +23,12 @@ type Sandbox struct {
 
 	VethNetworkCidr *net.IPNet
 
-	network *network.Network
+	network         *network.Network
+	routesMirror    network.RoutesMirror
+	netbirdRulesFix network.NetbirdRulesFix
+
+	dnsProxy      *dns_proxy.DnsProxy
+	oldDnsMapHash string
 }
 
 func (rn *Sandbox) Destroy(ctx context.Context) error {
@@ -32,10 +38,6 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 		}
 	} else {
 		err := rn.destroyInfraContainer(ctx, "infra-sandbox")
-		if err != nil {
-			return err
-		}
-		err = rn.destroyInfraContainer(ctx, "infra-host")
 		if err != nil {
 			return err
 		}
@@ -57,10 +59,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = os.MkdirAll(rn.getInfraContainerDir("infra-host"), 0700)
-	if err != nil {
-		return err
-	}
 	err = os.MkdirAll(rn.getInfraContainerDir("infra-sandbox"), 0700)
 	if err != nil {
 		return err
@@ -100,6 +98,10 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	err = rn.network.Setup(ctx)
+	if err != nil {
+		return err
+	}
 
 	err = rn.writeInfraConf()
 	if err != nil {
@@ -112,15 +114,27 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.createInfraContainer(ctx, true, "infra-host", []string{"dboxed", "run-infra-host"})
+	rn.routesMirror = network.RoutesMirror{
+		NamesAndIps: rn.network.NamesAndIps,
+	}
+	rn.netbirdRulesFix = network.NetbirdRulesFix{
+		SandboxNetworkNamespace: rn.network.NetworkNamespace,
+	}
+	err = rn.routesMirror.Start(ctx)
 	if err != nil {
 		return err
 	}
+	err = rn.netbirdRulesFix.Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = rn.startDnsProxy(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = rn.createInfraContainer(ctx, false, "infra-sandbox", []string{"dboxed", "run-infra-sandbox"})
-	if err != nil {
-		return err
-	}
-	err = rn.startInfraContainer(ctx, "infra-host")
 	if err != nil {
 		return err
 	}

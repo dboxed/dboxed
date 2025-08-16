@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/dns"
-	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -20,8 +19,6 @@ type RunInfraSandbox struct {
 	dnsStore      *dns.DnsStore
 	dnsPubSub     dns.DnsPubSub
 	oldDnsMapHash string
-
-	logsPublisher logs.LogsPublisher
 
 	dockerCliStdout io.WriteCloser
 	dockerCliStderr io.WriteCloser
@@ -48,22 +45,6 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	slog.InfoContext(ctx, "waiting for infra-host to become ready")
-	for {
-		if _, err := os.Stat(types.InfraHostReadyMarkerFile); err == nil {
-			break
-		}
-		if !util.SleepWithContext(ctx, time.Second) {
-			return ctx.Err()
-		}
-	}
-
-	err = rn.initLogsPublishing(ctx)
-	if err != nil {
-		return err
-	}
-	defer rn.logsPublisher.Stop()
 
 	err = rn.startDnsPubSub(ctx)
 	if err != nil {

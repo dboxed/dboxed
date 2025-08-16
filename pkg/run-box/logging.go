@@ -1,4 +1,4 @@
-package start_box
+package run_box
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *StartBox) initFileLogging(ctx context.Context, sandboxDir string) error {
-	logFile := filepath.Join(sandboxDir, "logs", "start-box.log")
+func (rn *RunBox) initFileLogging(ctx context.Context, sandboxDir string) error {
+	logFile := filepath.Join(sandboxDir, "logs", "run-box.log")
 	logWriter := logs.BuildRotatingLogger(logFile)
 	dupWriter := io.MultiWriter(os.Stderr, logWriter)
 
@@ -23,8 +23,9 @@ func (rn *StartBox) initFileLogging(ctx context.Context, sandboxDir string) erro
 	return nil
 }
 
-func (rn *StartBox) initLogsPublishing(ctx context.Context, sandboxDir string) error {
+func (rn *RunBox) initLogsPublishing(ctx context.Context, sandboxDir string) error {
 	logsDir := filepath.Join(sandboxDir, "logs")
+	dockerDir := filepath.Join(sandboxDir, "docker")
 
 	err := rn.logsPublisher.Start(ctx, *rn.boxSpec, filepath.Join(logsDir, types.LogsTailDbFilename))
 	if err != nil {
@@ -36,5 +37,9 @@ func (rn *StartBox) initLogsPublishing(ctx context.Context, sandboxDir string) e
 		return err
 	}
 
+	err = rn.logsPublisher.PublishDockerLogsDir(dockerDir)
+	if err != nil {
+		return err
+	}
 	return nil
 }

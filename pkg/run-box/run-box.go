@@ -1,4 +1,4 @@
-package start_box
+package run_box
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	box_spec "github.com/dboxed/dboxed/pkg/box-spec"
 	"github.com/dboxed/dboxed/pkg/logs"
@@ -22,7 +21,7 @@ import (
 	"go4.org/netipx"
 )
 
-type StartBox struct {
+type RunBox struct {
 	Debug bool
 
 	BoxUrl          *url.URL
@@ -39,11 +38,7 @@ type StartBox struct {
 	sandbox       *sandbox.Sandbox
 }
 
-func (rn *StartBox) Start(ctx context.Context) error {
-	// Lock the OS Thread so we don't accidentally switch namespaces
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
+func (rn *RunBox) Run(ctx context.Context) error {
 	sandboxDir := filepath.Join(rn.WorkDir, "boxes", rn.BoxName)
 
 	err := os.MkdirAll(rn.WorkDir, 0700)
@@ -55,6 +50,10 @@ func (rn *StartBox) Start(ctx context.Context) error {
 		return err
 	}
 	err = os.MkdirAll(filepath.Join(sandboxDir, "logs"), 0700)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(filepath.Join(sandboxDir, "docker"), 0700)
 	if err != nil {
 		return err
 	}
@@ -86,6 +85,14 @@ func (rn *StartBox) Start(ctx context.Context) error {
 
 	rn.boxSpec = &boxSpecSource.GetCurSpec().Spec
 
+	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
+	// (we need nats credentials)
+	err = rn.initLogsPublishing(ctx, sandboxDir)
+	if err != nil {
+		return err
+	}
+	defer rn.logsPublisher.Stop()
+
 	rn.sandbox = &sandbox.Sandbox{
 		Debug:       rn.Debug,
 		HostWorkDir: rn.WorkDir,
@@ -98,17 +105,6 @@ func (rn *StartBox) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	// this will start publishing logs to the logs receiver configured in the box spec.
-	// it will publish logs until the start-box process exists. At that time, the infra-sandbox
-	// container will already be running and will wait for the multitails db to get available.
-	// when start-box exits, the db lock gets freed and infra-sandbox can take over publishing
-	// logs from where start-box stopped.
-	err = rn.initLogsPublishing(ctx, sandboxDir)
-	if err != nil {
-		return err
-	}
-	defer rn.logsPublisher.Stop()
 
 	err = selfupdate.SelfUpdateIfNeeded(ctx, rn.boxSpec.DboxedBinaryUrl, rn.boxSpec.DboxedBinaryHash, rn.WorkDir)
 	if err != nil {
@@ -127,10 +123,14 @@ func (rn *StartBox) Start(ctx context.Context) error {
 		return err
 	}
 
+	slog.InfoContext(ctx, "up and running")
+
+	<-ctx.Done()
+
 	return nil
 }
 
-func (rn *StartBox) reserveVethCIDR(ctx context.Context) error {
+func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {
 	slog.InfoContext(ctx, "reserving CIDR for veth pair")
 
 	fl := flock.New(filepath.Join(rn.WorkDir, "veth-cidrs.lock"))
@@ -189,7 +189,7 @@ func (rn *StartBox) reserveVethCIDR(ctx context.Context) error {
 	return nil
 }
 
-func (rn *StartBox) readVethCidr(boxName string) (*netip.Prefix, error) {
+func (rn *RunBox) readVethCidr(boxName string) (*netip.Prefix, error) {
 	pth := filepath.Join(rn.WorkDir, "boxes", boxName, types.VethIPStoreFile)
 	ipB, err := os.ReadFile(pth)
 	if err != nil {
@@ -202,12 +202,12 @@ func (rn *StartBox) readVethCidr(boxName string) (*netip.Prefix, error) {
 	return &p, nil
 }
 
-func (rn *StartBox) writeVethCidr(p *netip.Prefix) error {
+func (rn *RunBox) writeVethCidr(p *netip.Prefix) error {
 	pth := filepath.Join(rn.WorkDir, "boxes", rn.BoxName, types.VethIPStoreFile)
 	return util.AtomicWriteFile(pth, []byte(p.String()), 0644)
 }
 
-func (rn *StartBox) readReservedIPs() ([]netip.Prefix, error) {
+func (rn *RunBox) readReservedIPs() ([]netip.Prefix, error) {
 	boxesDir := filepath.Join(rn.WorkDir, "boxes")
 	des, err := os.ReadDir(boxesDir)
 	if err != nil {

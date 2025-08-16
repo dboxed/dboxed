@@ -1,7 +1,6 @@
 package run_infra_sandbox
 
 import (
-	"context"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -39,24 +38,4 @@ func (rn *RunInfraSandbox) initLogging() {
 func (rn *RunInfraSandbox) stopLogging() {
 	_ = rn.dockerCliStdout.Close()
 	_ = rn.dockerCliStderr.Close()
-}
-
-func (rn *RunInfraSandbox) initLogsPublishing(ctx context.Context) error {
-	// the tails db used here is the same as the one used in start-box, so we will actually
-	// continue where start-box stopped
-	err := rn.logsPublisher.Start(ctx, rn.conf.BoxSpec, filepath.Join(types.LogsDir, types.LogsTailDbFilename))
-	if err != nil {
-		return err
-	}
-
-	err = rn.logsPublisher.PublishDboxedLogsDir("/var/lib/dboxed/logs")
-	if err != nil {
-		return err
-	}
-	err = rn.logsPublisher.PublishDockerLogsDir("/var/lib/docker")
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
