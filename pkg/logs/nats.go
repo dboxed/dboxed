@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/nats-io/nkeys"
 )
 
 type TailToNats struct {
@@ -32,34 +30,8 @@ type TailToNats struct {
 	m                sync.Mutex
 }
 
-func NewTailToNats(ctx context.Context, natsUrl string, nkeySeed string, tailDbFile string, metadataKVName string, logStreamName string, logId string) (*TailToNats, error) {
-	var natsOpts []nats.Option
-
-	if nkeySeed != "" {
-		nkPair, err := nkeys.FromSeed([]byte(nkeySeed))
-		if err != nil {
-			return nil, err
-		}
-		nkPub, err := nkPair.PublicKey()
-		if err != nil {
-			return nil, err
-		}
-
-		slog.InfoContext(ctx, "loaded nats nkey", slog.Any("nkey", nkPub))
-		natsOpts = append(natsOpts, nats.Nkey(nkPub, nkPair.Sign))
-	}
-
-	nc, err := nats.Connect(natsUrl, natsOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to nats: %w", err)
-	}
-	doCloseNc := true
-	defer func() {
-		if doCloseNc {
-			nc.Close()
-		}
-	}()
-	js, err := jetstream.New(nc)
+func NewTailToNats(ctx context.Context, natsConn *nats.Conn, tailDbFile string, metadataKVName string, logStreamName string, logId string) (*TailToNats, error) {
+	js, err := jetstream.New(natsConn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create jetstream: %w", err)
 	}
@@ -76,7 +48,7 @@ func NewTailToNats(ctx context.Context, natsUrl string, nkeySeed string, tailDbF
 
 	ttn := &TailToNats{
 		ctx:              ctx,
-		natsConn:         nc,
+		natsConn:         natsConn,
 		jetStream:        js,
 		metadataMapKV:    kv,
 		logStreamName:    logStreamName,
@@ -93,9 +65,6 @@ func NewTailToNats(ctx context.Context, natsUrl string, nkeySeed string, tailDbF
 	if err != nil {
 		return nil, err
 	}
-
-	doCloseNc = false
-
 	return ttn, nil
 }
 

@@ -10,22 +10,11 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/logs/multitail"
 	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/nats-io/nats.go"
 )
 
 type LogsPublisher struct {
 	nats *TailToNats
-}
-
-func (lp *LogsPublisher) Start(ctx context.Context, boxSpec types.BoxSpec, tailDbFile string) error {
-
-	if boxSpec.Logs == nil {
-		return nil
-	}
-
-	if boxSpec.Logs.Nats != nil {
-		return lp.startLogsPublishingNats(ctx, boxSpec, tailDbFile)
-	}
-	return nil
 }
 
 func (lp *LogsPublisher) Stop() {
@@ -34,15 +23,18 @@ func (lp *LogsPublisher) Stop() {
 	}
 }
 
-func (lp *LogsPublisher) startLogsPublishingNats(ctx context.Context, boxSpec types.BoxSpec, tailDbFile string) error {
+func (lp *LogsPublisher) Start(ctx context.Context, natsConn *nats.Conn, boxSpec types.BoxSpec, tailDbFile string) error {
+	if boxSpec.Logs == nil || boxSpec.Logs.Nats == nil {
+		return nil
+	}
+
 	slog.InfoContext(ctx, "initializing logs publishing to nats",
-		slog.Any("natsUrl", boxSpec.Logs.Nats.Url),
 		slog.Any("metadataKVStore", boxSpec.Logs.Nats.MetadataKVStore),
 		slog.Any("logStream", boxSpec.Logs.Nats.LogStream),
 		slog.Any("logId", boxSpec.Logs.Nats.LogId),
 	)
 
-	ttn, err := NewTailToNats(ctx, boxSpec.Logs.Nats.Url, boxSpec.Logs.Nats.NKeySeed, tailDbFile, boxSpec.Logs.Nats.MetadataKVStore, boxSpec.Logs.Nats.LogStream, boxSpec.Logs.Nats.LogId)
+	ttn, err := NewTailToNats(ctx, natsConn, tailDbFile, boxSpec.Logs.Nats.MetadataKVStore, boxSpec.Logs.Nats.LogStream, boxSpec.Logs.Nats.LogId)
 	if err != nil {
 		return err
 	}

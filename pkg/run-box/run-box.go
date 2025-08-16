@@ -17,6 +17,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"github.com/rootless-containers/rootlesskit/pkg/parent/cgrouputil"
 	"go4.org/netipx"
 )
@@ -29,6 +31,8 @@ type RunBox struct {
 	BoxName         string
 	WorkDir         string
 	VethNetworkCidr string
+
+	natsConn *nats.Conn
 
 	acquiredVethNetworkCidr *net.IPNet
 
@@ -71,16 +75,30 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		}
 	}
 
-	var nkeySeed []byte
-	if rn.Nkey != "" {
-		nkeySeed, err = os.ReadFile(rn.Nkey)
+	err = rn.connectNats(ctx)
+	if err != nil {
+		return err
+	}
+
+	var boxSpecSource *box_spec.BoxSpecSource
+	if rn.natsConn != nil {
+		bucket := rn.BoxUrl.Query().Get("bucket")
+		if bucket == "" {
+			return fmt.Errorf("missing bucket in nats url")
+		}
+		key := rn.BoxUrl.Query().Get("key")
+		if key == "" {
+			return fmt.Errorf("missing key in nats url")
+		}
+		boxSpecSource, err = box_spec.NewNatsSource(ctx, rn.natsConn, bucket, key)
 		if err != nil {
 			return err
 		}
-	}
-	boxSpecSource, err := box_spec.NewUrlSource(ctx, *rn.BoxUrl, nkeySeed)
-	if err != nil {
-		return err
+	} else {
+		boxSpecSource, err = box_spec.NewUrlSource(ctx, *rn.BoxUrl)
+		if err != nil {
+			return err
+		}
 	}
 
 	rn.boxSpec = &boxSpecSource.GetCurSpec().Spec
@@ -118,6 +136,15 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	rn.sandbox.VethNetworkCidr = rn.acquiredVethNetworkCidr
 	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr.String()))
 
+	err = rn.sandbox.Prepare(ctx)
+	if err != nil {
+		return err
+	}
+	err = rn.sandbox.SetupNetworking(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = rn.sandbox.Start(ctx)
 	if err != nil {
 		return err
@@ -128,6 +155,41 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	<-ctx.Done()
 
 	return nil
+}
+
+func (rn *RunBox) connectNats(ctx context.Context) error {
+	if rn.BoxUrl.Scheme != "nats" {
+		return nil
+	}
+
+	var err error
+	var nkeySeed []byte
+	if rn.Nkey != "" {
+		nkeySeed, err = os.ReadFile(rn.Nkey)
+		if err != nil {
+			return err
+		}
+	}
+
+	kp, err := nkeys.FromSeed(nkeySeed)
+	if err != nil {
+		return err
+	}
+	nkey, err := kp.PublicKey()
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "connecting to nats",
+		slog.Any("url", rn.BoxUrl.String()),
+		slog.Any("nkey", nkey),
+	)
+	nc, err := nats.Connect(rn.BoxUrl.String(), nats.Nkey(nkey, kp.Sign))
+	if err != nil {
+		return err
+	}
+
+	rn.natsConn = nc
+	return err
 }
 
 func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {

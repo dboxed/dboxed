@@ -24,10 +24,15 @@ func (rn *RunBox) initFileLogging(ctx context.Context, sandboxDir string) error 
 }
 
 func (rn *RunBox) initLogsPublishing(ctx context.Context, sandboxDir string) error {
+	if rn.natsConn == nil {
+		slog.InfoContext(ctx, "skipping logs publishing (only supported with nats)")
+		return nil
+	}
+
 	logsDir := filepath.Join(sandboxDir, "logs")
 	dockerDir := filepath.Join(sandboxDir, "docker")
 
-	err := rn.logsPublisher.Start(ctx, *rn.boxSpec, filepath.Join(logsDir, types.LogsTailDbFilename))
+	err := rn.logsPublisher.Start(ctx, rn.natsConn, *rn.boxSpec, filepath.Join(logsDir, types.LogsTailDbFilename))
 	if err != nil {
 		return err
 	}

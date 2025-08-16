@@ -3,48 +3,13 @@ package box_spec
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"net/url"
 
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nkeys"
 )
 
-func NewNatsSource(ctx context.Context, url url.URL, nkeySeed []byte) (*BoxSpecSource, error) {
-	bucket := url.Query().Get("bucket")
-	if bucket == "" {
-		return nil, fmt.Errorf("missing bucket in nats url")
-	}
-	key := url.Query().Get("key")
-	if key == "" {
-		return nil, fmt.Errorf("missing key in nats url")
-	}
-
-	kp, err := nkeys.FromSeed(nkeySeed)
-	if err != nil {
-		return nil, err
-	}
-	nkey, err := kp.PublicKey()
-	if err != nil {
-		return nil, err
-	}
-	slog.InfoContext(ctx, "connecting to nats",
-		slog.Any("url", url.String()),
-		slog.Any("nkey", nkey),
-	)
-	nc, err := nats.Connect(url.String(), nats.Nkey(nkey, kp.Sign))
-	if err != nil {
-		return nil, err
-	}
-	doClose := true
-	defer func() {
-		if doClose {
-			nc.Close()
-		}
-	}()
-
-	js, err := nc.JetStream()
+func NewNatsSource(ctx context.Context, natsConn *nats.Conn, bucket string, key string) (*BoxSpecSource, error) {
+	js, err := natsConn.JetStream()
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +45,6 @@ func NewNatsSource(ctx context.Context, url url.URL, nkeySeed []byte) (*BoxSpecS
 		return nil, err
 	}
 
-	doClose = false
 	go func() {
 		select {
 		case <-s.stopChan:

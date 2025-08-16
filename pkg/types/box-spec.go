@@ -19,10 +19,10 @@ type BoxSpec struct {
 	DboxedBinaryUrl  string `json:"dboxedBinaryUrl,omitempty"`
 	DboxedBinaryHash string `json:"dboxedBinaryHash,omitempty"`
 
-	Dns  DnsSpec   `json:"dns"`
-	Logs *LogsSpec `json:"logs,omitempty"`
-
 	InfraImage string `json:"infraImage,omitempty"`
+
+	Dns  *DnsSpec  `json:"dns"`
+	Logs *LogsSpec `json:"logs,omitempty"`
 
 	FileBundles []FileBundle `json:"fileBundles,omitempty"`
 
@@ -32,27 +32,16 @@ type BoxSpec struct {
 type DnsSpec struct {
 	Hostname      string `json:"hostname"`
 	NetworkDomain string `json:"networkDomain"`
-
-	NetworkInterface string `json:"networkInterface"`
-
-	LibP2P *DnsLibP2PSpec `json:"libp2p,omitempty"`
-}
-
-type DnsLibP2PSpec struct {
 }
 
 type LogsSpec struct {
-	Nats *LogsNatsSpec `json:"nats,omitempty"`
+	Nats *LogsNatsSpec `json:"nats"`
 }
 
 type LogsNatsSpec struct {
-	Url string `json:"url"`
-
 	MetadataKVStore string `json:"metadataKVStore"`
 	LogStream       string `json:"logStream"`
 	LogId           string `json:"logId"`
-
-	NKeySeed string `json:"nkeySeed"`
 }
 
 type FileBundle struct {

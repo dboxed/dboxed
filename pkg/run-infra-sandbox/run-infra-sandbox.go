@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/dns"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -15,10 +14,6 @@ import (
 
 type RunInfraSandbox struct {
 	conf *types.InfraConfig
-
-	dnsStore      *dns.DnsStore
-	dnsPubSub     dns.DnsPubSub
-	oldDnsMapHash string
 
 	dockerCliStdout io.WriteCloser
 	dockerCliStderr io.WriteCloser
@@ -42,11 +37,6 @@ func (rn *RunInfraSandbox) doRun(ctx context.Context) error {
 
 	var err error
 	rn.conf, err = sandbox.ReadInfraConf(types.InfraConfFile)
-	if err != nil {
-		return err
-	}
-
-	err = rn.startDnsPubSub(ctx)
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,7 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 	return nil
 }
 
-func (rn *Sandbox) Start(ctx context.Context) error {
+func (rn *Sandbox) Prepare(ctx context.Context) error {
 	err := os.MkdirAll(getRuncStateDir(rn.SandboxDir), 0700)
 	if err != nil {
 		return err
@@ -86,11 +86,15 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 	rn.network = &network.Network{
 		InfraContainerRoot: rn.getInfraRoot(),
 		Config:             rn.buildNetworkConfig(),
 	}
-	err = rn.network.InitNamesAndIPs()
+	err := rn.network.InitNamesAndIPs()
 	if err != nil {
 		return err
 	}
@@ -99,11 +103,6 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 		return err
 	}
 	err = rn.network.Setup(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = rn.writeInfraConf()
 	if err != nil {
 		return err
 	}
@@ -130,6 +129,15 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	err = rn.startDnsProxy(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rn *Sandbox) Start(ctx context.Context) error {
+	err := rn.writeInfraConf()
 	if err != nil {
 		return err
 	}
