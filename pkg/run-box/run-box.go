@@ -162,28 +162,32 @@ func (rn *RunBox) connectNats(ctx context.Context) error {
 		return nil
 	}
 
-	var err error
-	var nkeySeed []byte
+	token := rn.BoxUrl.Query().Get("token")
+
+	var opts []nats.Option
 	if rn.Nkey != "" {
-		nkeySeed, err = os.ReadFile(rn.Nkey)
+		nkeySeed, err := os.ReadFile(rn.Nkey)
 		if err != nil {
 			return err
 		}
+
+		kp, err := nkeys.FromSeed(nkeySeed)
+		if err != nil {
+			return err
+		}
+		nkey, err := kp.PublicKey()
+		if err != nil {
+			return err
+		}
+		opts = append(opts, nats.Nkey(nkey, kp.Sign))
+	} else if token != "" {
+		opts = append(opts, nats.Token(token))
 	}
 
-	kp, err := nkeys.FromSeed(nkeySeed)
-	if err != nil {
-		return err
-	}
-	nkey, err := kp.PublicKey()
-	if err != nil {
-		return err
-	}
 	slog.InfoContext(ctx, "connecting to nats",
 		slog.Any("url", rn.BoxUrl.String()),
-		slog.Any("nkey", nkey),
 	)
-	nc, err := nats.Connect(rn.BoxUrl.String(), nats.Nkey(nkey, kp.Sign))
+	nc, err := nats.Connect(rn.BoxUrl.String(), opts...)
 	if err != nil {
 		return err
 	}
