@@ -2,6 +2,17 @@
 version: 2
 pro: true
 
+before:
+  hooks:
+    - cmd: docker build --platform=linux/amd64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64 infra-image
+      output: true
+    - cmd: docker build --platform=linux/arm64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64 infra-image
+      output: true
+    - cmd: docker push ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64
+      output: true
+    - cmd: docker push ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64
+      output: true
+
 builds:
   - id: dboxed
     goos:
@@ -47,31 +58,6 @@ dockers:
       - "--platform=linux/arm64"
     image_templates:
       - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
-  - id: infra-linux-amd64
-    goos: linux
-    goarch: amd64
-    dockerfile: infra-image/Dockerfile
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}-infra"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/amd64"
-    image_templates:
-      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64"
-  - id: infra-linux-arm64
-    goos: linux
-    goarch: arm64
-    dockerfile: infra-image/Dockerfile
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}-infra"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/arm64"
-    image_templates:
-      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64"
-
 docker_manifests:
   - name_template: ghcr.io/dboxed/dboxed:nightly
     image_templates:

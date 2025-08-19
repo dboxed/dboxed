@@ -23,8 +23,8 @@ func (lp *LogsPublisher) Stop() {
 	}
 }
 
-func (lp *LogsPublisher) Start(ctx context.Context, natsConn *nats.Conn, boxSpec types.BoxSpec, tailDbFile string) error {
-	if boxSpec.Logs == nil || boxSpec.Logs.Nats == nil {
+func (lp *LogsPublisher) Start(ctx context.Context, natsConn *nats.Conn, boxSpec *types.BoxSpec, tailDbFile string) error {
+	if boxSpec == nil || boxSpec.Logs == nil || boxSpec.Logs.Nats == nil {
 		return nil
 	}
 
@@ -68,7 +68,36 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 	return nil
 }
 
-func (lp *LogsPublisher) PublishDockerLogsDir(dockerDataDir string) error {
+// PublishMultilogLogsDir publishes logs from s6-log output
+func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
+	err := os.MkdirAll(dir, 0700)
+	if err != nil {
+		return err
+	}
+
+	buildMetadata := func(path string) (multitail.LogMetadata, error) {
+		serviceName := filepath.Base(filepath.Dir(path))
+		logFormatBytes, _ := os.ReadFile(filepath.Join(filepath.Dir(path), "log-format"))
+		logFormat := strings.TrimSpace(string(logFormatBytes))
+		if logFormat == "" {
+			logFormat = "raw"
+		}
+		return multitail.LogMetadata{
+			FileName: serviceName,
+			Format:   logFormat,
+			Metadata: map[string]any{
+				"service-name": serviceName,
+			},
+		}, nil
+	}
+
+	if lp.nats != nil {
+		return lp.nats.MultiTail.WatchDir(dir, "*/current", 1, buildMetadata)
+	}
+	return nil
+}
+
+func (lp *LogsPublisher) PublishDockerContainerLogsDir(dockerDataDir string) error {
 	err := os.MkdirAll(dockerDataDir, 0700)
 	if err != nil {
 		return err

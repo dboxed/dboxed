@@ -20,10 +20,7 @@ func (cmd *RuncCmd) Run(g *flags.GlobalFlags) error {
 
 	sandboxDir := filepath.Join(g.WorkDir, "boxes", cmd.BoxName)
 
-	c, err := sandbox.BuildRuncCmd(ctx, sandboxDir, cmd.Args...)
-	if err != nil {
-		return err
-	}
+	c := sandbox.BuildRuncCmd(ctx, sandboxDir, cmd.Args...)
 	c.Stdin = os.Stdin
 
 	return c.Run()

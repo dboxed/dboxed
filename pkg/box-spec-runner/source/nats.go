@@ -1,8 +1,9 @@
-package box_spec
+package source
 
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/dboxed/dboxed/pkg/types"
 	"github.com/nats-io/nats.go"
@@ -46,18 +47,24 @@ func NewNatsSource(ctx context.Context, natsConn *nats.Conn, bucket string, key 
 	}
 
 	go func() {
-		select {
-		case <-s.stopChan:
+		defer func() {
 			close(s.Chan)
 			_ = keyWatcher.Stop()
-			return
-		case <-ctx.Done():
-			close(s.Chan)
-			_ = keyWatcher.Stop()
-			return
-		case kve = <-keyWatcher.Updates():
-			_ = s.trySetNewSpec(ctx, kve.Value(), false, true)
-			break
+		}()
+		for {
+			select {
+			case <-s.stopChan:
+				return
+			case <-ctx.Done():
+				return
+			case kve = <-keyWatcher.Updates():
+				slog.InfoContext(ctx, "received box spec update", slog.Any("key", kve.Key()), slog.Any("op", kve.Operation().String()))
+				if kve.Operation() == nats.KeyValueDelete || kve.Operation() == nats.KeyValuePurge {
+					return
+				}
+				_ = s.trySetNewSpec(ctx, kve.Value(), false, true)
+				break
+			}
 		}
 	}()
 

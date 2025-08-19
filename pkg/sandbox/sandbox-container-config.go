@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (rn *Sandbox) buildInfraContainerMounts(hostNetwork bool) []specs.Mount {
+func (rn *Sandbox) buildSandboxContainerMounts() []specs.Mount {
 	mounts := []specs.Mount{
 		{
 			Destination: "/proc",
@@ -76,19 +76,10 @@ func (rn *Sandbox) buildInfraContainerMounts(hostNetwork bool) []specs.Mount {
 		},
 	}
 
-	if hostNetwork {
-		mounts = append(mounts, specs.Mount{
-			Destination: "/run/netns",
-			Type:        "rbind",
-			Source:      "/run/netns",
-			Options:     []string{"rbind"},
-		})
-	}
-
 	return mounts
 }
 
-func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image, cmd []string) (*specs.Process, error) {
+func (rn *Sandbox) buildSandboxContainerProcessSpec(image *v1.Image) (*specs.Process, error) {
 	caps := rn.buildContainerCaps(true)
 
 	usr := specs.User{} // root user
@@ -96,8 +87,9 @@ func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image, cmd []string)
 	var env []string
 	env = append(env, image.Config.Env...)
 
-	args := []string{"tini"}
-	args = append(args, cmd...)
+	var args []string
+	args = append(args, image.Config.Entrypoint...)
+	args = append(args, image.Config.Cmd...)
 
 	workingDir := image.Config.WorkingDir
 	if workingDir == "" {
@@ -139,8 +131,8 @@ func (rn *Sandbox) buildInfraContainerProcessSpec(image *v1.Image, cmd []string)
 	return process, nil
 }
 
-func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image, hostNetwork bool, name string, cmd []string) (*specs.Spec, error) {
-	process, err := rn.buildInfraContainerProcessSpec(image, cmd)
+func (rn *Sandbox) buildSandboxContainerOciSpec(image *v1.Image) (*specs.Spec, error) {
+	process, err := rn.buildSandboxContainerProcessSpec(image)
 	if err != nil {
 		return nil, err
 	}
@@ -151,20 +143,15 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image, hostNetwork bool,
 		{Type: specs.IPCNamespace},
 		{Type: specs.PIDNamespace},
 		{Type: specs.CgroupNamespace},
-	}
-	if !hostNetwork {
-		namespaces = append(namespaces, specs.LinuxNamespace{
-			Type: specs.NetworkNamespace,
-			Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName),
-		})
+		{Type: specs.NetworkNamespace, Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName)},
 	}
 
-	mounts := rn.buildInfraContainerMounts(hostNetwork)
+	mounts := rn.buildSandboxContainerMounts()
 
 	spec := &specs.Spec{
 		Version: specs.Version,
 		Root: &specs.Root{
-			Path:     rn.getInfraRoot(),
+			Path:     rn.GetSandboxRoot(),
 			Readonly: false,
 		},
 		Process: process,
@@ -198,15 +185,15 @@ func (rn *Sandbox) buildInfraContainerOciSpec(image *v1.Image, hostNetwork bool,
 				},
 			},
 			Namespaces:  namespaces,
-			CgroupsPath: fmt.Sprintf(":dboxed:%s:%s", rn.SandboxName, name),
+			CgroupsPath: fmt.Sprintf(":dboxed:%s", rn.SandboxName),
 		},
 	}
 
 	return spec, nil
 }
 
-func (rn *Sandbox) writeInfraContainerOciSpec(name string, spec *specs.Spec) error {
-	pth := filepath.Join(rn.getInfraContainerDir(name), "config.json")
+func (rn *Sandbox) writeSandboxContainerOciSpec(spec *specs.Spec) error {
+	pth := filepath.Join(rn.getSandboxContainerDir(), "config.json")
 
 	err := os.MkdirAll(filepath.Dir(pth), 0700)
 	if err != nil {

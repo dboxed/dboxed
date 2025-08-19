@@ -16,17 +16,16 @@ type BoxFile struct {
 }
 
 type BoxSpec struct {
+	Uuid string `json:"uuid"`
+
 	DboxedBinaryUrl  string `json:"dboxedBinaryUrl,omitempty"`
 	DboxedBinaryHash string `json:"dboxedBinaryHash,omitempty"`
-
-	InfraImage string `json:"infraImage,omitempty"`
 
 	Dns  *DnsSpec  `json:"dns"`
 	Logs *LogsSpec `json:"logs,omitempty"`
 
-	FileBundles []FileBundle `json:"fileBundles,omitempty"`
-
-	ComposeProjects []string `json:"composeProjects,omitempty"`
+	FileBundles     []FileBundle `json:"fileBundles,omitempty"`
+	ComposeProjects []string     `json:"composeProjects,omitempty"`
 }
 
 type DnsSpec struct {

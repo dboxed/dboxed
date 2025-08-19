@@ -1,4 +1,4 @@
-package box_spec
+package source
 
 import (
 	"bytes"
@@ -30,7 +30,7 @@ func (h *BoxSpecSource) trySetNewSpec(ctx context.Context, raw []byte, initial b
 		return nil
 	}
 
-	var spec types.BoxFile
+	var spec *types.BoxFile
 	err := yaml.Unmarshal(raw, &spec)
 	if err != nil {
 		if logError {
@@ -40,11 +40,12 @@ func (h *BoxSpecSource) trySetNewSpec(ctx context.Context, raw []byte, initial b
 	}
 
 	h.m.Lock()
-	defer h.m.Unlock()
 	h.curSpecRaw = raw
-	h.curSpec = &spec
+	h.curSpec = spec
+	h.m.Unlock()
+
 	if !initial {
-		h.Chan <- h.curSpec
+		h.Chan <- spec
 	}
 	return nil
 }

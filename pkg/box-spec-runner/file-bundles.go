@@ -1,7 +1,10 @@
-package run_infra_sandbox
+package box_spec_runner
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,32 +13,50 @@ import (
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (rn *RunInfraSandbox) getBundleVolumeName(name string) string {
-	return fmt.Sprintf("dboxed-bundle-%s", name)
+func (rn *BoxSpecRunner) getBundleVolumeName(name string, hash string) string {
+	return fmt.Sprintf("dboxed-bundle-%s-%s", name, hash[:6])
 }
 
-func (rn *RunInfraSandbox) createBundleVolume(ctx context.Context, name string) (string, error) {
-	volumeName := rn.getBundleVolumeName(name)
+func (rn *BoxSpecRunner) createBundleVolume(ctx context.Context, name string, hash string) (string, error) {
+	volumeName := rn.getBundleVolumeName(name, hash)
 
 	slog.InfoContext(ctx, "creating bundle volumes", slog.Any("volumeName", volumeName))
-	_, err := rn.runDockerCli(ctx, true, "volume", "create", volumeName)
+	_, err := rn.Sandbox.RunDockerCli(ctx, true, "", "volume", "create", volumeName)
 	if err != nil {
 		return "", err
 	}
 
 	var volumeInfos []types.DockerVolume
-	err = rn.runDockerCliJson(ctx, &volumeInfos, "volume", "inspect", volumeName, "--format", "json")
+	err = rn.Sandbox.RunDockerCliJson(ctx, &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
 	if err != nil {
 		return "", err
 	}
-	return volumeInfos[0].Mountpoint, nil
+
+	path := volumeInfos[0].Mountpoint
+	relToDocker, err := filepath.Rel("/var/lib/docker", path)
+	if err != nil {
+		return "", err
+	}
+	path = filepath.Join(rn.Sandbox.SandboxDir, "docker", relToDocker)
+
+	return path, nil
 }
 
-func (rn *RunInfraSandbox) createBundleVolumes(ctx context.Context) error {
-	for _, fb := range rn.conf.BoxSpec.FileBundles {
-		volumePath, err := rn.createBundleVolume(ctx, fb.Name)
+func (rn *BoxSpecRunner) createBundleVolumes(ctx context.Context) error {
+	rn.bundleContentHashes = nil
+	for _, fb := range rn.BoxSpec.FileBundles {
+		h := sha256.New()
+		err := json.NewEncoder(h).Encode(fb)
+		if err != nil {
+			return err
+		}
+		hash := hex.EncodeToString(h.Sum(nil))
+		rn.bundleContentHashes = append(rn.bundleContentHashes, hash)
+
+		volumePath, err := rn.createBundleVolume(ctx, fb.Name, hash)
 		if err != nil {
 			return err
 		}
@@ -49,7 +70,7 @@ func (rn *RunInfraSandbox) createBundleVolumes(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath string) error {
+func (rn *BoxSpecRunner) writeFileBundle(fb types.FileBundle, bundlePath string) error {
 	err := os.MkdirAll(bundlePath, 0700)
 	if err != nil {
 		return err
@@ -102,7 +123,7 @@ func (rn *RunInfraSandbox) writeFileBundle(fb types.FileBundle, bundlePath strin
 	return nil
 }
 
-func (rn *RunInfraSandbox) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
+func (rn *BoxSpecRunner) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
 	fileMode, err := parseMode(f.Mode)
 	if err != nil {
 		return fmt.Errorf("failed to parse file mode for %s: %w", f.Path, err)
@@ -125,7 +146,7 @@ func (rn *RunInfraSandbox) writeFileBundleEntry(bundlePath string, f types.FileB
 	}
 	switch f.Type {
 	case "file", "":
-		err = os.WriteFile(p, d, fileMode.Perm())
+		err = util.AtomicWriteFile(p, d, fileMode.Perm())
 		if err != nil {
 			return err
 		}

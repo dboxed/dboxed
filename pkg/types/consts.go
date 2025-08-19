@@ -1,13 +1,27 @@
 package types
 
-const DboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
+import (
+	"fmt"
 
-const DboxedConfDir = "/etc/dboxed"
+	"github.com/dboxed/dboxed/pkg/version"
+)
+
+const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
+
 const DboxedDataDir = "/var/lib/dboxed"
 
 const LogsDir = DboxedDataDir + "/logs"
 
-const InfraConfFile = DboxedConfDir + "/infra-conf.json"
 const LogsTailDbFilename = "multitail.db"
 
 const VethIPStoreFile = "veth-ip"
+const BoxSpecUuidFile = "box-spec-uuid"
+
+func GetDefaultInfraImage() string {
+	tag := "nightly"
+	if !version.IsDummyVersion() {
+		tag = version.Version
+	}
+	infraImage := fmt.Sprintf("%s:%s", dboxedInfraImage, tag)
+	return infraImage
+}

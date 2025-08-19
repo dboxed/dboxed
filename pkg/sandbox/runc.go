@@ -11,14 +11,9 @@ import (
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func BuildRuncCmd(ctx context.Context, sandboxDir string, args ...string) (*exec.Cmd, error) {
+func BuildRuncCmd(ctx context.Context, sandboxDir string, args ...string) *exec.Cmd {
 	binPath := filepath.Join(sandboxDir, "runc")
 	stateDir := getRuncStateDir(sandboxDir)
-
-	err := os.MkdirAll(stateDir, 0700)
-	if err != nil {
-		return nil, err
-	}
 
 	args2 := []string{
 		"--root", stateDir,
@@ -30,14 +25,11 @@ func BuildRuncCmd(ctx context.Context, sandboxDir string, args ...string) (*exec
 	cmd := exec.CommandContext(ctx, binPath, args2...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd, nil
+	return cmd
 }
 
 func RunRunc(ctx context.Context, sandboxDir string, captureStdout bool, args ...string) (string, error) {
-	cmd, err := BuildRuncCmd(ctx, sandboxDir, args...)
-	if err != nil {
-		return "", err
-	}
+	cmd := BuildRuncCmd(ctx, sandboxDir, args...)
 
 	stdout := bytes.NewBuffer(nil)
 	if captureStdout {
@@ -46,7 +38,7 @@ func RunRunc(ctx context.Context, sandboxDir string, captureStdout bool, args ..
 		cmd.Stdout = os.Stdout
 	}
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return "", err
 	}

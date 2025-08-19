@@ -12,6 +12,8 @@ import (
 type RunCmd struct {
 	flags.BoxSourceFlags
 
+	InfraImage string `help:"Specify the infra/sandbox image to use" default:"${default_infra_image}"`
+
 	BoxName     string `help:"Specify the box name" required:""`
 	VethCidrArg string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
 
@@ -33,6 +35,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags) error {
 
 	runBox := run_box.RunBox{
 		Debug:           g.Debug,
+		InfraImage:      cmd.InfraImage,
 		BoxUrl:          url,
 		Nkey:            cmd.Nkey,
 		BoxName:         cmd.BoxName,

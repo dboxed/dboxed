@@ -8,6 +8,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/types"
 	versionpkg "github.com/dboxed/dboxed/pkg/version"
 )
 
@@ -17,8 +18,6 @@ type Cli struct {
 	Run     commands.RunCmd     `cmd:"" help:"Download, unpack and run a box"`
 	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control dboxed systemd integration"`
 	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
-
-	RunInfraSandbox commands.RunInfraSandboxCmd `cmd:"" help:"internal command" hidden:""`
 }
 
 func Execute() {
@@ -36,7 +35,10 @@ func Execute() {
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
 			Summary: true,
-		}))
+		}),
+		kong.Vars{
+			"default_infra_image": types.GetDefaultInfraImage(),
+		})
 
 	err := ctx.Run(&cli.GlobalFlags)
 	if err != nil {

@@ -17,9 +17,9 @@ import (
 )
 
 func (rn *Sandbox) pullInfraImage(ctx context.Context) error {
-	dst := rn.getInfraRoot()
+	dst := rn.GetSandboxRoot()
 	manifestPath := rn.getInfraImageConfig()
-	err := rn.pullImage(ctx, rn.getInfraImage(), manifestPath, dst)
+	err := rn.pullImage(ctx, rn.InfraImage, manifestPath, dst)
 	if err != nil {
 		return fmt.Errorf("failed to pull imfra image: %w", err)
 	}

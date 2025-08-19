@@ -9,8 +9,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
-	box_spec "github.com/dboxed/dboxed/pkg/box-spec"
+	box_spec_runner "github.com/dboxed/dboxed/pkg/box-spec-runner"
+	"github.com/dboxed/dboxed/pkg/box-spec-runner/source"
 	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/selfupdate"
@@ -19,13 +22,13 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
-	"github.com/rootless-containers/rootlesskit/pkg/parent/cgrouputil"
 	"go4.org/netipx"
 )
 
 type RunBox struct {
 	Debug bool
 
+	InfraImage      string
 	BoxUrl          *url.URL
 	Nkey            string
 	BoxName         string
@@ -36,7 +39,7 @@ type RunBox struct {
 
 	acquiredVethNetworkCidr *net.IPNet
 
-	boxSpec *types.BoxSpec
+	boxSpecSource *source.BoxSpecSource
 
 	logsPublisher logs.LogsPublisher
 	sandbox       *sandbox.Sandbox
@@ -57,22 +60,10 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(sandboxDir, "docker"), 0700)
-	if err != nil {
-		return err
-	}
 
 	err = rn.initFileLogging(ctx, sandboxDir)
 	if err != nil {
 		return err
-	}
-
-	if os.Getpid() == 1 {
-		slog.InfoContext(ctx, "evacuating cgroup2")
-		err := cgrouputil.EvacuateCgroup2("init")
-		if err != nil {
-			return fmt.Errorf("failed to evacuate root cgroup: %w", err)
-		}
 	}
 
 	err = rn.connectNats(ctx)
@@ -80,7 +71,151 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
-	var boxSpecSource *box_spec.BoxSpecSource
+	err = rn.startBoxSpecSource(ctx)
+	if err != nil {
+		return err
+	}
+	initialBoxSpec := rn.boxSpecSource.GetCurSpec().Spec
+
+	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
+	err = rn.initLogsPublishing(ctx, sandboxDir, &initialBoxSpec)
+	if err != nil {
+		return err
+	}
+	defer rn.logsPublisher.Stop()
+
+	err = selfupdate.SelfUpdateIfNeeded(ctx, initialBoxSpec.DboxedBinaryUrl, initialBoxSpec.DboxedBinaryHash, rn.WorkDir)
+	if err != nil {
+		return err
+	}
+
+	err = rn.reserveVethCIDR(ctx)
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr.String()))
+
+	rn.sandbox = &sandbox.Sandbox{
+		Debug:           rn.Debug,
+		InfraImage:      rn.InfraImage,
+		HostWorkDir:     rn.WorkDir,
+		SandboxName:     rn.BoxName,
+		SandboxDir:      sandboxDir,
+		VethNetworkCidr: rn.acquiredVethNetworkCidr,
+	}
+
+	needDestroy := false
+
+	localUuid, err := rn.readBoxUuid(rn.BoxName)
+	if err != nil {
+		return err
+	}
+	if localUuid != initialBoxSpec.Uuid {
+		if localUuid != "" {
+			slog.InfoContext(ctx, fmt.Sprintf("serving a new box (new uuid %s), destroying old one (uuid %s)", initialBoxSpec.Uuid, localUuid))
+		}
+		needDestroy = true
+	}
+
+	if !needDestroy {
+		runcState, err := rn.sandbox.RuncState(ctx)
+		if err != nil {
+			return err
+		}
+
+		if runcState == nil {
+			needDestroy = true
+		} else {
+			if runcState.Status != "running" {
+				slog.InfoContext(ctx, fmt.Sprintf("old sandbox container is in state '%s', re-creating it", runcState.Status))
+				needDestroy = true
+			}
+		}
+	}
+
+	if needDestroy {
+		err = rn.sandbox.Destroy(ctx)
+		if err != nil {
+			return err
+		}
+		err = rn.sandbox.Prepare(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = rn.writeBoxUuid(initialBoxSpec.Uuid)
+	if err != nil {
+		return err
+	}
+
+	err = rn.sandbox.SetupNetworking(ctx)
+	if err != nil {
+		return err
+	}
+
+	// now that we ensured that the potentially running sandbox does not belong to another box, we can start publishing
+	// the sandbox internal logs
+	err = rn.initLogsPublishingSandbox(ctx, sandboxDir, &initialBoxSpec)
+	if err != nil {
+		return err
+	}
+
+	if needDestroy {
+		err = rn.sandbox.Start(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	slog.InfoContext(ctx, "waiting for docker to become available in the sandbox")
+	for {
+		_, err = rn.sandbox.RunDockerCli(ctx, true, "", "info")
+		if err == nil {
+			break
+		}
+		if !util.SleepWithContext(ctx, 2*time.Second) {
+			return ctx.Err()
+		}
+	}
+	slog.InfoContext(ctx, "docker is up and running")
+
+	for {
+		boxSpec := rn.boxSpecSource.GetCurSpec().Spec
+
+		boxSpecRunner := &box_spec_runner.BoxSpecRunner{
+			Sandbox: rn.sandbox,
+			BoxSpec: &boxSpec,
+		}
+		err := boxSpecRunner.Reconcile(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case _, ok := <-rn.boxSpecSource.Chan:
+			if !ok {
+				slog.InfoContext(ctx, "box spec was deleted, downing and exiting")
+				err = boxSpecRunner.Down(ctx)
+				if err != nil {
+					return err
+				}
+				err = rn.sandbox.Stop(ctx)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			slog.InfoContext(ctx, "a new box spec was received")
+			continue
+		}
+	}
+}
+
+func (rn *RunBox) startBoxSpecSource(ctx context.Context) error {
+	var err error
 	if rn.natsConn != nil {
 		bucket := rn.BoxUrl.Query().Get("bucket")
 		if bucket == "" {
@@ -90,69 +225,16 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		if key == "" {
 			return fmt.Errorf("missing key in nats url")
 		}
-		boxSpecSource, err = box_spec.NewNatsSource(ctx, rn.natsConn, bucket, key)
+		rn.boxSpecSource, err = source.NewNatsSource(ctx, rn.natsConn, bucket, key)
 		if err != nil {
 			return err
 		}
 	} else {
-		boxSpecSource, err = box_spec.NewUrlSource(ctx, *rn.BoxUrl)
+		rn.boxSpecSource, err = source.NewUrlSource(ctx, *rn.BoxUrl)
 		if err != nil {
 			return err
 		}
 	}
-
-	rn.boxSpec = &boxSpecSource.GetCurSpec().Spec
-
-	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
-	// (we need nats credentials)
-	err = rn.initLogsPublishing(ctx, sandboxDir)
-	if err != nil {
-		return err
-	}
-	defer rn.logsPublisher.Stop()
-
-	rn.sandbox = &sandbox.Sandbox{
-		Debug:       rn.Debug,
-		HostWorkDir: rn.WorkDir,
-		SandboxName: rn.BoxName,
-		SandboxDir:  sandboxDir,
-		BoxSpec:     rn.boxSpec,
-	}
-
-	err = rn.sandbox.Destroy(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = selfupdate.SelfUpdateIfNeeded(ctx, rn.boxSpec.DboxedBinaryUrl, rn.boxSpec.DboxedBinaryHash, rn.WorkDir)
-	if err != nil {
-		return err
-	}
-
-	err = rn.reserveVethCIDR(ctx)
-	if err != nil {
-		return err
-	}
-	rn.sandbox.VethNetworkCidr = rn.acquiredVethNetworkCidr
-	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr.String()))
-
-	err = rn.sandbox.Prepare(ctx)
-	if err != nil {
-		return err
-	}
-	err = rn.sandbox.SetupNetworking(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = rn.sandbox.Start(ctx)
-	if err != nil {
-		return err
-	}
-
-	slog.InfoContext(ctx, "up and running")
-
-	<-ctx.Done()
 
 	return nil
 }
@@ -296,4 +378,21 @@ func (rn *RunBox) readReservedIPs() ([]netip.Prefix, error) {
 		}
 	}
 	return ret, nil
+}
+
+func (rn *RunBox) readBoxUuid(boxName string) (string, error) {
+	pth := filepath.Join(rn.WorkDir, "boxes", boxName, types.BoxSpecUuidFile)
+	b, err := os.ReadFile(pth)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return strings.TrimSpace(string(b)), nil
+}
+
+func (rn *RunBox) writeBoxUuid(uuid string) error {
+	pth := filepath.Join(rn.WorkDir, "boxes", rn.BoxName, types.BoxSpecUuidFile)
+	return util.AtomicWriteFile(pth, []byte(uuid), 0644)
 }

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec dockerd --host unix:///var/run/docker.sock --log-format=json 2>&1

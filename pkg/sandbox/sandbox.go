@@ -16,10 +16,9 @@ type Sandbox struct {
 
 	HostWorkDir string
 
+	InfraImage  string
 	SandboxName string
 	SandboxDir  string
-
-	BoxSpec *types.BoxSpec
 
 	VethNetworkCidr *net.IPNet
 
@@ -37,7 +36,7 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 			return err
 		}
 	} else {
-		err := rn.destroyInfraContainer(ctx, "infra-sandbox")
+		err := rn.destroySandboxContainer(ctx)
 		if err != nil {
 			return err
 		}
@@ -46,11 +45,15 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.RemoveAll(rn.getInfraRoot())
+	err = os.RemoveAll(rn.GetSandboxRoot())
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (rn *Sandbox) Stop(ctx context.Context) error {
+	return rn.killSandboxContainer(ctx)
 }
 
 func (rn *Sandbox) Prepare(ctx context.Context) error {
@@ -59,7 +62,7 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 		return err
 	}
 
-	err = os.MkdirAll(rn.getInfraContainerDir("infra-sandbox"), 0700)
+	err = os.MkdirAll(rn.getSandboxContainerDir(), 0700)
 	if err != nil {
 		return err
 	}
@@ -81,17 +84,13 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.copyDboxedBinIntoInfraRoot()
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
 
 func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 	rn.network = &network.Network{
-		InfraContainerRoot: rn.getInfraRoot(),
+		InfraContainerRoot: rn.GetSandboxRoot(),
 		Config:             rn.buildNetworkConfig(),
 	}
 	err := rn.network.InitNamesAndIPs()
@@ -107,8 +106,8 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 		return err
 	}
 
-	_ = os.Remove(filepath.Join(rn.getInfraRoot(), "etc/resolv.conf"))
-	err = rn.writeResolvConf(rn.getInfraRoot(), rn.network.Config.DnsProxyIP)
+	_ = os.Remove(filepath.Join(rn.GetSandboxRoot(), "etc/resolv.conf"))
+	err = rn.writeResolvConf(rn.GetSandboxRoot(), rn.network.Config.DnsProxyIP)
 	if err != nil {
 		return err
 	}
@@ -137,16 +136,11 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 }
 
 func (rn *Sandbox) Start(ctx context.Context) error {
-	err := rn.writeInfraConf()
+	err := rn.createSandboxContainer(ctx)
 	if err != nil {
 		return err
 	}
-
-	err = rn.createInfraContainer(ctx, false, "infra-sandbox", []string{"dboxed", "run-infra-sandbox"})
-	if err != nil {
-		return err
-	}
-	err = rn.startInfraContainer(ctx, "infra-sandbox")
+	err = rn.startSandboxContainer(ctx)
 	if err != nil {
 		return err
 	}
