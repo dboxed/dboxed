@@ -22,13 +22,13 @@ func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, name string, sp
 	volumeName := rn.getDockerVolumeName(name, specHash)
 
 	slog.InfoContext(ctx, "creating docker volume", slog.Any("volumeName", volumeName))
-	_, err := rn.Sandbox.RunDockerCli(ctx, true, "", "volume", "create", volumeName)
+	_, err := rn.Sandbox.RunDockerCli(ctx, slog.Default(), true, "", "volume", "create", volumeName)
 	if err != nil {
 		return "", err
 	}
 
 	var volumeInfos []types.DockerVolume
-	err = rn.Sandbox.RunDockerCliJson(ctx, &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
+	err = rn.Sandbox.RunDockerCliJson(ctx, slog.Default(), &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
 	if err != nil {
 		return "", err
 	}

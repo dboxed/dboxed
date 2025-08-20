@@ -44,7 +44,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 	}
 
 	var containers []types.DockerPS
-	err = rn.Sandbox.RunDockerCliJsonLines(ctx, &containers, "", "ps", "-a", "--format=json")
+	err = rn.Sandbox.RunDockerCliJsonLines(ctx, slog.Default(), &containers, "", "ps", "-a", "--format=json")
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 			"--timeout=10",
 		}
 		args = append(args, stopIds...)
-		_, err = rn.Sandbox.RunDockerCli(ctx, false, "", args...)
+		_, err = rn.Sandbox.RunDockerCli(ctx, slog.Default(), false, "", args...)
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 			"-fv",
 		}
 		args = append(args, rmIds...)
-		_, err = rn.Sandbox.RunDockerCli(ctx, false, "", args...)
+		_, err = rn.Sandbox.RunDockerCli(ctx, slog.Default(), false, "", args...)
 		if err != nil {
 			return err
 		}

@@ -87,12 +87,14 @@ func (rn *BoxSpecRunner) buildComposeDir(host bool, name string) string {
 }
 
 func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, args ...string) error {
+	log := slog.With("composeProject", projectName)
+
 	var args2 []string
 	args2 = append(args2, "compose")
 	args2 = append(args2, args...)
 
 	slog.InfoContext(ctx, fmt.Sprintf("running 'docker compose %s'", strings.Join(args, " ")), slog.Any("projectName", projectName))
-	_, err := rn.Sandbox.RunDockerCli(ctx, false, rn.buildComposeDir(false, projectName), args2...)
+	_, err := rn.Sandbox.RunDockerCli(ctx, log, false, rn.buildComposeDir(false, projectName), args2...)
 	if err != nil {
 		return err
 	}

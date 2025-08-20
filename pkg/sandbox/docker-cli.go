@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"os/exec"
 	"slices"
 	"strings"
+
+	"github.com/dboxed/dboxed/pkg/logs/line_handler"
 )
 
 func (rn *Sandbox) BuildDockerCliCmd(ctx context.Context, workDir string, args ...string) *exec.Cmd {
@@ -22,13 +26,34 @@ func (rn *Sandbox) BuildDockerCliCmd(ctx context.Context, workDir string, args .
 	return cmd
 }
 
-func (rn *Sandbox) RunDockerCli(ctx context.Context, captureStdout bool, workDir string, args ...string) (string, error) {
+func (rn *Sandbox) RunDockerCli(ctx context.Context, log *slog.Logger, captureStdout bool, workDir string, args ...string) (string, error) {
 	stdoutBuf := bytes.NewBuffer(nil)
+
+	var lhStdout, lhStderr io.WriteCloser
+	defer func() {
+		if lhStdout != nil {
+			_ = lhStdout.Close()
+		}
+		if lhStderr != nil {
+			_ = lhStderr.Close()
+		}
+	}()
 
 	cmd := rn.BuildDockerCliCmd(ctx, workDir, args...)
 	if captureStdout {
 		cmd.Stdout = stdoutBuf
+	} else {
+		lhStdout = line_handler.NewLineHandler(func(line string) {
+			log.InfoContext(ctx, line)
+		})
+		cmd.Stdout = lhStdout
 	}
+
+	lhStderr = line_handler.NewLineHandler(func(line string) {
+		log.WarnContext(ctx, line)
+	})
+	cmd.Stderr = lhStderr
+
 	err := cmd.Run()
 	if err != nil {
 		return "", err
@@ -36,8 +61,8 @@ func (rn *Sandbox) RunDockerCli(ctx context.Context, captureStdout bool, workDir
 	return stdoutBuf.String(), nil
 }
 
-func (rn *Sandbox) RunDockerCliJson(ctx context.Context, ret any, workDir string, args ...string) error {
-	stdout, err := rn.RunDockerCli(ctx, true, workDir, args...)
+func (rn *Sandbox) RunDockerCliJson(ctx context.Context, log *slog.Logger, ret any, workDir string, args ...string) error {
+	stdout, err := rn.RunDockerCli(ctx, log, true, workDir, args...)
 	if err != nil {
 		return err
 	}
@@ -48,8 +73,8 @@ func (rn *Sandbox) RunDockerCliJson(ctx context.Context, ret any, workDir string
 	return nil
 }
 
-func (rn *Sandbox) RunDockerCliJsonLines(ctx context.Context, ret any, workDir string, args ...string) error {
-	stdout, err := rn.RunDockerCli(ctx, true, workDir, args...)
+func (rn *Sandbox) RunDockerCliJsonLines(ctx context.Context, log *slog.Logger, ret any, workDir string, args ...string) error {
+	stdout, err := rn.RunDockerCli(ctx, log, true, workDir, args...)
 	if err != nil {
 		return err
 	}

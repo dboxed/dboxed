@@ -170,7 +170,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 
 	slog.InfoContext(ctx, "waiting for docker to become available in the sandbox")
 	for {
-		_, err = rn.sandbox.RunDockerCli(ctx, true, "", "info")
+		_, err = rn.sandbox.RunDockerCli(ctx, slog.Default(), true, "", "info")
 		if err == nil {
 			break
 		}
