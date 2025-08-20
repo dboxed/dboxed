@@ -104,11 +104,11 @@ func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 		compose.Volumes = map[string]ctypes.VolumeConfig{}
 	}
 
-	bundlesByName := map[string]int{}
-	for i, fb := range rn.BoxSpec.FileBundles {
-		bundlesByName[fb.Name] = i
+	volumesByName := map[string]int{}
+	for i, vol := range rn.BoxSpec.Volumes {
+		volumesByName[vol.Name] = i
 
-		volumeName := rn.getBundleVolumeName(fb.Name, rn.bundleContentHashes[i])
+		volumeName := rn.getDockerVolumeName(vol.Name, rn.volumeSpecHashes[i])
 		compose.Volumes[volumeName] = ctypes.VolumeConfig{
 			Name:     volumeName,
 			External: true,
@@ -118,15 +118,15 @@ func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 	for _, service := range compose.Services {
 		for i, _ := range service.Volumes {
 			volume := &service.Volumes[i]
-			if volume.Type == "bundle" {
-				fbIdx, ok := bundlesByName[volume.Source]
+			if volume.Type == "dboxed" {
+				volIdx, ok := volumesByName[volume.Source]
 				if !ok {
-					return fmt.Errorf("file bundle with name %s not found", volume.Source)
+					return fmt.Errorf("volume with name %s not found", volume.Source)
 				}
-				fb := rn.BoxSpec.FileBundles[fbIdx]
-				hash := rn.bundleContentHashes[fbIdx]
+				fb := rn.BoxSpec.Volumes[volIdx]
+				hash := rn.volumeSpecHashes[volIdx]
 				volume.Type = "volume"
-				volume.Source = rn.getBundleVolumeName(fb.Name, hash)
+				volume.Source = rn.getDockerVolumeName(fb.Name, hash)
 				volume.ReadOnly = true
 			}
 		}

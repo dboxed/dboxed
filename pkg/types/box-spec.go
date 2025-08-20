@@ -2,8 +2,6 @@ package types
 
 import (
 	"context"
-	"encoding/base64"
-	"fmt"
 	"os"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -24,8 +22,8 @@ type BoxSpec struct {
 	Dns  *DnsSpec  `json:"dns"`
 	Logs *LogsSpec `json:"logs,omitempty"`
 
-	FileBundles     []FileBundle `json:"fileBundles,omitempty"`
-	ComposeProjects []string     `json:"composeProjects,omitempty"`
+	Volumes         []BoxVolumeSpec `json:"volumes,omitempty"`
+	ComposeProjects []string        `json:"composeProjects,omitempty"`
 }
 
 type DnsSpec struct {
@@ -41,53 +39,6 @@ type LogsNatsSpec struct {
 	MetadataKVStore string `json:"metadataKVStore"`
 	LogStream       string `json:"logStream"`
 	LogId           string `json:"logId"`
-}
-
-type FileBundle struct {
-	Name     string            `json:"name"`
-	RootUid  uint32            `json:"rootUid"`
-	RootGid  uint32            `json:"rootGid"`
-	RootMode string            `json:"rootMode"`
-	Files    []FileBundleEntry `json:"files"`
-}
-
-const AllowedModeMask = os.ModeDir | os.ModeSymlink | os.ModePerm
-
-type FileBundleEntry struct {
-	Path string `json:"path"`
-	Type string `json:"type,omitempty"` // file, dir, or symlink
-	Mode string `json:"mode"`
-
-	Uid int `json:"uid"`
-	Gid int `json:"gid"`
-
-	// Data must be base64 encoded
-	Data string `json:"data,omitempty"`
-
-	// StringData is an alternative to Data
-	StringData string `json:"stringData,omitempty"`
-}
-
-func (e *FileBundleEntry) GetDecodedData() ([]byte, error) {
-	if e.Data == "" && e.StringData == "" {
-		return nil, nil
-	}
-	if e.Data != "" && e.StringData != "" {
-		return nil, fmt.Errorf("both data and stringData are set")
-	} else if e.Data != "" {
-		x, err := base64.StdEncoding.DecodeString(e.Data)
-		if err != nil {
-			return nil, err
-		}
-		return x, nil
-	} else {
-		return []byte(e.StringData), nil
-	}
-}
-
-type BundleMount struct {
-	Name          string `json:"name"`
-	ContainerPath string `json:"containerPath"`
 }
 
 func (s *BoxSpec) LoadComposeProjects() ([]*ctypes.Project, error) {

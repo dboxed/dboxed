@@ -12,11 +12,11 @@ type BoxSpecRunner struct {
 	Sandbox *sandbox.Sandbox
 	BoxSpec *types.BoxSpec
 
-	bundleContentHashes []string
+	volumeSpecHashes []string
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
-	err := rn.createBundleVolumes(ctx)
+	err := rn.reconcileDockerVolumes(ctx)
 	if err != nil {
 		return err
 	}
