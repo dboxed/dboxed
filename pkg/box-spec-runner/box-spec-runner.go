@@ -11,8 +11,6 @@ import (
 type BoxSpecRunner struct {
 	Sandbox *sandbox.Sandbox
 	BoxSpec *types.BoxSpec
-
-	volumeSpecHashes []string
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {

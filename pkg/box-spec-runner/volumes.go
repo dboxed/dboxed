@@ -2,69 +2,113 @@ package box_spec_runner
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 
+	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *BoxSpecRunner) getDockerVolumeName(name string, specHash string) string {
-	return fmt.Sprintf("dboxed-%s-%s", name, specHash[:6])
+func (rn *BoxSpecRunner) getVolumeWorkDirOnHost(vol types.BoxVolumeSpec) string {
+	return filepath.Join(rn.Sandbox.SandboxDir, "volumes", vol.Uuid)
 }
 
-func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, name string, specHash string) (string, error) {
-	volumeName := rn.getDockerVolumeName(name, specHash)
+func (rn *BoxSpecRunner) getVolumeMountDirOnHost(vol types.BoxVolumeSpec) string {
+	return filepath.Join(rn.getVolumeWorkDirOnHost(vol), "mount")
+}
+
+func (rn *BoxSpecRunner) getVolumeWorkDirInSandbox(vol types.BoxVolumeSpec) string {
+	return filepath.Join(types.VolumesDir, vol.Uuid)
+}
+
+func (rn *BoxSpecRunner) getVolumeMountDirInSandbox(vol types.BoxVolumeSpec) string {
+	return filepath.Join(rn.getVolumeWorkDirInSandbox(vol), "mount")
+}
+
+func (rn *BoxSpecRunner) getDockerVolumeName(vol types.BoxVolumeSpec) string {
+	h := util.MustSha256SumJson(vol)
+	return fmt.Sprintf("dboxed-%s-%s", vol.Name, h[:6])
+}
+
+func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, vol types.BoxVolumeSpec) error {
+	volumeName := rn.getDockerVolumeName(vol)
+	mountDir := rn.getVolumeMountDirInSandbox(vol)
 
 	slog.InfoContext(ctx, "creating docker volume", slog.Any("volumeName", volumeName))
 	_, err := rn.Sandbox.RunDockerCli(ctx, slog.Default(), true, "", "volume", "create", volumeName)
 	if err != nil {
-		return "", err
+		return err
 	}
 
+	volumeDir, err := rn.getDockerVolumeDirInSandbox(ctx, vol)
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(ctx, "bind mounting volume",
+		slog.Any("volumeName", volumeName),
+		slog.Any("mountDir", mountDir),
+		slog.Any("volumeDir", volumeDir),
+	)
+	_, err = rn.Sandbox.RunSandboxCmd(ctx, slog.Default(), false, "", "mount", "-obind", mountDir, volumeDir)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rn *BoxSpecRunner) getDockerVolumeDirInSandbox(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
+	volumeName := rn.getDockerVolumeName(vol)
+
 	var volumeInfos []types.DockerVolume
-	err = rn.Sandbox.RunDockerCliJson(ctx, slog.Default(), &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
+	err := rn.Sandbox.RunDockerCliJson(ctx, slog.Default(), &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
 	if err != nil {
 		return "", err
 	}
 
 	path := volumeInfos[0].Mountpoint
-	relToDocker, err := filepath.Rel("/var/lib/docker", path)
-	if err != nil {
-		return "", err
-	}
-	path = filepath.Join(rn.Sandbox.SandboxDir, "docker", relToDocker)
-
 	return path, nil
 }
 
 func (rn *BoxSpecRunner) reconcileDockerVolumes(ctx context.Context) error {
-	rn.volumeSpecHashes = nil
 	for _, vol := range rn.BoxSpec.Volumes {
-		h := sha256.New()
-		err := json.NewEncoder(h).Encode(vol)
-		if err != nil {
-			return err
-		}
-		hash := hex.EncodeToString(h.Sum(nil))
-		rn.volumeSpecHashes = append(rn.volumeSpecHashes, hash)
+		workDir := rn.getVolumeWorkDirOnHost(vol)
+		mountDir := rn.getVolumeMountDirOnHost(vol)
 
-		volumePath, err := rn.createDockerVolume(ctx, vol.Name, hash)
+		err := os.MkdirAll(workDir, 0700)
 		if err != nil {
 			return err
 		}
 
-		err = rn.writeFileBundle(vol, volumePath)
+		err = os.MkdirAll(mountDir, 0700)
 		if err != nil {
 			return err
 		}
 
-		err = rn.fixVolumePermissions(vol, volumePath)
+		if vol.FileBundle != nil {
+			err = rn.createFileBundle(ctx, vol)
+			if err != nil {
+				return err
+			}
+		} else if vol.Dboxed != nil {
+			err = rn.createDboxedVolume(ctx, vol)
+			if err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("missing volume config")
+		}
+
+		err = rn.createDockerVolume(ctx, vol)
+		if err != nil {
+			return err
+		}
+
+		err = rn.fixVolumePermissions(vol)
 		if err != nil {
 			return err
 		}
@@ -73,8 +117,9 @@ func (rn *BoxSpecRunner) reconcileDockerVolumes(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec, volumePath string) error {
-	err := os.Chown(volumePath, int(vol.RootUid), int(vol.RootGid))
+func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec) error {
+	mountDir := rn.getVolumeMountDirOnHost(vol)
+	err := os.Chown(mountDir, int(vol.RootUid), int(vol.RootGid))
 	if err != nil {
 		return err
 	}
@@ -83,7 +128,7 @@ func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec, volumePat
 		return fmt.Errorf("failed to parse root dir mode: %w", err)
 	}
 	if rootMode != 0 {
-		err = os.Chmod(volumePath, rootMode)
+		err = os.Chmod(mountDir, rootMode)
 		if err != nil {
 			return err
 		}

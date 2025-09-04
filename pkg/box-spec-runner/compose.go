@@ -110,7 +110,7 @@ func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 	for i, vol := range rn.BoxSpec.Volumes {
 		volumesByName[vol.Name] = i
 
-		volumeName := rn.getDockerVolumeName(vol.Name, rn.volumeSpecHashes[i])
+		volumeName := rn.getDockerVolumeName(vol)
 		compose.Volumes[volumeName] = ctypes.VolumeConfig{
 			Name:     volumeName,
 			External: true,
@@ -125,10 +125,9 @@ func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 				if !ok {
 					return fmt.Errorf("volume with name %s not found", volume.Source)
 				}
-				fb := rn.BoxSpec.Volumes[volIdx]
-				hash := rn.volumeSpecHashes[volIdx]
+				vol := rn.BoxSpec.Volumes[volIdx]
 				volume.Type = "volume"
-				volume.Source = rn.getDockerVolumeName(fb.Name, hash)
+				volume.Source = rn.getDockerVolumeName(vol)
 				volume.ReadOnly = true
 			}
 		}

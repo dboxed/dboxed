@@ -8,16 +8,28 @@ import (
 
 type BoxVolumeSpec struct {
 	Name string `json:"name"`
+	Uuid string `json:"uuid,omitempty"`
 
 	RootUid  uint32 `json:"rootUid"`
 	RootGid  uint32 `json:"rootGid"`
 	RootMode string `json:"rootMode"`
 
-	FileBundle *FileBundle `json:"fileBundle,omitempty"`
+	FileBundle *FileBundle   `json:"fileBundle,omitempty"`
+	Dboxed     *DboxedVolume `json:"dboxed,omitempty"`
 }
 
 type FileBundle struct {
 	Files []FileBundleEntry `json:"files"`
+}
+
+type DboxedVolume struct {
+	ApiUrl string `json:"apiUrl"`
+	Token  string `json:"token"`
+
+	RepositoryId int64 `json:"repoId"`
+	VolumeId     int64 `json:"volumeId"`
+
+	BackupInterval string `json:"backupInterval"`
 }
 
 const AllowedModeMask = os.ModeDir | os.ModeSymlink | os.ModePerm

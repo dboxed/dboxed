@@ -74,6 +74,12 @@ func (rn *Sandbox) buildSandboxContainerMounts() []specs.Mount {
 			Source:      filepath.Join(rn.SandboxDir, "logs"),
 			Options:     []string{"bind"},
 		},
+		{
+			Destination: types.VolumesDir,
+			Type:        "bind",
+			Source:      filepath.Join(rn.SandboxDir, "volumes"),
+			Options:     []string{"bind"},
+		},
 	}
 
 	return mounts

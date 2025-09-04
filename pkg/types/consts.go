@@ -11,8 +11,9 @@ const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
 const DboxedDataDir = "/var/lib/dboxed"
 
 const LogsDir = DboxedDataDir + "/logs"
-
 const LogsTailDbFilename = "multitail.db"
+
+const VolumesDir = DboxedDataDir + "/volumes"
 
 const VethIPStoreFile = "veth-ip"
 const BoxSpecUuidFile = "box-spec-uuid"

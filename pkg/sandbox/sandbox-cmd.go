@@ -13,20 +13,20 @@ import (
 	"github.com/dboxed/dboxed/pkg/logs/line_handler"
 )
 
-func (rn *Sandbox) BuildDockerCliCmd(ctx context.Context, workDir string, args ...string) *exec.Cmd {
+func (rn *Sandbox) BuildSandboxCmd(ctx context.Context, workDir string, command string, args ...string) *exec.Cmd {
 	var args2 []string
 	args2 = append(args2, "exec")
 	if workDir != "" {
 		args2 = append(args2, "--cwd", workDir)
 	}
-	args2 = append(args2, "sandbox", "docker")
+	args2 = append(args2, "sandbox", command)
 	args2 = append(args2, args...)
 	cmd := BuildRuncCmd(ctx, rn.SandboxDir, args2...)
 
 	return cmd
 }
 
-func (rn *Sandbox) RunDockerCli(ctx context.Context, log *slog.Logger, captureStdout bool, workDir string, args ...string) (string, error) {
+func (rn *Sandbox) RunSandboxCmd(ctx context.Context, log *slog.Logger, captureStdout bool, workDir string, command string, args ...string) (string, error) {
 	stdoutBuf := bytes.NewBuffer(nil)
 
 	var lhStdout, lhStderr io.WriteCloser
@@ -39,7 +39,7 @@ func (rn *Sandbox) RunDockerCli(ctx context.Context, log *slog.Logger, captureSt
 		}
 	}()
 
-	cmd := rn.BuildDockerCliCmd(ctx, workDir, args...)
+	cmd := rn.BuildSandboxCmd(ctx, workDir, command, args...)
 	if captureStdout {
 		cmd.Stdout = stdoutBuf
 	} else {
@@ -59,6 +59,14 @@ func (rn *Sandbox) RunDockerCli(ctx context.Context, log *slog.Logger, captureSt
 		return "", err
 	}
 	return stdoutBuf.String(), nil
+}
+
+func (rn *Sandbox) BuildDockerCliCmd(ctx context.Context, workDir string, args ...string) *exec.Cmd {
+	return rn.BuildSandboxCmd(ctx, workDir, "docker", args...)
+}
+
+func (rn *Sandbox) RunDockerCli(ctx context.Context, log *slog.Logger, captureStdout bool, workDir string, args ...string) (string, error) {
+	return rn.RunSandboxCmd(ctx, log, captureStdout, workDir, "docker", args...)
 }
 
 func (rn *Sandbox) RunDockerCliJson(ctx context.Context, log *slog.Logger, ret any, workDir string, args ...string) error {

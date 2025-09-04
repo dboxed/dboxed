@@ -1,25 +1,23 @@
 package box_spec_runner
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/types"
-	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (rn *BoxSpecRunner) writeFileBundle(vol types.BoxVolumeSpec, volumePath string) error {
+func (rn *BoxSpecRunner) createFileBundle(ctx context.Context, vol types.BoxVolumeSpec) error {
+	mountDir := rn.getVolumeMountDirOnHost(vol)
+
 	fb := vol.FileBundle
 
-	err := os.MkdirAll(volumePath, 0700)
-	if err != nil {
-		return err
-	}
-
 	for _, f := range fb.Files {
-		err := rn.writeFileBundleEntry(volumePath, f)
+		err := rn.writeFileBundleEntry(mountDir, f)
 		if err != nil {
 			return err
 		}
@@ -32,7 +30,7 @@ func (rn *BoxSpecRunner) writeFileBundle(vol types.BoxVolumeSpec, volumePath str
 			return err
 		}
 
-		p, err := securejoin.SecureJoin(volumePath, f.Path)
+		p, err := securejoin.SecureJoin(mountDir, f.Path)
 		if err != nil {
 			return err
 		}
