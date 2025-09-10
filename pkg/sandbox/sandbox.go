@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	dns_proxy "github.com/dboxed/dboxed/pkg/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/network"
 	"github.com/dboxed/dboxed/pkg/types"
 )
@@ -24,9 +23,6 @@ type Sandbox struct {
 
 	network      *network.Network
 	routesMirror network.RoutesMirror
-
-	dnsProxy      *dns_proxy.DnsProxy
-	oldDnsMapHash string
 }
 
 func (rn *Sandbox) Destroy(ctx context.Context) error {
@@ -102,11 +98,15 @@ func (rn *Sandbox) CopyBinaries(ctx context.Context) error {
 }
 
 func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
+	networkConfig, err := rn.buildNetworkConfig()
+	if err != nil {
+		return err
+	}
 	rn.network = &network.Network{
 		InfraContainerRoot: rn.GetSandboxRoot(),
-		Config:             rn.buildNetworkConfig(),
+		Config:             networkConfig,
 	}
-	err := rn.network.InitNamesAndIPs()
+	err = rn.network.InitNamesAndIPs()
 	if err != nil {
 		return err
 	}
@@ -119,21 +119,10 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 		return err
 	}
 
-	_ = os.Remove(filepath.Join(rn.GetSandboxRoot(), "etc/resolv.conf"))
-	err = rn.writeResolvConf(rn.GetSandboxRoot(), rn.network.Config.DnsProxyIP)
-	if err != nil {
-		return err
-	}
-
 	rn.routesMirror = network.RoutesMirror{
 		NamesAndIps: rn.network.NamesAndIps,
 	}
 	err = rn.routesMirror.Start(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = rn.startDnsProxy(ctx)
 	if err != nil {
 		return err
 	}
@@ -154,10 +143,16 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	return nil
 }
 
-func (rn *Sandbox) buildNetworkConfig() types.NetworkConfig {
-	return types.NetworkConfig{
+func (rn *Sandbox) buildNetworkConfig() (*types.NetworkConfig, error) {
+	namesAndIps, err := network.NewNamesAndIPs(rn.SandboxName, rn.VethNetworkCidr)
+	if err != nil {
+		return nil, err
+	}
+	cfg := &types.NetworkConfig{
 		SandboxName:     rn.SandboxName,
 		VethNetworkCidr: rn.VethNetworkCidr,
-		DnsProxyIP:      "127.0.0.1", // TODO
+		DnsProxyIP:      namesAndIps.PeerAddr.IP.String(),
 	}
+
+	return cfg, nil
 }

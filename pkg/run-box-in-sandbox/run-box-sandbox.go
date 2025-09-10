@@ -9,6 +9,7 @@ import (
 
 	"github.com/dboxed/dboxed-common/util"
 	box_spec_runner "github.com/dboxed/dboxed/pkg/box-spec-runner"
+	dns_proxy "github.com/dboxed/dboxed/pkg/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/dockercli"
 	"github.com/dboxed/dboxed/pkg/types"
 	util2 "github.com/dboxed/dboxed/pkg/util"
@@ -18,6 +19,10 @@ type RunBoxInSandbox struct {
 	Debug bool
 
 	oldBoxSpecHash string
+
+	networkConfig *types.NetworkConfig
+	dnsProxy      *dns_proxy.DnsProxy
+	oldDnsMapHash string
 }
 
 func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
@@ -25,6 +30,17 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	util2.LoadMod(ctx, "dm-thin-pool")
 	util2.LoadMod(ctx, "dm-snapshot")
 	util2.LoadMod(ctx, "dm-zero")
+
+	var err error
+	rn.networkConfig, err = util.UnmarshalJsonFile[types.NetworkConfig](types.NetworkConfFile)
+	if err != nil {
+		return err
+	}
+
+	err = rn.startDnsProxy(ctx)
+	if err != nil {
+		return err
+	}
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {

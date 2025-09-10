@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/dboxed/dboxed-common/util"
-	"github.com/dboxed/dboxed/pkg/types"
 	net2 "github.com/dboxed/dboxed/pkg/util/net"
 	"github.com/vishvananda/netlink"
 )
@@ -19,37 +18,37 @@ type NamesAndIps struct {
 	PeerAddr             netlink.Addr
 }
 
-func NewNamesAndIPs(cfg types.NetworkConfig) (n NamesAndIps, err error) {
-	n.Base = n.buildNameBase(cfg)
+func NewNamesAndIPs(sandboxName string, vethCidr *net.IPNet) (n NamesAndIps, err error) {
+	n.Base = n.buildNameBase(sandboxName)
 	n.SandboxNamespaceName = n.Base
 	n.VethNameHost = fmt.Sprintf("%s-host", n.Base)
 	n.VethNamePeer = fmt.Sprintf("%s-peer", n.Base)
 
-	hostIP, err := net2.GetIndexedIP(cfg.VethNetworkCidr, 0)
+	hostIP, err := net2.GetIndexedIP(vethCidr, 0)
 	if err != nil {
 		return
 	}
-	peerIP, err := net2.GetIndexedIP(cfg.VethNetworkCidr, 1)
+	peerIP, err := net2.GetIndexedIP(vethCidr, 1)
 	if err != nil {
 		return
 	}
 	n.HostAddr = netlink.Addr{
 		IPNet: &net.IPNet{
 			IP:   hostIP,
-			Mask: cfg.VethNetworkCidr.Mask,
+			Mask: vethCidr.Mask,
 		},
 	}
 	n.PeerAddr = netlink.Addr{
 		IPNet: &net.IPNet{
 			IP:   peerIP,
-			Mask: cfg.VethNetworkCidr.Mask,
+			Mask: vethCidr.Mask,
 		},
 	}
 	return
 }
 
-func (n *NamesAndIps) buildNameBase(cfg types.NetworkConfig) string {
-	h := util.Sha256Sum([]byte(cfg.SandboxName))
+func (n *NamesAndIps) buildNameBase(sandboxName string) string {
+	h := util.Sha256Sum([]byte(sandboxName))
 	h = h[:6]
 
 	return fmt.Sprintf("%s-%s", namePrefix, h)

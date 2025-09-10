@@ -15,7 +15,7 @@ import (
 
 func (n *Network) InitNamesAndIPs() error {
 	var err error
-	n.NamesAndIps, err = NewNamesAndIPs(n.Config)
+	n.NamesAndIps, err = NewNamesAndIPs(n.Config.SandboxName, n.Config.VethNetworkCidr)
 	if err != nil {
 		return err
 	}

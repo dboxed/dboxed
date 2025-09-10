@@ -169,22 +169,25 @@ func (rn *Sandbox) destroySandboxContainer(ctx context.Context) error {
 func (rn *Sandbox) createSandboxContainer(ctx context.Context) error {
 	slog.InfoContext(ctx, "creating sandbox container")
 
-	b, err := os.ReadFile(rn.getInfraImageConfig())
+	imageConfig, err := util.UnmarshalJsonFile[v1.Image](rn.getInfraImageConfig())
 	if err != nil {
 		return err
 	}
 
-	var imageConfig v1.Image
-	err = json.Unmarshal(b, &imageConfig)
-	if err != nil {
-		return err
-	}
-
-	spec, err := rn.buildSandboxContainerOciSpec(&imageConfig)
+	spec, err := rn.buildSandboxContainerOciSpec(imageConfig)
 	if err != nil {
 		return err
 	}
 	err = rn.writeSandboxContainerOciSpec(spec)
+	if err != nil {
+		return err
+	}
+
+	b, err := json.Marshal(rn.network.Config)
+	if err != nil {
+		return err
+	}
+	err = util.AtomicWriteFile(filepath.Join(rn.GetSandboxRoot(), types.NetworkConfFile), b, 0644)
 	if err != nil {
 		return err
 	}

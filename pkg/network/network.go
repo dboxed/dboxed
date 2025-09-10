@@ -8,7 +8,7 @@ import (
 const namePrefix = "ub"
 
 type Network struct {
-	Config types.NetworkConfig
+	Config *types.NetworkConfig
 
 	InfraContainerRoot string
 	NamesAndIps        NamesAndIps

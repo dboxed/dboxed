@@ -12,7 +12,7 @@ import (
 
 func (n *Network) Destroy(ctx context.Context) error {
 	var err error
-	n.NamesAndIps, err = NewNamesAndIPs(n.Config)
+	n.NamesAndIps, err = NewNamesAndIPs(n.Config.SandboxName, n.Config.VethNetworkCidr)
 	if err != nil {
 		return err
 	}
