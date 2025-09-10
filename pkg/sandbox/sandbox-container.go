@@ -2,14 +2,15 @@ package sandbox
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/types"
-	"github.com/dboxed/dboxed/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -168,15 +169,17 @@ func (rn *Sandbox) destroySandboxContainer(ctx context.Context) error {
 func (rn *Sandbox) createSandboxContainer(ctx context.Context) error {
 	slog.InfoContext(ctx, "creating sandbox container")
 
-	imageConfig, err := util.ReadJsonFile[v1.Image](rn.getInfraImageConfig())
+	b, err := os.ReadFile(rn.getInfraImageConfig())
 	if err != nil {
 		return err
 	}
 
-	spec, err := rn.buildSandboxContainerOciSpec(imageConfig)
+	var imageConfig v1.Image
+	err = json.Unmarshal(b, &imageConfig)
 	if err != nil {
 		return err
 	}
+
 	err = rn.writeSandboxContainerOciSpec(spec)
 	if err != nil {
 		return err

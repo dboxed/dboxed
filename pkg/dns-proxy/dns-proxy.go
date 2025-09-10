@@ -13,7 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed-common/util"
+	util2 "github.com/dboxed/dboxed/pkg/util"
 	"github.com/miekg/dns"
 	"github.com/vishvananda/netns"
 )
@@ -117,7 +118,7 @@ func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
 }
 
 func (d *DnsProxy) runRequestsThread(ctx context.Context) error {
-	return util.RunInNetNs(d.QueryNamespace, func() error {
+	return util2.RunInNetNs(d.QueryNamespace, func() error {
 		return d.runRequestsThreadInNs(ctx)
 	})
 }
@@ -230,7 +231,7 @@ func (d *DnsProxy) startListen(ctx context.Context, dnsNet string) (*dns.Server,
 	}
 
 	log.InfoContext(ctx, "start listen")
-	err := util.RunInNetNs(d.ListenNamespace, func() error {
+	err := util2.RunInNetNs(d.ListenNamespace, func() error {
 		var err error
 		if isTcp {
 			dnsServer.Listener, err = net.Listen(dnsNet, dnsServer.Addr)

@@ -6,7 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed-common/util"
+	util2 "github.com/dboxed/dboxed/pkg/util"
 	"golang.org/x/sys/unix"
 )
 
@@ -39,7 +40,7 @@ func SelfUpdateIfNeeded(ctx context.Context, binaryUrl, binaryHash string, workD
 	slog.Info("updating self")
 
 	dir := filepath.Join(workDir, "selfupdate")
-	pth, err := util.DownloadFile(ctx, binaryUrl, binaryHash, dir, util.CompressionGzip)
+	pth, err := util2.DownloadFile(ctx, binaryUrl, binaryHash, dir, util2.CompressionGzip)
 	if err != nil {
 		return err
 	}
