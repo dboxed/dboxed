@@ -12,7 +12,8 @@ RUN cd /tmp/nightly/rustic/ && tar xzf rustic-nightly-$(uname -m)-unknown-linux-
 RUN mv /tmp/nightly/rustic/rustic /tools/
 RUN rm -rf /tmp/nightly
 
-FROM docker:28.3.2-dind AS rootfs
+# rootfs
+FROM docker:28.4.0-dind AS rootfs
 
 ENV S6_OVERLAY_VERSION=3.2.1.0
 
