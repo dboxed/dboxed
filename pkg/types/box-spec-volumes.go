@@ -8,7 +8,6 @@ import (
 
 type BoxVolumeSpec struct {
 	Name string `json:"name"`
-	Uuid string `json:"uuid,omitempty"`
 
 	RootUid  uint32 `json:"rootUid"`
 	RootGid  uint32 `json:"rootGid"`
