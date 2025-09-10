@@ -32,12 +32,20 @@ type DboxedVolume struct {
 	BackupInterval string `json:"backupInterval"`
 }
 
-const AllowedModeMask = os.ModeDir | os.ModeSymlink | os.ModePerm
+const AllowedModeMask = os.ModePerm
+
+type FileBundleEntryType string
+
+const (
+	FileBundleEntryFile    FileBundleEntryType = "file"
+	FileBundleEntryDir     FileBundleEntryType = "dir"
+	FileBundleEntrySymlink FileBundleEntryType = "symlink"
+)
 
 type FileBundleEntry struct {
-	Path string `json:"path"`
-	Type string `json:"type,omitempty"` // file, dir, or symlink
-	Mode string `json:"mode"`
+	Path string              `json:"path"`
+	Type FileBundleEntryType `json:"type,omitempty"` // file, dir, or symlink
+	Mode string              `json:"mode"`
 
 	Uid int `json:"uid"`
 	Gid int `json:"gid"`
