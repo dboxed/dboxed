@@ -13,14 +13,6 @@ import (
 )
 
 func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
-	projectPathInSandbox := filepath.Join(types.DboxedDataDir, "compose")
-	projectPathOnHost := filepath.Join(rn.Sandbox.GetSandboxRoot(), projectPathInSandbox)
-
-	err := os.MkdirAll(projectPathOnHost, 0700)
-	if err != nil {
-		return err
-	}
-
 	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
 		return err
