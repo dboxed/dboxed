@@ -8,57 +8,55 @@ import (
 	"path/filepath"
 	"strconv"
 
+	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *BoxSpecRunner) getVolumeWorkDirOnHost(vol types.BoxVolumeSpec) string {
-	return filepath.Join(rn.Sandbox.SandboxDir, "volumes", vol.Uuid)
+func (rn *BoxSpecRunner) getVolumeWorkDirBase(vol types.BoxVolumeSpec) string {
+	return rn.getDockerVolumeName(vol)
 }
 
-func (rn *BoxSpecRunner) getVolumeMountDirOnHost(vol types.BoxVolumeSpec) string {
-	return filepath.Join(rn.getVolumeWorkDirOnHost(vol), "mount")
+func (rn *BoxSpecRunner) getVolumeWorkDirOnHost(vol types.BoxVolumeSpec) string {
+	return filepath.Join(rn.Sandbox.SandboxDir, "volumes", rn.getVolumeWorkDirBase(vol))
 }
 
 func (rn *BoxSpecRunner) getVolumeWorkDirInSandbox(vol types.BoxVolumeSpec) string {
-	return filepath.Join(types.VolumesDir, vol.Uuid)
-}
-
-func (rn *BoxSpecRunner) getVolumeMountDirInSandbox(vol types.BoxVolumeSpec) string {
-	return filepath.Join(rn.getVolumeWorkDirInSandbox(vol), "mount")
+	return filepath.Join(types.VolumesDir, rn.getVolumeWorkDirBase(vol))
 }
 
 func (rn *BoxSpecRunner) getDockerVolumeName(vol types.BoxVolumeSpec) string {
 	h := util.MustSha256SumJson(vol)
-	return fmt.Sprintf("dboxed-%s-%s", vol.Name, h[:6])
+	if vol.FileBundle != nil {
+		return fmt.Sprintf("file-bundle-%s-%s", vol.Name, h[:6])
+	} else if vol.Dboxed != nil {
+		return fmt.Sprintf("dboxed-volume-%d-%d", vol.Dboxed.RepositoryId, vol.Dboxed.VolumeId)
+	} else {
+		panic("volume type not supported")
+	}
 }
 
-func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, vol types.BoxVolumeSpec) error {
+func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, vol types.BoxVolumeSpec) (string, string, error) {
 	volumeName := rn.getDockerVolumeName(vol)
-	mountDir := rn.getVolumeMountDirInSandbox(vol)
 
 	slog.InfoContext(ctx, "creating docker volume", slog.Any("volumeName", volumeName))
 	_, err := rn.Sandbox.RunDockerCli(ctx, slog.Default(), true, "", "volume", "create", volumeName)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
 	volumeDir, err := rn.getDockerVolumeDirInSandbox(ctx, vol)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
-	slog.InfoContext(ctx, "bind mounting volume",
-		slog.Any("volumeName", volumeName),
-		slog.Any("mountDir", mountDir),
-		slog.Any("volumeDir", volumeDir),
-	)
-	_, err = rn.Sandbox.RunSandboxCmd(ctx, slog.Default(), false, "", "mount", "-obind", mountDir, volumeDir)
+	relDir, err := filepath.Rel("/var/lib/docker", volumeDir)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
-	return nil
+	volumeDirOnHost := filepath.Join(rn.Sandbox.SandboxDir, "docker", relDir)
+	return volumeDir, volumeDirOnHost, nil
 }
 
 func (rn *BoxSpecRunner) getDockerVolumeDirInSandbox(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
@@ -75,51 +73,57 @@ func (rn *BoxSpecRunner) getDockerVolumeDirInSandbox(ctx context.Context, vol ty
 }
 
 func (rn *BoxSpecRunner) reconcileDockerVolumes(ctx context.Context) error {
+	dboxedVolumesProject := ctypes.Project{
+		Name:     "dboxed-volumes",
+		Services: map[string]ctypes.ServiceConfig{},
+		Volumes:  map[string]ctypes.VolumeConfig{},
+	}
+
 	for _, vol := range rn.BoxSpec.Volumes {
-		workDir := rn.getVolumeWorkDirOnHost(vol)
-		mountDir := rn.getVolumeMountDirOnHost(vol)
-
-		err := os.MkdirAll(workDir, 0700)
-		if err != nil {
-			return err
-		}
-
-		err = os.MkdirAll(mountDir, 0700)
-		if err != nil {
-			return err
-		}
-
 		if vol.FileBundle != nil {
-			err = rn.createFileBundle(ctx, vol)
+			err := rn.reconcileDockerVolumeFileBundle(ctx, vol)
 			if err != nil {
 				return err
 			}
 		} else if vol.Dboxed != nil {
-			err = rn.createDboxedVolume(ctx, vol)
+			err := rn.reconcileDockerVolumeDboxed(ctx, vol, &dboxedVolumesProject)
 			if err != nil {
 				return err
 			}
 		} else {
-			return fmt.Errorf("missing volume config")
+			return fmt.Errorf("volume %s has unsupported volume type", vol.Name)
 		}
+	}
 
-		err = rn.createDockerVolume(ctx, vol)
-		if err != nil {
-			return err
-		}
+	b, err := dboxedVolumesProject.MarshalYAML()
+	if err != nil {
+		return err
+	}
 
-		err = rn.fixVolumePermissions(vol)
-		if err != nil {
-			return err
-		}
+	dir := rn.buildComposeDir(true, dboxedVolumesProject.Name)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(filepath.Join(dir, "docker-compose.yaml"), b, 0600)
+	if err != nil {
+		return err
+	}
+
+	err = rn.runComposeCli(ctx, dboxedVolumesProject.Name, "pull", "-q")
+	if err != nil {
+		return err
+	}
+	err = rn.runComposeCli(ctx, dboxedVolumesProject.Name, "up", "-d", "--remove-orphans", "--pull=never")
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec) error {
-	mountDir := rn.getVolumeMountDirOnHost(vol)
-	err := os.Chown(mountDir, int(vol.RootUid), int(vol.RootGid))
+func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec, volumeDir string) error {
+	err := os.Chown(volumeDir, int(vol.RootUid), int(vol.RootGid))
 	if err != nil {
 		return err
 	}
@@ -128,7 +132,7 @@ func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec) error {
 		return fmt.Errorf("failed to parse root dir mode: %w", err)
 	}
 	if rootMode != 0 {
-		err = os.Chmod(mountDir, rootMode)
+		err = os.Chmod(volumeDir, rootMode)
 		if err != nil {
 			return err
 		}
