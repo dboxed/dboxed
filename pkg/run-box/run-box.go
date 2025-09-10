@@ -19,6 +19,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/selfupdate"
 	"github.com/dboxed/dboxed/pkg/types"
+	util2 "github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
@@ -153,6 +154,11 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	util2.LoadMod(ctx, "dm-mod")
+	util2.LoadMod(ctx, "dm-thin-pool")
+	util2.LoadMod(ctx, "dm-snapshot")
+	util2.LoadMod(ctx, "dm-zero")
 
 	// now that we ensured that the potentially running sandbox does not belong to another box, we can start publishing
 	// the sandbox internal logs
