@@ -1,16 +1,7 @@
 # syntax=docker/dockerfile:1-labs
 
-# rustic
-FROM alpine:3.22 AS rustic
-RUN apk add git
-
-RUN mkdir /tools
-
-ENV RUSTIC_NIGHTLY_REVISION=edb3827e39b4c242463bb322829e1afbb67a74dc
-RUN cd /tmp && git clone https://github.com/rustic-rs/nightly.git --revision=$RUSTIC_NIGHTLY_REVISION --depth=1
-RUN cd /tmp/nightly/rustic/ && tar xzf rustic-nightly-$(uname -m)-unknown-linux-gnu.tar.gz
-RUN mv /tmp/nightly/rustic/rustic /tools/
-RUN rm -rf /tmp/nightly
+# dboxed-volume
+FROM ghcr.io/dboxed/dboxed-volume:nightly AS dboxed-volume
 
 # rootfs
 FROM docker:28.4.0-dind AS rootfs
@@ -43,7 +34,8 @@ RUN apk --no-cache add losetup lvm2 device-mapper
 # cleanup
 RUN apk del git openssh-client
 
-COPY --from=rustic /tools/* /usr/bin/
+COPY --from=dboxed-volume /usr/bin/rustic /usr/bin/
+COPY --from=dboxed-volume /usr/bin/dboxed-volume /usr/bin/
 
 FROM scratch
 COPY --from=rootfs / /

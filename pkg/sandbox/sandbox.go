@@ -83,7 +83,12 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.copyRuncFromInfraRoot()
+	return nil
+
+}
+
+func (rn *Sandbox) CopyBinaries(ctx context.Context) error {
+	err := rn.copyRuncFromInfraRoot()
 	if err != nil {
 		return err
 	}

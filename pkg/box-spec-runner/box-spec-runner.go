@@ -4,12 +4,11 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/pkg/sandbox"
+	"github.com/dboxed/dboxed/pkg/dockercli"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
 type BoxSpecRunner struct {
-	Sandbox *sandbox.Sandbox
 	BoxSpec *types.BoxSpec
 }
 
@@ -42,7 +41,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 	}
 
 	var containers []types.DockerPS
-	err = rn.Sandbox.RunDockerCliJsonLines(ctx, slog.Default(), &containers, "", "ps", "-a", "--format=json")
+	err = dockercli.RunDockerCliJsonLines(ctx, slog.Default(), &containers, "", "ps", "-a", "--format=json")
 	if err != nil {
 		return err
 	}
@@ -63,7 +62,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 			"--timeout=10",
 		}
 		args = append(args, stopIds...)
-		_, err = rn.Sandbox.RunDockerCli(ctx, slog.Default(), false, "", args...)
+		_, err = dockercli.RunDockerCli(ctx, slog.Default(), false, "", args...)
 		if err != nil {
 			return err
 		}
@@ -75,7 +74,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 			"-fv",
 		}
 		args = append(args, rmIds...)
-		_, err = rn.Sandbox.RunDockerCli(ctx, slog.Default(), false, "", args...)
+		_, err = dockercli.RunDockerCli(ctx, slog.Default(), false, "", args...)
 		if err != nil {
 			return err
 		}

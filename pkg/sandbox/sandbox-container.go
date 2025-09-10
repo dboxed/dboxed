@@ -214,7 +214,7 @@ func (rn *Sandbox) copyRuncFromInfraRoot() error {
 	if err != nil {
 		return fmt.Errorf("failed to read runc binary from infra container: %w", err)
 	}
-	err = os.WriteFile(hostPth, r, 0777)
+	err = util.AtomicWriteFile(hostPth, r, 0777)
 	if err != nil {
 		return fmt.Errorf("failed to write runc binary to work dir: %w", err)
 	}
@@ -231,7 +231,7 @@ func (rn *Sandbox) copyDboxedIntoInfraRoot() error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(infraPth, b, 0755)
+	err = util.AtomicWriteFile(infraPth, b, 0777)
 	if err != nil {
 		return err
 	}

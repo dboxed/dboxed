@@ -95,7 +95,7 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 }
 
 func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
-	// we need to enter the hostfs with chroot as otherwise links won't resolver properly
+	// we need to enter the hostfs with chroot as otherwise links won't resolve properly
 	// using chroot+cat is the simplest way here, but we might need to consider using unshare in some way
 	buf := bytes.NewBuffer(nil)
 	cmd := exec.CommandContext(ctx, "chroot", d.HostFsPath, "cat", "/etc/resolv.conf")

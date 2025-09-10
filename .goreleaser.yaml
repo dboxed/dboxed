@@ -4,9 +4,9 @@ pro: true
 
 before:
   hooks:
-    - cmd: docker build --platform=linux/amd64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64 infra-image
+    - cmd: docker build --platform=linux/amd64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64 --pull infra-image
       output: true
-    - cmd: docker build --platform=linux/arm64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64 infra-image
+    - cmd: docker build --platform=linux/arm64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64 --pull infra-image
       output: true
     - cmd: docker push ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64
       output: true

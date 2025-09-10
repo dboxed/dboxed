@@ -2,6 +2,7 @@ package run_box
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -10,16 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/dboxed/dboxed-common/util"
-	box_spec_runner "github.com/dboxed/dboxed/pkg/box-spec-runner"
 	"github.com/dboxed/dboxed/pkg/box-spec-runner/source"
 	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/sandbox"
 	"github.com/dboxed/dboxed/pkg/selfupdate"
 	"github.com/dboxed/dboxed/pkg/types"
-	util2 "github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
@@ -145,6 +143,11 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		}
 	}
 
+	err = rn.sandbox.CopyBinaries(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = rn.writeBoxUuid(initialBoxSpec.Uuid)
 	if err != nil {
 		return err
@@ -155,11 +158,6 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
-	util2.LoadMod(ctx, "dm-mod")
-	util2.LoadMod(ctx, "dm-thin-pool")
-	util2.LoadMod(ctx, "dm-snapshot")
-	util2.LoadMod(ctx, "dm-zero")
-
 	// now that we ensured that the potentially running sandbox does not belong to another box, we can start publishing
 	// the sandbox internal logs
 	err = rn.initLogsPublishingSandbox(ctx, sandboxDir, &initialBoxSpec)
@@ -167,35 +165,27 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
+	specFile := filepath.Join(rn.sandbox.GetSandboxRoot(), types.BoxSpecFile)
+
 	if needDestroy {
 		err = rn.sandbox.Start(ctx)
 		if err != nil {
 			return err
 		}
-	}
+	} else {
 
-	slog.InfoContext(ctx, "waiting for docker to become available in the sandbox")
-	for {
-		_, err = rn.sandbox.RunDockerCli(ctx, slog.Default(), true, "", "info")
-		if err == nil {
-			break
-		}
-		if !util.SleepWithContext(ctx, 2*time.Second) {
-			return ctx.Err()
-		}
 	}
-	slog.InfoContext(ctx, "docker is up and running")
 
 	for {
 		boxSpec := rn.boxSpecSource.GetCurSpec().Spec
 
-		boxSpecRunner := &box_spec_runner.BoxSpecRunner{
-			Sandbox: rn.sandbox,
-			BoxSpec: &boxSpec,
-		}
-		err := boxSpecRunner.Reconcile(ctx)
+		b, err := json.Marshal(boxSpec)
 		if err != nil {
-			slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
+			return err
+		}
+		err = util.AtomicWriteFile(specFile, b, 0600)
+		if err != nil {
+			return err
 		}
 
 		select {
@@ -203,11 +193,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 			return ctx.Err()
 		case _, ok := <-rn.boxSpecSource.Chan:
 			if !ok {
-				slog.InfoContext(ctx, "box spec was deleted, downing and exiting")
-				err = boxSpecRunner.Down(ctx)
-				if err != nil {
-					return err
-				}
+				slog.InfoContext(ctx, "box spec was deleted, exiting")
 				err = rn.sandbox.Stop(ctx)
 				if err != nil {
 					return err

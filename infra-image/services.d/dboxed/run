@@ -1,0 +1,2 @@
+#!/bin/sh
+exec dboxed run-box-in-sandbox 2>&1

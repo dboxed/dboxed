@@ -12,24 +12,24 @@ import (
 )
 
 func (rn *BoxSpecRunner) reconcileDockerVolumeFileBundle(ctx context.Context, vol types.BoxVolumeSpec) error {
-	workDir := rn.getVolumeWorkDirOnHost(vol)
+	workDir := rn.getVolumeWorkDir(vol)
 
 	err := os.MkdirAll(workDir, 0700)
 	if err != nil {
 		return err
 	}
 
-	_, volumeDirOnHost, err := rn.createDockerVolume(ctx, vol)
+	volumeDir, err := rn.createDockerVolume(ctx, vol)
 	if err != nil {
 		return err
 	}
 
-	err = rn.createFileBundle(ctx, vol, volumeDirOnHost)
+	err = rn.createFileBundle(ctx, vol, volumeDir)
 	if err != nil {
 		return err
 	}
 
-	err = rn.fixVolumePermissions(vol, volumeDirOnHost)
+	err = rn.fixVolumePermissions(vol, volumeDir)
 	if err != nil {
 		return err
 	}

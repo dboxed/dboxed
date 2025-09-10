@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
+	"github.com/dboxed/dboxed/pkg/dockercli"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
@@ -24,7 +25,7 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 			return err
 		}
 
-		dir := rn.buildComposeDir(true, composeProject.Name)
+		dir := rn.buildComposeDir(composeProject.Name)
 		err = os.MkdirAll(dir, 0700)
 		if err != nil {
 			return err
@@ -69,12 +70,9 @@ func (rn *BoxSpecRunner) loadComposeProjects() ([]*ctypes.Project, error) {
 	return composeProjects, nil
 }
 
-func (rn *BoxSpecRunner) buildComposeDir(host bool, name string) string {
+func (rn *BoxSpecRunner) buildComposeDir(name string) string {
 	projectPathInSandbox := filepath.Join(types.DboxedDataDir, "compose")
 	dir := filepath.Join(projectPathInSandbox, name)
-	if host {
-		dir = filepath.Join(rn.Sandbox.GetSandboxRoot(), dir)
-	}
 	return dir
 }
 
@@ -86,7 +84,7 @@ func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, 
 	args2 = append(args2, args...)
 
 	slog.InfoContext(ctx, fmt.Sprintf("running 'docker compose %s'", strings.Join(args, " ")), slog.Any("projectName", projectName))
-	_, err := rn.Sandbox.RunDockerCli(ctx, log, false, rn.buildComposeDir(false, projectName), args2...)
+	_, err := dockercli.RunDockerCli(ctx, log, false, rn.buildComposeDir(projectName), args2...)
 	if err != nil {
 		return err
 	}

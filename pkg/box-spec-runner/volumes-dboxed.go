@@ -5,75 +5,54 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 
-	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *BoxSpecRunner) reconcileDockerVolumeDboxed(ctx context.Context, vol types.BoxVolumeSpec, volumesProject *ctypes.Project) error {
-	workDirOnHost := rn.getVolumeWorkDirOnHost(vol)
-	workDirInSandbox := rn.getVolumeWorkDirInSandbox(vol)
-	volumeName := rn.getDockerVolumeName(vol)
+func (rn *BoxSpecRunner) reconcileDockerVolumeDboxed(ctx context.Context, vol types.BoxVolumeSpec) error {
+	workDir := rn.getVolumeWorkDir(vol)
+	imageFile := filepath.Join(workDir, "image")
+	snapshotMountDir := filepath.Join(workDir, "snapshot")
+	lockIdFile := filepath.Join(workDir, "lock-id")
 
-	err := os.MkdirAll(workDirOnHost, 0700)
+	err := os.MkdirAll(workDir, 0700)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(snapshotMountDir, 0700)
 	if err != nil {
 		return err
 	}
 
-	volumeDirInSandbox, volumeDirOnHost, err := rn.createDockerVolume(ctx, vol)
+	volumeDir, err := rn.createDockerVolume(ctx, vol)
 	if err != nil {
 		return err
 	}
 
-	err = rn.fixVolumePermissions(vol, volumeDirOnHost)
+	err = rn.fixVolumePermissions(vol, volumeDir)
 	if err != nil {
 		return err
 	}
 
-	cmd := []string{
+	args := []string{
 		"volume",
 		"serve",
 		"--api-url", vol.Dboxed.ApiUrl,
 		"--repo", fmt.Sprintf("%d", vol.Dboxed.RepositoryId),
 		"--volume", fmt.Sprintf("%d", vol.Dboxed.VolumeId),
-		"--lock-id-file", "/volume/lock-id",
-		"--image", "/volume/image",
-		"--mount", "/volume/mount",
-		"--snapshot-mount", "/volume/snapshot",
+		"--lock-id-file", lockIdFile,
+		"--image", imageFile,
+		"--mount", volumeDir,
+		"--snapshot-mount", snapshotMountDir,
 		"--backup-interval", vol.Dboxed.BackupInterval,
 	}
-	slog.Info("dboxed-volume command", slog.Any("cmd", strings.Join(cmd, " ")))
-
-	volumesProject.Services[volumeName] = ctypes.ServiceConfig{
-		Name:       volumeName,
-		Image:      "ghcr.io/dboxed/dboxed-volume:nightly",
-		PullPolicy: "always",
-		Restart:    "on-failure",
-		Privileged: true,
-		Entrypoint: []string{"sleep", "infinity"},
-		//Command:    cmd,
-		Environment: map[string]*string{
-			"DBOXED_VOLUME_API_TOKEN": &vol.Dboxed.Token,
-		},
-		Volumes: []ctypes.ServiceVolumeConfig{
-			{
-				Type:   "bind",
-				Source: "/dev",
-				Target: "/dev",
-			},
-			{
-				Type:   "bind",
-				Source: workDirInSandbox,
-				Target: "/volume",
-			},
-			{
-				Type:   "bind",
-				Source: volumeDirInSandbox,
-				Target: "/volume/mount",
-			},
-		},
+	env := []string{
+		fmt.Sprintf("DBOXED_VOLUME_API_TOKEN=%s", vol.Dboxed.Token),
 	}
+
+	slog.Info("dboxed-volume command", slog.Any("args", strings.Join(args, " ")), slog.Any("env", strings.Join(env, ", ")))
 
 	return nil
 }

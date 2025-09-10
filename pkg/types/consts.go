@@ -9,6 +9,7 @@ import (
 const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
 
 const DboxedDataDir = "/var/lib/dboxed"
+const BoxSpecFile = DboxedDataDir + "/box-spec.json"
 
 const LogsDir = DboxedDataDir + "/logs"
 const LogsTailDbFilename = "multitail.db"

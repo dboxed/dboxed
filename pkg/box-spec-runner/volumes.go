@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed-common/util"
+	"github.com/dboxed/dboxed/pkg/dockercli"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
@@ -17,11 +17,7 @@ func (rn *BoxSpecRunner) getVolumeWorkDirBase(vol types.BoxVolumeSpec) string {
 	return rn.getDockerVolumeName(vol)
 }
 
-func (rn *BoxSpecRunner) getVolumeWorkDirOnHost(vol types.BoxVolumeSpec) string {
-	return filepath.Join(rn.Sandbox.SandboxDir, "volumes", rn.getVolumeWorkDirBase(vol))
-}
-
-func (rn *BoxSpecRunner) getVolumeWorkDirInSandbox(vol types.BoxVolumeSpec) string {
+func (rn *BoxSpecRunner) getVolumeWorkDir(vol types.BoxVolumeSpec) string {
 	return filepath.Join(types.VolumesDir, rn.getVolumeWorkDirBase(vol))
 }
 
@@ -36,34 +32,28 @@ func (rn *BoxSpecRunner) getDockerVolumeName(vol types.BoxVolumeSpec) string {
 	}
 }
 
-func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, vol types.BoxVolumeSpec) (string, string, error) {
+func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
 	volumeName := rn.getDockerVolumeName(vol)
 
 	slog.InfoContext(ctx, "creating docker volume", slog.Any("volumeName", volumeName))
-	_, err := rn.Sandbox.RunDockerCli(ctx, slog.Default(), true, "", "volume", "create", volumeName)
+	_, err := dockercli.RunDockerCli(ctx, slog.Default(), true, "", "volume", "create", volumeName)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
-	volumeDir, err := rn.getDockerVolumeDirInSandbox(ctx, vol)
+	volumeDir, err := rn.getDockerVolumeDir(ctx, vol)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
-	relDir, err := filepath.Rel("/var/lib/docker", volumeDir)
-	if err != nil {
-		return "", "", err
-	}
-
-	volumeDirOnHost := filepath.Join(rn.Sandbox.SandboxDir, "docker", relDir)
-	return volumeDir, volumeDirOnHost, nil
+	return volumeDir, nil
 }
 
-func (rn *BoxSpecRunner) getDockerVolumeDirInSandbox(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
+func (rn *BoxSpecRunner) getDockerVolumeDir(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
 	volumeName := rn.getDockerVolumeName(vol)
 
 	var volumeInfos []types.DockerVolume
-	err := rn.Sandbox.RunDockerCliJson(ctx, slog.Default(), &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
+	err := dockercli.RunDockerCliJson(ctx, slog.Default(), &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
 	if err != nil {
 		return "", err
 	}
@@ -73,12 +63,6 @@ func (rn *BoxSpecRunner) getDockerVolumeDirInSandbox(ctx context.Context, vol ty
 }
 
 func (rn *BoxSpecRunner) reconcileDockerVolumes(ctx context.Context) error {
-	dboxedVolumesProject := ctypes.Project{
-		Name:     "dboxed-volumes",
-		Services: map[string]ctypes.ServiceConfig{},
-		Volumes:  map[string]ctypes.VolumeConfig{},
-	}
-
 	for _, vol := range rn.BoxSpec.Volumes {
 		if vol.FileBundle != nil {
 			err := rn.reconcileDockerVolumeFileBundle(ctx, vol)
@@ -86,37 +70,13 @@ func (rn *BoxSpecRunner) reconcileDockerVolumes(ctx context.Context) error {
 				return err
 			}
 		} else if vol.Dboxed != nil {
-			err := rn.reconcileDockerVolumeDboxed(ctx, vol, &dboxedVolumesProject)
+			err := rn.reconcileDockerVolumeDboxed(ctx, vol)
 			if err != nil {
 				return err
 			}
 		} else {
 			return fmt.Errorf("volume %s has unsupported volume type", vol.Name)
 		}
-	}
-
-	b, err := dboxedVolumesProject.MarshalYAML()
-	if err != nil {
-		return err
-	}
-
-	dir := rn.buildComposeDir(true, dboxedVolumesProject.Name)
-	err = os.MkdirAll(dir, 0700)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(filepath.Join(dir, "docker-compose.yaml"), b, 0600)
-	if err != nil {
-		return err
-	}
-
-	err = rn.runComposeCli(ctx, dboxedVolumesProject.Name, "pull", "-q")
-	if err != nil {
-		return err
-	}
-	err = rn.runComposeCli(ctx, dboxedVolumesProject.Name, "up", "-d", "--remove-orphans", "--pull=never")
-	if err != nil {
-		return err
 	}
 
 	return nil
