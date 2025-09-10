@@ -60,10 +60,10 @@ var capsPrivileged = []string{
 	"CAP_CHECKPOINT_RESTORE",
 }
 
-func (rn *Sandbox) buildContainerCaps(provileged bool) []string {
+func (rn *Sandbox) buildContainerCaps(privileged bool) []string {
 	var caps []string
 	caps = append(caps, capsBase...)
-	if provileged {
+	if privileged {
 		caps = append(caps, capsPrivileged...)
 	}
 	return caps
