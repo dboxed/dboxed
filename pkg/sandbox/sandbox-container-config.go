@@ -76,9 +76,9 @@ func (rn *Sandbox) buildSandboxContainerMounts() []specs.Mount {
 		},
 		{
 			Destination: types.VolumesDir,
-			Type:        "bind",
+			Type:        "rbind",
 			Source:      filepath.Join(rn.SandboxDir, "volumes"),
-			Options:     []string{"bind"},
+			Options:     []string{"rbind", "shared"},
 		},
 	}
 
@@ -185,7 +185,7 @@ func (rn *Sandbox) buildSandboxContainerOciSpec(image *v1.Image) (*specs.Spec, e
 			Resources: &specs.LinuxResources{
 				Devices: []specs.LinuxDeviceCgroup{
 					{
-						Allow:  false,
+						Allow:  true,
 						Access: "rwm",
 					},
 				},
