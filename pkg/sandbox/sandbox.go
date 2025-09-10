@@ -22,9 +22,8 @@ type Sandbox struct {
 
 	VethNetworkCidr *net.IPNet
 
-	network         *network.Network
-	routesMirror    network.RoutesMirror
-	netbirdRulesFix network.NetbirdRulesFix
+	network      *network.Network
+	routesMirror network.RoutesMirror
 
 	dnsProxy      *dns_proxy.DnsProxy
 	oldDnsMapHash string
@@ -119,14 +118,7 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 	rn.routesMirror = network.RoutesMirror{
 		NamesAndIps: rn.network.NamesAndIps,
 	}
-	rn.netbirdRulesFix = network.NetbirdRulesFix{
-		SandboxNetworkNamespace: rn.network.NetworkNamespace,
-	}
 	err = rn.routesMirror.Start(ctx)
-	if err != nil {
-		return err
-	}
-	err = rn.netbirdRulesFix.Start(ctx)
 	if err != nil {
 		return err
 	}
