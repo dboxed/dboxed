@@ -38,7 +38,7 @@ RUN mkdir -p /etc/dboxed \
     && mkdir -p /hostfs
 
 # extra tools we need for deboxed-volume
-RUN apk --no-cache add losetup lvm2
+RUN apk --no-cache add losetup lvm2 device-mapper
 
 # cleanup
 RUN apk del git openssh-client
