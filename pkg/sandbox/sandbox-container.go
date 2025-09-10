@@ -180,6 +180,10 @@ func (rn *Sandbox) createSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
+	spec, err := rn.buildSandboxContainerOciSpec(&imageConfig)
+	if err != nil {
+		return err
+	}
 	err = rn.writeSandboxContainerOciSpec(spec)
 	if err != nil {
 		return err
@@ -213,6 +217,23 @@ func (rn *Sandbox) copyRuncFromInfraRoot() error {
 	err = os.WriteFile(hostPth, r, 0777)
 	if err != nil {
 		return fmt.Errorf("failed to write runc binary to work dir: %w", err)
+	}
+	return nil
+}
+
+func (rn *Sandbox) copyDboxedIntoInfraRoot() error {
+	infraPth := filepath.Join(rn.GetSandboxRoot(), "usr/bin/dboxed")
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	b, err := os.ReadFile(exePath)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(infraPth, b, 0755)
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -88,6 +88,11 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.copyDboxedIntoInfraRoot()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
