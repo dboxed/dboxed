@@ -70,12 +70,7 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 	}
 
 	for range 8 {
-		go func() {
-			err = d.runRequestsThread(ctx)
-			if err != nil {
-				slog.ErrorContext(ctx, "error while running host thread", slog.Any("error", err))
-			}
-		}()
+		go d.runRequestsThread(ctx)
 	}
 
 	go func() {
@@ -83,6 +78,11 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 			return d.readHostResolvConf(ctx)
 		})
 	}()
+	for d.resolveConf.Load() == nil {
+		if !util.SleepWithContext(ctx, time.Millisecond*10) {
+			return ctx.Err()
+		}
+	}
 
 	d.startServing(ctx, d.udpServer)
 	d.startServing(ctx, d.tcpServer)
@@ -113,11 +113,10 @@ func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
 	return nil
 }
 
-func (d *DnsProxy) runRequestsThread(ctx context.Context) error {
+func (d *DnsProxy) runRequestsThread(ctx context.Context) {
 	for r := range d.requests {
 		d.handleRequest(ctx, r)
 	}
-	return nil
 }
 
 func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
