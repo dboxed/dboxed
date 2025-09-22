@@ -9,6 +9,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -166,6 +167,11 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	}
 
 	specFile := filepath.Join(rn.sandbox.GetSandboxRoot(), types.BoxSpecFile)
+
+	err = rn.runDboxedVolumeCleanup(ctx)
+	if err != nil {
+		return err
+	}
 
 	if needDestroy {
 		err = rn.sandbox.Start(ctx)
@@ -390,4 +396,55 @@ func (rn *RunBox) readBoxUuid(boxName string) (string, error) {
 func (rn *RunBox) writeBoxUuid(uuid string) error {
 	pth := filepath.Join(rn.WorkDir, "boxes", rn.BoxName, types.BoxSpecUuidFile)
 	return util.AtomicWriteFile(pth, []byte(uuid), 0644)
+}
+
+func (rn *RunBox) runDboxedVolumeCleanup(ctx context.Context) error {
+	// this must run in the host mount namespace, but at the same time we want to run
+	// inside the sandbox root, so we must setup a minimal chroot without switching namespaces
+
+	env := []string{
+		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+	}
+
+	script := `
+set -e
+mount -t proc none /proc
+mount -t devtmpfs none /dev
+mount -t sysfs none /sys
+dboxed-volume volume cleanup-loop-devs
+`
+
+	cleanupScript := `
+umount /proc
+umount /dev
+umount /sys
+`
+
+	defer func() {
+		cmd := exec.CommandContext(ctx,
+			"chroot",
+			rn.sandbox.GetSandboxRoot(),
+			"sh", "-c", cleanupScript,
+		)
+
+		cmd.Env = env
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		_ = cmd.Run()
+	}()
+
+	cmd := exec.CommandContext(ctx,
+		"chroot",
+		rn.sandbox.GetSandboxRoot(),
+		"sh", "-c", script,
+	)
+
+	cmd.Env = env
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
