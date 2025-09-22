@@ -173,7 +173,10 @@ func (rn *RunBox) Run(ctx context.Context) error {
 			return err
 		}
 	} else {
-
+		err = rn.sandbox.S6SvcRestart(ctx, "dboxed")
+		if err != nil {
+			return err
+		}
 	}
 
 	for {
