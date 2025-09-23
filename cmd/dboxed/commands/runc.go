@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/sandbox"
+	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 )
 
 type RuncCmd struct {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/run-box"
+	"github.com/dboxed/dboxed/pkg/runner/run-box"
 )
 
 type RunCmd struct {

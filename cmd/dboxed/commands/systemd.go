@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/systemd"
+	"github.com/dboxed/dboxed/pkg/runner/systemd"
 )
 
 type SystemdCmd struct {

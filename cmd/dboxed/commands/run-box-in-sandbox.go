@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	run_box_in_sandbox "github.com/dboxed/dboxed/pkg/run-box-in-sandbox"
+	"github.com/dboxed/dboxed/pkg/runner/run-box-in-sandbox"
 )
 
 type RunBoxInSandbox struct {

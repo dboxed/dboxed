@@ -8,7 +8,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/types"
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 )
 
 type Cli struct {
@@ -38,7 +38,7 @@ func Execute() {
 			Summary: true,
 		}),
 		kong.Vars{
-			"default_infra_image": types.GetDefaultInfraImage(),
+			"default_infra_image": consts.GetDefaultInfraImage(),
 		})
 
 	err := ctx.Run(&cli.GlobalFlags)
