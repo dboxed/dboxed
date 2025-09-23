@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dboxed/dboxed-common/util"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/miekg/dns"
 )
 

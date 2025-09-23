@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (rn *RunBoxInSandbox) writeResolvConf() error {

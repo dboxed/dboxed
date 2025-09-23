@@ -15,12 +15,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dboxed/dboxed-common/util"
 	source2 "github.com/dboxed/dboxed/pkg/runner/box-spec-runner/source"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/selfupdate"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
 	"github.com/nats-io/nkeys"
 	"go4.org/netipx"

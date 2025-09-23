@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type volumeInterface interface {

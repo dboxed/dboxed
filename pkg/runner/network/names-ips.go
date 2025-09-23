@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/dboxed/dboxed-common/util"
+	"github.com/dboxed/dboxed/pkg/util"
 	net2 "github.com/dboxed/dboxed/pkg/util/net"
 	"github.com/vishvananda/netlink"
 )

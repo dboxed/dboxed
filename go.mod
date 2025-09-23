@@ -2,15 +2,12 @@ module github.com/dboxed/dboxed
 
 go 1.24.3
 
-//replace github.com/dboxed/dboxed-common => ../dboxed-common
-
 //replace github.com/dboxed/dboxed-volume => ../dboxed-volume
 
 require (
 	github.com/alecthomas/kong v1.12.1
 	github.com/compose-spec/compose-go/v2 v2.9.0
 	github.com/cyphar/filepath-securejoin v0.4.1
-	github.com/dboxed/dboxed-common v0.0.0-20250923083220-0693c3accfee
 	github.com/dboxed/dboxed-volume v0.0.2-0.20250923083308-74a4d572ed16
 	github.com/dgraph-io/badger/v4 v4.8.0
 	github.com/dustin/go-humanize v1.0.1

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type volumeInterfaceFileBundle struct {

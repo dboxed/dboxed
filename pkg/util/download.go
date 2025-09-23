@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dustin/go-humanize"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
@@ -105,7 +104,7 @@ func DownloadStream(ctx context.Context, url string, compression CompressionType
 func DownloadFile(ctx context.Context, url string, hash string, dir string, compression CompressionType) (string, error) {
 	if hash != "" {
 		pth := filepath.Join(dir, hash)
-		fileHash, err := util.Sha256SumFile(pth)
+		fileHash, err := Sha256SumFile(pth)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return "", err

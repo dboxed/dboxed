@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

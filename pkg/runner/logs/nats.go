@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	multitail2 "github.com/dboxed/dboxed/pkg/runner/logs/multitail"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dboxed/dboxed-common/util"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type volumeInterfaceDboxed struct {
