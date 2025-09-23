@@ -2,6 +2,7 @@ package box_spec_runner
 
 import (
 	"context"
+	"io"
 	"log/slog"
 
 	"github.com/dboxed/dboxed/pkg/dockercli"
@@ -9,16 +10,21 @@ import (
 )
 
 type BoxSpecRunner struct {
-	BoxSpec *types.BoxSpec
+	DboxedVolumeLog io.Writer
 }
 
-func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
-	err := rn.reconcileDockerVolumes(ctx)
+func (rn *BoxSpecRunner) Reconcile(ctx context.Context, boxSpec *types.BoxSpec) error {
+	err := rn.writeComposeFiles(ctx, boxSpec)
 	if err != nil {
 		return err
 	}
 
-	err = rn.runComposeUp(ctx)
+	err = rn.reconcileVolumes(ctx, boxSpec)
+	if err != nil {
+		return err
+	}
+
+	err = rn.runComposeUp(ctx, boxSpec)
 	if err != nil {
 		return err
 	}
@@ -26,8 +32,8 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) Down(ctx context.Context) error {
-	composeProjects, err := rn.loadComposeProjects()
+func (rn *BoxSpecRunner) Down(ctx context.Context, boxSpec *types.BoxSpec) error {
+	composeProjects, err := rn.loadComposeProjects(boxSpec)
 	if err != nil {
 		return err
 	}

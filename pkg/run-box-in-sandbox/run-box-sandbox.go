@@ -3,14 +3,17 @@ package run_box_in_sandbox
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/dboxed/dboxed-common/util"
 	box_spec_runner "github.com/dboxed/dboxed/pkg/box-spec-runner"
 	dns_proxy "github.com/dboxed/dboxed/pkg/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/dockercli"
+	"github.com/dboxed/dboxed/pkg/logs"
 	"github.com/dboxed/dboxed/pkg/types"
 	util2 "github.com/dboxed/dboxed/pkg/util"
 )
@@ -18,11 +21,12 @@ import (
 type RunBoxInSandbox struct {
 	Debug bool
 
-	oldBoxSpecHash string
-
 	networkConfig *types.NetworkConfig
 	dnsProxy      *dns_proxy.DnsProxy
-	oldDnsMapHash string
+
+	oldBoxSpecHash string
+
+	dboxedVolumeLog io.WriteCloser
 }
 
 func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
@@ -54,8 +58,14 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	}
 	slog.InfoContext(ctx, "docker is up and running")
 
+	rn.dboxedVolumeLog = logs.BuildRotatingLogger(filepath.Join(types.LogsDir, "dboxed-volume.log"))
+	defer rn.dboxedVolumeLog.Close()
+
+	boxSpecRunner := &box_spec_runner.BoxSpecRunner{
+		DboxedVolumeLog: rn.dboxedVolumeLog,
+	}
 	for {
-		err := rn.reconcileBoxSpec(ctx)
+		err := rn.reconcileBoxSpec(ctx, boxSpecRunner)
 		if err != nil {
 			slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 		}
@@ -65,8 +75,12 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	}
 }
 
-func (rn *RunBoxInSandbox) reconcileBoxSpec(ctx context.Context) error {
-	boxSpec, hash, err := rn.readBoxSpec()
+func (rn *RunBoxInSandbox) reconcileBoxSpec(ctx context.Context, boxSpecRunner *box_spec_runner.BoxSpecRunner) error {
+	boxSpec, err := rn.readBoxSpec()
+	if err != nil {
+		return err
+	}
+	hash, err := util.Sha256SumJson(boxSpec)
 	if err != nil {
 		return err
 	}
@@ -74,26 +88,25 @@ func (rn *RunBoxInSandbox) reconcileBoxSpec(ctx context.Context) error {
 		return nil
 	}
 	rn.oldBoxSpecHash = hash
-	boxSpecRunner := &box_spec_runner.BoxSpecRunner{
-		BoxSpec: boxSpec,
-	}
-	err = boxSpecRunner.Reconcile(ctx)
+
+	err = boxSpecRunner.Reconcile(ctx, boxSpec)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (rn *RunBoxInSandbox) readBoxSpec() (*types.BoxSpec, string, error) {
+func (rn *RunBoxInSandbox) readBoxSpec() (*types.BoxSpec, error) {
 	b, err := os.ReadFile(types.BoxSpecFile)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	var boxSpec types.BoxSpec
 	err = json.Unmarshal(b, &boxSpec)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return &boxSpec, util.Sha256Sum(b), nil
+	return &boxSpec, nil
 }

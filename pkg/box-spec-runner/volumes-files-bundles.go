@@ -3,6 +3,7 @@ package box_spec_runner
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -11,37 +12,72 @@ import (
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *BoxSpecRunner) reconcileDockerVolumeFileBundle(ctx context.Context, vol types.BoxVolumeSpec) error {
-	workDir := rn.getVolumeWorkDir(vol)
+type volumeInterfaceFileBundle struct {
+}
+
+func (vi volumeInterfaceFileBundle) WorkDirBase(vol types.BoxVolumeSpec) string {
+	return fmt.Sprintf("file-bundle-%s", vol.Name)
+}
+
+func (vi volumeInterfaceFileBundle) IsReadOnly(vol types.BoxVolumeSpec) bool {
+	return true
+}
+
+func (vi volumeInterfaceFileBundle) Create(ctx context.Context, vol types.BoxVolumeSpec) error {
+	workDir := getVolumeWorkDir(vi, vol)
+	mountDir := getVolumeMountDir(vi, vol)
+
+	slog.InfoContext(ctx, "creating file bundle volume",
+		slog.Any("name", vol.Name),
+		slog.Any("workDir", workDir),
+		slog.Any("mountDir", mountDir),
+	)
 
 	err := os.MkdirAll(workDir, 0700)
 	if err != nil {
 		return err
 	}
-
-	volumeDir, err := rn.createDockerVolume(ctx, vol)
+	err = os.MkdirAll(mountDir, 0700)
 	if err != nil {
 		return err
 	}
 
-	err = rn.createFileBundle(ctx, vol, volumeDir)
+	err = vi.createFileBundle(ctx, vol, mountDir)
 	if err != nil {
 		return err
 	}
 
-	err = rn.fixVolumePermissions(vol, volumeDir)
+	err = fixVolumePermissions(vol, mountDir)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (rn *BoxSpecRunner) createFileBundle(ctx context.Context, vol types.BoxVolumeSpec, volumeDir string) error {
+func (vi volumeInterfaceFileBundle) Delete(ctx context.Context, vol types.BoxVolumeSpec) error {
+	workDir := getVolumeWorkDir(vi, vol)
+
+	slog.InfoContext(ctx, "deleting file bundle volume",
+		slog.Any("name", vol.Name),
+		slog.Any("workDir", workDir),
+	)
+
+	err := os.RemoveAll(workDir)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+func (vi volumeInterfaceFileBundle) CheckRecreateNeeded(oldVol types.BoxVolumeSpec, newVol types.BoxVolumeSpec) bool {
+	return util.MustJson(oldVol) != util.MustJson(newVol)
+}
+
+func (vi volumeInterfaceFileBundle) createFileBundle(ctx context.Context, vol types.BoxVolumeSpec, volumeDir string) error {
 	fb := vol.FileBundle
 
 	for _, f := range fb.Files {
-		err := rn.writeFileBundleEntry(volumeDir, f)
+		err := vi.writeFileBundleEntry(volumeDir, f)
 		if err != nil {
 			return err
 		}
@@ -72,7 +108,7 @@ func (rn *BoxSpecRunner) createFileBundle(ctx context.Context, vol types.BoxVolu
 	return nil
 }
 
-func (rn *BoxSpecRunner) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
+func (vi volumeInterfaceFileBundle) writeFileBundleEntry(bundlePath string, f types.FileBundleEntry) error {
 	fileMode, err := parseMode(f.Mode)
 	if err != nil {
 		return fmt.Errorf("failed to parse file mode for %s: %w", f.Path, err)

@@ -13,8 +13,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
-	composeProjects, err := rn.loadComposeProjects()
+func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context, boxSpec *types.BoxSpec) error {
+	composeProjects, err := rn.loadComposeProjects(boxSpec)
 	if err != nil {
 		return err
 	}
@@ -35,6 +35,14 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) runComposeUp(ctx context.Context, boxSpec *types.BoxSpec) error {
+	composeProjects, err := rn.loadComposeProjects(boxSpec)
+	if err != nil {
+		return err
+	}
 
 	for _, composeProject := range composeProjects {
 		err = rn.runComposeCli(ctx, composeProject.Name, "pull", "-q")
@@ -52,8 +60,23 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) loadComposeProjects() ([]*ctypes.Project, error) {
-	composeProjects, err := rn.BoxSpec.LoadComposeProjects()
+func (rn *BoxSpecRunner) runComposeDown(ctx context.Context, boxSpec *types.BoxSpec) error {
+	composeProjects, err := rn.loadComposeProjects(boxSpec)
+	if err != nil {
+		return err
+	}
+
+	for _, composeProject := range composeProjects {
+		err = rn.runComposeCli(ctx, composeProject.Name, "down", "--remove-orphans")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) loadComposeProjects(boxSpec *types.BoxSpec) ([]*ctypes.Project, error) {
+	composeProjects, err := boxSpec.LoadComposeProjects()
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +84,7 @@ func (rn *BoxSpecRunner) loadComposeProjects() ([]*ctypes.Project, error) {
 		if composeProject.Name == "" {
 			composeProject.Name = fmt.Sprintf("tmp-%d", i)
 		}
-		err = rn.setupComposeFile(composeProject)
+		err = rn.setupComposeFile(boxSpec, composeProject)
 		if err != nil {
 			return nil, err
 		}
@@ -91,34 +114,31 @@ func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, 
 	return nil
 }
 
-func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
+func (rn *BoxSpecRunner) setupComposeFile(boxSpec *types.BoxSpec, compose *ctypes.Project) error {
 	if compose.Volumes == nil {
 		compose.Volumes = map[string]ctypes.VolumeConfig{}
 	}
 
-	volumesByName := map[string]int{}
-	for i, vol := range rn.BoxSpec.Volumes {
-		volumesByName[vol.Name] = i
-
-		volumeName := rn.getDockerVolumeName(vol)
-		compose.Volumes[volumeName] = ctypes.VolumeConfig{
-			Name:     volumeName,
-			External: true,
-		}
+	volumesByName := map[string]*types.BoxVolumeSpec{}
+	for _, vol := range boxSpec.Volumes {
+		volumesByName[vol.Name] = &vol
 	}
 
 	for _, service := range compose.Services {
 		for i, _ := range service.Volumes {
 			volume := &service.Volumes[i]
 			if volume.Type == "dboxed" {
-				volIdx, ok := volumesByName[volume.Source]
+				vol, ok := volumesByName[volume.Source]
 				if !ok {
 					return fmt.Errorf("volume with name %s not found", volume.Source)
 				}
-				vol := rn.BoxSpec.Volumes[volIdx]
-				volume.Type = "volume"
-				volume.Source = rn.getDockerVolumeName(vol)
-				volume.ReadOnly = true
+				vi, err := rn.buildVolumeInterface(*vol)
+				if err != nil {
+					return err
+				}
+				volume.Type = ctypes.VolumeTypeBind
+				volume.Source = getVolumeMountDir(vi, *vol)
+				volume.ReadOnly = vi.IsReadOnly(*vol)
 			}
 		}
 	}

@@ -2,87 +2,199 @@ package box_spec_runner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 
 	"github.com/dboxed/dboxed-common/util"
-	"github.com/dboxed/dboxed/pkg/dockercli"
 	"github.com/dboxed/dboxed/pkg/types"
 )
 
-func (rn *BoxSpecRunner) getVolumeWorkDirBase(vol types.BoxVolumeSpec) string {
-	return rn.getDockerVolumeName(vol)
+type volumeInterface interface {
+	WorkDirBase(vol types.BoxVolumeSpec) string
+	IsReadOnly(vol types.BoxVolumeSpec) bool
+
+	Create(ctx context.Context, vol types.BoxVolumeSpec) error
+	Delete(ctx context.Context, vol types.BoxVolumeSpec) error
+
+	CheckRecreateNeeded(oldVol types.BoxVolumeSpec, newVol types.BoxVolumeSpec) bool
 }
 
-func (rn *BoxSpecRunner) getVolumeWorkDir(vol types.BoxVolumeSpec) string {
-	return filepath.Join(types.VolumesDir, rn.getVolumeWorkDirBase(vol))
-}
-
-func (rn *BoxSpecRunner) getDockerVolumeName(vol types.BoxVolumeSpec) string {
-	h := util.MustSha256SumJson(vol)
+func (rn *BoxSpecRunner) buildVolumeInterface(vol types.BoxVolumeSpec) (volumeInterface, error) {
 	if vol.FileBundle != nil {
-		return fmt.Sprintf("file-bundle-%s-%s", vol.Name, h[:6])
+		return &volumeInterfaceFileBundle{}, nil
 	} else if vol.Dboxed != nil {
-		return fmt.Sprintf("dboxed-volume-%d-%d", vol.Dboxed.RepositoryId, vol.Dboxed.VolumeId)
+		return &volumeInterfaceDboxed{rn: rn}, nil
 	} else {
-		panic("volume type not supported")
+		return nil, fmt.Errorf("unknown volume type for %s", vol.Name)
 	}
 }
 
-func (rn *BoxSpecRunner) createDockerVolume(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
-	volumeName := rn.getDockerVolumeName(vol)
-
-	slog.InfoContext(ctx, "creating docker volume", slog.Any("volumeName", volumeName))
-	_, err := dockercli.RunDockerCli(ctx, slog.Default(), true, "", "volume", "create", volumeName)
-	if err != nil {
-		return "", err
-	}
-
-	volumeDir, err := rn.getDockerVolumeDir(ctx, vol)
-	if err != nil {
-		return "", err
-	}
-
-	return volumeDir, nil
+func getVolumeWorkDir(i volumeInterface, vol types.BoxVolumeSpec) string {
+	return filepath.Join(types.VolumesDir, i.WorkDirBase(vol))
 }
 
-func (rn *BoxSpecRunner) getDockerVolumeDir(ctx context.Context, vol types.BoxVolumeSpec) (string, error) {
-	volumeName := rn.getDockerVolumeName(vol)
-
-	var volumeInfos []types.DockerVolume
-	err := dockercli.RunDockerCliJson(ctx, slog.Default(), &volumeInfos, "", "volume", "inspect", volumeName, "--format", "json")
-	if err != nil {
-		return "", err
-	}
-
-	path := volumeInfos[0].Mountpoint
-	return path, nil
+func getVolumeMountDir(i volumeInterface, vol types.BoxVolumeSpec) string {
+	return filepath.Join(getVolumeWorkDir(i, vol), "mount")
 }
 
-func (rn *BoxSpecRunner) reconcileDockerVolumes(ctx context.Context) error {
-	for _, vol := range rn.BoxSpec.Volumes {
-		if vol.FileBundle != nil {
-			err := rn.reconcileDockerVolumeFileBundle(ctx, vol)
+func (rn *BoxSpecRunner) buildVolumeSpecPath(vi volumeInterface, vol types.BoxVolumeSpec) string {
+	volumeSpecFile := filepath.Join(types.VolumesDir, fmt.Sprintf("volume-spec-%s.json", vi.WorkDirBase(vol)))
+	return volumeSpecFile
+}
+
+func (rn *BoxSpecRunner) readOldVolumeSpecs() ([]types.BoxVolumeSpec, error) {
+	des, err := os.ReadDir(types.VolumesDir)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	var oldVolumes []types.BoxVolumeSpec
+	for _, de := range des {
+		if de.IsDir() {
+			continue
+		}
+		if m, _ := filepath.Match("volume-spec-*.json", de.Name()); !m {
+			continue
+		}
+
+		volumeSpecFile := filepath.Join(types.VolumesDir, de.Name())
+		volSpec, err := util.UnmarshalJsonFile[types.BoxVolumeSpec](volumeSpecFile)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+		if volSpec != nil {
+			oldVolumes = append(oldVolumes, *volSpec)
+		}
+	}
+	return oldVolumes, nil
+}
+
+func (rn *BoxSpecRunner) writeVolumeSpec(vi volumeInterface, vol types.BoxVolumeSpec) error {
+	b, err := json.Marshal(vol)
+	if err != nil {
+		return err
+	}
+	err = util.AtomicWriteFile(rn.buildVolumeSpecPath(vi, vol), b, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) deleteVolumeSpec(vi volumeInterface, vol types.BoxVolumeSpec) error {
+	err := os.Remove(rn.buildVolumeSpecPath(vi, vol))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, boxSpec *types.BoxSpec) error {
+	oldVolumesByName := map[string]*types.BoxVolumeSpec{}
+	newVolumeByName := map[string]*types.BoxVolumeSpec{}
+
+	oldVolumes, err := rn.readOldVolumeSpecs()
+	if err != nil {
+		return err
+	}
+
+	for _, v := range oldVolumes {
+		_, err := rn.buildVolumeInterface(v)
+		if err != nil {
+			return err
+		}
+		oldVolumesByName[v.Name] = &v
+	}
+	for _, v := range boxSpec.Volumes {
+		_, err := rn.buildVolumeInterface(v)
+		if err != nil {
+			return err
+		}
+		newVolumeByName[v.Name] = &v
+	}
+
+	needDown := false
+	var deleteVolumes []types.BoxVolumeSpec
+	var createVolumes []types.BoxVolumeSpec
+
+	for _, oldVolume := range oldVolumesByName {
+		if _, ok := newVolumeByName[oldVolume.Name]; !ok {
+			slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Name))
+			needDown = true
+			deleteVolumes = append(deleteVolumes, *oldVolume)
+		}
+	}
+	for _, newVolume := range newVolumeByName {
+		vi, err := rn.buildVolumeInterface(*newVolume)
+		if err != nil {
+			return err
+		}
+		if oldVolume, ok := oldVolumesByName[newVolume.Name]; ok {
+			oldVi, err := rn.buildVolumeInterface(*oldVolume)
 			if err != nil {
 				return err
 			}
-		} else if vol.Dboxed != nil {
-			err := rn.reconcileDockerVolumeDboxed(ctx, vol)
-			if err != nil {
-				return err
+			changed := false
+			if reflect.TypeOf(vi) != reflect.TypeOf(oldVi) {
+				slog.InfoContext(ctx, "need to down services due to volume type change", slog.Any("name", newVolume.Name))
+				changed = true
+			} else if vi.CheckRecreateNeeded(*oldVolume, *newVolume) {
+				slog.InfoContext(ctx, "need to down services due to volume spec change", slog.Any("name", newVolume.Name))
+				changed = true
+			}
+			if changed {
+				needDown = true
+				deleteVolumes = append(deleteVolumes, *oldVolume)
+				createVolumes = append(createVolumes, *newVolume)
 			}
 		} else {
-			return fmt.Errorf("volume %s has unsupported volume type", vol.Name)
+			createVolumes = append(createVolumes, *newVolume)
+		}
+	}
+	if needDown {
+		err := rn.runComposeDown(ctx, boxSpec)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, v := range deleteVolumes {
+		vi, err := rn.buildVolumeInterface(v)
+		if err != nil {
+			return err
+		}
+		err = vi.Delete(ctx, v)
+		if err != nil {
+			return err
+		}
+		err = rn.deleteVolumeSpec(vi, v)
+		if err != nil {
+			return err
+		}
+	}
+	for _, v := range createVolumes {
+		vi, err := rn.buildVolumeInterface(v)
+		if err != nil {
+			return err
+		}
+		err = vi.Create(ctx, v)
+		if err != nil {
+			return err
+		}
+		err = rn.writeVolumeSpec(vi, v)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (rn *BoxSpecRunner) fixVolumePermissions(vol types.BoxVolumeSpec, volumeDir string) error {
+func fixVolumePermissions(vol types.BoxVolumeSpec, volumeDir string) error {
 	err := os.Chown(volumeDir, int(vol.RootUid), int(vol.RootGid))
 	if err != nil {
 		return err
