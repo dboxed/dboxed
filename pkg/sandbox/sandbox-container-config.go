@@ -63,10 +63,10 @@ func (rn *Sandbox) buildSandboxContainerMounts() []specs.Mount {
 			Options:     []string{"rbind"},
 		},
 		{
-			Destination: "/var/lib/docker",
-			Type:        "rbind",
-			Source:      filepath.Join(rn.SandboxDir, "docker"),
-			Options:     []string{"rbind"},
+			Destination: types.ContainersDir,
+			Type:        "bind",
+			Source:      filepath.Join(rn.SandboxDir, "containers"),
+			Options:     []string{"bind"},
 		},
 		{
 			Destination: types.LogsDir,

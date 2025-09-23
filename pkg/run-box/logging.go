@@ -50,14 +50,14 @@ func (rn *RunBox) initLogsPublishingSandbox(ctx context.Context, sandboxDir stri
 	}
 
 	logsDir := filepath.Join(sandboxDir, "logs")
-	dockerDir := filepath.Join(sandboxDir, "docker")
+	containersDir := filepath.Join(sandboxDir, "containers")
 
 	err := rn.logsPublisher.PublishMultilogLogsDir(filepath.Join(logsDir, "s6"))
 	if err != nil {
 		return err
 	}
 
-	err = rn.logsPublisher.PublishDockerContainerLogsDir(dockerDir)
+	err = rn.logsPublisher.PublishDockerContainerLogsDir(containersDir)
 	if err != nil {
 		return err
 	}

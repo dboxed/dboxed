@@ -36,11 +36,7 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 			return err
 		}
 	}
-	err := os.RemoveAll(filepath.Join(rn.SandboxDir, "docker"))
-	if err != nil {
-		return err
-	}
-	err = os.RemoveAll(rn.GetSandboxRoot())
+	err := os.RemoveAll(rn.GetSandboxRoot())
 	if err != nil {
 		return err
 	}
@@ -69,7 +65,7 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(rn.SandboxDir, "docker"), 0700)
+	err = os.MkdirAll(filepath.Join(rn.SandboxDir, "containers"), 0700)
 	if err != nil {
 		return err
 	}

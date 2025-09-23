@@ -13,6 +13,7 @@ const DboxedDataDir = "/var/lib/dboxed"
 const BoxSpecFile = DboxedDataDir + "/box-spec.json"
 const NetworkConfFile = DboxedDataDir + "/network.json"
 
+const ContainersDir = DboxedDataDir + "/containers"
 const LogsDir = DboxedDataDir + "/logs"
 const LogsTailDbFilename = "multitail.db"
 

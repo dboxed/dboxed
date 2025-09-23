@@ -97,24 +97,18 @@ func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
 	return nil
 }
 
-func (lp *LogsPublisher) PublishDockerContainerLogsDir(dockerDataDir string) error {
-	err := os.MkdirAll(dockerDataDir, 0700)
-	if err != nil {
-		return err
-	}
-
-	watchDir := filepath.Join(dockerDataDir, "containers")
-	err = os.MkdirAll(watchDir, 0700)
+func (lp *LogsPublisher) PublishDockerContainerLogsDir(containersDir string) error {
+	err := os.MkdirAll(containersDir, 0700)
 	if err != nil {
 		return err
 	}
 
 	buildMetadata := func(path string) (multitail.LogMetadata, error) {
-		return lp.buildDockerContainerLogMetadata(dockerDataDir, path)
+		return lp.buildDockerContainerLogMetadata(containersDir, path)
 	}
 
 	if lp.nats != nil {
-		return lp.nats.MultiTail.WatchDir(watchDir, "*/*.log", 1, buildMetadata)
+		return lp.nats.MultiTail.WatchDir(containersDir, "*/*.log", 1, buildMetadata)
 	}
 	return nil
 }
