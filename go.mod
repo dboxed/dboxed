@@ -10,8 +10,8 @@ require (
 	github.com/alecthomas/kong v1.12.1
 	github.com/compose-spec/compose-go/v2 v2.9.0
 	github.com/cyphar/filepath-securejoin v0.4.1
-	github.com/dboxed/dboxed-common v0.0.0-20250922125436-f90896bfa699
-	github.com/dboxed/dboxed-volume v0.0.2-0.20250922125614-f1aa554e13aa
+	github.com/dboxed/dboxed-common v0.0.0-20250923083220-0693c3accfee
+	github.com/dboxed/dboxed-volume v0.0.2-0.20250923083308-74a4d572ed16
 	github.com/dgraph-io/badger/v4 v4.8.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.9.0
@@ -124,5 +124,4 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
