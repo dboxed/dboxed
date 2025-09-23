@@ -1,0 +1,192 @@
+package hetzner
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/userdata"
+	"github.com/dboxed/dboxed/pkg/server/cloud_utils"
+	"github.com/dboxed/dboxed/pkg/server/config"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/server_utils"
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
+)
+
+func (r *Reconciler) queryHetznerMachines(ctx context.Context) error {
+	hetznerServers, err := r.hcloudClient.Server.AllWithOpts(ctx, hcloud.ServerListOpts{
+		ListOpts: hcloud.ListOpts{
+			LabelSelector: fmt.Sprintf("%s=%d", cloud_utils.MachineProviderIdTagName, r.mp.ID),
+		},
+	})
+	if err != nil {
+		return err
+	}
+	r.hetznerServersById = map[int64]*hcloud.Server{}
+	r.hetznerServersByName = map[string]*hcloud.Server{}
+	for _, s := range hetznerServers {
+		r.hetznerServersById[s.ID] = s
+		r.hetznerServersByName[s.Name] = s
+	}
+
+	return nil
+}
+
+func (r *Reconciler) ReconcileMachine(ctx context.Context, m *dmodel.Machine) error {
+	q := querier.GetQuerier(ctx)
+	log := r.log.With(slog.Any("machined", m.ID))
+	if m.Hetzner.Status.ServerID != nil {
+		log = log.With(slog.Any("hetznerServerId", *m.Hetzner.Status.ServerID))
+	}
+
+	if m.DeletedAt.Valid {
+		return r.reconcileDeleteHetznerMachine(ctx, log, m)
+	}
+
+	err := dmodel.AddFinalizer(q, m, "hetzner-machine")
+	if err != nil {
+		return err
+	}
+
+	if m.Hetzner.Status.ServerID == nil {
+		// check if it was actually created but we somehow failed to store the ID
+		server, ok := r.hetznerServersByName[r.buildHetznerServerName(ctx, m)]
+		if ok {
+			err = m.Hetzner.Status.UpdateServerID(q, &server.ID)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := r.createHetznerServer(ctx, log, m)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = r.updateHetznerServer(ctx, log, m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) reconcileDeleteHetznerMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+	q := querier.GetQuerier(ctx)
+	if m.Hetzner.Status.ServerID == nil {
+		err := dmodel.RemoveFinalizer(q, m, "hetzner-machine")
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	server, ok := r.hetznerServersById[*m.Hetzner.Status.ServerID]
+	if !ok {
+		log.InfoContext(ctx, "hetzner server already vanished")
+		err := dmodel.RemoveFinalizer(q, m, "hetzner-machine")
+		if err != nil {
+			return err
+		}
+	} else {
+		log.InfoContext(ctx, "deleting hetzner server")
+		_, _, err := r.hcloudClient.Server.DeleteWithResult(ctx, &hcloud.Server{
+			ID: *m.Hetzner.Status.ServerID,
+		})
+		if err != nil && !hcloud.IsError(err, hcloud.ErrorCodeNotFound) {
+			return err
+		}
+
+		delete(r.hetznerServersById, server.ID)
+		delete(r.hetznerServersByName, server.Name)
+	}
+
+	var err error
+	err = m.Hetzner.Status.UpdateServerID(q, nil)
+	if err != nil {
+		return err
+	}
+
+	err = dmodel.RemoveFinalizer(q, m, "hetzner-machine")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) buildHetznerServerName(ctx context.Context, m *dmodel.Machine) string {
+	config := config.GetConfig(ctx)
+	return fmt.Sprintf("%s-%s-%d", config.InstanceName, m.Name, m.ID)
+}
+
+func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+	q := querier.GetQuerier(ctx)
+
+	image := "ubuntu-24.04"
+
+	box := m.Box
+
+	ud := userdata.GetUserdata(
+		box.DboxedVersion,
+		server_utils.BuildBoxSpecNatsUrl(ctx, box.WorkspaceID, box.ID),
+		box.NkeySeed,
+		m.Name,
+	)
+
+	log.InfoContext(ctx, "creating hetzner server")
+	labels := cloud_utils.BuildCloudMachineTags(r.mp.Hetzner.ID.V, m)
+	createOpts := hcloud.ServerCreateOpts{
+		Name: r.buildHetznerServerName(ctx, m),
+		ServerType: &hcloud.ServerType{
+			Name: m.Hetzner.ServerType.V,
+		},
+		Image:            &hcloud.Image{Name: image},
+		Location:         &hcloud.Location{Name: m.Hetzner.ServerLocation.V},
+		StartAfterCreate: util.Ptr(true),
+		Labels:           labels,
+		Networks: []*hcloud.Network{
+			{ID: *r.mp.Hetzner.Status.HetznerNetworkID},
+		},
+		PublicNet: &hcloud.ServerCreatePublicNet{
+			EnableIPv4: true,
+		},
+		UserData: ud,
+	}
+
+	if r.sshKeyId != -1 {
+		createOpts.SSHKeys = append(createOpts.SSHKeys, &hcloud.SSHKey{ID: r.sshKeyId})
+	}
+	createResult, _, err := r.hcloudClient.Server.Create(ctx, createOpts)
+	if err != nil {
+		return err
+	}
+
+	r.hetznerServersById[createResult.Server.ID] = createResult.Server
+	r.hetznerServersByName[createResult.Server.Name] = createResult.Server
+
+	err = m.Hetzner.Status.UpdateServerID(q, &createResult.Server.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) updateHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+	q := querier.GetQuerier(ctx)
+	_, ok := r.hetznerServersById[*m.Hetzner.Status.ServerID]
+	if !ok {
+		log.InfoContext(ctx, "hetzner server disappeared, removing server id and expecting it to be re-created")
+		var err error
+		err = m.Hetzner.Status.UpdateServerID(q, nil)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return nil
+}

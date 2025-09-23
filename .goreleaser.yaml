@@ -17,6 +17,7 @@ builds:
   - id: dboxed
     goos:
       - linux
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -28,11 +29,11 @@ builds:
         - cp ./hack/cross-compile /tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/
     env:
       - CGO_ENABLED=1
-      - CC=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cc {{ .Arch }}
-      - CXX=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cxx {{ .Arch }}
+      - CC=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cc {{ .Os }} {{ .Arch }}
+      - CXX=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cxx {{ .Os }} {{ .Arch }}
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
-      - -extldflags=-static
+      - '{{ if eq .Os "linux" }}-extldflags=-static{{ end }}'
 
 archives:
   - formats: [tar.gz]

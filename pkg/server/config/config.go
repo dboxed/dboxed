@@ -1,0 +1,76 @@
+package config
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"sigs.k8s.io/yaml"
+)
+
+type Config struct {
+	InstanceName string `json:"instanceName"`
+
+	Auth   AuthConfig   `json:"auth"`
+	DB     DbConfig     `json:"db"`
+	Server ServerConfig `json:"server"`
+	Nats   NatsConfig   `json:"nats"`
+}
+
+type AuthConfig struct {
+	OidcIssuerUrl string `json:"oidcIssuerUrl"`
+	OidcClientId  string `json:"oidcClientId"`
+
+	AdminUsers []string `json:"adminUsers"`
+}
+
+type DbConfig struct {
+	Url              string         `json:"url"`
+	Migrate          bool           `json:"migrate"`
+	SlowLogThreshold *util.Duration `json:"slowLogThreshold,omitempty"`
+}
+
+type ServerConfig struct {
+	ListenAddress string `json:"listenAddress"`
+	BaseUrl       string `json:"baseUrl"`
+}
+
+type NatsConfig struct {
+	Url      string `json:"url"`
+	Replicas int    `json:"replicas"`
+
+	AdminNkey string `json:"adminNkey"`
+
+	AuthUserSeed       string `json:"authUserSeed"`
+	AuthIssuerSeed     string `json:"authIssuerSeed"`
+	AuthEncryptionSeed string `json:"authEncryptionSeed"`
+
+	ServicesSeed string `json:"servicesSeed"`
+}
+
+func LoadConfig(configPath string) (*Config, error) {
+	if configPath == "" {
+		return nil, fmt.Errorf("missing config path")
+	}
+
+	f, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Config
+	err = yaml.Unmarshal(f, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.InstanceName == "" {
+		config.InstanceName = "dboxed"
+	}
+
+	if config.Nats.Replicas == 0 {
+		config.Nats.Replicas = 2
+	}
+
+	return &config, nil
+}

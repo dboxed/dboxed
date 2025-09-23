@@ -1,0 +1,20 @@
+#cloud-config
+runcmd:
+  - |
+    export DBOXED_VERSION="{{ .DboxedVersion }}"
+    curl -fsSL https://github.com/dboxed/dboxed/releases/download/$DBOXED_VERSION/dboxed.sh | bash
+  - |
+    echo "enabling swap"
+    MEM=$(cat /proc/meminfo | grep '^MemTotal: ' | awk '{print $2}')
+    MEM=$(($MEM * 1024))
+    SWAP=$(($MEM * 2))
+    fallocate -l $SWAP /swap.bin
+    chmod 0600 /swap.bin
+    mkswap /swap.bin
+    echo "/swap.bin swap swap defaults 0 0" >> /etc/fstab
+    swapon -a
+{{- if .BoxUrl }}
+  - mkdir -p /etc/dboxed && chmod 0700 /etc/dboxed
+  - echo "{{ .NkeySeed }}" > /etc/dboxed/nkey
+  - dboxed systemd install --box-url "{{ .BoxUrl }}" --nkey=/etc/dboxed/nkey --box-name={{ .BoxName }}
+{{- end -}}

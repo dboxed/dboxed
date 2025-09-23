@@ -1,18 +1,32 @@
 #!/usr/bin/env bash
 
 PROG=$1
-ARCH=$2
-shift 2
+OS=$2
+ARCH=$3
+shift 3
+
+case ${OS} in
+  linux)
+    ZIG_OS=linux
+    ;;
+  darwin)
+    ZIG_OS=macos
+    SYSROOT="$(xcrun --show-sdk-path)"
+    EXTRA_ARGS="--sysroot $SYSROOT -I/usr/include -L/usr/lib -F$SYSROOT/System/Library/Frameworks -Wno-nullability-completeness"
+    ;;
+  *)
+    fatal "Unsupported os ${OS}"
+esac
 
 case ${ARCH} in
   arm64|aarch64|armv8l)
-    TARGET=aarch64-linux
+    ZIG_ARCH=aarch64
     ;;
   amd64|x86_64)
-    TARGET=x86_64-linux
+    ZIG_ARCH=x86_64
     ;;
   *)
     fatal "Unsupported architecture ${ARCH}"
 esac
 
-zig $PROG -target $TARGET "$@"
+zig $PROG -target ${ZIG_ARCH}-${ZIG_OS} $EXTRA_ARGS "$@"

@@ -1,0 +1,180 @@
+package boxes
+
+import (
+	"context"
+	"strconv"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/global"
+	"github.com/dboxed/dboxed/pkg/server/huma_utils"
+	"github.com/dboxed/dboxed/pkg/server/models"
+)
+
+func (s *BoxesServer) restListAttachedVolumes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.VolumeAttachment], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	attachments, err := dmodel.ListBoxVolumeAttachments(q, box.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []models.VolumeAttachment
+	for _, a := range attachments {
+		ma := models.VolumeAttachmentFromDB(a)
+		ret = append(ret, ma)
+	}
+
+	return huma_utils.NewList(ret, len(ret)), nil
+}
+
+func (s *BoxesServer) checkVolumeAttachmentParams(rootUid *int64, rootGid *int64, rootMode *string) error {
+	if rootMode != nil {
+		mode, err := strconv.ParseInt(*rootMode, 8, 32)
+		if err != nil {
+			return huma.Error400BadRequest("invalid root_mode", err)
+		}
+		if mode&^int64(boxspec.AllowedModeMask) != 0 {
+			return huma.Error400BadRequest("invalid root_mode", err)
+		}
+	}
+	if rootUid != nil && *rootUid < 0 {
+		return huma.Error400BadRequest("invalid root_uid", nil)
+	}
+	if rootGid != nil && *rootGid < 0 {
+		return huma.Error400BadRequest("invalid root_gid", nil)
+	}
+	return nil
+}
+
+type restAttachVolumeInput struct {
+	huma_utils.IdByPath
+	huma_utils.JsonBody[models.AttachVolumeRequest]
+}
+
+func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInput) (*huma_utils.Empty, error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := dmodel.GetVolumeById(q, &w.ID, i.Body.VolumeId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkVolumeAttachmentParams(&i.Body.RootUid, &i.Body.RootGid, &i.Body.RootMode)
+	if err != nil {
+		return nil, err
+	}
+
+	attachment := &dmodel.BoxVolumeAttachment{
+		BoxId:    querier2.N(box.ID),
+		VolumeId: querier2.N(volume.ID),
+		RootUid:  querier2.N(i.Body.RootUid),
+		RootGid:  querier2.N(i.Body.RootGid),
+		RootMode: querier2.N(i.Body.RootMode),
+	}
+
+	err = attachment.Create(q)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.AddChangeTracking(q, box)
+	if err != nil {
+		return nil, err
+	}
+
+	return &huma_utils.Empty{}, nil
+}
+
+type restUpdateAttachedVolumeInput struct {
+	Id       int64 `path:"id"`
+	VolumeId int64 `path:"volumeId"`
+	huma_utils.JsonBody[models.UpdateVolumeAttachmentRequest]
+}
+
+func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateAttachedVolumeInput) (*huma_utils.JsonBody[models.VolumeAttachment], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := dmodel.GetVolumeById(q, &w.ID, i.VolumeId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	attachment, err := dmodel.GetBoxVolumeAttachment(q, box.ID, volume.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkVolumeAttachmentParams(i.Body.RootUid, i.Body.RootGid, i.Body.RootMode)
+	if err != nil {
+		return nil, err
+	}
+
+	err = attachment.Update(q, i.Body.RootUid, i.Body.RootGid, i.Body.RootMode)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.AddChangeTracking(q, box)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := models.VolumeAttachmentFromDB(*attachment)
+	return huma_utils.NewJsonBody(ret), nil
+}
+
+type restDetachVolumeInput struct {
+	Id       int64 `path:"id"`
+	VolumeId int64 `path:"volumeId"`
+}
+
+func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInput) (*huma_utils.Empty, error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := dmodel.GetVolumeById(q, &w.ID, i.VolumeId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = querier2.DeleteOneByFields[dmodel.BoxVolumeAttachment](q, map[string]any{
+		"box_id":    box.ID,
+		"volume_id": volume.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.AddChangeTracking(q, box)
+	if err != nil {
+		return nil, err
+	}
+
+	return &huma_utils.Empty{}, nil
+}

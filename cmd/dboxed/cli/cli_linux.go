@@ -1,9 +1,7 @@
 package cli
 
-type cliOnlyLinux struct {
-	Run     commands.RunCmd     `cmd:"" help:"Download, unpack and run a box"`
-	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control dboxed systemd integration"`
-	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
+import "github.com/dboxed/dboxed/cmd/dboxed/commands/runner"
 
-	RunBoxInSandbox commands.RunBoxInSandbox `cmd:"" hidden:""`
+type cliOnlyLinux struct {
+	Runner runner.RunnerCommands `cmd:"" help:"runner commands"`
 }
