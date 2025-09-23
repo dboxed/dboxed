@@ -11,12 +11,6 @@ import (
 )
 
 func (n *Network) Destroy(ctx context.Context) error {
-	var err error
-	n.NamesAndIps, err = NewNamesAndIPs(n.Config.SandboxName, n.Config.VethNetworkCidr)
-	if err != nil {
-		return err
-	}
-
 	ns, err := netns.GetFromName(n.NamesAndIps.SandboxNamespaceName)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -44,6 +38,15 @@ func (n *Network) Destroy(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	ipt := Iptables{
+		InfraContainerRoot: n.InfraContainerRoot,
+		NamesAndIps:        n.NamesAndIps,
+	}
+	err = ipt.runPurgeOldRules(ctx)
+	if err != nil {
+		return err
 	}
 
 	return nil

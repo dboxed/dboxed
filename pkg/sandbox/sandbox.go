@@ -93,7 +93,7 @@ func (rn *Sandbox) CopyBinaries(ctx context.Context) error {
 	return nil
 }
 
-func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
+func (rn *Sandbox) PrepareNetworkingConfig() error {
 	networkConfig, err := rn.buildNetworkConfig()
 	if err != nil {
 		return err
@@ -106,7 +106,11 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = rn.network.SetupNamespaces(ctx)
+	return nil
+}
+
+func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
+	err := rn.network.SetupNamespaces(ctx)
 	if err != nil {
 		return err
 	}
@@ -119,6 +123,15 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 		NamesAndIps: rn.network.NamesAndIps,
 	}
 	err = rn.routesMirror.Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rn *Sandbox) DestroyNetworking(ctx context.Context) error {
+	err := rn.network.Destroy(ctx)
 	if err != nil {
 		return err
 	}

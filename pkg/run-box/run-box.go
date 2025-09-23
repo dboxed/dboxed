@@ -133,12 +133,22 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		}
 	}
 
+	err = rn.sandbox.PrepareNetworkingConfig()
+	if err != nil {
+		return err
+	}
+
 	if needDestroy {
 		err = rn.sandbox.Destroy(ctx)
 		if err != nil {
 			return err
 		}
 		err = rn.sandbox.Prepare(ctx)
+		if err != nil {
+			return err
+		}
+		// we must run this after Prepare as it will need networking tools in rootfs
+		err = rn.sandbox.DestroyNetworking(ctx)
 		if err != nil {
 			return err
 		}
