@@ -12,14 +12,14 @@ import (
 
 const CurrentTokenVersion = 1
 
-type Token struct {
+type OldToken struct {
 	TokenVersion int64
 	WorkspaceId  int64
 	BoxId        int64
 	Exp          int64
 }
 
-func (t *Token) serialize() ([]byte, error) {
+func (t *OldToken) serialize() ([]byte, error) {
 	if t.TokenVersion != CurrentTokenVersion {
 		return nil, fmt.Errorf("can only serialize current token version")
 	}
@@ -33,7 +33,7 @@ func (t *Token) serialize() ([]byte, error) {
 	return tokenBytes, nil
 }
 
-func (t *Token) deserialize(b []byte) ([]byte, error) {
+func (t *OldToken) deserialize(b []byte) ([]byte, error) {
 	r := bytes.NewReader(b)
 	version, err := binary.ReadVarint(r)
 	if err != nil {
@@ -62,7 +62,7 @@ func (t *Token) deserialize(b []byte) ([]byte, error) {
 	return sig, nil
 }
 
-func (t *Token) BuildTokenStr(nkeySeed []byte) (string, error) {
+func (t *OldToken) BuildTokenStr(nkeySeed []byte) (string, error) {
 	nkeyPair, err := nkeys.FromSeed(nkeySeed)
 	if err != nil {
 		return "", err
@@ -83,7 +83,7 @@ func (t *Token) BuildTokenStr(nkeySeed []byte) (string, error) {
 	return tokenStr, nil
 }
 
-func (t *Token) Verify(nkey string, sig []byte) error {
+func (t *OldToken) Verify(nkey string, sig []byte) error {
 	exp := time.Unix(t.Exp, 0)
 	if time.Now().After(exp) {
 		return fmt.Errorf("token is expired")
@@ -102,12 +102,12 @@ func (t *Token) Verify(nkey string, sig []byte) error {
 	return pk.Verify(b, sig)
 }
 
-func TokenFromStr(tokenStr string) (*Token, []byte, error) {
+func TokenFromStr(tokenStr string) (*OldToken, []byte, error) {
 	tokenBytes, err := base58.Decode(tokenStr)
 	if err != nil {
 		return nil, nil, err
 	}
-	var t Token
+	var t OldToken
 	sig, err := t.deserialize(tokenBytes)
 	if err != nil {
 		return nil, nil, err

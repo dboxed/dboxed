@@ -20,7 +20,7 @@ func (s *BoxesServer) restGenerateToken(c context.Context, i *huma_utils.IdByPat
 		return nil, err
 	}
 
-	token := models.Token{
+	token := models.OldToken{
 		TokenVersion: models.CurrentTokenVersion,
 		WorkspaceId:  w.ID,
 		BoxId:        box.ID,
