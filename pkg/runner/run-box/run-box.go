@@ -1,3 +1,5 @@
+//go:build linux
+
 package run_box
 
 import (
@@ -20,7 +22,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/selfupdate"
 	"github.com/gofrs/flock"
-	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 	"go4.org/netipx"
 )

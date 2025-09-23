@@ -1,3 +1,5 @@
+//go:build linux
+
 package sandbox
 
 import (
@@ -8,7 +10,6 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 )
 

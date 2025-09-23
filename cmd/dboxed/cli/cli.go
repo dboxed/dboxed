@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/dboxed/dboxed/cmd/dboxed/commands"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 )
@@ -14,11 +13,7 @@ import (
 type Cli struct {
 	flags.GlobalFlags
 
-	Run     commands.RunCmd     `cmd:"" help:"Download, unpack and run a box"`
-	Systemd commands.SystemdCmd `cmd:"" help:"Sub commands to control dboxed systemd integration"`
-	Runc    commands.RuncCmd    `cmd:"" help:"Run runc for a box"`
-
-	RunBoxInSandbox commands.RunBoxInSandbox `cmd:"" hidden:""`
+	cliOnlyLinux
 }
 
 func Execute() {

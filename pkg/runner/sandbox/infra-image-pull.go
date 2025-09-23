@@ -1,3 +1,5 @@
+//go:build linux
+
 package sandbox
 
 import (
@@ -13,7 +15,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/cache"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/moby/go-archive"
 )
 
 func (rn *Sandbox) pullInfraImage(ctx context.Context) error {

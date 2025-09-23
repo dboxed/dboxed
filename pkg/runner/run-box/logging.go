@@ -1,3 +1,5 @@
+//go:build linux
+
 package run_box
 
 import (
