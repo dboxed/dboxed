@@ -22,8 +22,14 @@ builds:
       - arm64
     main: ./cmd/dboxed
     binary: bin/dboxed
+    hooks:
+      pre:
+        - mkdir -p /tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}
+        - cp ./hack/cross-compile /tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
+      - CC=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cc {{ .Arch }}
+      - CXX=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cxx {{ .Arch }}
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
       - -extldflags=-static

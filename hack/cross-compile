@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+PROG=$1
+ARCH=$2
+shift 2
+
+case ${ARCH} in
+  arm64|aarch64|armv8l)
+    TARGET=aarch64-linux
+    ;;
+  amd64|x86_64)
+    TARGET=x86_64-linux
+    ;;
+  *)
+    fatal "Unsupported architecture ${ARCH}"
+esac
+
+zig $PROG -target $TARGET "$@"
