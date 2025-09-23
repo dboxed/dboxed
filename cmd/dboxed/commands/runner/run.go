@@ -1,6 +1,6 @@
 //go:build linux
 
-package commands
+package runner
 
 import (
 	"context"
