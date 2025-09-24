@@ -1,26 +1,30 @@
-package commands
+package volume
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 
+	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dustin/go-humanize"
 )
 
-type VolumeCreateCmd struct {
+type CreateCmd struct {
+	Name string `help:"Specify the volume name. Must be unique in the repository." required:"true" arg:""`
+
 	VolumeProvider string `help:"Specify the volume provider" required:""`
 
-	Name   string `help:"Specify the volume name. Must be unique in the repository."`
 	FsType string `help:"Specify the filesystem type" default:"ext4"`
 	FsSize string `help:"Specify the maximum filesystem size." required:""`
 }
 
-func (cmd *VolumeCreateCmd) Run() error {
+func (cmd *CreateCmd) Run() error {
 	ctx := context.Background()
 
 	c, err := baseclient.FromClientAuthFile()
@@ -35,7 +39,7 @@ func (cmd *VolumeCreateCmd) Run() error {
 		return err
 	}
 
-	vp, err := getVolumeProvider(ctx, c, cmd.VolumeProvider)
+	vp, err := volume_provider.GetVolumeProvider(ctx, c, cmd.VolumeProvider)
 	if err != nil {
 		return err
 	}
@@ -44,6 +48,8 @@ func (cmd *VolumeCreateCmd) Run() error {
 		Name:           cmd.Name,
 		VolumeProvider: vp.ID,
 	}
+
+	fmt.Fprintf(os.Stderr, "%s\n", util.MustJson(vp))
 
 	switch dmodel.VolumeProviderType(vp.Type) {
 	case dmodel.VolumeProviderTypeRustic:

@@ -1,6 +1,6 @@
 //go:build linux
 
-package commands
+package volume
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
-type VolumeLockCmd struct {
-	Volume string `help:"Specify volume volume" required:""`
+type LockCmd struct {
+	Volume string `help:"Specify volume" required:"" args:""`
 
 	Dir string `help:"Specify the local directory for the volume"`
 }
 
-func (cmd *VolumeLockCmd) Run() error {
+func (cmd *LockCmd) Run() error {
 	ctx := context.Background()
 
 	c, err := baseclient.FromClientAuthFile()

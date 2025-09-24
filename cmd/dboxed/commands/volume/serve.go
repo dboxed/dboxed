@@ -1,6 +1,6 @@
 //go:build linux
 
-package commands
+package volume
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
-type VolumeServeCmd struct {
+type ServeCmd struct {
 	Dir string `help:"Specify the local directory for the volume"`
 
 	BackupInterval string `help:"Specify the backup interval" default:"5m"`
@@ -23,7 +23,7 @@ type VolumeServeCmd struct {
 	flags.WebdavProxyFlags
 }
 
-func (cmd *VolumeServeCmd) Run() error {
+func (cmd *ServeCmd) Run() error {
 	ctx := context.Background()
 
 	sigs := make(chan os.Signal, 1)

@@ -1,6 +1,6 @@
 //go:build linux
 
-package commands
+package volume
 
 import (
 	"bytes"
@@ -18,12 +18,12 @@ import (
 	"github.com/moby/sys/mountinfo"
 )
 
-type VolumeCleanupLoopDevs struct {
+type CleanupLoopDevs struct {
 }
 
 var onlyDigits = regexp.MustCompile("^[0-9]*$")
 
-func (cmd *VolumeCleanupLoopDevs) Run(g *flags.GlobalFlags) error {
+func (cmd *CleanupLoopDevs) Run(g *flags.GlobalFlags) error {
 	usedRefs, err := cmd.findUsedLoopRefs()
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (cmd *VolumeCleanupLoopDevs) Run(g *flags.GlobalFlags) error {
 	return nil
 }
 
-func (cmd *VolumeCleanupLoopDevs) findUsedLoopRefs() (map[string]int64, error) {
+func (cmd *CleanupLoopDevs) findUsedLoopRefs() (map[string]int64, error) {
 	des, err := os.ReadDir("/proc")
 	if err != nil {
 		return nil, err

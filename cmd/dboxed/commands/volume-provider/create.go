@@ -1,4 +1,4 @@
-package commands
+package volume_provider
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type VolumeProviderCreateCmd struct {
-	Name string `help:"Specify the repository name. Must be unique." required:""`
+type CreateCmd struct {
+	Name string `help:"Specify the repository name. Must be unique." required:"" arg:""`
 
-	S3Endpoint        string  `name:"s3-endpoint" help:"Specify S3 endpoint" default:"s3.amazonaws.com"`
+	S3Endpoint        string  `name:"s3-endpoint" help:"Specify S3 endpoint" default:"https://s3.amazonaws.com"`
 	S3Region          *string `name:"s3-region" help:"Specify S3 region" optional:""`
 	S3Bucket          string  `name:"s3-bucket" help:"Specify S3 bucket" required:""`
 	S3AccessKeyId     string  `name:"s3-access-key-id" help:"Specify S3 access key id" required:""`
@@ -23,7 +23,7 @@ type VolumeProviderCreateCmd struct {
 	RusticPassword string `help:"Specify the password used for encryption" required:""`
 }
 
-func (cmd *VolumeProviderCreateCmd) Run() error {
+func (cmd *CreateCmd) Run() error {
 	ctx := context.Background()
 
 	c, err := baseclient.FromClientAuthFile()

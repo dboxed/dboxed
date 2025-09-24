@@ -23,11 +23,13 @@ func requestApi2[ReplyBody any, RequestBody any](ctx context.Context, c *Client,
 		}
 	}
 
-	u, err := url.Parse(c.url)
+	u, err := url.Parse(c.clientAuth.ApiUrl)
 	if err != nil {
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, p)
+
+	//fmt.Fprintf(os.Stderr, "request: %s\n", u.String())
 
 	b, err := json.Marshal(body)
 	if err != nil {

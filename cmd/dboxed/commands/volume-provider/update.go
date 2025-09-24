@@ -1,4 +1,4 @@
-package commands
+package volume_provider
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type VolumeProviderUpdateCmd struct {
+type UpdateCmd struct {
 	Repo string `help:"Specify the repository." required:""`
 
 	S3Endpoint        *string `name:"s3-endpoint" help:"Specify S3 endpoint"`
@@ -22,7 +22,7 @@ type VolumeProviderUpdateCmd struct {
 	RusticPassword *string `help:"Specify the password used for encryption"`
 }
 
-func (cmd *VolumeProviderUpdateCmd) Run() error {
+func (cmd *UpdateCmd) Run() error {
 	ctx := context.Background()
 
 	c, err := baseclient.FromClientAuthFile()
@@ -32,7 +32,7 @@ func (cmd *VolumeProviderUpdateCmd) Run() error {
 
 	c2 := &clients.VolumeProvidersClient{Client: c}
 
-	vp, err := getVolumeProvider(ctx, c, cmd.Repo)
+	vp, err := GetVolumeProvider(ctx, c, cmd.Repo)
 	if err != nil {
 		return err
 	}

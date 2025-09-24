@@ -1,4 +1,4 @@
-package commands
+package volume
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type VolumeProviderListCmd struct {
+type ListCmd struct {
 }
 
-func (cmd *VolumeProviderListCmd) Run() error {
+func (cmd *ListCmd) Run() error {
 	ctx := context.Background()
 
 	c, err := baseclient.FromClientAuthFile()
@@ -20,14 +20,14 @@ func (cmd *VolumeProviderListCmd) Run() error {
 		return err
 	}
 
-	c2 := &clients.VolumeProvidersClient{Client: c}
+	c2 := clients.VolumesClient{Client: c}
 
-	repos, err := c2.ListVolumeProviders(ctx)
+	volumes, err := c2.ListVolumes(ctx)
 	if err != nil {
 		return err
 	}
 
-	b, err := yaml.Marshal(repos)
+	b, err := yaml.Marshal(volumes)
 	if err != nil {
 		return err
 	}
@@ -36,5 +36,6 @@ func (cmd *VolumeProviderListCmd) Run() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

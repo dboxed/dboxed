@@ -1,4 +1,4 @@
-package commands
+package volume
 
 type DebugCmd struct {
 	WebdavProxy WebdavProxyCmd `cmd:"" help:"Run a webdav proxy"`

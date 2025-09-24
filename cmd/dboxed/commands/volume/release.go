@@ -1,6 +1,6 @@
 //go:build linux
 
-package commands
+package volume
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
-type VolumeReleaseCmd struct {
+type ReleaseCmd struct {
 	Dir string `help:"Specify the local directory for the volume"`
 
 	flags.WebdavProxyFlags
 }
 
-func (cmd *VolumeReleaseCmd) Run() error {
+func (cmd *ReleaseCmd) Run() error {
 	ctx := context.Background()
 
 	volumeState, err := volume_serve.LoadVolumeState(cmd.Dir)

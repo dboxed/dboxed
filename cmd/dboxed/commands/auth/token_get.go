@@ -9,7 +9,7 @@ import (
 )
 
 type TokenGetCmd struct {
-	Id string `help:"Token ID" required:""`
+	Id string `help:"Token ID" required:"" arg:""`
 }
 
 func (cmd *TokenGetCmd) Run() error {

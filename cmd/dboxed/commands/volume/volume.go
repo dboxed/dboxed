@@ -1,4 +1,4 @@
-package commands
+package volume
 
 import (
 	"context"
@@ -9,33 +9,14 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type VolumeCmd struct {
-	CreateProvider VolumeProviderCreateCmd `cmd:"" help:"Create a provider"`
-	UpdateProvider VolumeProviderUpdateCmd `cmd:"" help:"Update a provider"`
-	ListProviders  VolumeProviderListCmd   `cmd:"" help:"List providers"`
+type VolumeCommands struct {
+	Create CreateCmd `cmd:"" help:"Create a volume"`
+	Delete DeleteCmd `cmd:"" help:"Delete a volume"`
+	List   ListCmd   `cmd:"" help:"List volumes"`
 
-	Create VolumeCreateCmd `cmd:"" help:"Create a volume"`
-	List   VolumeListCmd   `cmd:"" help:"List volumes"`
+	Debug DebugCmd `cmd:"" help:"Debug commands"`
 
-	VolumeOnlyLinuxCmds
-}
-
-func getVolumeProvider(ctx context.Context, c *baseclient.Client, volumeProvider string) (*models.VolumeProvider, error) {
-	c2 := clients.VolumeProvidersClient{Client: c}
-	id, err := strconv.ParseInt(volumeProvider, 10, 64)
-	if err == nil {
-		v, err := c2.GetVolumeProviderById(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		return v, nil
-	} else {
-		v, err := c2.GetVolumeProviderByName(ctx, volumeProvider)
-		if err != nil {
-			return nil, err
-		}
-		return v, nil
-	}
+	OnlyLinuxCmds
 }
 
 func getVolume(ctx context.Context, c *baseclient.Client, volume string) (*models.Volume, error) {

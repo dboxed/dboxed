@@ -1,8 +1,9 @@
-package commands
+package volume
 
 import (
 	"context"
 
+	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/volume/webdavproxy"
@@ -22,7 +23,7 @@ func (cmd *WebdavProxyCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	vp, err := getVolumeProvider(ctx, c, cmd.VolumeProvider)
+	vp, err := volume_provider.GetVolumeProvider(ctx, c, cmd.VolumeProvider)
 	if err != nil {
 		return err
 	}

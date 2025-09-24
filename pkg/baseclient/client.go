@@ -10,8 +10,6 @@ import (
 const defaultApiUrl = "https://api.dboxed.io"
 
 type Client struct {
-	url string
-
 	clientAuth      *ClientAuth
 	writeClientAuth bool
 
@@ -25,7 +23,6 @@ func New(url *string, writeClientAuth bool) (*Client, error) {
 	}
 
 	c := &Client{
-		url: *url,
 		clientAuth: &ClientAuth{
 			ApiUrl: *url,
 		},

@@ -204,5 +204,10 @@ func (c *Client) BuildApiPath(workspace bool, pathElems ...any) (string, error) 
 			return "", err
 		}
 	}
-	return path.Join(p, fmt.Sprint(pathElems...)), nil
+	pathElems2 := make([]string, 0, len(pathElems)+1)
+	pathElems2 = append(pathElems2, p)
+	for _, e := range pathElems {
+		pathElems2 = append(pathElems2, fmt.Sprint(e))
+	}
+	return path.Join(pathElems2...), nil
 }
