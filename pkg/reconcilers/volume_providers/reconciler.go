@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
-	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers/dboxed"
+	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers/rustic"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dbutils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type reconciler struct {
@@ -32,9 +31,9 @@ func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.VolumeProvi
 }
 
 func (r *reconciler) getSubReconciler(mp *dmodel.VolumeProvider) (subReconciler, error) {
-	switch global.VolumeProviderType(mp.Type) {
-	case global.VolumeProviderDboxed:
-		return &dboxed.Reconciler{}, nil
+	switch dmodel.VolumeProviderType(mp.Type) {
+	case dmodel.VolumeProviderTypeRustic:
+		return &rustic.Reconciler{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported volume provider type %s", mp.Type)
 	}

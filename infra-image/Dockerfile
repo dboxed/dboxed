@@ -36,20 +36,16 @@ RUN mkdir /tmp/rustic && cd /tmp/rustic  \
     && cp rustic /usr/bin/ \
     && cd / && rm -rf /tmp/rustic
 
-# dboxed-volume is provided via the dboxed binary (which is copied into the container before start)
-RUN ln -s /usr/bin/dboxed /usr/bin/dboxed-volume
-
-# extra tools we need for dboxed-volume
+# extra tools we need for dboxed volumes
 RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools
 
 # cleanup
-RUN apk del git openssh-client
+RUN apk --no-cache del git openssh-client
 
 FROM scratch
 COPY --from=rootfs / /
 
 COPY services.d /etc/services.d
-
 COPY lvm.conf /etc/lvm/lvm.conf
 
 ENV S6_LOGGING_SCRIPT="n10 s10000000"

@@ -176,6 +176,16 @@ CREATE TABLE "network_netbird" (
   "api_access_token" text NULL,
   PRIMARY KEY ("id")
 );
+-- create "token" table
+CREATE TABLE "token" (
+  "id" bigserial NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "token" text NOT NULL,
+  "name" text NOT NULL,
+  "user_id" text NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "token_token_key" UNIQUE ("token")
+);
 -- create "user" table
 CREATE TABLE "user" (
   "id" text NOT NULL,
@@ -194,28 +204,16 @@ CREATE TABLE "volume" (
   "finalizers" text NOT NULL DEFAULT '{}',
   "reconcile_status" text NOT NULL DEFAULT 'Initializing',
   "reconcile_status_details" text NOT NULL DEFAULT '',
-  "uuid" text NOT NULL DEFAULT '',
-  "name" text NOT NULL,
   "volume_provider_id" bigint NOT NULL,
   "volume_provider_type" text NOT NULL,
+  "uuid" text NOT NULL,
+  "name" text NOT NULL,
+  "lock_id" text NULL,
+  "lock_time" timestamptz NULL,
+  "latest_snapshot_id" bigint NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "volume_uuid_key" UNIQUE ("uuid"),
   CONSTRAINT "volume_workspace_id_name_key" UNIQUE ("workspace_id", "name")
-);
--- create "volume_dboxed" table
-CREATE TABLE "volume_dboxed" (
-  "id" bigint NOT NULL,
-  "fs_size" bigint NOT NULL,
-  "fs_type" text NOT NULL,
-  PRIMARY KEY ("id")
-);
--- create "volume_dboxed_status" table
-CREATE TABLE "volume_dboxed_status" (
-  "id" bigint NOT NULL,
-  "volume_id" bigint NULL,
-  "fs_size" bigint NULL,
-  "fs_type" text NULL,
-  PRIMARY KEY ("id")
 );
 -- create "volume_provider" table
 CREATE TABLE "volume_provider" (
@@ -231,21 +229,79 @@ CREATE TABLE "volume_provider" (
   PRIMARY KEY ("id"),
   CONSTRAINT "volume_provider_workspace_id_name_key" UNIQUE ("workspace_id", "name")
 );
--- create "volume_provider_dboxed" table
-CREATE TABLE "volume_provider_dboxed" (
+-- create "volume_provider_rustic" table
+CREATE TABLE "volume_provider_rustic" (
   "id" bigint NOT NULL,
-  "api_url" text NOT NULL,
-  "token" text NOT NULL,
-  "repository_id" bigint NOT NULL,
+  "storage_type" text NOT NULL,
+  "password" text NOT NULL,
   PRIMARY KEY ("id")
 );
--- create "volume_provider_dboxed_status" table
-CREATE TABLE "volume_provider_dboxed_status" (
+-- create "volume_provider_storage_s3" table
+CREATE TABLE "volume_provider_storage_s3" (
   "id" bigint NOT NULL,
-  "volume_id" bigint NULL,
-  "fs_size" text NULL,
-  "fs_type" text NULL,
+  "endpoint" text NOT NULL,
+  "region" text NULL,
+  "bucket" text NOT NULL,
+  "access_key_id" text NOT NULL,
+  "secret_access_key" text NOT NULL,
+  "prefix" text NOT NULL,
   PRIMARY KEY ("id")
+);
+-- create "volume_rustic" table
+CREATE TABLE "volume_rustic" (
+  "id" bigint NOT NULL,
+  "fs_size" bigint NOT NULL,
+  "fs_type" text NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create "volume_rustic_status" table
+CREATE TABLE "volume_rustic_status" (
+  "id" bigint NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create "volume_snapshot" table
+CREATE TABLE "volume_snapshot" (
+  "id" bigserial NOT NULL,
+  "workspace_id" bigint NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "deleted_at" timestamptz NULL,
+  "finalizers" text NOT NULL DEFAULT '{}',
+  "volume_provider_id" bigint NOT NULL,
+  "volume_id" bigint NOT NULL,
+  "lock_id" text NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create "volume_snapshot_rustic" table
+CREATE TABLE "volume_snapshot_rustic" (
+  "id" bigint NOT NULL,
+  "snapshot_id" text NOT NULL,
+  "snapshot_time" timestamptz NOT NULL,
+  "parent_snapshot_id" text NULL,
+  "hostname" text NOT NULL,
+  "files_new" integer NOT NULL,
+  "files_changed" integer NOT NULL,
+  "files_unmodified" integer NOT NULL,
+  "total_files_processed" integer NOT NULL,
+  "total_bytes_processed" integer NOT NULL,
+  "dirs_new" integer NOT NULL,
+  "dirs_changed" integer NOT NULL,
+  "dirs_unmodified" integer NOT NULL,
+  "total_dirs_processed" integer NOT NULL,
+  "total_dirsize_processed" integer NOT NULL,
+  "data_blobs" integer NOT NULL,
+  "tree_blobs" integer NOT NULL,
+  "data_added" integer NOT NULL,
+  "data_added_packed" integer NOT NULL,
+  "data_added_files" integer NOT NULL,
+  "data_added_files_packed" integer NOT NULL,
+  "data_added_trees" integer NOT NULL,
+  "data_added_trees_packed" integer NOT NULL,
+  "backup_start" timestamptz NOT NULL,
+  "backup_end" timestamptz NOT NULL,
+  "backup_duration" real NOT NULL,
+  "total_duration" real NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "volume_snapshot_rustic_snapshot_id_key" UNIQUE ("snapshot_id")
 );
 -- create "workspace" table
 CREATE TABLE "workspace" (
@@ -299,36 +355,48 @@ ALTER TABLE "machine_provider_hetzner_status" ADD CONSTRAINT "machine_provider_h
 ALTER TABLE "network" ADD CONSTRAINT "network_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "network_netbird" table
 ALTER TABLE "network_netbird" ADD CONSTRAINT "network_netbird_id_fkey" FOREIGN KEY ("id") REFERENCES "network" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "token" table
+ALTER TABLE "token" ADD CONSTRAINT "token_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume" table
-ALTER TABLE "volume" ADD CONSTRAINT "volume_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
--- modify "volume_dboxed" table
-ALTER TABLE "volume_dboxed" ADD CONSTRAINT "volume_dboxed_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
--- modify "volume_dboxed_status" table
-ALTER TABLE "volume_dboxed_status" ADD CONSTRAINT "volume_dboxed_status_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "volume" ADD CONSTRAINT "volume_latest_snapshot_id_fkey" FOREIGN KEY ("latest_snapshot_id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_provider" table
 ALTER TABLE "volume_provider" ADD CONSTRAINT "volume_provider_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
--- modify "volume_provider_dboxed" table
-ALTER TABLE "volume_provider_dboxed" ADD CONSTRAINT "volume_provider_dboxed_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
--- modify "volume_provider_dboxed_status" table
-ALTER TABLE "volume_provider_dboxed_status" ADD CONSTRAINT "volume_provider_dboxed_status_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "volume_provider_rustic" table
+ALTER TABLE "volume_provider_rustic" ADD CONSTRAINT "volume_provider_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "volume_provider_storage_s3" table
+ALTER TABLE "volume_provider_storage_s3" ADD CONSTRAINT "volume_provider_storage_s3_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "volume_rustic" table
+ALTER TABLE "volume_rustic" ADD CONSTRAINT "volume_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "volume_rustic_status" table
+ALTER TABLE "volume_rustic_status" ADD CONSTRAINT "volume_rustic_status_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "volume_snapshot" table
+ALTER TABLE "volume_snapshot" ADD CONSTRAINT "volume_snapshot_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+-- modify "volume_snapshot_rustic" table
+ALTER TABLE "volume_snapshot_rustic" ADD CONSTRAINT "volume_snapshot_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "workspace_access" table
 ALTER TABLE "workspace_access" ADD CONSTRAINT "workspace_access_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "workspace_access_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 
 -- +goose Down
 -- reverse: modify "workspace_access" table
 ALTER TABLE "workspace_access" DROP CONSTRAINT "workspace_access_workspace_id_fkey", DROP CONSTRAINT "workspace_access_user_id_fkey";
--- reverse: modify "volume_provider_dboxed_status" table
-ALTER TABLE "volume_provider_dboxed_status" DROP CONSTRAINT "volume_provider_dboxed_status_id_fkey";
--- reverse: modify "volume_provider_dboxed" table
-ALTER TABLE "volume_provider_dboxed" DROP CONSTRAINT "volume_provider_dboxed_id_fkey";
+-- reverse: modify "volume_snapshot_rustic" table
+ALTER TABLE "volume_snapshot_rustic" DROP CONSTRAINT "volume_snapshot_rustic_id_fkey";
+-- reverse: modify "volume_snapshot" table
+ALTER TABLE "volume_snapshot" DROP CONSTRAINT "volume_snapshot_workspace_id_fkey", DROP CONSTRAINT "volume_snapshot_volume_provider_id_fkey", DROP CONSTRAINT "volume_snapshot_volume_id_fkey";
+-- reverse: modify "volume_rustic_status" table
+ALTER TABLE "volume_rustic_status" DROP CONSTRAINT "volume_rustic_status_id_fkey";
+-- reverse: modify "volume_rustic" table
+ALTER TABLE "volume_rustic" DROP CONSTRAINT "volume_rustic_id_fkey";
+-- reverse: modify "volume_provider_storage_s3" table
+ALTER TABLE "volume_provider_storage_s3" DROP CONSTRAINT "volume_provider_storage_s3_id_fkey";
+-- reverse: modify "volume_provider_rustic" table
+ALTER TABLE "volume_provider_rustic" DROP CONSTRAINT "volume_provider_rustic_id_fkey";
 -- reverse: modify "volume_provider" table
 ALTER TABLE "volume_provider" DROP CONSTRAINT "volume_provider_workspace_id_fkey";
--- reverse: modify "volume_dboxed_status" table
-ALTER TABLE "volume_dboxed_status" DROP CONSTRAINT "volume_dboxed_status_id_fkey";
--- reverse: modify "volume_dboxed" table
-ALTER TABLE "volume_dboxed" DROP CONSTRAINT "volume_dboxed_id_fkey";
 -- reverse: modify "volume" table
-ALTER TABLE "volume" DROP CONSTRAINT "volume_workspace_id_fkey", DROP CONSTRAINT "volume_volume_provider_id_fkey";
+ALTER TABLE "volume" DROP CONSTRAINT "volume_workspace_id_fkey", DROP CONSTRAINT "volume_volume_provider_id_fkey", DROP CONSTRAINT "volume_latest_snapshot_id_fkey";
+-- reverse: modify "token" table
+ALTER TABLE "token" DROP CONSTRAINT "token_user_id_fkey";
 -- reverse: modify "network_netbird" table
 ALTER TABLE "network_netbird" DROP CONSTRAINT "network_netbird_id_fkey";
 -- reverse: modify "network" table
@@ -365,20 +433,26 @@ ALTER TABLE "box" DROP CONSTRAINT "box_workspace_id_fkey", DROP CONSTRAINT "box_
 DROP TABLE "workspace_access";
 -- reverse: create "workspace" table
 DROP TABLE "workspace";
--- reverse: create "volume_provider_dboxed_status" table
-DROP TABLE "volume_provider_dboxed_status";
--- reverse: create "volume_provider_dboxed" table
-DROP TABLE "volume_provider_dboxed";
+-- reverse: create "volume_snapshot_rustic" table
+DROP TABLE "volume_snapshot_rustic";
+-- reverse: create "volume_snapshot" table
+DROP TABLE "volume_snapshot";
+-- reverse: create "volume_rustic_status" table
+DROP TABLE "volume_rustic_status";
+-- reverse: create "volume_rustic" table
+DROP TABLE "volume_rustic";
+-- reverse: create "volume_provider_storage_s3" table
+DROP TABLE "volume_provider_storage_s3";
+-- reverse: create "volume_provider_rustic" table
+DROP TABLE "volume_provider_rustic";
 -- reverse: create "volume_provider" table
 DROP TABLE "volume_provider";
--- reverse: create "volume_dboxed_status" table
-DROP TABLE "volume_dboxed_status";
--- reverse: create "volume_dboxed" table
-DROP TABLE "volume_dboxed";
 -- reverse: create "volume" table
 DROP TABLE "volume";
 -- reverse: create "user" table
 DROP TABLE "user";
+-- reverse: create "token" table
+DROP TABLE "token";
 -- reverse: create "network_netbird" table
 DROP TABLE "network_netbird";
 -- reverse: create "network" table

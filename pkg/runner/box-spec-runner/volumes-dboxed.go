@@ -20,8 +20,7 @@ type volumeInterfaceDboxed struct {
 }
 
 func (vi volumeInterfaceDboxed) WorkDirBase(vol boxspec.BoxVolumeSpec) string {
-	apiUrlHash := util.Sha256Sum([]byte(vol.Dboxed.ApiUrl))
-	return fmt.Sprintf("dboxed-volume-%s-%d-%d", apiUrlHash[:6], vol.Dboxed.RepositoryId, vol.Dboxed.VolumeId)
+	return fmt.Sprintf("dboxed-volume-%d", vol.Dboxed.VolumeId)
 }
 
 func (vi volumeInterfaceDboxed) IsReadOnly(vol boxspec.BoxVolumeSpec) bool {
@@ -32,7 +31,7 @@ func (vi volumeInterfaceDboxed) Create(ctx context.Context, vol boxspec.BoxVolum
 	workDir := getVolumeWorkDir(vi, vol)
 	mountDir := getVolumeMountDir(vi, vol)
 
-	slog.InfoContext(ctx, "creating dboxed-volume volume",
+	slog.InfoContext(ctx, "creating dboxed volume",
 		slog.Any("name", vol.Name),
 		slog.Any("workDir", workDir),
 		slog.Any("mountDir", mountDir),
@@ -46,13 +45,11 @@ func (vi volumeInterfaceDboxed) Create(ctx context.Context, vol boxspec.BoxVolum
 	args := []string{
 		"volume",
 		"lock",
-		"--api-url", vol.Dboxed.ApiUrl,
-		"--repo", fmt.Sprintf("%d", vol.Dboxed.RepositoryId),
 		"--volume", fmt.Sprintf("%d", vol.Dboxed.VolumeId),
 		"--dir", workDir,
 	}
 
-	err = vi.runDboxedVolume(ctx, vol.Dboxed.Token, args)
+	err = vi.runDboxedVolume(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -73,7 +70,7 @@ func (vi volumeInterfaceDboxed) Create(ctx context.Context, vol boxspec.BoxVolum
 func (vi volumeInterfaceDboxed) Delete(ctx context.Context, vol boxspec.BoxVolumeSpec) error {
 	workDir := getVolumeWorkDir(vi, vol)
 
-	slog.InfoContext(ctx, "deleting dboxed-volume volume",
+	slog.InfoContext(ctx, "deleting dboxed volume",
 		slog.Any("name", vol.Name),
 		slog.Any("workDir", workDir),
 	)
@@ -86,11 +83,10 @@ func (vi volumeInterfaceDboxed) Delete(ctx context.Context, vol boxspec.BoxVolum
 	args := []string{
 		"volume",
 		"release",
-		"--api-url", vol.Dboxed.ApiUrl,
 		"--dir", workDir,
 	}
 
-	err = vi.runDboxedVolume(ctx, vol.Dboxed.Token, args)
+	err = vi.runDboxedVolume(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -137,7 +133,7 @@ func (vi volumeInterfaceDboxed) createS6Service(ctx context.Context, vol boxspec
 exec s6-log n10 s1000000 /var/lib/dboxed/logs/s6/%s
 `, name)
 	runScript := fmt.Sprintf(`#!/bin/sh
-exec dboxed-volume volume serve --dir "%s" --backup-interval="%s" 2>&1
+exec dboxed volume serve --dir "%s" --backup-interval="%s" 2>&1
 `, workDir, backupInterval.String())
 
 	err = util.AtomicWriteFile(filepath.Join(serviceLogDir, "run"), []byte(logScript), 0755)
@@ -214,18 +210,12 @@ func (vi volumeInterfaceDboxed) CheckRecreateNeeded(oldVol boxspec.BoxVolumeSpec
 	return util.MustJson(oldVol) != util.MustJson(newVol)
 }
 
-func (vi volumeInterfaceDboxed) runDboxedVolume(ctx context.Context, apiToken string, args []string) error {
-	env := os.Environ()
-	if apiToken != "" {
-		env = append(env, fmt.Sprintf("DBOXED_VOLUME_API_TOKEN=%s", apiToken))
-	}
-
-	cmd := exec.CommandContext(ctx, "dboxed-volume", args...)
+func (vi volumeInterfaceDboxed) runDboxedVolume(ctx context.Context, args []string) error {
+	cmd := exec.CommandContext(ctx, "dboxed", args...)
 	cmd.Stdout = vi.rn.DboxedVolumeLog
 	cmd.Stderr = vi.rn.DboxedVolumeLog
-	cmd.Env = env
 	_, _ = fmt.Fprintf(vi.rn.DboxedVolumeLog, "\nrunning: %s\n", cmd.String())
-	slog.Info("running dboxed-volume command", slog.Any("args", strings.Join(args, " ")))
+	slog.Info("running dboxed volume command", slog.Any("args", strings.Join(args, " ")))
 	err := cmd.Run()
 	if err != nil {
 		return err

@@ -18,6 +18,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks"
 	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers"
+	"github.com/dboxed/dboxed/pkg/reconcilers/volumes"
 	"github.com/dboxed/dboxed/pkg/reconcilers/workspaces"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/migration/migrator"
@@ -56,6 +57,7 @@ var reconcilerFuncs = []runFunc{
 	runReconcilerMachineProviders,
 	runReconcilerNetworks,
 	runReconcilerVolumeProviders,
+	runReconcilerVolumes,
 	runReconcilerBoxes,
 	runReconcilerMachines,
 }
@@ -271,6 +273,11 @@ func runReconcilerNetworks(ctx context.Context, config config2.Config) error {
 
 func runReconcilerVolumeProviders(ctx context.Context, config config2.Config) error {
 	r := volume_providers.NewVolumeProvidersReconciler(config)
+	return r.Run(ctx)
+}
+
+func runReconcilerVolumes(ctx context.Context, config config2.Config) error {
+	r := volumes.NewVolumesReconciler(config)
 	return r.Run(ctx)
 }
 

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type VolumeProvider struct {
@@ -15,51 +14,83 @@ type VolumeProvider struct {
 	Name      string    `json:"name"`
 	Status    string    `json:"status"`
 
-	Dboxed *VolumeProviderDboxed `json:"dboxed,omitempty"`
+	Rustic *VolumeProviderRustic `json:"rustic,omitempty"`
 }
 
-type VolumeProviderDboxed struct {
-	ApiUrl       string `json:"api_url"`
-	RepositoryId int64  `json:"repository_id"`
+type VolumeProviderRustic struct {
+	Password string `json:"password"`
+
+	StorageType string           `json:"storageType"`
+	StorageS3   *VolumeStorageS3 `json:"storageS3"`
+}
+
+type VolumeStorageS3 struct {
+	Endpoint string  `json:"endpoint"`
+	Region   *string `json:"region"`
+	Bucket   string  `json:"bucket"`
+	Prefix   string  `json:"prefix"`
 }
 
 type CreateVolumeProvider struct {
-	Type global.VolumeProviderType `json:"type"`
-	Name string                    `json:"name"`
+	Name string `json:"name"`
 
-	Dboxed *CreateVolumeProviderDboxed `json:"dboxed,omitempty"`
+	Rustic *CreateVolumeProviderRustic `json:"rustic"`
 }
 
-type CreateVolumeProviderDboxed struct {
-	ApiUrl       string `json:"api_url"`
-	Token        string `json:"token"`
-	RepositoryId int64  `json:"repository_id"`
+type CreateVolumeProviderStorageS3 struct {
+	Endpoint        string  `json:"endpoint"`
+	Region          *string `json:"region"`
+	Bucket          string  `json:"bucket"`
+	Prefix          string  `json:"prefix"`
+	AccessKeyId     string  `json:"accessKeyId"`
+	SecretAccessKey string  `json:"secretAccessKey"`
+}
+
+type CreateVolumeProviderRustic struct {
+	Password string `json:"password"`
+
+	StorageS3 *CreateVolumeProviderStorageS3 `json:"storageS3"`
 }
 
 type UpdateVolumeProvider struct {
-	Dboxed *UpdateVolumeProviderDboxed `json:"dboxed,omitempty"`
+	Rustic *UpdateVolumeProviderRustic `json:"rustic,omitempty"`
+}
+type UpdateVolumeProviderRustic struct {
+	Password *string `json:"password,omitempty"`
+
+	StorageS3 *UpdateRepositoryStorageS3 `json:"storageS3,omitempty"`
 }
 
-type UpdateVolumeProviderDboxed struct {
-	ApiUrl       *string `json:"api_url,omitempty"`
-	Token        *string `json:"token,omitempty"`
-	RepositoryId *int64  `json:"repository_id,omitempty"`
+type UpdateRepositoryStorageS3 struct {
+	Endpoint        *string `json:"endpoint,omitempty"`
+	Region          *string `json:"region,omitempty"`
+	Bucket          *string `json:"bucket,omitempty"`
+	Prefix          *string `json:"prefix,omitempty"`
+	AccessKeyId     *string `json:"accessKeyId,omitempty"`
+	SecretAccessKey *string `json:"secretAccessKey,omitempty"`
 }
 
-func VolumeProviderFromDB(v dmodel.VolumeProvider) *VolumeProvider {
-	return &VolumeProvider{
+func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
+	ret := VolumeProvider{
 		ID:        v.ID,
-		Workspace: v.WorkspaceID,
 		CreatedAt: v.CreatedAt,
+		Workspace: v.WorkspaceID,
 		Type:      v.Type,
 		Name:      v.Name,
-		Status:    v.ReconcileStatus.ReconcileStatus,
 	}
-}
-
-func VolumeProviderDboxedFromDB(v dmodel.VolumeProviderDboxed) *VolumeProviderDboxed {
-	return &VolumeProviderDboxed{
-		ApiUrl:       v.ApiUrl.V,
-		RepositoryId: v.RepositoryId.V,
+	if v.Rustic != nil {
+		ret.Rustic = &VolumeProviderRustic{
+			Password:    v.Rustic.Password.V,
+			StorageType: v.Rustic.StorageType,
+		}
+		if v.Rustic.StorageS3 != nil {
+			ret.Rustic.StorageS3 = &VolumeStorageS3{
+				Endpoint: v.Rustic.StorageS3.Endpoint.V,
+				Region:   v.Rustic.StorageS3.Region,
+				Bucket:   v.Rustic.StorageS3.Bucket.V,
+				Prefix:   v.Rustic.StorageS3.Prefix.V,
+			}
+		}
 	}
+	return ret
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/machine_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
+	"github.com/dboxed/dboxed/pkg/server/resources/s3proxy"
 	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 	"github.com/dboxed/dboxed/pkg/server/resources/users"
 	"github.com/dboxed/dboxed/pkg/server/resources/volume_providers"
@@ -38,8 +39,9 @@ type DboxedServer struct {
 	workspaces       *workspaces.Workspaces
 	machineProviders *machine_providers.MachineProviderServer
 	volumeProviders  *volume_providers.VolumeProviderServer
+	s3Proxy          *s3proxy.S3ProxyServer
 	networks         *networks.NetworksServer
-	volumes          *volumes.VolumesServer
+	volumes          *volumes.VolumeServer
 	boxes            *boxes.BoxesServer
 	machines         *machines.MachinesServer
 }
@@ -64,6 +66,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.workspaces = workspaces.New()
 	s.machineProviders = machine_providers.New()
 	s.volumeProviders = volume_providers.New()
+	s.s3Proxy = s3proxy.New()
 	s.networks = networks.New()
 	s.volumes = volumes.New(config)
 	s.boxes = boxes.New(config)
@@ -120,6 +123,10 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		return err
 	}
 	err = s.volumeProviders.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
+	err = s.s3Proxy.Init(s.api, workspacesGroup)
 	if err != nil {
 		return err
 	}

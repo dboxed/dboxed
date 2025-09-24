@@ -1,7 +1,9 @@
 package dmodel
 
 import (
-	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
+	"time"
+
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
 
 type Volume struct {
@@ -14,7 +16,25 @@ type Volume struct {
 	VolumeProviderID   int64  `db:"volume_provider_id"`
 	VolumeProviderType string `db:"volume_provider_type"`
 
-	Dboxed *VolumeDboxed `join:"true"`
+	LockId   *string    `db:"lock_id"`
+	LockTime *time.Time `db:"lock_time"`
+
+	LatestSnapshotId *int64 `db:"latest_snapshot_id"`
+
+	Rustic *VolumeRustic `join:"true"`
+}
+
+type VolumeRustic struct {
+	ID querier.NullForJoin[int64] `db:"id"`
+
+	FsSize querier.NullForJoin[int64]  `db:"fs_size"`
+	FsType querier.NullForJoin[string] `db:"fs_type"`
+
+	Status *VolumeRusticStatus `join:"true"`
+}
+
+type VolumeRusticStatus struct {
+	ID querier.NullForJoin[int64] `db:"id"`
 }
 
 type VolumeWithAttachment struct {
@@ -27,30 +47,13 @@ func (x *VolumeWithAttachment) GetTableName() string {
 	return "volume"
 }
 
-type VolumeDboxed struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
-
-	FsSize querier2.NullForJoin[int64]  `db:"fs_size"`
-	FsType querier2.NullForJoin[string] `db:"fs_type"`
-
-	Status *VolumeDboxedStatus `join:"true"`
-}
-
-type VolumeDboxedStatus struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
-
-	VolumeID *int64  `db:"volume_id"`
-	FsSize   *int64  `db:"fs_size"`
-	FsType   *string `db:"fs_type"`
-}
-
 type BoxVolumeAttachment struct {
-	BoxId    querier2.NullForJoin[int64] `db:"box_id"`
-	VolumeId querier2.NullForJoin[int64] `db:"volume_id"`
+	BoxId    querier.NullForJoin[int64] `db:"box_id"`
+	VolumeId querier.NullForJoin[int64] `db:"volume_id"`
 
-	RootUid  querier2.NullForJoin[int64]  `db:"root_uid"`
-	RootGid  querier2.NullForJoin[int64]  `db:"root_gid"`
-	RootMode querier2.NullForJoin[string] `db:"root_mode"`
+	RootUid  querier.NullForJoin[int64]  `db:"root_uid"`
+	RootGid  querier.NullForJoin[int64]  `db:"root_gid"`
+	RootMode querier.NullForJoin[string] `db:"root_mode"`
 }
 
 type BoxVolumeAttachmentWithVolume struct {
@@ -62,88 +65,107 @@ func (v *BoxVolumeAttachment) GetTableName() string {
 	return "box_volume_attachment"
 }
 
-func (v *Volume) Create(q *querier2.Querier) error {
-	return querier2.Create(q, v)
+func (v *Volume) Create(q *querier.Querier) error {
+	return querier.Create(q, v)
 }
 
-func (v *VolumeDboxed) Create(q *querier2.Querier) error {
-	return querier2.Create(q, v)
+func (v *VolumeRustic) Create(q *querier.Querier) error {
+	return querier.Create(q, v)
 }
 
-func (v *VolumeDboxedStatus) Create(q *querier2.Querier) error {
-	return querier2.Create(q, v)
+func (v *VolumeRusticStatus) Create(q *querier.Querier) error {
+	return querier.Create(q, v)
 }
 
-func (v *BoxVolumeAttachment) Create(q *querier2.Querier) error {
-	return querier2.Create(q, v)
+func (v *BoxVolumeAttachment) Create(q *querier.Querier) error {
+	return querier.Create(q, v)
 }
 
-func GetVolumeById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted bool) (*VolumeWithAttachment, error) {
-	return querier2.GetOne[VolumeWithAttachment](q, map[string]any{
-		"workspace_id": querier2.OmitIfNull(workspaceId),
+func GetVolumeById(q *querier.Querier, workspaceId *int64, id int64, skipDeleted bool) (*VolumeWithAttachment, error) {
+	return querier.GetOne[VolumeWithAttachment](q, map[string]any{
+		"workspace_id": querier.OmitIfNull(workspaceId),
 		"id":           id,
-		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListVolumesForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
-	return querier2.GetMany[VolumeWithAttachment](q, map[string]any{
+func GetVolumeByName(q *querier.Querier, workspaceId int64, name string, skipDeleted bool) (*VolumeWithAttachment, error) {
+	return querier.GetOne[VolumeWithAttachment](q, map[string]any{
 		"workspace_id": workspaceId,
-		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+		"name":         name,
+		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListVolumesForVolumeProvider(q *querier2.Querier, volumeProviderId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
-	return querier2.GetMany[VolumeWithAttachment](q, map[string]any{
+func ListVolumesForWorkspace(q *querier.Querier, workspaceId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
+	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
+		"workspace_id": workspaceId,
+		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
+	})
+}
+
+func ListVolumesForVolumeProvider(q *querier.Querier, volumeProviderId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
+	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
 		"volume_provider_id": volumeProviderId,
-		"deleted_at":         querier2.ExcludeNonNull(skipDeleted),
+		"deleted_at":         querier.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListBoxVolumeAttachments(q *querier2.Querier, boxId int64) ([]BoxVolumeAttachmentWithVolume, error) {
-	return querier2.GetMany[BoxVolumeAttachmentWithVolume](q, map[string]any{
+func ListBoxVolumeAttachments(q *querier.Querier, boxId int64) ([]BoxVolumeAttachmentWithVolume, error) {
+	return querier.GetMany[BoxVolumeAttachmentWithVolume](q, map[string]any{
 		"box_id": boxId,
 	})
 }
 
-func (v *VolumeDboxedStatus) UpdateVolumeID(q *querier2.Querier, id *int64) error {
-	v.VolumeID = id
-	return querier2.UpdateOneFromStruct(q, v,
-		"volume_id",
-	)
-}
-
-func (v *VolumeDboxedStatus) UpdateInfo(q *querier2.Querier, fsSize *int64, fsType *string) error {
-	v.FsSize = fsSize
-	v.FsType = fsType
-	return querier2.UpdateOneFromStruct(q, v,
-		"fs_size",
-		"fs_type",
-	)
-}
-
-func GetBoxVolumeAttachment(q *querier2.Querier, boxId int64, volumeId int64) (*BoxVolumeAttachmentWithVolume, error) {
-	return querier2.GetOne[BoxVolumeAttachmentWithVolume](q, map[string]any{
+func GetBoxVolumeAttachment(q *querier.Querier, boxId int64, volumeId int64) (*BoxVolumeAttachmentWithVolume, error) {
+	return querier.GetOne[BoxVolumeAttachmentWithVolume](q, map[string]any{
 		"box_id":    boxId,
 		"volume_id": volumeId,
 	})
 }
 
-func (v *BoxVolumeAttachment) Update(q *querier2.Querier, rootUid *int64, rootGid *int64, rootMode *string) error {
+func (v *Volume) UpdateLock(q *querier.Querier, newLockId *string, newLockTime *time.Time) error {
+	oldLockId := v.LockId
+	oldLockTime := v.LockTime
+	v.LockId = newLockId
+	v.LockTime = nil
+	v.LockTime = newLockTime
+	return querier.UpdateOneByFields[Volume](q, map[string]any{
+		"id":        v.ID,
+		"lock_id":   oldLockId,
+		"lock_time": oldLockTime,
+	}, map[string]any{
+		"lock_id":   v.LockId,
+		"lock_time": v.LockTime,
+	})
+}
+
+func (v *Volume) UpdateLatestSnapshot(q *querier.Querier, snapshotId *int64) error {
+	oldSnapshotId := v.LatestSnapshotId
+	v.LatestSnapshotId = snapshotId
+	return querier.UpdateOneByFields[Volume](q, map[string]any{
+		"id":                 v.ID,
+		"latest_snapshot_id": oldSnapshotId,
+	}, map[string]any{
+		"latest_snapshot_id": snapshotId,
+	})
+}
+
+func (v *BoxVolumeAttachment) Update(q *querier.Querier, rootUid *int64, rootGid *int64, rootMode *string) error {
 	var fields []string
 	if rootUid != nil {
-		v.RootUid = querier2.N(*rootUid)
+		v.RootUid = querier.N(*rootUid)
 		fields = append(fields, "root_uid")
 	}
 	if rootGid != nil {
-		v.RootGid = querier2.N(*rootGid)
+		v.RootGid = querier.N(*rootGid)
 		fields = append(fields, "root_gid")
 	}
 	if rootMode != nil {
-		v.RootMode = querier2.N(*rootMode)
+		v.RootMode = querier.N(*rootMode)
 		fields = append(fields, "root_mode")
 	}
-	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
+	return querier.UpdateOneByFieldsFromStruct(q, map[string]any{
 		"box_id":    v.BoxId,
 		"volume_id": v.VolumeId,
 	}, v, fields...)

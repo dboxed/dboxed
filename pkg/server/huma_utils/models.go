@@ -16,6 +16,11 @@ type StringIdByPath struct {
 	Id string `path:"id"`
 }
 
+type IdByPathAndJsonBody[T any] struct {
+	IdByPath
+	JsonBody[T]
+}
+
 type Empty struct {
 	Body map[string]any
 }

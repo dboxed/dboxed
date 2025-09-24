@@ -9,30 +9,35 @@ create table volume
     reconcile_status         text           not null default 'Initializing',
     reconcile_status_details text           not null default '',
 
-    uuid                     text           not null default '' unique,
-    name                     text           not null,
-
     volume_provider_id       bigint         not null references volume_provider (id) on delete restrict,
     volume_provider_type     text           not null,
+
+    uuid                     text           not null unique,
+    name                     text           not null,
+
+    lock_id                  text,
+    lock_time                TYPES_DATETIME,
+
+    --{{ if eq .DbType "sqlite" }}
+    latest_snapshot_id       bigint references volume_snapshot (id) on delete restrict,
+    --{{ else }}
+    -- we will later add the constraint
+    latest_snapshot_id       bigint,
+    --{{ end }}
 
     unique (workspace_id, name)
 );
 
-create table volume_dboxed
+create table volume_rustic
 (
-    id      bigint primary key references volume (id) on delete cascade,
-
+    id      bigint not null primary key references volume (id) on delete cascade,
     fs_size bigint not null,
     fs_type text   not null
 );
 
-create table volume_dboxed_status
+create table volume_rustic_status
 (
-    id        bigint primary key references volume (id) on delete cascade,
-
-    volume_id bigint,
-    fs_size   bigint,
-    fs_type   text
+    id bigint not null primary key references volume (id) on delete cascade
 );
 
 create table box_volume_attachment

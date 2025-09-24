@@ -68,7 +68,7 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 	volumeProviders := map[int64]*dmodel.VolumeProvider{}
 	for _, at := range ats {
 		if _, ok := volumeNames[at.Volume.Name]; ok {
-			return huma.Error400BadRequest(fmt.Sprintf("attached dboxed-volume %s clashes with volume from box spec", at.Volume.Name))
+			return huma.Error400BadRequest(fmt.Sprintf("attached dboxed volume %s clashes with volume from box spec", at.Volume.Name))
 		}
 
 		vp, ok := volumeProviders[at.Volume.VolumeProviderID]
@@ -80,21 +80,15 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 			volumeProviders[at.Volume.VolumeProviderID] = vp
 		}
 
-		switch global.VolumeProviderType(vp.Type) {
-		case global.VolumeProviderDboxed:
-			if at.Volume.Dboxed.Status.VolumeID == nil {
-				return huma.Error400BadRequest(fmt.Sprintf("dboxed-volume %s is not ready yet", at.Volume.Name))
-			}
+		switch dmodel.VolumeProviderType(vp.Type) {
+		case dmodel.VolumeProviderTypeRustic:
 			boxSpec.Volumes = append(boxSpec.Volumes, boxspec.BoxVolumeSpec{
 				Name:     at.Volume.Name,
 				RootUid:  uint32(at.RootUid.V),
 				RootGid:  uint32(at.RootGid.V),
 				RootMode: at.RootMode.V,
 				Dboxed: &boxspec.DboxedVolume{
-					ApiUrl:         vp.Dboxed.ApiUrl.V,
-					Token:          vp.Dboxed.Token.V,
-					RepositoryId:   vp.Dboxed.RepositoryId.V,
-					VolumeId:       *at.Volume.Dboxed.Status.VolumeID,
+					VolumeId:       at.Volume.ID,
 					BackupInterval: "1m",
 				},
 			})

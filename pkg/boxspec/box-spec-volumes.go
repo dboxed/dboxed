@@ -22,11 +22,7 @@ type FileBundle struct {
 }
 
 type DboxedVolume struct {
-	ApiUrl string `json:"apiUrl"`
-	Token  string `json:"token"`
-
-	RepositoryId int64 `json:"repoId"`
-	VolumeId     int64 `json:"volumeId"`
+	VolumeId int64 `json:"volumeId"`
 
 	BackupInterval string `json:"backupInterval"`
 }

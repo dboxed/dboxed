@@ -1,7 +1,7 @@
 -- +goose Up
 -- create "change_tracking" table
 CREATE TABLE `change_tracking` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `table_name` text NOT NULL,
   `entity_id` bigint NOT NULL,
   `time` datetime NOT NULL DEFAULT (current_timestamp)
@@ -17,9 +17,20 @@ CREATE TABLE `user` (
   `avatar` text NULL,
   PRIMARY KEY (`id`)
 );
+-- create "token" table
+CREATE TABLE `token` (
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  `created_at` datetime NOT NULL DEFAULT (current_timestamp),
+  `token` text NOT NULL,
+  `name` text NOT NULL,
+  `user_id` text NOT NULL,
+  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create index "token_token" to table: "token"
+CREATE UNIQUE INDEX `token_token` ON `token` (`token`);
 -- create "workspace" table
 CREATE TABLE `workspace` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
   `finalizers` text NOT NULL DEFAULT '{}',
@@ -41,7 +52,7 @@ CREATE TABLE `workspace_access` (
 );
 -- create "machine_provider" table
 CREATE TABLE `machine_provider` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `workspace_id` bigint NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
@@ -57,7 +68,7 @@ CREATE TABLE `machine_provider` (
 CREATE UNIQUE INDEX `machine_provider_workspace_id_name` ON `machine_provider` (`workspace_id`, `name`);
 -- create "machine_provider_aws" table
 CREATE TABLE `machine_provider_aws` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `region` text NOT NULL,
   `aws_access_key_id` text NULL,
   `aws_secret_access_key` text NULL,
@@ -67,7 +78,7 @@ CREATE TABLE `machine_provider_aws` (
 );
 -- create "machine_provider_aws_status" table
 CREATE TABLE `machine_provider_aws_status` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `vpc_name` text NULL,
   `vpc_cidr` text NULL,
   `security_group_id` text NULL,
@@ -86,7 +97,7 @@ CREATE TABLE `machine_provider_aws_subnet` (
 );
 -- create "machine_provider_hetzner" table
 CREATE TABLE `machine_provider_hetzner` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `hcloud_token` text NOT NULL,
   `hetzner_network_name` text NOT NULL,
   `robot_user` text NULL,
@@ -96,7 +107,7 @@ CREATE TABLE `machine_provider_hetzner` (
 );
 -- create "machine_provider_hetzner_status" table
 CREATE TABLE `machine_provider_hetzner_status` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `hetzner_network_id` bigint NULL,
   `hetzner_network_zone` text NULL,
   `hetzner_network_cidr` text NULL,
@@ -108,7 +119,7 @@ CREATE TABLE `machine_provider_hetzner_status` (
 );
 -- create "network" table
 CREATE TABLE `network` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `workspace_id` bigint NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
@@ -123,7 +134,7 @@ CREATE TABLE `network` (
 CREATE UNIQUE INDEX `network_workspace_id_name` ON `network` (`workspace_id`, `name`);
 -- create "network_netbird" table
 CREATE TABLE `network_netbird` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `netbird_version` text NOT NULL,
   `api_url` text NOT NULL,
   `api_access_token` text NULL,
@@ -132,7 +143,7 @@ CREATE TABLE `network_netbird` (
 );
 -- create "machine" table
 CREATE TABLE `machine` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `workspace_id` bigint NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
@@ -151,7 +162,7 @@ CREATE TABLE `machine` (
 CREATE UNIQUE INDEX `machine_workspace_id_name` ON `machine` (`workspace_id`, `name`);
 -- create "machine_aws" table
 CREATE TABLE `machine_aws` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `instance_type` text NOT NULL,
   `subnet_id` text NOT NULL,
   `root_volume_size` bigint NOT NULL,
@@ -160,7 +171,7 @@ CREATE TABLE `machine_aws` (
 );
 -- create "machine_aws_status" table
 CREATE TABLE `machine_aws_status` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `instance_id` text NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `machine` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
@@ -169,7 +180,7 @@ CREATE TABLE `machine_aws_status` (
 CREATE UNIQUE INDEX `machine_aws_status_instance_id` ON `machine_aws_status` (`instance_id`);
 -- create "machine_hetzner" table
 CREATE TABLE `machine_hetzner` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `server_type` text NOT NULL,
   `server_location` text NOT NULL,
   PRIMARY KEY (`id`),
@@ -177,14 +188,14 @@ CREATE TABLE `machine_hetzner` (
 );
 -- create "machine_hetzner_status" table
 CREATE TABLE `machine_hetzner_status` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `server_id` bigint NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `machine` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 -- create "box" table
 CREATE TABLE `box` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `workspace_id` bigint NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
@@ -212,7 +223,7 @@ CREATE UNIQUE INDEX `box_nkey` ON `box` (`nkey`);
 CREATE UNIQUE INDEX `box_workspace_id_name` ON `box` (`workspace_id`, `name`);
 -- create "box_netbird" table
 CREATE TABLE `box_netbird` (
-  `id` bigint NULL,
+  `id` bigint NOT NULL,
   `setup_key_id` text NULL,
   `setup_key` text NULL,
   PRIMARY KEY (`id`),
@@ -220,7 +231,7 @@ CREATE TABLE `box_netbird` (
 );
 -- create "volume_provider" table
 CREATE TABLE `volume_provider` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `workspace_id` bigint NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
@@ -233,58 +244,61 @@ CREATE TABLE `volume_provider` (
 );
 -- create index "volume_provider_workspace_id_name" to table: "volume_provider"
 CREATE UNIQUE INDEX `volume_provider_workspace_id_name` ON `volume_provider` (`workspace_id`, `name`);
--- create "volume_provider_dboxed" table
-CREATE TABLE `volume_provider_dboxed` (
-  `id` bigint NULL,
-  `api_url` text NOT NULL,
-  `token` text NOT NULL,
-  `repository_id` bigint NOT NULL,
+-- create "volume_provider_rustic" table
+CREATE TABLE `volume_provider_rustic` (
+  `id` bigint NOT NULL,
+  `storage_type` text NOT NULL,
+  `password` text NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
--- create "volume_provider_dboxed_status" table
-CREATE TABLE `volume_provider_dboxed_status` (
-  `id` bigint NULL,
-  `volume_id` bigint NULL,
-  `fs_size` text NULL,
-  `fs_type` text NULL,
+-- create "volume_provider_storage_s3" table
+CREATE TABLE `volume_provider_storage_s3` (
+  `id` bigint NOT NULL,
+  `endpoint` text NOT NULL,
+  `region` text NULL,
+  `bucket` text NOT NULL,
+  `access_key_id` text NOT NULL,
+  `secret_access_key` text NOT NULL,
+  `prefix` text NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 -- create "volume" table
 CREATE TABLE `volume` (
-  `id` integer NULL PRIMARY KEY AUTOINCREMENT,
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `workspace_id` bigint NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
   `finalizers` text NOT NULL DEFAULT '{}',
   `reconcile_status` text NOT NULL DEFAULT 'Initializing',
   `reconcile_status_details` text NOT NULL DEFAULT '',
-  `uuid` text NOT NULL DEFAULT '',
-  `name` text NOT NULL,
   `volume_provider_id` bigint NOT NULL,
   `volume_provider_type` text NOT NULL,
-  CONSTRAINT `0` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
-  CONSTRAINT `1` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+  `uuid` text NOT NULL,
+  `name` text NOT NULL,
+  `lock_id` text NULL,
+  `lock_time` datetime NULL,
+  `latest_snapshot_id` bigint NULL,
+  CONSTRAINT `0` FOREIGN KEY (`latest_snapshot_id`) REFERENCES `volume_snapshot` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `1` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `2` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
 );
 -- create index "volume_uuid" to table: "volume"
 CREATE UNIQUE INDEX `volume_uuid` ON `volume` (`uuid`);
 -- create index "volume_workspace_id_name" to table: "volume"
 CREATE UNIQUE INDEX `volume_workspace_id_name` ON `volume` (`workspace_id`, `name`);
--- create "volume_dboxed" table
-CREATE TABLE `volume_dboxed` (
-  `id` bigint NULL,
+-- create "volume_rustic" table
+CREATE TABLE `volume_rustic` (
+  `id` bigint NOT NULL,
   `fs_size` bigint NOT NULL,
   `fs_type` text NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `volume` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
--- create "volume_dboxed_status" table
-CREATE TABLE `volume_dboxed_status` (
-  `id` bigint NULL,
-  `volume_id` bigint NULL,
-  `fs_size` bigint NULL,
-  `fs_type` text NULL,
+-- create "volume_rustic_status" table
+CREATE TABLE `volume_rustic_status` (
+  `id` bigint NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `volume` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -301,26 +315,80 @@ CREATE TABLE `box_volume_attachment` (
 );
 -- create index "box_volume_attachment_volume_id" to table: "box_volume_attachment"
 CREATE UNIQUE INDEX `box_volume_attachment_volume_id` ON `box_volume_attachment` (`volume_id`);
+-- create "volume_snapshot" table
+CREATE TABLE `volume_snapshot` (
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  `workspace_id` bigint NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (current_timestamp),
+  `deleted_at` datetime NULL,
+  `finalizers` text NOT NULL DEFAULT '{}',
+  `volume_provider_id` bigint NOT NULL,
+  `volume_id` bigint NOT NULL,
+  `lock_id` text NOT NULL,
+  CONSTRAINT `0` FOREIGN KEY (`volume_id`) REFERENCES `volume` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `1` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `2` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+);
+-- create "volume_snapshot_rustic" table
+CREATE TABLE `volume_snapshot_rustic` (
+  `id` bigint NOT NULL,
+  `snapshot_id` text NOT NULL,
+  `snapshot_time` datetime NOT NULL,
+  `parent_snapshot_id` text NULL,
+  `hostname` text NOT NULL,
+  `files_new` int NOT NULL,
+  `files_changed` int NOT NULL,
+  `files_unmodified` int NOT NULL,
+  `total_files_processed` int NOT NULL,
+  `total_bytes_processed` int NOT NULL,
+  `dirs_new` int NOT NULL,
+  `dirs_changed` int NOT NULL,
+  `dirs_unmodified` int NOT NULL,
+  `total_dirs_processed` int NOT NULL,
+  `total_dirsize_processed` int NOT NULL,
+  `data_blobs` int NOT NULL,
+  `tree_blobs` int NOT NULL,
+  `data_added` int NOT NULL,
+  `data_added_packed` int NOT NULL,
+  `data_added_files` int NOT NULL,
+  `data_added_files_packed` int NOT NULL,
+  `data_added_trees` int NOT NULL,
+  `data_added_trees_packed` int NOT NULL,
+  `backup_start` datetime NOT NULL,
+  `backup_end` datetime NOT NULL,
+  `backup_duration` float4 NOT NULL,
+  `total_duration` float4 NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `volume_snapshot` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create index "volume_snapshot_rustic_snapshot_id" to table: "volume_snapshot_rustic"
+CREATE UNIQUE INDEX `volume_snapshot_rustic_snapshot_id` ON `volume_snapshot_rustic` (`snapshot_id`);
 
 -- +goose Down
+-- reverse: create index "volume_snapshot_rustic_snapshot_id" to table: "volume_snapshot_rustic"
+DROP INDEX `volume_snapshot_rustic_snapshot_id`;
+-- reverse: create "volume_snapshot_rustic" table
+DROP TABLE `volume_snapshot_rustic`;
+-- reverse: create "volume_snapshot" table
+DROP TABLE `volume_snapshot`;
 -- reverse: create index "box_volume_attachment_volume_id" to table: "box_volume_attachment"
 DROP INDEX `box_volume_attachment_volume_id`;
 -- reverse: create "box_volume_attachment" table
 DROP TABLE `box_volume_attachment`;
--- reverse: create "volume_dboxed_status" table
-DROP TABLE `volume_dboxed_status`;
--- reverse: create "volume_dboxed" table
-DROP TABLE `volume_dboxed`;
+-- reverse: create "volume_rustic_status" table
+DROP TABLE `volume_rustic_status`;
+-- reverse: create "volume_rustic" table
+DROP TABLE `volume_rustic`;
 -- reverse: create index "volume_workspace_id_name" to table: "volume"
 DROP INDEX `volume_workspace_id_name`;
 -- reverse: create index "volume_uuid" to table: "volume"
 DROP INDEX `volume_uuid`;
 -- reverse: create "volume" table
 DROP TABLE `volume`;
--- reverse: create "volume_provider_dboxed_status" table
-DROP TABLE `volume_provider_dboxed_status`;
--- reverse: create "volume_provider_dboxed" table
-DROP TABLE `volume_provider_dboxed`;
+-- reverse: create "volume_provider_storage_s3" table
+DROP TABLE `volume_provider_storage_s3`;
+-- reverse: create "volume_provider_rustic" table
+DROP TABLE `volume_provider_rustic`;
 -- reverse: create index "volume_provider_workspace_id_name" to table: "volume_provider"
 DROP INDEX `volume_provider_workspace_id_name`;
 -- reverse: create "volume_provider" table
@@ -375,6 +443,10 @@ DROP TABLE `workspace_access`;
 DROP INDEX `workspace_nkey`;
 -- reverse: create "workspace" table
 DROP TABLE `workspace`;
+-- reverse: create index "token_token" to table: "token"
+DROP INDEX `token_token`;
+-- reverse: create "token" table
+DROP TABLE `token`;
 -- reverse: create "user" table
 DROP TABLE `user`;
 -- reverse: create index "idx_table_and_id" to table: "change_tracking"
