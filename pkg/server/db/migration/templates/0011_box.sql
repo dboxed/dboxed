@@ -30,7 +30,7 @@ alter table machine
 
 create table box_netbird
 (
-    id           bigint primary key references box (id) on delete cascade,
+    id           bigint not null primary key references box (id) on delete cascade,
     setup_key_id text,
     setup_key    text
 );
