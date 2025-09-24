@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/auth"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
@@ -15,6 +16,8 @@ type Cli struct {
 	flags.GlobalFlags
 
 	Server server.ServerCommands `cmd:"" help:"server commands"`
+
+	Auth auth.AuthCommands `cmd:"" help:"manage authentication"`
 
 	cliOnlyLinux
 }

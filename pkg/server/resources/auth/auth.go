@@ -19,6 +19,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const TokenPrefix = "dt_"
+
 type AuthHandler struct {
 	config config.Config
 	api    huma.API
@@ -54,8 +56,17 @@ func (s *AuthHandler) Init(ctx context.Context, api huma.API) error {
 	}
 
 	huma.Get(s.api, "/v1/auth/me", s.restMe)
+	huma.Get(s.api, "/v1/auth/info", s.restInfo, huma_utils.MetadataModifier(huma_metadata.SkipAuth, true))
 
 	return nil
+}
+
+func (s *AuthHandler) restInfo(ctx context.Context, input *struct{}) (*huma_utils.JsonBody[models.AuthInfo], error) {
+	ret := models.AuthInfo{
+		OidcIssuerUrl: s.config.Auth.OidcIssuerUrl,
+		OidcClientId:  s.config.Auth.OidcClientId,
+	}
+	return huma_utils.NewJsonBody(ret), nil
 }
 
 func (s *AuthHandler) restMe(ctx context.Context, input *struct{}) (*huma_utils.JsonBody[models.User], error) {

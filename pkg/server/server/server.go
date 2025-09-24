@@ -13,6 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/machine_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
+	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 	"github.com/dboxed/dboxed/pkg/server/resources/users"
 	"github.com/dboxed/dboxed/pkg/server/resources/volume_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/volumes"
@@ -33,6 +34,7 @@ type DboxedServer struct {
 	healthz          *healthz.HealthzServer
 	auth             *auth.AuthHandler
 	users            *users.Users
+	tokens           *tokens.TokenServer
 	workspaces       *workspaces.Workspaces
 	machineProviders *machine_providers.MachineProviderServer
 	volumeProviders  *volume_providers.VolumeProviderServer
@@ -58,6 +60,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.healthz = healthz.New(config)
 	s.auth = auth.NewAuthHandler(config)
 	s.users = users.New()
+	s.tokens = tokens.New()
 	s.workspaces = workspaces.New()
 	s.machineProviders = machine_providers.New()
 	s.volumeProviders = volume_providers.New()
@@ -85,6 +88,11 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 	}
 
 	err = s.users.Init(s.api)
+	if err != nil {
+		return err
+	}
+
+	err = s.tokens.Init(s.api)
 	if err != nil {
 		return err
 	}
