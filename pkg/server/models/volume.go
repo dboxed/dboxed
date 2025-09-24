@@ -10,68 +10,69 @@ import (
 type Volume struct {
 	ID        int64     `json:"id"`
 	Workspace int64     `json:"workspace"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	Status    string    `json:"status"`
 
 	Uuid string `json:"uuid"`
 	Name string `json:"name"`
 
-	VolumeProvider     int64                     `json:"volume_provider"`
-	VolumeProviderType dmodel.VolumeProviderType `json:"volume_provider_type"`
+	VolumeProvider     int64                     `json:"volumeProvider"`
+	VolumeProviderType dmodel.VolumeProviderType `json:"volumeProviderType"`
 
-	LockId   *string    `db:"lock_id"`
-	LockTime *time.Time `db:"lock_time"`
+	LockId   *string    `json:"lockId,omitempty"`
+	LockTime *time.Time `json:"lockTime,omitempty"`
 
-	LatestSnapshotId *int64 `json:"latest_snapshot_id"`
+	LatestSnapshotId *int64 `json:"latestSnapshotId,omitempty"`
 
 	Attachment *VolumeAttachment `json:"attachment,omitempty"`
 
-	Rustic *VolumeRustic `json:"rustic"`
+	Rustic *VolumeRustic `json:"rustic,omitempty"`
 }
 
 type VolumeRustic struct {
-	FsSize int64  `json:"fs_size"`
-	FsType string `json:"fs_type"`
+	FsSize int64  `json:"fsSize"`
+	FsType string `json:"fsType"`
 }
 
 type CreateVolume struct {
 	Name string `json:"name"`
 
-	VolumeProvider int64 `json:"volume_provider"`
+	VolumeProvider int64 `json:"volumeProvider"`
 
 	Rustic *CreateVolumeRustic `json:"rustic,omitempty"`
 }
 
 type CreateVolumeRustic struct {
-	FsSize int64  `json:"fs_size"`
-	FsType string `json:"fs_type,omitempty"`
+	FsSize int64  `json:"fsSize"`
+	FsType string `json:"fsType,omitempty"`
 }
 
 type UpdateVolume struct {
 }
 
 type VolumeAttachment struct {
-	BoxID    int64 `json:"box_id"`
-	VolumeID int64 `json:"volume_id"`
+	BoxID    int64 `json:"boxId"`
+	VolumeID int64 `json:"volumeId"`
 
-	RootUid  int64  `json:"root_uid"`
-	RootGid  int64  `json:"root_gid"`
-	RootMode string `json:"root_mode"`
+	RootUid  int64  `json:"rootUid"`
+	RootGid  int64  `json:"rootGid"`
+	RootMode string `json:"rootMode"`
 
 	Volume *Volume `json:"volume,omitempty"`
 }
 
 type AttachVolumeRequest struct {
-	VolumeId int64 `json:"volume_id"`
+	VolumeId int64 `json:"volumeId"`
 
-	RootUid  int64  `json:"root_uid"`
-	RootGid  int64  `json:"root_gid"`
-	RootMode string `json:"root_mode"`
+	RootUid  int64  `json:"rootUid"`
+	RootGid  int64  `json:"rootGid"`
+	RootMode string `json:"rootMode"`
 }
 
 type UpdateVolumeAttachmentRequest struct {
-	RootUid  *int64  `json:"root_uid,omitempty"`
-	RootGid  *int64  `json:"root_gid,omitempty"`
-	RootMode *string `json:"root_mode,omitempty"`
+	RootUid  *int64  `json:"rootUid,omitempty"`
+	RootGid  *int64  `json:"rootGid,omitempty"`
+	RootMode *string `json:"rootMode,omitempty"`
 }
 
 type VolumeLockRequest struct {
@@ -87,6 +88,7 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 		ID:        s.ID,
 		Workspace: s.WorkspaceID,
 		CreatedAt: s.CreatedAt,
+		Status:    s.ReconcileStatus.ReconcileStatus,
 
 		Uuid: s.Uuid,
 		Name: s.Name,
@@ -100,11 +102,11 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 		LatestSnapshotId: s.LatestSnapshotId,
 	}
 
-	if attachment != nil {
+	if attachment != nil && attachment.VolumeId.Valid {
 		ret.Attachment = util.Ptr(VolumeAttachmentFromDB(*attachment, nil))
 	}
 
-	if s.Rustic != nil {
+	if s.Rustic != nil && s.Rustic.ID.Valid {
 		ret.Rustic = &VolumeRustic{
 			FsSize: s.Rustic.FsSize.V,
 			FsType: s.Rustic.FsType.V,

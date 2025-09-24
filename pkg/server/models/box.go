@@ -12,12 +12,11 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-// todo camelcase
-
 type Box struct {
 	ID        int64     `json:"id"`
 	Workspace int64     `json:"workspace"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	Status    string    `json:"status"`
 
 	Uuid string `json:"uuid"`
 	Name string `json:"name"`
@@ -25,11 +24,11 @@ type Box struct {
 	Machine *int64 `json:"machine"`
 
 	Network     *int64              `json:"network"`
-	NetworkType *global.NetworkType `json:"network_type"`
+	NetworkType *global.NetworkType `json:"networkType"`
 
-	DboxedVersion string `json:"dboxed_version"`
+	DboxedVersion string `json:"dboxedVersion"`
 
-	BoxSpec boxspec.BoxSpec `json:"box_spec"`
+	BoxSpec boxspec.BoxSpec `json:"boxSpec"`
 
 	BoxUrl string `json:"boxUrl"`
 }
@@ -57,6 +56,7 @@ func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
 		ID:        s.ID,
 		Workspace: s.WorkspaceID,
 		CreatedAt: s.CreatedAt,
+		Status:    s.ReconcileStatus.ReconcileStatus,
 
 		Uuid: s.Uuid,
 		Name: s.Name,

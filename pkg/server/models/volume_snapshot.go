@@ -10,6 +10,7 @@ type VolumeSnapshot struct {
 	ID        int64     `json:"id"`
 	Workspace int64     `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
+	Status    string    `json:"status"`
 
 	VolumeID int64  `json:"volumeId"`
 	LockID   string `json:"lockId"`
@@ -63,11 +64,12 @@ func VolumeSnapshotFromDB(v dmodel.VolumeSnapshot) VolumeSnapshot {
 		ID:        v.ID,
 		Workspace: v.WorkspaceID,
 		CreatedAt: v.CreatedAt,
+		Status:    v.ReconcileStatus.ReconcileStatus,
 		VolumeID:  v.VolumedID,
 		LockID:    v.LockID,
 	}
 
-	if v.Rustic != nil {
+	if v.Rustic != nil && v.Rustic.ID.Valid {
 		ret.Rustic = &VolumeSnapshotRustic{
 			SnapshotId:            v.Rustic.SnapshotId.V,
 			SnapshotTime:          v.Rustic.SnapshotTime.V,

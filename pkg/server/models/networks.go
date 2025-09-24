@@ -8,12 +8,13 @@ import (
 )
 
 type Network struct {
-	ID        int64              `json:"id"`
-	CreatedAt time.Time          `json:"created_at"`
-	Workspace int64              `json:"workspace"`
-	Type      global.NetworkType `json:"type"`
-	Name      string             `json:"name"`
-	Status    string             `json:"status"`
+	ID        int64     `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	Workspace int64     `json:"workspace"`
+	Status    string    `json:"status"`
+
+	Type global.NetworkType `json:"type"`
+	Name string             `json:"name"`
 
 	Netbird *NetworkNetbird `json:"netbird"`
 }

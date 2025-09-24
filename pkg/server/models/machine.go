@@ -10,13 +10,15 @@ import (
 type Machine struct {
 	ID        int64     `json:"id"`
 	Workspace int64     `json:"workspace"`
-	CreatedAt time.Time `json:"created_at"`
-	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+	Status    string    `json:"status"`
+
+	Name string `json:"name"`
 
 	Box int64 `json:"box"`
 
-	MachineProvider     int64                      `json:"machine_provider"`
-	MachineProviderType global.MachineProviderType `json:"machine_provider_type"`
+	MachineProvider     int64                      `json:"machineProvider"`
+	MachineProviderType global.MachineProviderType `json:"machineProviderType"`
 }
 
 type CreateMachine struct {
@@ -24,21 +26,21 @@ type CreateMachine struct {
 
 	Box int64 `json:"box"`
 
-	MachineProvider int64 `json:"machine_provider"`
+	MachineProvider int64 `json:"machineProvider"`
 
 	Hetzner *CreateMachineHetzner `json:"hetzner,omitempty"`
 	Aws     *CreateMachineAws     `json:"aws,omitempty"`
 }
 
 type CreateMachineHetzner struct {
-	ServerType     string `json:"server_type"`
-	ServerLocation string `json:"server_location"`
+	ServerType     string `json:"serverType"`
+	ServerLocation string `json:"serverLocation"`
 }
 
 type CreateMachineAws struct {
-	InstanceType   string `json:"instance_type"`
-	SubnetId       string `json:"subnet_id"`
-	RootVolumeSize *int64 `json:"root_volume_size,omitempty"`
+	InstanceType   string `json:"instanceType"`
+	SubnetId       string `json:"subnetId"`
+	RootVolumeSize *int64 `json:"rootVolumeSize,omitempty"`
 }
 
 type UpdateMachine struct {
@@ -49,7 +51,9 @@ func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 		ID:        s.ID,
 		Workspace: s.WorkspaceID,
 		CreatedAt: s.CreatedAt,
-		Name:      s.Name,
+		Status:    s.ReconcileStatus.ReconcileStatus,
+
+		Name: s.Name,
 
 		Box: s.BoxID,
 

@@ -8,11 +8,12 @@ import (
 
 type VolumeProvider struct {
 	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 	Workspace int64     `json:"workspace"`
-	Type      string    `json:"type"`
-	Name      string    `json:"name"`
 	Status    string    `json:"status"`
+
+	Type string `json:"type"`
+	Name string `json:"name"`
 
 	Rustic *VolumeProviderRustic `json:"rustic,omitempty"`
 }
@@ -77,13 +78,14 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 		Workspace: v.WorkspaceID,
 		Type:      v.Type,
 		Name:      v.Name,
+		Status:    v.ReconcileStatus.ReconcileStatus,
 	}
-	if v.Rustic != nil {
+	if v.Rustic != nil && v.Rustic.ID.Valid {
 		ret.Rustic = &VolumeProviderRustic{
 			Password:    v.Rustic.Password.V,
 			StorageType: v.Rustic.StorageType,
 		}
-		if v.Rustic.StorageS3 != nil {
+		if v.Rustic.StorageS3 != nil && v.Rustic.StorageS3.ID.Valid {
 			ret.Rustic.StorageS3 = &VolumeStorageS3{
 				Endpoint: v.Rustic.StorageS3.Endpoint.V,
 				Region:   v.Rustic.StorageS3.Region,

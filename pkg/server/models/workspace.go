@@ -8,7 +8,7 @@ import (
 
 type Workspace struct {
 	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 	Name      string    `json:"name"`
 
 	Access []WorkspaceAccess `json:"access"`

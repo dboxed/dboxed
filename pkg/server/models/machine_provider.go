@@ -9,13 +9,14 @@ import (
 
 type MachineProvider struct {
 	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 	Workspace int64     `json:"workspace"`
-	Type      string    `json:"type"`
-	Name      string    `json:"name"`
 	Status    string    `json:"status"`
 
-	SshKeyFingerprint *string `json:"ssh_key_fingerprint"`
+	Type string `json:"type"`
+	Name string `json:"name"`
+
+	SshKeyFingerprint *string `json:"sshKeyFingerprint"`
 
 	Aws     *MachineProviderAws     `json:"aws,omitempty"`
 	Hetzner *MachineProviderHetzner `json:"hetzner,omitempty"`
@@ -23,37 +24,37 @@ type MachineProvider struct {
 
 type MachineProviderAws struct {
 	Region          string  `json:"region"`
-	VpcID           *string `json:"vpc_id"`
-	VpcName         *string `json:"vpc_name"`
-	VpcCidr         *string `json:"vpc_cidr"`
-	SecurityGroupID *string `json:"security_group_id"`
+	VpcID           *string `json:"vpcId"`
+	VpcName         *string `json:"vpcName"`
+	VpcCidr         *string `json:"vpcCidr"`
+	SecurityGroupID *string `json:"securityGroupId"`
 
 	Subnets []MachineProviderAwsSubnet `json:"subnets"`
 }
 
 type MachineProviderAwsSubnet struct {
-	MachineProvider  int64   `json:"machine_provider"`
-	SubnetID         string  `json:"subnet_id"`
-	SubnetName       *string `json:"subnet_name"`
-	AvailabilityZone string  `json:"availability_zone"`
+	MachineProvider  int64   `json:"machineProvider"`
+	SubnetID         string  `json:"subnetId"`
+	SubnetName       *string `json:"subnetName"`
+	AvailabilityZone string  `json:"availabilityZone"`
 	Cidr             string  `json:"cidr"`
 }
 
 type MachineProviderHetzner struct {
-	HetznerNetworkName string  `json:"hetzner_network_name"`
-	HetznerNetworkID   *int64  `json:"hetzner_network_id"`
-	HetznerNetworkZone *string `json:"hetzner_network_zone"`
-	HetznerNetworkCidr *string `json:"hetzner_network_cidr"`
-	CloudSubnetCidr    *string `json:"cloud_subnet_cidr"`
-	RobotSubnetCidr    *string `json:"robot_subnet_cidr"`
-	RobotVswitchID     *int64  `json:"robot_vswitch_id"`
+	HetznerNetworkName string  `json:"hetznerNetworkName"`
+	HetznerNetworkID   *int64  `json:"hetznerNetworkId"`
+	HetznerNetworkZone *string `json:"hetznerNetworkZone"`
+	HetznerNetworkCidr *string `json:"hetznerNetworkCidr"`
+	CloudSubnetCidr    *string `json:"cloudSubnetCidr"`
+	RobotSubnetCidr    *string `json:"robotSubnetCidr"`
+	RobotVswitchID     *int64  `json:"robotVswitchId"`
 }
 
 type CreateMachineProvider struct {
 	Type global.MachineProviderType `json:"type"`
 	Name string                     `json:"name"`
 
-	SshKeyPublic *string `json:"ssh_key_public,omitempty"`
+	SshKeyPublic *string `json:"sshKeyPublic,omitempty"`
 
 	Aws     *CreateMachineProviderAws     `json:"aws,omitempty"`
 	Hetzner *CreateMachineProviderHetzner `json:"hetzner,omitempty"`
@@ -61,36 +62,36 @@ type CreateMachineProvider struct {
 
 type CreateMachineProviderAws struct {
 	Region string `json:"region"`
-	VpcId  string `json:"vpc_id"`
+	VpcId  string `json:"vpcId"`
 
-	AwsAccessKeyId     string `json:"aws_access_key_id"`
-	AwsSecretAccessKey string `json:"aws_secret_access_key"`
+	AwsAccessKeyId     string `json:"awsAccessKeyId"`
+	AwsSecretAccessKey string `json:"awsSecretAccessKey"`
 }
 
 type CreateMachineProviderHetzner struct {
-	CloudToken    string  `json:"cloud_token"`
-	RobotUsername *string `json:"robot_username,omitempty"`
-	RobotPassword *string `json:"robot_password,omitempty"`
+	CloudToken    string  `json:"cloudToken"`
+	RobotUsername *string `json:"robotUsername,omitempty"`
+	RobotPassword *string `json:"robotPassword,omitempty"`
 
-	HetznerNetworkName string `json:"hetzner_network_name"`
+	HetznerNetworkName string `json:"hetznerNetworkName"`
 }
 
 type UpdateMachineProvider struct {
-	SshKeyPublic *string `json:"ssh_key_public,omitempty"`
+	SshKeyPublic *string `json:"sshKeyPublic,omitempty"`
 
 	Aws     *UpdateMachineProviderAws     `json:"aws,omitempty"`
 	Hetzner *UpdateMachineProviderHetzner `json:"hetzner,omitempty"`
 }
 
 type UpdateMachineProviderAws struct {
-	AwsAccessKeyId     *string `json:"aws_access_key_id,omitempty"`
-	AwsSecretAccessKey *string `json:"aws_secret_access_key,omitempty"`
+	AwsAccessKeyId     *string `json:"awsAccessKeyId,omitempty"`
+	AwsSecretAccessKey *string `json:"awsSecretAccessKey,omitempty"`
 }
 
 type UpdateMachineProviderHetzner struct {
-	CloudToken    *string `json:"cloud_token,omitempty"`
-	RobotUsername *string `json:"robot_username,omitempty"`
-	RobotPassword *string `json:"robot_password,omitempty"`
+	CloudToken    *string `json:"cloudToken,omitempty"`
+	RobotUsername *string `json:"robotUsername,omitempty"`
+	RobotPassword *string `json:"robotPassword,omitempty"`
 }
 
 func MachineProviderFromDB(v dmodel.MachineProvider) *MachineProvider {
@@ -98,9 +99,9 @@ func MachineProviderFromDB(v dmodel.MachineProvider) *MachineProvider {
 		ID:        v.ID,
 		Workspace: v.WorkspaceID,
 		CreatedAt: v.CreatedAt,
+		Status:    v.ReconcileStatus.ReconcileStatus,
 		Type:      v.Type,
 		Name:      v.Name,
-		Status:    v.ReconcileStatus.ReconcileStatus,
 	}
 }
 
