@@ -30,10 +30,11 @@ func (s *Workspaces) Init(api huma.API) error {
 	s.api = api
 
 	skipWorkspaceModifier := huma_utils.MetadataModifier(huma_metadata.SkipWorkspace, true)
+	allowWorkspaceTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowWorkspaceToken, true)
 
 	huma.Post(s.api, "/v1/workspaces", s.restCreateWorkspace, skipWorkspaceModifier)
-	huma.Get(s.api, "/v1/workspaces", s.restListWorkspaces, skipWorkspaceModifier)
-	huma.Get(s.api, "/v1/workspaces/{workspaceId}", s.restGetWorkspace, skipWorkspaceModifier)
+	huma.Get(s.api, "/v1/workspaces", s.restListWorkspaces, skipWorkspaceModifier, allowWorkspaceTokenModifier)
+	huma.Get(s.api, "/v1/workspaces/{workspaceId}", s.restGetWorkspace, skipWorkspaceModifier, allowWorkspaceTokenModifier)
 	huma.Delete(s.api, "/v1/workspaces/{workspaceId}", s.restDeleteWorkspace, skipWorkspaceModifier)
 
 	huma.Get(s.api, "/v1/admin/workspaces", s.restAdminListWorkspaces, skipWorkspaceModifier, huma_metadata.NeedAdminModifier())
@@ -95,18 +96,31 @@ func (s *Workspaces) restAdminListWorkspaces(ctx context.Context, i *struct{}) (
 
 func (s *Workspaces) doRestListWorkspaces(ctx context.Context, asAdmin bool) (*huma_utils.List[models.Workspace], error) {
 	q := querier2.GetQuerier(ctx)
-	user := auth.MustGetUser(ctx)
+	user := auth.GetUser(ctx)
+	token := auth.GetToken(ctx)
 
-	var err error
 	var workspaces []dmodel.Workspace
-	if asAdmin {
-		workspaces, err = dmodel.ListWorkspaces(q, nil, true)
+	if user != nil {
+		var err error
+		if asAdmin {
+			workspaces, err = dmodel.ListWorkspaces(q, nil, true)
+		} else {
+			workspaces, err = dmodel.ListWorkspaces(q, &user.ID, true)
+		}
+		if err != nil {
+			return nil, err
+		}
+	} else if token != nil {
+		// return only the single workspace assigned to the token
+		w, err := dmodel.GetWorkspaceById(q, token.ID, true)
+		if err != nil {
+			return nil, err
+		}
+		workspaces = append(workspaces, *w)
 	} else {
-		workspaces, err = dmodel.ListWorkspaces(q, &user.ID, true)
+		return nil, huma.Error401Unauthorized("missing user/token")
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	var ret []models.Workspace
 	for _, w := range workspaces {
 		ret = append(ret, models.WorkspaceFromDB(w))
@@ -146,7 +160,8 @@ func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.Workspac
 
 func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id int64) (*dmodel.Workspace, error) {
 	q := querier2.GetQuerier(ctx)
-	user := auth.MustGetUser(ctx)
+	user := auth.GetUser(ctx)
+	token := auth.GetToken(ctx)
 
 	w, err := dmodel.GetWorkspaceById(q, id, true)
 	if err != nil {
@@ -156,12 +171,20 @@ func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id int64) (*dmode
 		return nil, err
 	}
 
-	if !user.IsAdmin {
-		if !slices.ContainsFunc(w.Access, func(access dmodel.WorkspaceAccess) bool {
-			return access.UserId == user.ID
-		}) {
+	if user != nil {
+		if !user.IsAdmin {
+			if !slices.ContainsFunc(w.Access, func(access dmodel.WorkspaceAccess) bool {
+				return access.UserId == user.ID
+			}) {
+				return nil, huma.Error403Forbidden("access to workspace not allowed")
+			}
+		}
+	} else if token != nil {
+		if token.Workspace != id {
 			return nil, huma.Error403Forbidden("access to workspace not allowed")
 		}
+	} else {
+		return nil, huma.Error403Forbidden("access to workspace not allowed")
 	}
 
 	return w, nil

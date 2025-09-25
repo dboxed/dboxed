@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -70,7 +72,11 @@ func (s *AuthHandler) restInfo(ctx context.Context, input *struct{}) (*huma_util
 }
 
 func (s *AuthHandler) restMe(ctx context.Context, input *struct{}) (*huma_utils.JsonBody[models.User], error) {
-	return huma_utils.NewJsonBody(MustGetUser(ctx)), nil
+	u := GetUser(ctx)
+	if u == nil {
+		return nil, huma.Error404NotFound("no user")
+	}
+	return huma_utils.NewJsonBody(*u), nil
 }
 
 // verifyIDToken verifies that an *oauth2.Token is a valid *oidc.IDToken.
@@ -149,27 +155,58 @@ func (s *AuthHandler) AuthMiddleware(ctx huma.Context, next func(huma.Context)) 
 		return
 	}
 
-	user, err := s.checkIdToken(ctx, authz)
-	if err != nil {
-		_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, err.Error(), err)
-		return
-	}
-	ctx = huma.WithValue(ctx, "user", user)
-
-	err = s.updateDBUser(ctx, user)
-	if err != nil {
-		_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, err.Error(), err)
-		return
-	}
-
-	if huma_utils.HasMetadataTrue(ctx, huma_metadata.NeedAdmin) {
-		if !user.IsAdmin {
-			_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "must be admin")
+	if strings.HasPrefix(authz, TokenPrefix) {
+		if huma_utils.HasMetadataTrue(ctx, huma_metadata.NeedAdmin) {
+			_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "token not allowed")
 			return
+		}
+		token, err := s.checkDboxedToken(ctx, authz)
+		if err != nil {
+			_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, err.Error(), err)
+			return
+		}
+		ctx = huma.WithValue(ctx, "token", token)
+	} else {
+		user, err := s.checkIdToken(ctx, authz)
+		if err != nil {
+			_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, err.Error(), err)
+			return
+		}
+		ctx = huma.WithValue(ctx, "user", user)
+
+		err = s.updateDBUser(ctx, user)
+		if err != nil {
+			_ = huma.WriteErr(s.api, ctx, http.StatusUnauthorized, err.Error(), err)
+			return
+		}
+
+		if huma_utils.HasMetadataTrue(ctx, huma_metadata.NeedAdmin) {
+			if !user.IsAdmin {
+				_ = huma.WriteErr(s.api, ctx, http.StatusForbidden, "must be admin")
+				return
+			}
 		}
 	}
 
 	next(ctx)
+}
+
+func (s *AuthHandler) checkDboxedToken(ctx huma.Context, authz string) (*models.Token, error) {
+	q := querier.GetQuerier(ctx.Context())
+	t, err := dmodel.GetTokenByToken(q, authz)
+	if err != nil {
+		return nil, err
+	}
+
+	if t.ForWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowWorkspaceToken) {
+		return nil, fmt.Errorf("workspace token not allowed")
+	}
+	if t.BoxID != nil && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowBoxToken) {
+		return nil, fmt.Errorf("box token not allowed")
+	}
+	
+	m := models.TokenFromDB(*t)
+	return &m, nil
 }
 
 func (s *AuthHandler) checkIdToken(ctx huma.Context, authz string) (*models.User, error) {
@@ -236,10 +273,14 @@ func MustGetUser(ctx context.Context) models.User {
 	return *user
 }
 
-func EnsureAdmin(c context.Context) error {
-	u := MustGetUser(c)
-	if !u.IsAdmin {
-		return huma.Error401Unauthorized("must be an admin")
+func GetToken(ctx context.Context) *models.Token {
+	tokenI := ctx.Value("token")
+	if tokenI == nil {
+		return nil
 	}
-	return nil
+	token, ok := tokenI.(*models.Token)
+	if !ok {
+		return nil
+	}
+	return token
 }

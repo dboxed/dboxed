@@ -9,7 +9,7 @@ import (
 )
 
 type TokenDeleteCmd struct {
-	Id string `help:"Token ID" required:"" arg:""`
+	Token string `help:"Specify the token" required:"" arg:""`
 }
 
 func (cmd *TokenDeleteCmd) Run() error {
@@ -22,12 +22,17 @@ func (cmd *TokenDeleteCmd) Run() error {
 
 	c2 := &clients.TokenClient{Client: c}
 
-	err = c2.DeleteToken(ctx, cmd.Id)
+	t, err := getToken(ctx, c, cmd.Token)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("token deleted", slog.Any("id", cmd.Id))
+	err = c2.DeleteToken(ctx, t.ID)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("token deleted", slog.Any("id", t.ID))
 
 	return nil
 }

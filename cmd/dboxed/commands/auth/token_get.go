@@ -5,11 +5,10 @@ import (
 	"log/slog"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
-	"github.com/dboxed/dboxed/pkg/clients"
 )
 
 type TokenGetCmd struct {
-	Id string `help:"Token ID" required:"" arg:""`
+	Token string `help:"Specify the token" required:"" arg:""`
 }
 
 func (cmd *TokenGetCmd) Run() error {
@@ -20,9 +19,7 @@ func (cmd *TokenGetCmd) Run() error {
 		return err
 	}
 
-	c2 := &clients.TokenClient{Client: c}
-
-	token, err := getToken(ctx, c2, cmd.Id)
+	token, err := getToken(ctx, c, cmd.Token)
 	if err != nil {
 		return err
 	}

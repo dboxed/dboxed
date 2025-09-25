@@ -8,13 +8,20 @@ import (
 
 type Token struct {
 	ID        int64     `json:"id"`
+	Workspace int64     `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
 	Name string `json:"name"`
+
+	ForWorkspace bool   `json:"forWorkspace"`
+	BoxID        *int64 `json:"boxId,omitempty"`
 }
 
 type CreateToken struct {
 	Name string `json:"name"`
+
+	ForWorkspace bool   `json:"forWorkspace,omitempty"`
+	BoxID        *int64 `json:"boxId,omitempty"`
 }
 
 type CreateTokenResult struct {
@@ -25,8 +32,11 @@ type CreateTokenResult struct {
 
 func TokenFromDB(v dmodel.Token) Token {
 	return Token{
-		ID:        v.ID,
-		CreatedAt: v.CreatedAt,
-		Name:      v.Name,
+		ID:           v.ID,
+		Workspace:    v.WorkspaceID,
+		CreatedAt:    v.CreatedAt,
+		Name:         v.Name,
+		ForWorkspace: v.ForWorkspace,
+		BoxID:        v.BoxID,
 	}
 }

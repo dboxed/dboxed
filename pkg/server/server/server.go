@@ -7,9 +7,11 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/config"
+	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes"
 	"github.com/dboxed/dboxed/pkg/server/resources/healthz"
+	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/server/resources/machine_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
@@ -95,11 +97,6 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		return err
 	}
 
-	err = s.tokens.Init(s.api)
-	if err != nil {
-		return err
-	}
-
 	err = s.workspaces.Init(s.api)
 	if err != nil {
 		return err
@@ -107,6 +104,7 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 
 	workspacesGroup := huma.NewGroup(s.api, "/v1/workspaces/{workspaceId}")
 	workspacesGroup.UseMiddleware(s.workspaces.WorkspaceMiddleware)
+	workspacesGroup.UseSimpleModifier(huma_utils.MetadataModifier(huma_metadata.AllowWorkspaceToken, true))
 	workspacesGroup.UseModifier(func(o *huma.Operation, next func(*huma.Operation)) {
 		o.Parameters = append(o.Parameters, &huma.Param{
 			Name:        "workspaceId",
@@ -117,6 +115,11 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		})
 		next(o)
 	})
+
+	err = s.tokens.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
 
 	err = s.machineProviders.Init(s.api, workspacesGroup)
 	if err != nil {

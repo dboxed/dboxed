@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/google/uuid"
@@ -31,15 +32,18 @@ func New(config config.Config) *BoxesServer {
 }
 
 func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	allowBoxTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true)
+
 	huma.Post(workspacesGroup, "/boxes", s.restCreateBox)
-	huma.Get(workspacesGroup, "/boxes", s.restListBoxes)
-	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox)
+	huma.Get(workspacesGroup, "/boxes", s.restListBoxes, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/by-name/{boxName}", s.restGetBoxByName, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/{id}/box-spec", s.restGetBoxSpec, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}", s.restUpdateBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
 
 	// volume attach/detach
-	huma.Get(workspacesGroup, "/boxes/{id}/volumes", s.restListAttachedVolumes)
+	huma.Get(workspacesGroup, "/boxes/{id}/volumes", s.restListAttachedVolumes, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/boxes/{id}/volumes", s.restAttachVolume)
 	huma.Patch(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restUpdateAttachedVolume)
 	huma.Delete(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restDetachVolume)
@@ -57,12 +61,6 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 		"logs":     boxspec.LogsBatch{},
 		"error":    models.LogsError{},
 	}, s.sseLogsStream)
-
-	huma.Post(workspacesGroup, "/boxes/{id}/generate-token", s.restGenerateToken)
-
-	huma.Get(rootGroup, "/v1/box-spec", s.restGetBoxSpec,
-		huma_utils.MetadataModifier(huma_metadata.SkipAuth, true),
-	)
 
 	return nil
 }
@@ -178,10 +176,21 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils.List[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
+	token := auth.GetToken(c)
 
-	l, err := dmodel.ListBoxesForWorkspace(q, w.ID, true)
-	if err != nil {
-		return nil, err
+	var l []dmodel.Box
+	if token != nil && token.BoxID != nil {
+		b, err := dmodel.GetBoxById(q, &w.ID, *token.BoxID, true)
+		if err != nil {
+			return nil, err
+		}
+		l = append(l, *b)
+	} else {
+		var err error
+		l, err = dmodel.ListBoxesForWorkspace(q, w.ID, true)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var ret []models.Box
@@ -198,6 +207,13 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
+	token := auth.GetToken(c)
+
+	if token != nil && token.BoxID != nil {
+		if *token.BoxID != i.Id {
+			return nil, huma.Error403Forbidden("no access to box")
+		}
+	}
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -218,10 +234,17 @@ type BoxName struct {
 func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
+	token := auth.GetToken(c)
 
 	box, err := dmodel.GetBoxByName(q, w.ID, i.BoxName, true)
 	if err != nil {
 		return nil, err
+	}
+
+	if token != nil && token.BoxID != nil {
+		if *token.BoxID != box.ID {
+			return nil, huma.Error403Forbidden("no access to box")
+		}
 	}
 
 	boxm, err := s.postprocessBox(c, *box)

@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/nats_utils"
 	"github.com/nats-io/jwt/v2"
 	"github.com/nats-io/nats.go"
@@ -223,7 +222,7 @@ func (s *AuthCalloutService) handleReq(ctx context.Context, rc *jwt.Authorizatio
 		}
 	}
 	if uc == nil {
-		return nil, fmt.Errorf("unknown nkey")
+		return nil, fmt.Errorf("unknown nkey/token")
 	}
 
 	// Validate the claims.
@@ -331,15 +330,14 @@ func (s *AuthCalloutService) buildBoxUser(ctx context.Context, rc *jwt.Authoriza
 			return nil, err
 		}
 	} else if rc.ConnectOptions.Token != "" {
-		token, sig, err := models.TokenFromStr(rc.ConnectOptions.Token)
+		token, err := dmodel.GetTokenByToken(q, rc.ConnectOptions.Token)
 		if err != nil {
 			return nil, err
 		}
-		box, err = dmodel.GetBoxById(q, &token.WorkspaceId, token.BoxId, true)
-		if err != nil {
-			return nil, err
+		if token.BoxID == nil {
+			return nil, nil
 		}
-		err = token.Verify(box.Nkey, sig)
+		box, err = dmodel.GetBoxById(q, &token.WorkspaceID, *token.BoxID, true)
 		if err != nil {
 			return nil, err
 		}

@@ -6,10 +6,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
-	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/google/uuid"
 )
@@ -22,18 +22,19 @@ func New() *TokenServer {
 	return s
 }
 
-func (s *TokenServer) Init(api huma.API) error {
-	huma.Post(api, "/v1/tokens", s.restCreateToken, huma_metadata.NoTokenModifier())
-	huma.Get(api, "/v1/tokens", s.restListTokens, huma_metadata.NoTokenModifier())
-	huma.Get(api, "/v1/tokens/{id}", s.restGetToken, huma_metadata.NoTokenModifier())
-	huma.Delete(api, "/v1/tokens/{id}", s.restDeleteToken, huma_metadata.NoTokenModifier())
+func (s *TokenServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	huma.Post(workspacesGroup, "/tokens", s.restCreateToken)
+	huma.Get(workspacesGroup, "/tokens", s.restListTokens)
+	huma.Get(workspacesGroup, "/tokens/{id}", s.restGetToken)
+	huma.Get(workspacesGroup, "/tokens/by-name/{tokenName}", s.restGetTokenByName)
+	huma.Delete(workspacesGroup, "/tokens/{id}", s.restDeleteToken)
 
 	return nil
 }
 
 func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBody[models.CreateToken]) (*huma_utils.JsonBody[models.CreateTokenResult], error) {
 	q := querier.GetQuerier(ctx)
-	user := auth.MustGetUser(ctx)
+	w := global.GetWorkspace(ctx)
 
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
@@ -41,9 +42,21 @@ func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBod
 	}
 
 	t := dmodel.Token{
-		Token:  auth.TokenPrefix + uuid.NewString(),
-		Name:   i.Body.Name,
-		UserID: user.ID,
+		WorkspaceID: w.ID,
+		Name:        i.Body.Name,
+		Token:       auth.TokenPrefix + uuid.NewString(),
+	}
+
+	if i.Body.ForWorkspace {
+		t.ForWorkspace = true
+	} else if i.Body.BoxID != nil {
+		box, err := dmodel.GetBoxById(q, &w.ID, *i.Body.BoxID, true)
+		if err != nil {
+			return nil, err
+		}
+		t.BoxID = &box.ID
+	} else {
+		return nil, huma.Error400BadRequest("missing details")
 	}
 
 	err = t.Create(q)
@@ -59,9 +72,9 @@ func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBod
 
 func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_utils.List[models.Token], error) {
 	q := querier.GetQuerier(ctx)
-	user := auth.MustGetUser(ctx)
+	w := global.GetWorkspace(ctx)
 
-	l, err := dmodel.ListTokensForUser(q, user.ID)
+	l, err := dmodel.ListTokensForWorkspace(q, w.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +89,26 @@ func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_ut
 
 func (s *TokenServer) restGetToken(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Token], error) {
 	q := querier.GetQuerier(c)
-	user := auth.GetUser(c)
+	w := global.GetWorkspace(c)
 
-	t, err := dmodel.GetTokenById(q, &user.ID, i.Id)
+	t, err := dmodel.GetTokenById(q, &w.ID, i.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.TokenFromDB(*t)
+	return huma_utils.NewJsonBody(m), nil
+}
+
+type TokenName struct {
+	TokenName string `path:"tokenName"`
+}
+
+func (s *TokenServer) restGetTokenByName(c context.Context, i *TokenName) (*huma_utils.JsonBody[models.Token], error) {
+	q := querier.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	t, err := dmodel.GetTokenByName(q, w.ID, i.TokenName)
 	if err != nil {
 		return nil, err
 	}
@@ -89,12 +119,13 @@ func (s *TokenServer) restGetToken(c context.Context, i *huma_utils.IdByPath) (*
 
 func (s *TokenServer) restDeleteToken(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	user := auth.GetUser(c)
+	w := global.GetWorkspace(c)
 
-	err := querier.DeleteOneByFields[dmodel.Token](q, map[string]any{
-		"id":      i.Id,
-		"user_id": user.ID,
-	})
+	t, err := dmodel.GetTokenById(q, &w.ID, i.Id)
+	if err != nil {
+		return nil, err
+	}
+	err = querier.DeleteOneById[dmodel.Token](q, t.ID)
 	if err != nil {
 		return nil, err
 	}

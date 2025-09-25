@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"strconv"
 
+	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
@@ -14,6 +16,20 @@ type TokenCmd struct {
 	Delete TokenDeleteCmd `cmd:"" help:"Delete a token"`
 }
 
-func getToken(ctx context.Context, c *clients.TokenClient, tokenId string) (*models.Token, error) {
-	return c.GetTokenById(ctx, tokenId)
+func getToken(ctx context.Context, c *baseclient.Client, token string) (*models.Token, error) {
+	c2 := clients.TokenClient{Client: c}
+	id, err := strconv.ParseInt(token, 10, 64)
+	if err == nil {
+		v, err := c2.GetTokenById(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	} else {
+		v, err := c2.GetTokenByName(ctx, token)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	}
 }

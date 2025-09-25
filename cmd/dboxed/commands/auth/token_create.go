@@ -2,15 +2,20 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
 type TokenCreateCmd struct {
-	Name string `help:"Specify the token name. Must be unique." required:""`
+	Name string `help:"Specify the token name. Must be unique." required:"" arg:""`
+
+	ForWorkspace bool    `help:"If set, the token will be for the whole workspace" xor:"for"`
+	Box          *string `help:"Specify box for which to create the token" xor:"for"`
 }
 
 func (cmd *TokenCreateCmd) Run() error {
@@ -25,6 +30,18 @@ func (cmd *TokenCreateCmd) Run() error {
 
 	req := models.CreateToken{
 		Name: cmd.Name,
+	}
+
+	if cmd.ForWorkspace {
+		req.ForWorkspace = true
+	} else if cmd.Box != nil {
+		b, err := box.GetBox(ctx, c, *cmd.Box)
+		if err != nil {
+			return err
+		}
+		req.BoxID = &b.ID
+	} else {
+		return fmt.Errorf("did not specify for what the token should be")
 	}
 
 	token, err := c2.CreateToken(ctx, req)
