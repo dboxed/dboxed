@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/auth"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/volume"
 	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
@@ -25,6 +26,8 @@ type Cli struct {
 
 	VolumeProvider volume_provider.VolumeProviderCommands `cmd:"" help:"manage volume providers"`
 	Volume         volume.VolumeCommands                  `cmd:"" help:"manage volumes"`
+
+	Box box.BoxCommands `cmd:"" help:"manage boxes"`
 
 	cliOnlyLinux
 }

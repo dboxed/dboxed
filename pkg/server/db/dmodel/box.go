@@ -48,6 +48,14 @@ func GetBoxById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted b
 	})
 }
 
+func GetBoxByName(q *querier2.Querier, workspaceId int64, name string, skipDeleted bool) (*Box, error) {
+	return querier2.GetOne[Box](q, map[string]any{
+		"workspace_id": workspaceId,
+		"name":         name,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func GetBoxByNkey(q *querier2.Querier, nkey string) (*Box, error) {
 	return querier2.GetOne[Box](q, map[string]any{
 		"nkey": nkey,

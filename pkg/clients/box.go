@@ -1,0 +1,58 @@
+package clients
+
+import (
+	"context"
+
+	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/server/huma_utils"
+	"github.com/dboxed/dboxed/pkg/server/models"
+)
+
+type BoxClient struct {
+	Client *baseclient.Client
+}
+
+func (c *BoxClient) CreateBox(ctx context.Context, req models.CreateBox) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, req)
+}
+
+func (c *BoxClient) ListBoxes(ctx context.Context) ([]models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes")
+	if err != nil {
+		return nil, err
+	}
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.Box]](ctx, c.Client, "GET", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return l.Items, err
+}
+
+func (c *BoxClient) GetBoxById(ctx context.Context, id int64) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
+}
+
+func (c *BoxClient) GetBoxByName(ctx context.Context, name string) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", "by-name", name)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
+}
+
+func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", id)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
+	return err
+}

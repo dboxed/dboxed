@@ -34,6 +34,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Post(workspacesGroup, "/boxes", s.restCreateBox)
 	huma.Get(workspacesGroup, "/boxes", s.restListBoxes)
 	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox)
+	huma.Get(workspacesGroup, "/boxes/by-name/{boxName}", s.restGetBoxByName, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}", s.restUpdateBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
 
@@ -199,6 +200,26 @@ func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*hu
 	w := global.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	boxm, err := s.postprocessBox(c, *box)
+	if err != nil {
+		return nil, err
+	}
+	return huma_utils.NewJsonBody(*boxm), nil
+}
+
+type BoxName struct {
+	BoxName string `path:"boxName"`
+}
+
+func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_utils.JsonBody[models.Box], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxByName(q, w.ID, i.BoxName, true)
 	if err != nil {
 		return nil, err
 	}
