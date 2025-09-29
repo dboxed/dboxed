@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const nameFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+const nameFmt string = "[a-z0-9]([-_a-z0-9]*[_a-z0-9])?"
 
 var nameFmtRegex = regexp.MustCompile("^" + nameFmt + "$")
 
