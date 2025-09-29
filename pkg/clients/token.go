@@ -12,12 +12,12 @@ type TokenClient struct {
 	Client *baseclient.Client
 }
 
-func (c *TokenClient) CreateToken(ctx context.Context, req models.CreateToken) (*models.CreateTokenResult, error) {
+func (c *TokenClient) CreateToken(ctx context.Context, req models.CreateToken) (*models.Token, error) {
 	p, err := c.Client.BuildApiPath(true, "tokens")
 	if err != nil {
 		return nil, err
 	}
-	return baseclient.RequestApi[models.CreateTokenResult](ctx, c.Client, "POST", p, req)
+	return baseclient.RequestApi[models.Token](ctx, c.Client, "POST", p, req)
 }
 
 func (c *TokenClient) ListTokens(ctx context.Context) ([]models.Token, error) {

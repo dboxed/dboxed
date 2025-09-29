@@ -49,7 +49,7 @@ func (cmd *TokenCreateCmd) Run() error {
 		return err
 	}
 
-	slog.Info("token created", slog.Any("id", token.ID), slog.Any("name", token.Name), slog.Any("token", token.TokenStr))
+	slog.Info("token created", slog.Any("id", token.ID), slog.Any("name", token.Name), slog.Any("token", token.Token))
 
 	return nil
 }

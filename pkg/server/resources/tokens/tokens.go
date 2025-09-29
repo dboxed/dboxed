@@ -2,6 +2,7 @@ package tokens
 
 import (
 	"context"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -11,8 +12,9 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/google/uuid"
 )
+
+const InternalTokenNamePrefix = "internal_"
 
 type TokenServer struct {
 }
@@ -32,42 +34,13 @@ func (s *TokenServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	return nil
 }
 
-func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBody[models.CreateToken]) (*huma_utils.JsonBody[models.CreateTokenResult], error) {
-	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
-
-	err := util.CheckName(i.Body.Name)
+func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBody[models.CreateToken]) (*huma_utils.JsonBody[models.Token], error) {
+	ret, err := CreateToken(ctx, i.Body, true, false)
 	if err != nil {
 		return nil, err
 	}
 
-	t := dmodel.Token{
-		WorkspaceID: w.ID,
-		Name:        i.Body.Name,
-		Token:       auth.TokenPrefix + uuid.NewString(),
-	}
-
-	if i.Body.ForWorkspace {
-		t.ForWorkspace = true
-	} else if i.Body.BoxID != nil {
-		box, err := dmodel.GetBoxById(q, &w.ID, *i.Body.BoxID, true)
-		if err != nil {
-			return nil, err
-		}
-		t.BoxID = &box.ID
-	} else {
-		return nil, huma.Error400BadRequest("missing details")
-	}
-
-	err = t.Create(q)
-	if err != nil {
-		return nil, err
-	}
-
-	return huma_utils.NewJsonBody(models.CreateTokenResult{
-		Token:    models.TokenFromDB(t),
-		TokenStr: t.Token,
-	}), nil
+	return huma_utils.NewJsonBody(*ret), nil
 }
 
 func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_utils.List[models.Token], error) {
@@ -81,7 +54,7 @@ func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_ut
 
 	var ret []models.Token
 	for _, r := range l {
-		mm := models.TokenFromDB(r)
+		mm := models.TokenFromDB(r, false)
 		ret = append(ret, mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
@@ -96,7 +69,7 @@ func (s *TokenServer) restGetToken(c context.Context, i *huma_utils.IdByPath) (*
 		return nil, err
 	}
 
-	m := models.TokenFromDB(*t)
+	m := models.TokenFromDB(*t, false)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -113,7 +86,7 @@ func (s *TokenServer) restGetTokenByName(c context.Context, i *TokenName) (*huma
 		return nil, err
 	}
 
-	m := models.TokenFromDB(*t)
+	m := models.TokenFromDB(*t, false)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -131,4 +104,46 @@ func (s *TokenServer) restDeleteToken(c context.Context, i *huma_utils.IdByPath)
 	}
 
 	return &huma_utils.Empty{}, nil
+}
+
+func CreateToken(ctx context.Context, ct models.CreateToken, returnSecret bool, internal bool) (*models.Token, error) {
+	q := querier.GetQuerier(ctx)
+	w := global.GetWorkspace(ctx)
+
+	err := util.CheckName(ct.Name)
+	if err != nil {
+		return nil, err
+	}
+	hasInternalPrefix := strings.HasPrefix(ct.Name, InternalTokenNamePrefix)
+	if !internal && hasInternalPrefix {
+		return nil, huma.Error400BadRequest("invalid token name")
+	} else if internal && !hasInternalPrefix {
+		return nil, huma.Error400BadRequest("missing internal token prefix")
+	}
+
+	t := dmodel.Token{
+		WorkspaceID: w.ID,
+		Name:        ct.Name,
+		Token:       auth.TokenPrefix + util.RandomString(16),
+	}
+
+	if ct.ForWorkspace {
+		t.ForWorkspace = true
+	} else if ct.BoxID != nil {
+		box, err := dmodel.GetBoxById(q, &w.ID, *ct.BoxID, true)
+		if err != nil {
+			return nil, err
+		}
+		t.BoxID = &box.ID
+	} else {
+		return nil, huma.Error400BadRequest("missing details")
+	}
+
+	err = t.Create(q)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := models.TokenFromDB(t, returnSecret)
+	return &ret, nil
 }

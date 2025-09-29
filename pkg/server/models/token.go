@@ -11,7 +11,8 @@ type Token struct {
 	Workspace int64     `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
-	Name string `json:"name"`
+	Name  string  `json:"name"`
+	Token *string `json:"token,omitempty"`
 
 	ForWorkspace bool   `json:"forWorkspace"`
 	BoxID        *int64 `json:"boxId,omitempty"`
@@ -24,14 +25,8 @@ type CreateToken struct {
 	BoxID        *int64 `json:"boxId,omitempty"`
 }
 
-type CreateTokenResult struct {
-	Token
-
-	TokenStr string `json:"token"`
-}
-
-func TokenFromDB(v dmodel.Token) Token {
-	return Token{
+func TokenFromDB(v dmodel.Token, withSecret bool) Token {
+	ret := Token{
 		ID:           v.ID,
 		Workspace:    v.WorkspaceID,
 		CreatedAt:    v.CreatedAt,
@@ -39,4 +34,8 @@ func TokenFromDB(v dmodel.Token) Token {
 		ForWorkspace: v.ForWorkspace,
 		BoxID:        v.BoxID,
 	}
+	if withSecret {
+		ret.Token = &v.Token
+	}
+	return ret
 }
