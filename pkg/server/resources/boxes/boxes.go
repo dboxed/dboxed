@@ -91,7 +91,7 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 
 func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmodel.Box, string, error) {
 	q := querier2.GetQuerier(c)
-	workspace := global.GetWorkspace(c)
+	w := global.GetWorkspace(c)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
@@ -115,7 +115,7 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 	var networkType *string
 	if body.Network != nil {
 		var network *dmodel.Network
-		network, err = dmodel.GetNetworkById(q, &workspace.ID, *body.Network, true)
+		network, err = dmodel.GetNetworkById(q, &w.ID, *body.Network, true)
 		if err != nil {
 			return nil, "", err
 		}
@@ -135,7 +135,7 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 
 	box := &dmodel.Box{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
-			WorkspaceID: workspace.ID,
+			WorkspaceID: w.ID,
 		},
 		Uuid: uuid.NewString(),
 		Name: body.Name,
