@@ -60,7 +60,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Type: string(dmodel.VolumeProviderTypeRustic),
+		Type: string(i.Body.Type),
 		Name: i.Body.Name,
 	}
 
@@ -69,7 +69,11 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		return nil, err
 	}
 
-	if i.Body.Rustic != nil {
+	switch i.Body.Type {
+	case dmodel.VolumeProviderTypeRustic:
+		if i.Body.Rustic == nil {
+			return nil, fmt.Errorf("missing rustic config")
+		}
 		r.Rustic = &dmodel.VolumeProviderRustic{
 			ID:          querier.N(r.ID),
 			Password:    querier.N(i.Body.Rustic.Password),
@@ -80,7 +84,11 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 			return nil, err
 		}
 
-		if i.Body.Rustic.StorageS3 != nil {
+		switch i.Body.Rustic.StorageType {
+		case dmodel.VolumeProviderStorageTypeS3:
+			if i.Body.Rustic.StorageS3 == nil {
+				return nil, fmt.Errorf("missing S3 storage config")
+			}
 			err = s.checkEndpoint(i.Body.Rustic.StorageS3.Endpoint)
 			if err != nil {
 				return nil, err
@@ -105,7 +113,11 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 			if err != nil {
 				return nil, err
 			}
+		default:
+			return nil, fmt.Errorf("unsupported storage type %s", i.Body.Rustic.StorageType)
 		}
+	default:
+		return nil, fmt.Errorf("unsupported volume provider type %s", i.Body.Type)
 	}
 
 	return huma_utils.NewJsonBody(models.VolumeProviderFromDB(r)), nil
@@ -184,6 +196,10 @@ func (s *VolumeProviderServer) restUpdateVolumeProvider(c context.Context, i *re
 func (s *VolumeProviderServer) doUpdateVolumeProvider(c context.Context, r *dmodel.VolumeProvider, body models.UpdateVolumeProvider) error {
 	q := querier.GetQuerier(c)
 	if body.Rustic != nil {
+		if dmodel.VolumeProviderType(r.Type) != dmodel.VolumeProviderTypeRustic {
+			return huma.Error400BadRequest("invalid update, not a rustic volume provider")
+		}
+
 		if body.Rustic.Password != nil {
 			if *body.Rustic.Password == "" {
 				return huma.Error400BadRequest("rustic password can not be empty")
@@ -195,6 +211,9 @@ func (s *VolumeProviderServer) doUpdateVolumeProvider(c context.Context, r *dmod
 		}
 
 		if body.Rustic.StorageS3 != nil {
+			if dmodel.VolumeProviderStorageType(r.Rustic.StorageType) != dmodel.VolumeProviderStorageTypeS3 {
+				return huma.Error400BadRequest("invalid update, not a S3 based volume provider")
+			}
 			if body.Rustic.StorageS3.Endpoint != nil {
 				err := s.checkEndpoint(*body.Rustic.StorageS3.Endpoint)
 				if err != nil {

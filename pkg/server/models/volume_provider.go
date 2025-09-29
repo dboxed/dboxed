@@ -12,8 +12,8 @@ type VolumeProvider struct {
 	Workspace int64     `json:"workspace"`
 	Status    string    `json:"status"`
 
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type dmodel.VolumeProviderType `json:"type"`
+	Name string                    `json:"name"`
 
 	Rustic *VolumeProviderRustic `json:"rustic,omitempty"`
 }
@@ -33,7 +33,8 @@ type VolumeStorageS3 struct {
 }
 
 type CreateVolumeProvider struct {
-	Name string `json:"name"`
+	Type dmodel.VolumeProviderType `json:"type"`
+	Name string                    `json:"name"`
 
 	Rustic *CreateVolumeProviderRustic `json:"rustic"`
 }
@@ -50,7 +51,8 @@ type CreateVolumeProviderStorageS3 struct {
 type CreateVolumeProviderRustic struct {
 	Password string `json:"password"`
 
-	StorageS3 *CreateVolumeProviderStorageS3 `json:"storageS3"`
+	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
+	StorageS3   *CreateVolumeProviderStorageS3   `json:"storageS3"`
 }
 
 type UpdateVolumeProvider struct {
@@ -76,7 +78,7 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 		ID:        v.ID,
 		CreatedAt: v.CreatedAt,
 		Workspace: v.WorkspaceID,
-		Type:      v.Type,
+		Type:      dmodel.VolumeProviderType(v.Type),
 		Name:      v.Name,
 		Status:    v.ReconcileStatus.ReconcileStatus,
 	}

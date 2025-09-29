@@ -44,7 +44,7 @@ type CreateVolume struct {
 
 type CreateVolumeRustic struct {
 	FsSize int64  `json:"fsSize"`
-	FsType string `json:"fsType,omitempty"`
+	FsType string `json:"fsType"`
 }
 
 type UpdateVolume struct {
