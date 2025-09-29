@@ -9,7 +9,7 @@ type NetworkNetbird struct {
 
 	NetbirdVersion querier2.NullForJoin[string] `db:"netbird_version"`
 	ApiUrl         querier2.NullForJoin[string] `db:"api_url"`
-	ApiAccessToken *string                      `db:"api_access_token"`
+	ApiAccessToken querier2.NullForJoin[string] `db:"api_access_token"`
 }
 
 func (v *NetworkNetbird) Create(q *querier2.Querier) error {
@@ -21,7 +21,7 @@ func (v *NetworkNetbird) UpdateNetbirdVersion(q *querier2.Querier, version strin
 	return querier2.UpdateOneFromStruct(q, v, "netbird_version")
 }
 
-func (v *NetworkNetbird) UpdateApiAccessToken(q *querier2.Querier, token *string) error {
-	v.ApiAccessToken = token
+func (v *NetworkNetbird) UpdateApiAccessToken(q *querier2.Querier, token string) error {
+	v.ApiAccessToken = querier2.N(token)
 	return querier2.UpdateOneFromStruct(q, v, "api_access_token")
 }

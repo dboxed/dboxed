@@ -34,7 +34,7 @@ type CreateNetwork struct {
 type CreateNetworkNetbird struct {
 	NetbirdVersion string  `json:"netbirdVersion"`
 	ApiUrl         *string `json:"apiUrl,omitempty"`
-	ApiAccessToken *string `json:"apiAccessToken,omitempty"`
+	ApiAccessToken string  `json:"apiAccessToken"`
 }
 
 type UpdateNetwork struct {
@@ -42,7 +42,7 @@ type UpdateNetwork struct {
 }
 
 type UpdateNetworkNetbird struct {
-	NetbirdVersion *string `json:"netbirdVersion"`
+	NetbirdVersion *string `json:"netbirdVersion,omitempty"`
 	ApiAccessToken *string `json:"apiAccessToken,omitempty"`
 }
 

@@ -20,5 +20,5 @@ create table network_netbird
     id               bigint not null primary key references network (id) on delete cascade,
     netbird_version  text not null,
     api_url          text not null,
-    api_access_token text
+    api_access_token text not null
 );

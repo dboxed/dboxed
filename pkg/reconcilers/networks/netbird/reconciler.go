@@ -138,9 +138,6 @@ func (r *Reconciler) ReconcileDelete(ctx context.Context, log *slog.Logger, n *d
 }
 
 func (r *Reconciler) buildNetbirdApiClient() error {
-	if r.n.Netbird.ApiAccessToken == nil {
-		return fmt.Errorf("netbird network is missing api access token")
-	}
-	r.netbirdClient = rest.NewWithBearerToken(r.n.Netbird.ApiUrl.V, *r.n.Netbird.ApiAccessToken)
+	r.netbirdClient = rest.NewWithBearerToken(r.n.Netbird.ApiUrl.V, r.n.Netbird.ApiAccessToken.V)
 	return nil
 }

@@ -3,7 +3,9 @@ package networks
 import (
 	"context"
 	"log/slog"
+	"net/url"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -16,6 +18,17 @@ func (s *NetworksServer) restCreateNetworkNetbird(c context.Context, log *slog.L
 	if body.ApiUrl != nil {
 		apiUrl = *body.ApiUrl
 	}
+	if apiUrl == "" {
+		return huma.Error400BadRequest("api url can't be empty")
+	}
+	_, err := url.Parse(apiUrl)
+	if err != nil {
+		return huma.Error400BadRequest("invalid api url", err)
+	}
+
+	if body.ApiAccessToken == "" {
+		return huma.Error400BadRequest("api access token can't be empty")
+	}
 
 	log = log.With(slog.Any("apiUrl", apiUrl))
 
@@ -23,9 +36,9 @@ func (s *NetworksServer) restCreateNetworkNetbird(c context.Context, log *slog.L
 		ID:             querier2.N(n.ID),
 		NetbirdVersion: querier2.N(body.NetbirdVersion),
 		ApiUrl:         querier2.N(apiUrl),
-		ApiAccessToken: body.ApiAccessToken,
+		ApiAccessToken: querier2.N(body.ApiAccessToken),
 	}
-	err := n.Netbird.Create(q)
+	err = n.Netbird.Create(q)
 	if err != nil {
 		return err
 	}
@@ -43,11 +56,7 @@ func (s *NetworksServer) restUpdateNetworkNetbird(c context.Context, log *slog.L
 		}
 	}
 	if body.ApiAccessToken != nil {
-		t := body.ApiAccessToken
-		if *t == "" {
-			t = nil
-		}
-		err := n.Netbird.UpdateApiAccessToken(q, t)
+		err := n.Netbird.UpdateApiAccessToken(q, *body.ApiAccessToken)
 		if err != nil {
 			return err
 		}
