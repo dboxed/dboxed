@@ -185,7 +185,7 @@ func (s *MachineProviderServer) doUpdateMachineProvider(c context.Context, mp *d
 	if body.SshKeyPublic != nil {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(*body.SshKeyPublic))
 		if err != nil {
-			return err
+			return huma.Error400BadRequest("invalid ssh key", err)
 		}
 		err = mp.UpdateSshKeyPublic(q, body.SshKeyPublic)
 		if err != nil {
