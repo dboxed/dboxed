@@ -4,17 +4,17 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 )
 
 type SelectCmd struct {
 	Workspace string `help:"Specify the workspace." required:"" arg:""`
 }
 
-func (cmd *SelectCmd) Run() error {
+func (cmd *SelectCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}

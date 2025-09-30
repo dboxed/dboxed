@@ -5,20 +5,20 @@ package volume
 import (
 	"context"
 
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
 type LockCmd struct {
 	Volume string `help:"Specify volume" required:"" args:""`
 
-	Dir string `help:"Specify the local directory for the volume"`
+	Dir string `help:"Specify the local directory for the volume" required:"" type:"path"`
 }
 
-func (cmd *LockCmd) Run() error {
+func (cmd *LockCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}

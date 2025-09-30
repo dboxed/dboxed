@@ -1,4 +1,6 @@
-package runner
+//go:build linux
+
+package box
 
 import (
 	"context"
@@ -7,10 +9,10 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/run-box-in-sandbox"
 )
 
-type RunBoxInSandbox struct {
+type RunInSandbox struct {
 }
 
-func (cmd *RunBoxInSandbox) Run(g *flags.GlobalFlags) error {
+func (cmd *RunInSandbox) Run(g *flags.GlobalFlags) error {
 	runBox := run_box_in_sandbox.RunBoxInSandbox{
 		Debug: g.Debug,
 	}

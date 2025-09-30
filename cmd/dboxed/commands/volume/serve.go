@@ -16,7 +16,7 @@ import (
 )
 
 type ServeCmd struct {
-	Dir string `help:"Specify the local directory for the volume"`
+	Dir string `help:"Specify the local directory for the volume" required:"" type:"existingdir"`
 
 	BackupInterval string `help:"Specify the backup interval" default:"5m"`
 

@@ -70,7 +70,7 @@ func (vs *VolumeServe) buildClient(ctx context.Context, s *VolumeState) (*basecl
 		return vs.opts.Client, nil
 	}
 
-	c, err := baseclient.FromClientAuth(s.ClientAuth, false)
+	c, err := baseclient.FromClientAuth(nil, s.ClientAuth, false)
 	if err != nil {
 		return nil, err
 	}

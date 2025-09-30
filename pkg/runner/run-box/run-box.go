@@ -4,50 +4,54 @@ package run_box
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"net/netip"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
-	source2 "github.com/dboxed/dboxed/pkg/runner/box-spec-runner/source"
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/selfupdate"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nkeys"
 	"go4.org/netipx"
+	"sigs.k8s.io/yaml"
 )
 
 type RunBox struct {
 	Debug bool
 
+	Client *baseclient.Client
+	BoxId  int64
+
 	InfraImage      string
-	BoxUrl          *url.URL
 	Nkey            string
 	BoxName         string
 	WorkDir         string
 	VethNetworkCidr string
 
-	natsConn *nats.Conn
-
 	acquiredVethNetworkCidr *net.IPNet
-
-	boxSpecSource *source2.BoxSpecSource
 
 	logsPublisher logs.LogsPublisher
 	sandbox       *sandbox.Sandbox
 }
 
 func (rn *RunBox) Run(ctx context.Context) error {
+	if rn.Client.GetClientAuth().StaticToken == nil {
+		return fmt.Errorf("can only run box with static token")
+	}
+
 	sandboxDir := filepath.Join(rn.WorkDir, "boxes", rn.BoxName)
 
 	err := os.MkdirAll(rn.WorkDir, 0700)
@@ -68,19 +72,15 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.connectNats(ctx)
+	boxesClient := clients.BoxClient{Client: rn.Client}
+	initialBoxFile, err := boxesClient.GetBoxSpecById(ctx, rn.BoxId)
 	if err != nil {
 		return err
 	}
-
-	err = rn.startBoxSpecSource(ctx)
-	if err != nil {
-		return err
-	}
-	initialBoxSpec := rn.boxSpecSource.GetCurSpec().Spec
+	initialBoxSpec := &initialBoxFile.Spec
 
 	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
-	err = rn.initLogsPublishing(ctx, sandboxDir, &initialBoxSpec)
+	err = rn.initLogsPublishing(ctx, sandboxDir, initialBoxSpec)
 	if err != nil {
 		return err
 	}
@@ -154,6 +154,12 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		slog.InfoContext(ctx, "stopping dboxed service inside sandbox")
+		err = rn.sandbox.S6SvcDown(ctx, "dboxed")
+		if err != nil {
+			return err
+		}
 	}
 
 	err = rn.sandbox.CopyBinaries(ctx)
@@ -173,7 +179,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 
 	// now that we ensured that the potentially running sandbox does not belong to another box, we can start publishing
 	// the sandbox internal logs
-	err = rn.initLogsPublishingSandbox(ctx, sandboxDir, &initialBoxSpec)
+	err = rn.initLogsPublishingSandbox(ctx, sandboxDir, initialBoxSpec)
 	if err != nil {
 		return err
 	}
@@ -185,110 +191,64 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.writeDboxedAuthFile(ctx)
+	if err != nil {
+		return err
+	}
+
 	if needDestroy {
+		slog.InfoContext(ctx, "starting sandbox")
 		err = rn.sandbox.Start(ctx)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = rn.sandbox.S6SvcRestart(ctx, "dboxed")
+		slog.InfoContext(ctx, "starting dboxed service inside sandbox")
+		err = rn.sandbox.S6SvcUp(ctx, "dboxed")
 		if err != nil {
 			return err
 		}
 	}
 
+	lastBoxSpecHash := ""
 	for {
-		boxSpec := rn.boxSpecSource.GetCurSpec().Spec
-
-		b, err := json.Marshal(boxSpec)
+		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.BoxId)
 		if err != nil {
-			return err
-		}
-		err = util.AtomicWriteFile(specFile, b, 0600)
-		if err != nil {
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case _, ok := <-rn.boxSpecSource.Chan:
-			if !ok {
-				slog.InfoContext(ctx, "box spec was deleted, exiting")
-				err = rn.sandbox.Stop(ctx)
+			var err2 *huma.ErrorModel
+			if errors.As(err, &err2) {
+				if err2.Status == http.StatusNotFound {
+					slog.InfoContext(ctx, "box spec was deleted, exiting")
+					err = rn.sandbox.Stop(ctx)
+					if err != nil {
+						return err
+					}
+					return nil
+				}
+			}
+			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
+		} else {
+			newHash, err := util.Sha256SumJson(boxFile.Spec)
+			if err != nil {
+				return err
+			}
+			if newHash != lastBoxSpecHash {
+				slog.InfoContext(ctx, "a new box spec was received")
+				b, err := yaml.Marshal(boxFile)
 				if err != nil {
 					return err
 				}
-				return nil
+				err = util.AtomicWriteFile(specFile, b, 0600)
+				if err != nil {
+					return err
+				}
+				lastBoxSpecHash = newHash
 			}
-			slog.InfoContext(ctx, "a new box spec was received")
-			continue
+		}
+
+		if !util.SleepWithContext(ctx, time.Second*5) {
+			return ctx.Err()
 		}
 	}
-}
-
-func (rn *RunBox) startBoxSpecSource(ctx context.Context) error {
-	var err error
-	if rn.natsConn != nil {
-		bucket := rn.BoxUrl.Query().Get("bucket")
-		if bucket == "" {
-			return fmt.Errorf("missing bucket in nats url")
-		}
-		key := rn.BoxUrl.Query().Get("key")
-		if key == "" {
-			return fmt.Errorf("missing key in nats url")
-		}
-		rn.boxSpecSource, err = source2.NewNatsSource(ctx, rn.natsConn, bucket, key)
-		if err != nil {
-			return err
-		}
-	} else {
-		rn.boxSpecSource, err = source2.NewUrlSource(ctx, *rn.BoxUrl)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (rn *RunBox) connectNats(ctx context.Context) error {
-	if rn.BoxUrl.Scheme != "nats" {
-		return nil
-	}
-
-	token := rn.BoxUrl.Query().Get("token")
-
-	var opts []nats.Option
-	if rn.Nkey != "" {
-		nkeySeed, err := os.ReadFile(rn.Nkey)
-		if err != nil {
-			return err
-		}
-
-		kp, err := nkeys.FromSeed(nkeySeed)
-		if err != nil {
-			return err
-		}
-		nkey, err := kp.PublicKey()
-		if err != nil {
-			return err
-		}
-		opts = append(opts, nats.Nkey(nkey, kp.Sign))
-	} else if token != "" {
-		opts = append(opts, nats.Token(token))
-	}
-
-	slog.InfoContext(ctx, "connecting to nats",
-		slog.Any("url", rn.BoxUrl.String()),
-	)
-	nc, err := nats.Connect(rn.BoxUrl.String(), opts...)
-	if err != nil {
-		return err
-	}
-
-	rn.natsConn = nc
-	return err
 }
 
 func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {
@@ -455,6 +415,14 @@ umount /sys
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rn *RunBox) writeDboxedAuthFile(ctx context.Context) error {
+	err := util.AtomicWriteFileYaml(filepath.Join(rn.sandbox.GetSandboxRoot(), consts.BoxClientAuthFile), rn.Client.GetClientAuth(), 0600)
 	if err != nil {
 		return err
 	}

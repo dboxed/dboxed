@@ -2,7 +2,6 @@ package box_spec_runner
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
+	"sigs.k8s.io/yaml"
 )
 
 type volumeInterface interface {
@@ -44,7 +44,7 @@ func getVolumeMountDir(i volumeInterface, vol boxspec.BoxVolumeSpec) string {
 }
 
 func (rn *BoxSpecRunner) buildVolumeSpecPath(vi volumeInterface, vol boxspec.BoxVolumeSpec) string {
-	volumeSpecFile := filepath.Join(consts.VolumesDir, fmt.Sprintf("volume-spec-%s.json", vi.WorkDirBase(vol)))
+	volumeSpecFile := filepath.Join(consts.VolumesDir, fmt.Sprintf("volume-spec-%s.yaml", vi.WorkDirBase(vol)))
 	return volumeSpecFile
 }
 
@@ -58,12 +58,12 @@ func (rn *BoxSpecRunner) readOldVolumeSpecs() ([]boxspec.BoxVolumeSpec, error) {
 		if de.IsDir() {
 			continue
 		}
-		if m, _ := filepath.Match("volume-spec-*.json", de.Name()); !m {
+		if m, _ := filepath.Match("volume-spec-*.yaml", de.Name()); !m {
 			continue
 		}
 
 		volumeSpecFile := filepath.Join(consts.VolumesDir, de.Name())
-		volSpec, err := util.UnmarshalJsonFile[boxspec.BoxVolumeSpec](volumeSpecFile)
+		volSpec, err := util.UnmarshalYamlFile[boxspec.BoxVolumeSpec](volumeSpecFile)
 		if err != nil && !os.IsNotExist(err) {
 			return nil, err
 		}
@@ -75,7 +75,7 @@ func (rn *BoxSpecRunner) readOldVolumeSpecs() ([]boxspec.BoxVolumeSpec, error) {
 }
 
 func (rn *BoxSpecRunner) writeVolumeSpec(vi volumeInterface, vol boxspec.BoxVolumeSpec) error {
-	b, err := json.Marshal(vol)
+	b, err := yaml.Marshal(vol)
 	if err != nil {
 		return err
 	}

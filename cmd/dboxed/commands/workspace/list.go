@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"sigs.k8s.io/yaml"
 )
@@ -12,10 +12,10 @@ import (
 type ListCmd struct {
 }
 
-func (cmd *ListCmd) Run() error {
+func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}

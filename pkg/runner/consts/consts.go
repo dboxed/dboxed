@@ -10,8 +10,9 @@ const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
 
 const DboxedDataDir = "/var/lib/dboxed"
 
-const BoxSpecFile = DboxedDataDir + "/box-spec.json"
-const NetworkConfFile = DboxedDataDir + "/network.json"
+const BoxSpecFile = DboxedDataDir + "/box-spec.yaml"
+const NetworkConfFile = DboxedDataDir + "/network.yaml"
+const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 
 const ContainersDir = DboxedDataDir + "/containers"
 const LogsDir = DboxedDataDir + "/logs"

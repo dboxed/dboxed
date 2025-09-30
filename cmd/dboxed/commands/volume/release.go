@@ -11,7 +11,7 @@ import (
 )
 
 type ReleaseCmd struct {
-	Dir string `help:"Specify the local directory for the volume"`
+	Dir string `help:"Specify the local directory for the volume" required:"" type:"existingdir"`
 
 	flags.WebdavProxyFlags
 }

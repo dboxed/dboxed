@@ -21,13 +21,13 @@ func (rn *Sandbox) s6SvcCmd(ctx context.Context, serviceName string, args ...str
 }
 
 func (rn *Sandbox) S6SvcUp(ctx context.Context, serviceName string) error {
-	return rn.s6SvcCmd(ctx, serviceName, "-u")
+	return rn.s6SvcCmd(ctx, serviceName, "-u", "-wu")
 }
 
 func (rn *Sandbox) S6SvcDown(ctx context.Context, serviceName string) error {
-	return rn.s6SvcCmd(ctx, serviceName, "-d")
+	return rn.s6SvcCmd(ctx, serviceName, "-d", "-wd")
 }
 
 func (rn *Sandbox) S6SvcRestart(ctx context.Context, serviceName string) error {
-	return rn.s6SvcCmd(ctx, serviceName, "-r")
+	return rn.s6SvcCmd(ctx, serviceName, "-r", "-wr")
 }

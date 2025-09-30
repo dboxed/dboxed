@@ -42,7 +42,7 @@ func (c *WorkspacesClient) ListWorkspaces(ctx context.Context) ([]models.Workspa
 }
 
 func (c *WorkspacesClient) GetWorkspaceById(ctx context.Context, workspaceId int64) (*models.Workspace, error) {
-	p, err := c.Client.BuildApiPath(true, "workspaces", workspaceId)
+	p, err := c.Client.BuildApiPath(false, "workspaces", workspaceId)
 	if err != nil {
 		return nil, err
 	}

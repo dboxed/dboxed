@@ -2,11 +2,8 @@ package run_box_in_sandbox
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
@@ -14,9 +11,9 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
+	"sigs.k8s.io/yaml"
 )
 
 type RunBoxInSandbox struct {
@@ -26,8 +23,6 @@ type RunBoxInSandbox struct {
 	dnsProxy      *dns_proxy.DnsProxy
 
 	oldBoxSpecHash string
-
-	dboxedVolumeLog io.WriteCloser
 }
 
 func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
@@ -37,7 +32,7 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	util2.LoadMod(ctx, "dm-zero")
 
 	var err error
-	rn.networkConfig, err = util.UnmarshalJsonFile[boxspec.NetworkConfig](consts.NetworkConfFile)
+	rn.networkConfig, err = util.UnmarshalYamlFile[boxspec.NetworkConfig](consts.NetworkConfFile)
 	if err != nil {
 		return err
 	}
@@ -59,12 +54,7 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	}
 	slog.InfoContext(ctx, "docker is up and running")
 
-	rn.dboxedVolumeLog = logs.BuildRotatingLogger(filepath.Join(consts.LogsDir, "dboxed-volume.log"))
-	defer rn.dboxedVolumeLog.Close()
-
-	boxSpecRunner := &box_spec_runner.BoxSpecRunner{
-		DboxedVolumeLog: rn.dboxedVolumeLog,
-	}
+	boxSpecRunner := &box_spec_runner.BoxSpecRunner{}
 	for {
 		err := rn.reconcileBoxSpec(ctx, boxSpecRunner)
 		if err != nil {
@@ -104,10 +94,10 @@ func (rn *RunBoxInSandbox) readBoxSpec() (*boxspec.BoxSpec, error) {
 		return nil, err
 	}
 
-	var boxSpec boxspec.BoxSpec
-	err = json.Unmarshal(b, &boxSpec)
+	var boxSpec boxspec.BoxFile
+	err = yaml.Unmarshal(b, &boxSpec)
 	if err != nil {
 		return nil, err
 	}
-	return &boxSpec, nil
+	return &boxSpec.Spec, nil
 }

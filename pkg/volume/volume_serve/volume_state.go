@@ -1,11 +1,11 @@
 package volume_serve
 
 import (
-	"encoding/json"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/util"
+	"sigs.k8s.io/yaml"
 )
 
 type VolumeState struct {
@@ -25,7 +25,7 @@ func (vs *VolumeServe) loadVolumeState() (*VolumeState, error) {
 }
 
 func LoadVolumeState(dir string) (*VolumeState, error) {
-	s, err := util.UnmarshalJsonFile[VolumeState](filepath.Join(dir, "volume-state.json"))
+	s, err := util.UnmarshalYamlFile[VolumeState](filepath.Join(dir, "volume-state.yaml"))
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +33,9 @@ func LoadVolumeState(dir string) (*VolumeState, error) {
 }
 
 func (vs *VolumeServe) saveVolumeState(s VolumeState) error {
-	b, err := json.Marshal(s)
+	b, err := yaml.Marshal(s)
 	if err != nil {
 		return err
 	}
-	return util.AtomicWriteFile(filepath.Join(vs.opts.Dir, "volume-state.json"), b, 0600)
+	return util.AtomicWriteFile(filepath.Join(vs.opts.Dir, "volume-state.yaml"), b, 0600)
 }

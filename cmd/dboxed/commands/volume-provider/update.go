@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
@@ -22,10 +22,10 @@ type UpdateCmd struct {
 	RusticPassword *string `help:"Specify the password used for encryption"`
 }
 
-func (cmd *UpdateCmd) Run() error {
+func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}

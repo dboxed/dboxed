@@ -112,7 +112,7 @@ func (s *Workspaces) doRestListWorkspaces(ctx context.Context, asAdmin bool) (*h
 		}
 	} else if token != nil {
 		// return only the single workspace assigned to the token
-		w, err := dmodel.GetWorkspaceById(q, token.ID, true)
+		w, err := dmodel.GetWorkspaceById(q, token.Workspace, true)
 		if err != nil {
 			return nil, err
 		}

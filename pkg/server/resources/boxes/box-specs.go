@@ -24,7 +24,7 @@ func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) 
 		}
 	}
 
-	box, err := dmodel.GetBoxById(q, &w.ID, *token.BoxID, true)
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}

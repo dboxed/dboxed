@@ -4,7 +4,6 @@ package sandbox
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func (rn *Sandbox) getSandboxContainerDir() string {
@@ -171,7 +171,7 @@ func (rn *Sandbox) destroySandboxContainer(ctx context.Context) error {
 func (rn *Sandbox) createSandboxContainer(ctx context.Context) error {
 	slog.InfoContext(ctx, "creating sandbox container")
 
-	imageConfig, err := util.UnmarshalJsonFile[v1.Image](rn.getInfraImageConfig())
+	imageConfig, err := util.UnmarshalYamlFile[v1.Image](rn.getInfraImageConfig())
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (rn *Sandbox) createSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
-	b, err := json.Marshal(rn.network.Config)
+	b, err := yaml.Marshal(rn.network.Config)
 	if err != nil {
 		return err
 	}

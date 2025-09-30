@@ -11,11 +11,12 @@ var f embed.FS
 
 var templates, _ = template.New("").ParseFS(f, "*")
 
-func GetDboxedUnit(boxName string, extraArgs string) string {
+func GetDboxedUnit(localName string, clientAuthFile string, extraArgs string) string {
 	buf := bytes.NewBuffer(nil)
 	err := templates.Lookup("dboxed.service").Execute(buf, map[string]any{
-		"BoxName":   boxName,
-		"ExtraArgs": extraArgs,
+		"LocalName":      localName,
+		"ClientAuthFile": clientAuthFile,
+		"ExtraArgs":      extraArgs,
 	})
 	if err != nil {
 		panic(err)

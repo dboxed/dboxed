@@ -5,7 +5,6 @@ import (
 
 	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/volume/webdavproxy"
 )
 
@@ -18,7 +17,7 @@ type WebdavProxyCmd struct {
 func (cmd *WebdavProxyCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}

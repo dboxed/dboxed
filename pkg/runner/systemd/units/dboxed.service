@@ -1,11 +1,11 @@
 [Unit]
-Description=dboxed-{{ .BoxName }}
+Description=dboxed-{{ .LocalName }}
 Documentation=https://dboxed.io
 After=network.target local-fs.target
 
 [Service]
 EnvironmentFile=/etc/dboxed/box-url.env
-ExecStart=/usr/local/bin/dboxed run --box-url $DBOXED_BOX_URL --box-name {{ .BoxName }} {{ .ExtraArgs }}
+ExecStart=/usr/local/bin/dboxed run --client-auth-file {{ .ClientAuthFile }} --local-name {{ .LocalName }} {{ .ExtraArgs }}
 
 Type=simple
 Delegate=yes

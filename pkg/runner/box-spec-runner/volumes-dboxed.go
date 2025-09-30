@@ -212,9 +212,8 @@ func (vi volumeInterfaceDboxed) CheckRecreateNeeded(oldVol boxspec.BoxVolumeSpec
 
 func (vi volumeInterfaceDboxed) runDboxedVolume(ctx context.Context, args []string) error {
 	cmd := exec.CommandContext(ctx, "dboxed", args...)
-	cmd.Stdout = vi.rn.DboxedVolumeLog
-	cmd.Stderr = vi.rn.DboxedVolumeLog
-	_, _ = fmt.Fprintf(vi.rn.DboxedVolumeLog, "\nrunning: %s\n", cmd.String())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	slog.Info("running dboxed volume command", slog.Any("args", strings.Join(args, " ")))
 	err := cmd.Run()
 	if err != nil {
@@ -227,8 +226,8 @@ func (vi volumeInterfaceDboxed) runDboxedVolume(ctx context.Context, args []stri
 func (vi volumeInterfaceDboxed) s6svc(ctx context.Context, args ...string) error {
 	slog.InfoContext(ctx, "scanning s6 services")
 	cmd := exec.CommandContext(ctx, "/command/s6-svc", args...)
-	cmd.Stdout = vi.rn.DboxedVolumeLog
-	cmd.Stderr = vi.rn.DboxedVolumeLog
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return err
@@ -239,8 +238,8 @@ func (vi volumeInterfaceDboxed) s6svc(ctx context.Context, args ...string) error
 func (vi volumeInterfaceDboxed) s6svscanctl(ctx context.Context) error {
 	slog.InfoContext(ctx, "scanning s6 service dir")
 	cmd := exec.CommandContext(ctx, "/command/s6-svscanctl", "-h", "/run/service")
-	cmd.Stdout = vi.rn.DboxedVolumeLog
-	cmd.Stderr = vi.rn.DboxedVolumeLog
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return err

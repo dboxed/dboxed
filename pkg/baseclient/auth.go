@@ -16,7 +16,7 @@ func (c *Client) GetClientAuth() *ClientAuth {
 }
 
 func (c *Client) WriteClientAuth() error {
-	return WriteClientAuth(c.clientAuth)
+	return WriteClientAuth(c.clientAuthFile, c.clientAuth)
 }
 
 func (c *Client) LoginOAuth2(ctx context.Context) error {
@@ -140,12 +140,28 @@ func (c *Client) RefreshToken(ctx context.Context) error {
 }
 
 func (c *Client) CheckAuth(ctx context.Context) error {
-	_, err := c.Me(ctx)
-	if err != nil {
-		return err
+	if c.clientAuth.StaticToken == nil {
+		_, err := c.CurrentUser(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		t, err := c.CurrentToken(ctx)
+		if err != nil {
+			return err
+		}
+		if t.ForWorkspace {
+			c.clientAuth.WorkspaceId = &t.Workspace
+			if c.writeClientAuth {
+				err = c.WriteClientAuth()
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	if c.clientAuth.WorkspaceId != nil {
-		_, err = c.GetWorkspaceById(ctx, *c.clientAuth.WorkspaceId)
+		_, err := c.GetWorkspaceById(ctx, *c.clientAuth.WorkspaceId)
 		if err != nil {
 			return err
 		}
@@ -153,8 +169,12 @@ func (c *Client) CheckAuth(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) Me(ctx context.Context) (*models.User, error) {
-	return RequestApi[models.User](ctx, c, "GET", "v1/auth/me", struct{}{})
+func (c *Client) CurrentUser(ctx context.Context) (*models.User, error) {
+	return RequestApi[models.User](ctx, c, "GET", "v1/auth/current-user", struct{}{})
+}
+
+func (c *Client) CurrentToken(ctx context.Context) (*models.Token, error) {
+	return RequestApi[models.Token](ctx, c, "GET", "v1/auth/current-token", struct{}{})
 }
 
 func (c *Client) GetWorkspaceById(ctx context.Context, workspaceId int64) (*models.Workspace, error) {

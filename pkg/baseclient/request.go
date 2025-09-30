@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 func RequestApi[ReplyBody any, RequestBody any](ctx context.Context, c *Client, method string, p string, body RequestBody) (*ReplyBody, error) {
@@ -56,13 +58,19 @@ func requestApi2[ReplyBody any, RequestBody any](ctx context.Context, c *Client,
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("%s request returned http status %s", p, resp.Status)
-	}
 
 	b, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var em huma.ErrorModel
+		err = json.Unmarshal(b, &em)
+		if err != nil {
+			return nil, fmt.Errorf("%s request returned http status %s", p, resp.Status)
+		}
+		return nil, &em
 	}
 
 	var reply ReplyBody

@@ -1,6 +1,6 @@
 //go:build linux
 
-package runner
+package box
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 type RuncCmd struct {
-	BoxName string `help:"Specify the box name" required:"" arg:""`
+	LocalName string `help:"Specify the local box name" required:"" arg:""`
 
 	Args []string `arg:"" optional:"" passthrough:""`
 }
@@ -20,7 +20,7 @@ type RuncCmd struct {
 func (cmd *RuncCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	sandboxDir := filepath.Join(g.WorkDir, "boxes", cmd.BoxName)
+	sandboxDir := filepath.Join(g.WorkDir, "boxes", cmd.LocalName)
 
 	c := sandbox.BuildRuncCmd(ctx, sandboxDir, cmd.Args...)
 	c.Stdin = os.Stdin

@@ -2,7 +2,6 @@ package box_spec_runner
 
 import (
 	"context"
-	"io"
 	"log/slog"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
@@ -10,7 +9,6 @@ import (
 )
 
 type BoxSpecRunner struct {
-	DboxedVolumeLog io.Writer
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context, boxSpec *boxspec.BoxSpec) error {

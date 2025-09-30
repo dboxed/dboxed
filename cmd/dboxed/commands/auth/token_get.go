@@ -4,17 +4,17 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 )
 
 type TokenGetCmd struct {
 	Token string `help:"Specify the token" required:"" arg:""`
 }
 
-func (cmd *TokenGetCmd) Run() error {
+func (cmd *TokenGetCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}

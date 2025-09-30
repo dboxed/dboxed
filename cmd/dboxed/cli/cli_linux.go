@@ -1,7 +1,9 @@
 package cli
 
-import "github.com/dboxed/dboxed/cmd/dboxed/commands/runner"
+import (
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/systemd"
+)
 
 type cliOnlyLinux struct {
-	Runner runner.RunnerCommands `cmd:"" help:"runner commands"`
+	Systemd systemd.SystemdCmd `cmd:"" help:"Sub commands to control dboxed systemd integration"`
 }

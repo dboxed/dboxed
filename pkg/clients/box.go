@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
@@ -46,6 +47,14 @@ func (c *BoxClient) GetBoxByName(ctx context.Context, name string) (*models.Box,
 		return nil, err
 	}
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
+}
+
+func (c *BoxClient) GetBoxSpecById(ctx context.Context, id int64) (*boxspec.BoxFile, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id, "box-spec")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[boxspec.BoxFile](ctx, c.Client, "GET", p, struct{}{})
 }
 
 func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {

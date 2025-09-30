@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
@@ -18,10 +18,10 @@ type TokenCreateCmd struct {
 	Box          *string `help:"Specify box for which to create the token" xor:"for"`
 }
 
-func (cmd *TokenCreateCmd) Run() error {
+func (cmd *TokenCreateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (cmd *TokenCreateCmd) Run() error {
 		return err
 	}
 
-	slog.Info("token created", slog.Any("id", token.ID), slog.Any("name", token.Name), slog.Any("token", token.Token))
+	slog.Info("token created", slog.Any("id", token.ID), slog.Any("name", token.Name), slog.Any("token", *token.Token))
 
 	return nil
 }

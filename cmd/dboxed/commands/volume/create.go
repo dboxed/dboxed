@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 
 	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
-	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dustin/go-humanize"
 )
 
@@ -24,10 +22,10 @@ type CreateCmd struct {
 	FsSize string `help:"Specify the maximum filesystem size." required:""`
 }
 
-func (cmd *CreateCmd) Run() error {
+func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := baseclient.FromClientAuthFile()
+	c, err := g.BuildClient()
 	if err != nil {
 		return err
 	}
@@ -49,9 +47,7 @@ func (cmd *CreateCmd) Run() error {
 		VolumeProvider: vp.ID,
 	}
 
-	fmt.Fprintf(os.Stderr, "%s\n", util.MustJson(vp))
-
-	switch dmodel.VolumeProviderType(vp.Type) {
+	switch vp.Type {
 	case dmodel.VolumeProviderTypeRustic:
 		req.Rustic = &models.CreateVolumeRustic{
 			FsSize: int64(fsSize),

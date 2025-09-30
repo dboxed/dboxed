@@ -10,6 +10,11 @@ import (
 func GetAuthorizationToken(ctx huma.Context) (string, error) {
 	tokenString := ctx.Header("Authorization")
 	if tokenString == "" {
+		tokenString = ctx.Query("token")
+		if tokenString != "" {
+			return tokenString, nil
+		}
+
 		return "", fmt.Errorf("missing authentication token")
 	}
 

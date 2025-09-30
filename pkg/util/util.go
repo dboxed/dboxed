@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"time"
+
+	"sigs.k8s.io/yaml"
 )
 
 func Ptr[T any](v T) *T {
@@ -30,6 +32,14 @@ func CopyViaJson[T any](v T) (ret T, err error) {
 	}
 	err = json.Unmarshal(b, &ret)
 	return
+}
+
+func MustCopyViaJson[T any](v T) (ret T) {
+	c, err := CopyViaJson(v)
+	if err != nil {
+		panic(err)
+	}
+	return c
 }
 
 func ConvertViaJson[I any, O any](i I) (O, error) {
@@ -71,6 +81,14 @@ func LoopWithPrintErr(ctx context.Context, name string, interval time.Duration, 
 			return
 		}
 	}
+}
+
+func AtomicWriteFileYaml(path string, v any, perm os.FileMode) error {
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		return err
+	}
+	return AtomicWriteFile(path, b, perm)
 }
 
 func AtomicWriteFile(path string, b []byte, perm os.FileMode) error {

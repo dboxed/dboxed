@@ -1,13 +1,15 @@
 package baseclient
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 	"golang.org/x/oauth2"
+	"sigs.k8s.io/yaml"
 )
 
 type ClientAuth struct {
@@ -19,55 +21,65 @@ type ClientAuth struct {
 	StaticToken *string       `json:"staticToken"`
 }
 
-func GetClientAuthPath() (string, error) {
+func GetDefaultClientAuthFile() (string, error) {
+	if os.Getenv("DBOXED_SANDBOX") == "1" {
+		return consts.BoxClientAuthFile, nil
+	}
+	
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", nil
 	}
-	p := filepath.Join(homeDir, ".dboxed", "client-auth.json")
+	p := filepath.Join(homeDir, ".dboxed", "client-auth.yaml")
 	return p, nil
 }
 
-func ReadClientAuth() (*ClientAuth, error) {
-	p, err := GetClientAuthPath()
-	if err != nil {
-		return nil, err
-	}
-	if p == "" {
-		return nil, os.ErrNotExist
+func ReadClientAuth(clientAuthFile *string) (*ClientAuth, error) {
+	if clientAuthFile == nil {
+		p, err := GetDefaultClientAuthFile()
+		if err != nil {
+			return nil, err
+		}
+		if p == "" {
+			return nil, os.ErrNotExist
+		}
+		clientAuthFile = &p
 	}
 
-	b, err := os.ReadFile(p)
+	b, err := os.ReadFile(*clientAuthFile)
 	if err != nil {
 		return nil, err
 	}
 
 	var ret ClientAuth
-	err = json.Unmarshal(b, &ret)
+	err = yaml.Unmarshal(b, &ret)
 	if err != nil {
 		return nil, err
 	}
 	return &ret, nil
 }
 
-func WriteClientAuth(ca *ClientAuth) error {
-	p, err := GetClientAuthPath()
+func WriteClientAuth(clientAuthFile *string, ca *ClientAuth) error {
+	if clientAuthFile == nil {
+		p, err := GetDefaultClientAuthFile()
+		if err != nil {
+			return err
+		}
+		if p == "" {
+			return fmt.Errorf("could not determine client auth path config path")
+		}
+		clientAuthFile = &p
+	}
+	err := os.MkdirAll(filepath.Dir(*clientAuthFile), 0700)
 	if err != nil {
 		return err
 	}
-	if p == "" {
-		return fmt.Errorf("could not determine client auth path config path")
-	}
-	err = os.MkdirAll(filepath.Dir(p), 0700)
-	if err != nil {
-		return err
-	}
-	b, err := json.Marshal(ca)
+	b, err := yaml.Marshal(ca)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(p, b, 0700)
+	err = util.AtomicWriteFile(*clientAuthFile, b, 0600)
 	if err != nil {
 		return err
 	}

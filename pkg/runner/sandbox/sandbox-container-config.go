@@ -94,6 +94,7 @@ func (rn *Sandbox) buildSandboxContainerProcessSpec(image *v1.Image) (*specs.Pro
 
 	var env []string
 	env = append(env, image.Config.Env...)
+	env = append(env, "DBOXED_SANDBOX=1")
 
 	var args []string
 	args = append(args, image.Config.Entrypoint...)
