@@ -49,4 +49,5 @@ COPY services.d /etc/services.d
 COPY lvm.conf /etc/lvm/lvm.conf
 
 ENV S6_LOGGING_SCRIPT="n10 s10000000"
+ENV S6_KEEP_ENV=1
 ENTRYPOINT ["/init"]
