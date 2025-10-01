@@ -10,7 +10,7 @@ create table volume_snapshot
     reconcile_status_details text           not null default '',
 
     volume_provider_id       bigint         not null references volume_provider (id) on delete restrict,
-    volume_id                bigint         not null references volume (id) on delete restrict,
+    volume_id                bigint         not null references volume (id) on delete cascade,
 
     lock_id                  text           not null
 );
