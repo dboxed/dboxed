@@ -37,7 +37,8 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Post(workspacesGroup, "/boxes", s.restCreateBox)
 	huma.Get(workspacesGroup, "/boxes", s.restListBoxes, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox, allowBoxTokenModifier)
-	huma.Get(workspacesGroup, "/boxes/by-name/{boxName}", s.restGetBoxByName, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/by-uuid/{uuid}", s.restGetBoxByUuid, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/by-name/{name}", s.restGetBoxByName, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}/box-spec", s.restGetBoxSpec, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}", s.restUpdateBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
@@ -204,42 +205,8 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
-	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.Box) (*huma_utils.JsonBody[models.Box], error) {
 	token := auth.GetToken(c)
-
-	if token != nil && token.BoxID != nil {
-		if *token.BoxID != i.Id {
-			return nil, huma.Error403Forbidden("no access to box")
-		}
-	}
-
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
-	boxm, err := s.postprocessBox(c, *box)
-	if err != nil {
-		return nil, err
-	}
-	return huma_utils.NewJsonBody(*boxm), nil
-}
-
-type BoxName struct {
-	BoxName string `path:"boxName"`
-}
-
-func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_utils.JsonBody[models.Box], error) {
-	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
-	token := auth.GetToken(c)
-
-	box, err := dmodel.GetBoxByName(q, w.ID, i.BoxName, true)
-	if err != nil {
-		return nil, err
-	}
 
 	if token != nil && token.BoxID != nil {
 		if *token.BoxID != box.ID {
@@ -252,6 +219,50 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 		return nil, err
 	}
 	return huma_utils.NewJsonBody(*boxm), nil
+}
+
+func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.getBoxHelper(c, box)
+}
+
+type BoxName struct {
+	BoxName string `path:"name"`
+}
+
+func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_utils.JsonBody[models.Box], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxByName(q, w.ID, i.BoxName, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.getBoxHelper(c, box)
+}
+
+type BoxUuid struct {
+	BoxUuid string `path:"uuid"`
+}
+
+func (s *BoxesServer) restGetBoxByUuid(c context.Context, i *BoxUuid) (*huma_utils.JsonBody[models.Box], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxByUuid(q, w.ID, i.BoxUuid, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.getBoxHelper(c, box)
 }
 
 type restUpdateBoxInput struct {

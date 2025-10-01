@@ -41,6 +41,14 @@ func (c *BoxClient) GetBoxById(ctx context.Context, id int64) (*models.Box, erro
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
 }
 
+func (c *BoxClient) GetBoxByUuid(ctx context.Context, uuid string) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", "by-uuid", uuid)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
+}
+
 func (c *BoxClient) GetBoxByName(ctx context.Context, name string) (*models.Box, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", "by-name", name)
 	if err != nil {

@@ -41,6 +41,7 @@ func (cmd *ServeCmd) Run() error {
 
 	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
 		VolumeId:          volumeState.VolumeId,
+		BoxUuid:           volumeState.BoxUuid,
 		Dir:               cmd.Dir,
 		BackupInterval:    backupInterval,
 		WebdavProxyListen: cmd.WebdavProxyListen,

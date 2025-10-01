@@ -17,6 +17,7 @@ create table volume
 
     lock_id                  text,
     lock_time                TYPES_DATETIME,
+    lock_box_uuid            text,
 
     --{{ if eq .DbType "sqlite" }}
     latest_snapshot_id       bigint references volume_snapshot (id) on delete restrict,

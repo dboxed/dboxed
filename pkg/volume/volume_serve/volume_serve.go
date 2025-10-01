@@ -24,6 +24,7 @@ type VolumeServeOpts struct {
 	Client *baseclient.Client
 
 	VolumeId int64
+	BoxUuid  *string
 
 	Dir            string
 	BackupInterval time.Duration
@@ -61,6 +62,9 @@ func New(opts VolumeServeOpts) (*VolumeServe, error) {
 		slog.Any("volumeId", opts.VolumeId),
 		slog.Any("dir", opts.Dir),
 	)
+	if opts.BoxUuid != nil {
+		vs.log = vs.log.With(slog.Any("boxId", *opts.BoxUuid))
+	}
 
 	return vs, nil
 }
@@ -297,6 +301,7 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 	vs.volume = newVolume
 
 	s.LockId = nil
+	s.BoxUuid = nil
 	err = vs.saveVolumeState(*s)
 	if err != nil {
 		return err
@@ -332,6 +337,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 			ClientAuth: vs.opts.Client.GetClientAuth(),
 			VolumeId:   vs.volume.ID,
 			VolumeUuid: vs.volume.Uuid,
+			BoxUuid:    vs.opts.BoxUuid,
 		}
 	}
 
@@ -352,6 +358,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 
 	lockRequest := models.VolumeLockRequest{
 		PrevLockId: prevLockId,
+		BoxUuid:    s.BoxUuid,
 	}
 	newVolume, err := c2.VolumeLock(ctx, vs.volume.ID, lockRequest)
 	if err != nil {

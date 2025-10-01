@@ -4,11 +4,9 @@ package run_box
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net"
-	"net/http"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -16,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
@@ -214,16 +211,13 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	for {
 		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.BoxId)
 		if err != nil {
-			var err2 *huma.ErrorModel
-			if errors.As(err, &err2) {
-				if err2.Status == http.StatusNotFound {
-					slog.InfoContext(ctx, "box spec was deleted, exiting")
-					err = rn.sandbox.Stop(ctx)
-					if err != nil {
-						return err
-					}
-					return nil
+			if baseclient.IsNotFound(err) {
+				slog.InfoContext(ctx, "box spec was deleted, exiting")
+				err = rn.sandbox.Stop(ctx)
+				if err != nil {
+					return err
 				}
+				return nil
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
 		} else {

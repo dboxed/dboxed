@@ -28,10 +28,18 @@ func GetBox(ctx context.Context, c *baseclient.Client, box string) (*models.Box,
 		}
 		return v, nil
 	} else {
-		v, err := c2.GetBoxByName(ctx, box)
-		if err != nil {
-			return nil, err
+		v, err := c2.GetBoxByUuid(ctx, box)
+		if err == nil {
+			return v, nil
+		} else {
+			if !baseclient.IsNotFound(err) {
+				return nil, err
+			}
+			v, err = c2.GetBoxByName(ctx, box)
+			if err != nil {
+				return nil, err
+			}
+			return v, nil
 		}
-		return v, nil
 	}
 }

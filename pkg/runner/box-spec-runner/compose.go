@@ -14,8 +14,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 )
 
-func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
-	composeProjects, err := rn.loadComposeProjects(boxSpec)
+func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context) error {
+	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
 		return err
 	}
@@ -39,8 +39,8 @@ func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context, boxSpec *boxspec
 	return nil
 }
 
-func (rn *BoxSpecRunner) runComposeUp(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
-	composeProjects, err := rn.loadComposeProjects(boxSpec)
+func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
+	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
 		return err
 	}
@@ -61,8 +61,8 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context, boxSpec *boxspec.BoxS
 	return nil
 }
 
-func (rn *BoxSpecRunner) runComposeDown(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
-	composeProjects, err := rn.loadComposeProjects(boxSpec)
+func (rn *BoxSpecRunner) runComposeDown(ctx context.Context) error {
+	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
 		return err
 	}
@@ -76,8 +76,8 @@ func (rn *BoxSpecRunner) runComposeDown(ctx context.Context, boxSpec *boxspec.Bo
 	return nil
 }
 
-func (rn *BoxSpecRunner) loadComposeProjects(boxSpec *boxspec.BoxSpec) ([]*ctypes.Project, error) {
-	composeProjects, err := boxSpec.LoadComposeProjects()
+func (rn *BoxSpecRunner) loadComposeProjects() ([]*ctypes.Project, error) {
+	composeProjects, err := rn.BoxSpec.LoadComposeProjects()
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (rn *BoxSpecRunner) loadComposeProjects(boxSpec *boxspec.BoxSpec) ([]*ctype
 		if composeProject.Name == "" {
 			composeProject.Name = fmt.Sprintf("tmp-%d", i)
 		}
-		err = rn.setupComposeFile(boxSpec, composeProject)
+		err = rn.setupComposeFile(composeProject)
 		if err != nil {
 			return nil, err
 		}
@@ -115,13 +115,13 @@ func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, 
 	return nil
 }
 
-func (rn *BoxSpecRunner) setupComposeFile(boxSpec *boxspec.BoxSpec, compose *ctypes.Project) error {
+func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 	if compose.Volumes == nil {
 		compose.Volumes = map[string]ctypes.VolumeConfig{}
 	}
 
 	volumesByName := map[string]*boxspec.BoxVolumeSpec{}
-	for _, vol := range boxSpec.Volumes {
+	for _, vol := range rn.BoxSpec.Volumes {
 		volumesByName[vol.Name] = &vol
 	}
 

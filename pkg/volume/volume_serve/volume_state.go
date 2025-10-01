@@ -14,6 +14,7 @@ type VolumeState struct {
 	VolumeId   int64   `json:"volumeId"`
 	VolumeUuid string  `json:"volumeUuid"`
 	LockId     *string `json:"lockId,omitempty"`
+	BoxUuid    *string `json:"boxUuid,omitempty"`
 }
 
 func (vs *VolumeServe) loadVolumeState() (*VolumeState, error) {

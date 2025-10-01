@@ -46,6 +46,7 @@ func (vi volumeInterfaceDboxed) Create(ctx context.Context, vol boxspec.BoxVolum
 		"volume",
 		"lock",
 		"--volume", fmt.Sprintf("%d", vol.Dboxed.VolumeId),
+		"--box", vi.rn.BoxSpec.Uuid,
 		"--dir", workDir,
 	}
 

@@ -231,7 +231,7 @@ func (s *VolumeServer) restLockVolume(ctx context.Context, i *restLockVolume) (*
 		return nil, huma.Error409Conflict("volume is already locked")
 	}
 
-	err = v.UpdateLock(q, &lockId, util.Ptr(time.Now()))
+	err = v.UpdateLock(q, &lockId, util.Ptr(time.Now()), i.Body.BoxUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func (s *VolumeServer) restReleaseVolume(ctx context.Context, i *restReleaseVolu
 
 	log.Info("releasing volume", slog.Any("lockId", i.Body.LockId))
 
-	err = v.UpdateLock(q, nil, nil)
+	err = v.UpdateLock(q, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

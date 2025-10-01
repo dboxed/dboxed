@@ -1,15 +1,18 @@
 create table volume_snapshot
 (
-    id                 TYPES_INT_PRIMARY_KEY,
-    workspace_id       bigint         not null references workspace (id) on delete restrict,
-    created_at         TYPES_DATETIME not null default current_timestamp,
-    deleted_at         TYPES_DATETIME,
-    finalizers         text           not null default '{}',
+    id                       TYPES_INT_PRIMARY_KEY,
+    workspace_id             bigint         not null references workspace (id) on delete restrict,
+    created_at               TYPES_DATETIME not null default current_timestamp,
+    deleted_at               TYPES_DATETIME,
+    finalizers               text           not null default '{}',
 
-    volume_provider_id bigint         not null references volume_provider (id) on delete restrict,
-    volume_id          bigint         not null references volume (id) on delete restrict,
+    reconcile_status         text           not null default 'Initializing',
+    reconcile_status_details text           not null default '',
 
-    lock_id            text           not null
+    volume_provider_id       bigint         not null references volume_provider (id) on delete restrict,
+    volume_id                bigint         not null references volume (id) on delete restrict,
+
+    lock_id                  text           not null
 );
 
 --{{ if eq .DbType "postgres" }}

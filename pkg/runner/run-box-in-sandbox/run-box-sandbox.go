@@ -54,9 +54,8 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	}
 	slog.InfoContext(ctx, "docker is up and running")
 
-	boxSpecRunner := &box_spec_runner.BoxSpecRunner{}
 	for {
-		err := rn.reconcileBoxSpec(ctx, boxSpecRunner)
+		err := rn.reconcileBoxSpec(ctx)
 		if err != nil {
 			slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 		}
@@ -66,7 +65,7 @@ func (rn *RunBoxInSandbox) Run(ctx context.Context) error {
 	}
 }
 
-func (rn *RunBoxInSandbox) reconcileBoxSpec(ctx context.Context, boxSpecRunner *box_spec_runner.BoxSpecRunner) error {
+func (rn *RunBoxInSandbox) reconcileBoxSpec(ctx context.Context) error {
 	boxSpec, err := rn.readBoxSpec()
 	if err != nil {
 		return err
@@ -80,7 +79,10 @@ func (rn *RunBoxInSandbox) reconcileBoxSpec(ctx context.Context, boxSpecRunner *
 	}
 	rn.oldBoxSpecHash = hash
 
-	err = boxSpecRunner.Reconcile(ctx, boxSpec)
+	boxSpecRunner := box_spec_runner.BoxSpecRunner{
+		BoxSpec: boxSpec,
+	}
+	err = boxSpecRunner.Reconcile(ctx)
 	if err != nil {
 		return err
 	}

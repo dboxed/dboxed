@@ -9,20 +9,21 @@ import (
 )
 
 type BoxSpecRunner struct {
+	BoxSpec *boxspec.BoxSpec
 }
 
-func (rn *BoxSpecRunner) Reconcile(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
-	err := rn.writeComposeFiles(ctx, boxSpec)
+func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
+	err := rn.writeComposeFiles(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = rn.reconcileVolumes(ctx, boxSpec)
+	err = rn.reconcileVolumes(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = rn.runComposeUp(ctx, boxSpec)
+	err = rn.runComposeUp(ctx)
 	if err != nil {
 		return err
 	}
@@ -30,8 +31,8 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context, boxSpec *boxspec.BoxSpec
 	return nil
 }
 
-func (rn *BoxSpecRunner) Down(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
-	composeProjects, err := rn.loadComposeProjects(boxSpec)
+func (rn *BoxSpecRunner) Down(ctx context.Context) error {
+	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
 		return err
 	}
