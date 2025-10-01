@@ -11,7 +11,6 @@ type Volume struct {
 	ID        int64     `json:"id"`
 	Workspace int64     `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
-	Status    string    `json:"status"`
 
 	Uuid string `json:"uuid"`
 	Name string `json:"name"`
@@ -90,7 +89,6 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 		ID:        s.ID,
 		Workspace: s.WorkspaceID,
 		CreatedAt: s.CreatedAt,
-		Status:    s.ReconcileStatus.ReconcileStatus,
 
 		Uuid: s.Uuid,
 		Name: s.Name,

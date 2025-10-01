@@ -6,9 +6,6 @@ create table volume
     deleted_at               TYPES_DATETIME,
     finalizers               text           not null default '{}',
 
-    reconcile_status         text           not null default 'Initializing',
-    reconcile_status_details text           not null default '',
-
     volume_provider_id       bigint         not null references volume_provider (id) on delete restrict,
     volume_provider_type     text           not null,
 

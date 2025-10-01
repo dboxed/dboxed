@@ -8,7 +8,6 @@ import (
 
 type VolumeSnapshot struct {
 	OwnedByWorkspace
-	ReconcileStatus
 
 	VolumeProviderID int64  `db:"volume_provider_id"`
 	VolumedID        int64  `db:"volume_id"`

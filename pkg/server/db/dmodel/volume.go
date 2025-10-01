@@ -8,7 +8,6 @@ import (
 
 type Volume struct {
 	OwnedByWorkspace
-	ReconcileStatus
 
 	Uuid string `db:"uuid"`
 	Name string `db:"name"`
