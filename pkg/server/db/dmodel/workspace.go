@@ -85,7 +85,7 @@ func ListWorkspaces(q *querier2.Querier, userId *string, skipDeleted bool) ([]Wo
 		return nil, err
 	}
 
-	was, err := querier2.GetManyWhere[WorkspaceAccess](q, wasWhere, wasWhereArgs)
+	was, err := querier2.GetManyWhere[WorkspaceAccess](q, wasWhere, wasWhereArgs, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func ListWorkspaces(q *querier2.Querier, userId *string, skipDeleted bool) ([]Wo
 		whereClauses = append(whereClauses, "deleted_at is null")
 	}
 	where := strings.Join(whereClauses, " and ")
-	l, err := querier2.GetManyWhere[Workspace](q, where, wasWhereArgs)
+	l, err := querier2.GetManyWhere[Workspace](q, where, wasWhereArgs, nil)
 	if err != nil {
 		return nil, err
 	}

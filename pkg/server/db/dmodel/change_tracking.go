@@ -42,5 +42,5 @@ func FindChanges[T querier2.HasId](q *querier2.Querier, lastId int64) ([]ChangeT
 	return querier2.GetManyWhere[ChangeTracking](q, "table_name = :table_name and id > :last_id", map[string]any{
 		"table_name": querier2.GetTableName[T](),
 		"last_id":    lastId,
-	})
+	}, nil)
 }

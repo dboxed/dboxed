@@ -136,3 +136,21 @@ func getStructDBFields2(t reflect.Type, fromTableName string, path []int,
 		}
 	}
 }
+
+func GetTableName[T any](_ ...T) string {
+	t := reflect.TypeFor[T]()
+	return GetTableName2(t)
+}
+
+func GetTableName2(t reflect.Type) string {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	if reflect.PointerTo(t).Implements(reflect.TypeFor[HasTableName]()) {
+		i := reflect.New(t).Interface().(HasTableName)
+		return i.GetTableName()
+	}
+
+	return util.ToSnakeCase(t.Name())
+}

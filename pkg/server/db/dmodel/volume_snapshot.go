@@ -77,9 +77,11 @@ func GetVolumeSnapshotBySnapshotId(q *querier.Querier, snapshotId string, skipDe
 }
 
 func ListVolumeSnapshotsForVolume(q *querier.Querier, workspaceId *int64, volumeId int64, skipDeleted bool) ([]VolumeSnapshot, error) {
-	return querier.GetMany[VolumeSnapshot](q, map[string]any{
+	return querier.GetManySorted[VolumeSnapshot](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"volume_id":    volumeId,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
+	}, []querier.SortField{
+		{Field: "created_at", Direction: querier.SortOrderDesc},
 	})
 }

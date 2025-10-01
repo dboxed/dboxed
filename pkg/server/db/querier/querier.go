@@ -305,7 +305,7 @@ func BuildWhere[T any](byFields map[string]any) (string, map[string]any, error) 
 	return whereStr, args, nil
 }
 
-func BuildSelectWhereQuery[T any](where string) (string, error) {
+func BuildSelectWhereQuery[T any](where string, sort []SortField) (string, error) {
 	dbFields, dbJoins := GetStructDBFields[T]()
 
 	var selects []string
@@ -327,6 +327,17 @@ func BuildSelectWhereQuery[T any](where string) (string, error) {
 	if len(where) != 0 {
 		query += fmt.Sprintf("\nwhere %s", where)
 	}
+	if len(sort) != 0 {
+		var orders []string
+		for _, s := range sort {
+			f, ok := dbFields[s.Field]
+			if !ok {
+				return "", fmt.Errorf("sort field %s not found in %s", s.Field, reflect.TypeFor[T]().Name())
+			}
+			orders = append(orders, fmt.Sprintf("%s %s", f.SelectName, s.Direction))
+		}
+		query += "\norder by " + strings.Join(orders, ", ")
+	}
 	return query, nil
 }
 
@@ -339,7 +350,7 @@ func GetOne[T any](q *Querier, byFields map[string]any) (*T, error) {
 }
 
 func GetOneWhere[T any](q *Querier, where string, args map[string]any) (*T, error) {
-	query, err := BuildSelectWhereQuery[T](where)
+	query, err := BuildSelectWhereQuery[T](where, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -354,15 +365,19 @@ func GetOneWhere[T any](q *Querier, where string, args map[string]any) (*T, erro
 }
 
 func GetMany[T any](q *Querier, byFields map[string]any) ([]T, error) {
+	return GetManySorted[T](q, byFields, nil)
+}
+
+func GetManySorted[T any](q *Querier, byFields map[string]any, sort []SortField) ([]T, error) {
 	where, args, err := BuildWhere[T](byFields)
 	if err != nil {
 		return nil, err
 	}
-	return GetManyWhere[T](q, where, args)
+	return GetManyWhere[T](q, where, args, sort)
 }
 
-func GetManyWhere[T any](q *Querier, where string, args map[string]any) ([]T, error) {
-	query, err := BuildSelectWhereQuery[T](where)
+func GetManyWhere[T any](q *Querier, where string, args map[string]any, sort []SortField) ([]T, error) {
+	query, err := BuildSelectWhereQuery[T](where, sort)
 	if err != nil {
 		return nil, err
 	}
@@ -413,22 +428,4 @@ func NewQuerier(ctx context.Context, db *sqlx.DB, tx *sqlx.Tx) *Querier {
 		E:   e,
 	}
 	return q
-}
-
-func GetTableName[T any](_ ...T) string {
-	t := reflect.TypeFor[T]()
-	return GetTableName2(t)
-}
-
-func GetTableName2(t reflect.Type) string {
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-
-	if reflect.PointerTo(t).Implements(reflect.TypeFor[HasTableName]()) {
-		i := reflect.New(t).Interface().(HasTableName)
-		return i.GetTableName()
-	}
-
-	return util.ToSnakeCase(t.Name())
 }
