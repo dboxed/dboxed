@@ -173,18 +173,21 @@ CREATE TABLE "network_netbird" (
   "id" bigint NOT NULL,
   "netbird_version" text NOT NULL,
   "api_url" text NOT NULL,
-  "api_access_token" text NULL,
+  "api_access_token" text NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create "token" table
 CREATE TABLE "token" (
   "id" bigserial NOT NULL,
+  "workspace_id" bigint NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "token" text NOT NULL,
   "name" text NOT NULL,
-  "user_id" text NOT NULL,
+  "token" text NOT NULL,
+  "for_workspace" boolean NOT NULL,
+  "box_id" bigint NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "token_token_key" UNIQUE ("token")
+  CONSTRAINT "token_token_key" UNIQUE ("token"),
+  CONSTRAINT "token_workspace_id_name_key" UNIQUE ("workspace_id", "name")
 );
 -- create "user" table
 CREATE TABLE "user" (
@@ -202,14 +205,13 @@ CREATE TABLE "volume" (
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
-  "reconcile_status" text NOT NULL DEFAULT 'Initializing',
-  "reconcile_status_details" text NOT NULL DEFAULT '',
   "volume_provider_id" bigint NOT NULL,
   "volume_provider_type" text NOT NULL,
   "uuid" text NOT NULL,
   "name" text NOT NULL,
   "lock_id" text NULL,
   "lock_time" timestamptz NULL,
+  "lock_box_uuid" text NULL,
   "latest_snapshot_id" bigint NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "volume_uuid_key" UNIQUE ("uuid"),
@@ -267,7 +269,7 @@ CREATE TABLE "volume_snapshot" (
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
   "volume_provider_id" bigint NOT NULL,
-  "volume_id" bigint NOT NULL,
+  "volume_id" bigint NULL,
   "lock_id" text NOT NULL,
   PRIMARY KEY ("id")
 );
@@ -356,7 +358,7 @@ ALTER TABLE "network" ADD CONSTRAINT "network_workspace_id_fkey" FOREIGN KEY ("w
 -- modify "network_netbird" table
 ALTER TABLE "network_netbird" ADD CONSTRAINT "network_netbird_id_fkey" FOREIGN KEY ("id") REFERENCES "network" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "token" table
-ALTER TABLE "token" ADD CONSTRAINT "token_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "token" ADD CONSTRAINT "token_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "token_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume" table
 ALTER TABLE "volume" ADD CONSTRAINT "volume_latest_snapshot_id_fkey" FOREIGN KEY ("latest_snapshot_id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_provider" table
@@ -370,7 +372,7 @@ ALTER TABLE "volume_rustic" ADD CONSTRAINT "volume_rustic_id_fkey" FOREIGN KEY (
 -- modify "volume_rustic_status" table
 ALTER TABLE "volume_rustic_status" ADD CONSTRAINT "volume_rustic_status_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume_snapshot" table
-ALTER TABLE "volume_snapshot" ADD CONSTRAINT "volume_snapshot_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+ALTER TABLE "volume_snapshot" ADD CONSTRAINT "volume_snapshot_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "volume_snapshot_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_snapshot_rustic" table
 ALTER TABLE "volume_snapshot_rustic" ADD CONSTRAINT "volume_snapshot_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "workspace_access" table
@@ -396,7 +398,7 @@ ALTER TABLE "volume_provider" DROP CONSTRAINT "volume_provider_workspace_id_fkey
 -- reverse: modify "volume" table
 ALTER TABLE "volume" DROP CONSTRAINT "volume_workspace_id_fkey", DROP CONSTRAINT "volume_volume_provider_id_fkey", DROP CONSTRAINT "volume_latest_snapshot_id_fkey";
 -- reverse: modify "token" table
-ALTER TABLE "token" DROP CONSTRAINT "token_user_id_fkey";
+ALTER TABLE "token" DROP CONSTRAINT "token_workspace_id_fkey", DROP CONSTRAINT "token_box_id_fkey";
 -- reverse: modify "network_netbird" table
 ALTER TABLE "network_netbird" DROP CONSTRAINT "network_netbird_id_fkey";
 -- reverse: modify "network" table

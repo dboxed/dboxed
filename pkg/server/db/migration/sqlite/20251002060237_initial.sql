@@ -17,17 +17,6 @@ CREATE TABLE `user` (
   `avatar` text NULL,
   PRIMARY KEY (`id`)
 );
--- create "token" table
-CREATE TABLE `token` (
-  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-  `created_at` datetime NOT NULL DEFAULT (current_timestamp),
-  `token` text NOT NULL,
-  `name` text NOT NULL,
-  `user_id` text NOT NULL,
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-);
--- create index "token_token" to table: "token"
-CREATE UNIQUE INDEX `token_token` ON `token` (`token`);
 -- create "workspace" table
 CREATE TABLE `workspace` (
   `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -137,7 +126,7 @@ CREATE TABLE `network_netbird` (
   `id` bigint NOT NULL,
   `netbird_version` text NOT NULL,
   `api_url` text NOT NULL,
-  `api_access_token` text NULL,
+  `api_access_token` text NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `network` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -271,14 +260,13 @@ CREATE TABLE `volume` (
   `created_at` datetime NOT NULL DEFAULT (current_timestamp),
   `deleted_at` datetime NULL,
   `finalizers` text NOT NULL DEFAULT '{}',
-  `reconcile_status` text NOT NULL DEFAULT 'Initializing',
-  `reconcile_status_details` text NOT NULL DEFAULT '',
   `volume_provider_id` bigint NOT NULL,
   `volume_provider_type` text NOT NULL,
   `uuid` text NOT NULL,
   `name` text NOT NULL,
   `lock_id` text NULL,
   `lock_time` datetime NULL,
+  `lock_box_uuid` text NULL,
   `latest_snapshot_id` bigint NULL,
   CONSTRAINT `0` FOREIGN KEY (`latest_snapshot_id`) REFERENCES `volume_snapshot` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
   CONSTRAINT `1` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
@@ -323,9 +311,9 @@ CREATE TABLE `volume_snapshot` (
   `deleted_at` datetime NULL,
   `finalizers` text NOT NULL DEFAULT '{}',
   `volume_provider_id` bigint NOT NULL,
-  `volume_id` bigint NOT NULL,
+  `volume_id` bigint NULL,
   `lock_id` text NOT NULL,
-  CONSTRAINT `0` FOREIGN KEY (`volume_id`) REFERENCES `volume` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `0` FOREIGN KEY (`volume_id`) REFERENCES `volume` (`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
   CONSTRAINT `1` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
   CONSTRAINT `2` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
 );
@@ -363,8 +351,30 @@ CREATE TABLE `volume_snapshot_rustic` (
 );
 -- create index "volume_snapshot_rustic_snapshot_id" to table: "volume_snapshot_rustic"
 CREATE UNIQUE INDEX `volume_snapshot_rustic_snapshot_id` ON `volume_snapshot_rustic` (`snapshot_id`);
+-- create "token" table
+CREATE TABLE `token` (
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  `workspace_id` bigint NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (current_timestamp),
+  `name` text NOT NULL,
+  `token` text NOT NULL,
+  `for_workspace` bool NOT NULL,
+  `box_id` bigint NULL,
+  CONSTRAINT `0` FOREIGN KEY (`box_id`) REFERENCES `box` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT `1` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create index "token_token" to table: "token"
+CREATE UNIQUE INDEX `token_token` ON `token` (`token`);
+-- create index "token_workspace_id_name" to table: "token"
+CREATE UNIQUE INDEX `token_workspace_id_name` ON `token` (`workspace_id`, `name`);
 
 -- +goose Down
+-- reverse: create index "token_workspace_id_name" to table: "token"
+DROP INDEX `token_workspace_id_name`;
+-- reverse: create index "token_token" to table: "token"
+DROP INDEX `token_token`;
+-- reverse: create "token" table
+DROP TABLE `token`;
 -- reverse: create index "volume_snapshot_rustic_snapshot_id" to table: "volume_snapshot_rustic"
 DROP INDEX `volume_snapshot_rustic_snapshot_id`;
 -- reverse: create "volume_snapshot_rustic" table
@@ -443,10 +453,6 @@ DROP TABLE `workspace_access`;
 DROP INDEX `workspace_nkey`;
 -- reverse: create "workspace" table
 DROP TABLE `workspace`;
--- reverse: create index "token_token" to table: "token"
-DROP INDEX `token_token`;
--- reverse: create "token" table
-DROP TABLE `token`;
 -- reverse: create "user" table
 DROP TABLE `user`;
 -- reverse: create index "idx_table_and_id" to table: "change_tracking"
