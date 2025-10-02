@@ -96,7 +96,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 
 	for _, s := range dbSnapshots {
 		if s.DeletedAt.Valid {
-			log.InfoContext(ctx, "finally deleting snapshot")
+			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Rustic.SnapshotId))
 			err = querier.DeleteOneByStruct(q, s)
 			if err != nil {
 				return err
@@ -106,7 +106,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 
 	for _, v := range dbVolumes {
 		if v.DeletedAt.Valid {
-			log.InfoContext(ctx, "finally deleting volume")
+			log.InfoContext(ctx, "finally deleting volume", slog.Any("volumeId", v.ID))
 			err = querier.DeleteOneByStruct(q, v)
 			if err != nil {
 				return err
@@ -118,15 +118,31 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 }
 
 func (r *reconciler) forgetOldSnapshots(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) error {
-	q := querier.GetQuerier(ctx)
+	snapshotsByVolumes := map[int64][]*dmodel.VolumeSnapshot{}
 
-	var snapshotsList []*dmodel.VolumeSnapshot
 	for _, s := range dbSnapshots {
 		if s.DeletedAt.Valid {
 			continue
 		}
-		snapshotsList = append(snapshotsList, s)
+		snapshotsByVolumes[s.VolumedID.V] = append(snapshotsByVolumes[s.VolumedID.V], s)
 	}
+
+	for _, v := range dbVolumes {
+		sl, ok := snapshotsByVolumes[v.ID]
+		if !ok {
+			continue
+		}
+		err := r.forgetOldSnapshotsForVolume(ctx, log, v, sl)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *reconciler) forgetOldSnapshotsForVolume(ctx context.Context, log *slog.Logger, v *dmodel.VolumeWithAttachment, snapshots []*dmodel.VolumeSnapshot) error {
+	q := querier.GetQuerier(ctx)
 
 	p := forget.ExpirePolicy{
 		Last:    2,
@@ -137,15 +153,14 @@ func (r *reconciler) forgetOldSnapshots(ctx context.Context, log *slog.Logger, v
 		Yearly:  1,
 	}
 
-	_, remove, _ := forget.ApplyPolicy(snapshotsList, p)
+	_, remove, _ := forget.ApplyPolicy(snapshots, p)
 	for _, s := range remove {
-		log.InfoContext(ctx, "marking old snapshot for deletion", slog.Any("snapshotId", s.ID))
+		log.InfoContext(ctx, "marking old snapshot for deletion", slog.Any("volumeId", v.ID), slog.Any("snapshotId", s.ID))
 		err := dmodel.SoftDeleteByStruct(q, s)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
