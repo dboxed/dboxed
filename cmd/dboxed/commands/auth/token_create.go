@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -21,7 +21,7 @@ type TokenCreateCmd struct {
 func (cmd *TokenCreateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := g.BuildClient()
+	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func (cmd *TokenCreateCmd) Run(g *flags.GlobalFlags) error {
 	if cmd.ForWorkspace {
 		req.ForWorkspace = true
 	} else if cmd.Box != nil {
-		b, err := box.GetBox(ctx, c, *cmd.Box)
+		b, err := commandutils.GetBox(ctx, c, *cmd.Box)
 		if err != nil {
 			return err
 		}

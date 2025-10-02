@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/run-box"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -32,12 +33,12 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags) error {
 		}
 	}()
 
-	c, err := g.BuildClient()
+	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	box, err := GetBox(ctx, c, cmd.Box)
+	box, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
 		return err
 	}

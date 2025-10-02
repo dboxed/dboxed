@@ -249,7 +249,7 @@ func (s *MachinesServer) restDeleteMachine(c context.Context, i *huma_utils.IdBy
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[dmodel.Machine](q, &w.ID, i.Id)
+	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Machine](q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}

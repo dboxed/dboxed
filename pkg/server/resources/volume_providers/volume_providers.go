@@ -60,7 +60,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Type: string(i.Body.Type),
+		Type: i.Body.Type,
 		Name: i.Body.Name,
 	}
 
@@ -77,7 +77,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		r.Rustic = &dmodel.VolumeProviderRustic{
 			ID:          querier.N(r.ID),
 			Password:    querier.N(i.Body.Rustic.Password),
-			StorageType: string(dmodel.VolumeProviderStorageTypeS3),
+			StorageType: dmodel.VolumeProviderStorageTypeS3,
 		}
 		err = r.Rustic.Create(q)
 		if err != nil {
@@ -265,7 +265,7 @@ func (s *VolumeProviderServer) restDeleteVolumeProvider(c context.Context, i *hu
 	q := querier.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[dmodel.VolumeProvider](q, &w.ID, i.Id)
+	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.VolumeProvider](q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}

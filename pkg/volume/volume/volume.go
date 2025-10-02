@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -24,14 +25,14 @@ type Volume struct {
 	filesystemLv *lvm.LVEntry
 }
 
-func Open(image string, lockId string) (*Volume, error) {
+func Open(ctx context.Context, image string, lockId string) (*Volume, error) {
 	loDev, loHandle, err := GetOrAttachLoopDev(image, lockId)
 	if err != nil {
 		return nil, err
 	}
 	defer loHandle.Close()
 
-	lvs, err := lvm.FindPVLVs(loDev.Path())
+	lvs, err := lvm.FindPVLVs(ctx, loDev.Path())
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func Open(image string, lockId string) (*Volume, error) {
 	}
 
 	// this will cause device-mapper to open the loop dev and keep it open even though we detach
-	err = lvm.LVActivate(filesystemLv.VgName, filesystemLv.LvName, true)
+	err = lvm.LVActivate(ctx, filesystemLv.VgName, filesystemLv.LvName, true)
 	if err != nil {
 		return nil, err
 	}
@@ -69,23 +70,23 @@ func (v *Volume) SnapshotDevPath(snapshotName string, evalSymlinks bool) (string
 	return buildDevPath(v.filesystemLv.VgName, snapshotName, evalSymlinks)
 }
 
-func (v *Volume) Deactivate() error {
-	return DeactivateVolume(v.filesystemLv.VgName)
+func (v *Volume) Deactivate(ctx context.Context) error {
+	return DeactivateVolume(ctx, v.filesystemLv.VgName)
 }
 
-func DeactivateVolume(vgName string) error {
+func DeactivateVolume(ctx context.Context, vgName string) error {
 	slog.Info("deactivating volume group", slog.Any("vgName", vgName))
-	err := lvm.VGDeactivate(vgName)
+	err := lvm.VGDeactivate(ctx, vgName)
 	if err != nil {
 		return err
 	}
 
 	// some hidden/internal LVs might still be active, so we explicitly deactivate them
-	lvs, err := lvm.ListLVs()
+	lvs, err := lvm.ListLVs(ctx)
 	for _, lv := range lvs {
 		if lv.VgName == vgName && lv.LvActive == "active" {
 			slog.Info("deactivating internal/hidden volume", slog.Any("vgName", vgName), slog.Any("lvName", lv.LvName))
-			err = lvm.LVActivateFullName(lv.LvFullName, false)
+			err = lvm.LVActivateFullName(ctx, lv.LvFullName, false)
 			if err != nil {
 				return err
 			}

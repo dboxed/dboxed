@@ -8,8 +8,8 @@ type VolumeProvider struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Type string `db:"type"`
-	Name string `db:"name"`
+	Type VolumeProviderType `db:"type"`
+	Name string             `db:"name"`
 
 	Rustic *VolumeProviderRustic `join:"true"`
 }
@@ -19,7 +19,7 @@ type VolumeProviderRustic struct {
 
 	Password querier.NullForJoin[string] `db:"password"`
 
-	StorageType string `db:"storage_type"`
+	StorageType VolumeProviderStorageType `db:"storage_type"`
 
 	StorageS3 *VolumeProviderStorageS3 `join:"true" db:"storage_s3"`
 }

@@ -21,8 +21,8 @@ type VolumeProvider struct {
 type VolumeProviderRustic struct {
 	Password string `json:"password"`
 
-	StorageType string           `json:"storageType"`
-	StorageS3   *VolumeStorageS3 `json:"storageS3"`
+	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
+	StorageS3   *VolumeStorageS3                 `json:"storageS3"`
 }
 
 type VolumeStorageS3 struct {

@@ -152,12 +152,6 @@ func (c *Client) CheckAuth(ctx context.Context) error {
 		}
 		if t.ForWorkspace {
 			c.clientAuth.WorkspaceId = &t.Workspace
-			if c.writeClientAuth {
-				err = c.WriteClientAuth()
-				if err != nil {
-					return err
-				}
-			}
 		}
 	}
 	if c.clientAuth.WorkspaceId != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 )
 
@@ -14,12 +15,12 @@ type GetCmd struct {
 func (cmd *GetCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := g.BuildClient()
+	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	b, err := GetBox(ctx, c, cmd.Box)
+	b, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
 		return err
 	}

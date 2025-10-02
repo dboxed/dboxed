@@ -12,8 +12,8 @@ type Volume struct {
 	Uuid string `db:"uuid"`
 	Name string `db:"name"`
 
-	VolumeProviderID   int64  `db:"volume_provider_id"`
-	VolumeProviderType string `db:"volume_provider_type"`
+	VolumeProviderID   int64              `db:"volume_provider_id"`
+	VolumeProviderType VolumeProviderType `db:"volume_provider_type"`
 
 	LockId      *string    `db:"lock_id"`
 	LockTime    *time.Time `db:"lock_time"`
@@ -85,6 +85,14 @@ func GetVolumeById(q *querier.Querier, workspaceId *int64, id int64, skipDeleted
 	return querier.GetOne[VolumeWithAttachment](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"id":           id,
+		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
+	})
+}
+
+func GetVolumeByUuid(q *querier.Querier, workspaceId *int64, uuid string, skipDeleted bool) (*VolumeWithAttachment, error) {
+	return querier.GetOne[VolumeWithAttachment](q, map[string]any{
+		"workspace_id": querier.OmitIfNull(workspaceId),
+		"uuid":         uuid,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	})
 }

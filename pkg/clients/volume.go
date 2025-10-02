@@ -73,14 +73,6 @@ func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId int64, req m
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeCreateSnapshot(ctx context.Context, volumeId int64, req models.CreateVolumeSnapshot) (*models.Volume, error) {
-	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "snapshots")
-	if err != nil {
-		return nil, err
-	}
-	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
-}
-
 func (c *VolumesClient) GetVolumeSnapshotById(ctx context.Context, volumeId int64, snapshotId int64) (*models.VolumeSnapshot, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "snapshots", snapshotId)
 	if err != nil {

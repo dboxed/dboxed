@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -25,7 +26,7 @@ type CreateOptions struct {
 	LvmTags []string
 }
 
-func Create(opts CreateOptions) error {
+func Create(ctx context.Context, opts CreateOptions) error {
 	if _, err := os.Stat(opts.ImagePath); err == nil && !opts.Force {
 		return fmt.Errorf("image '%s' already exists, we won't overwrite it", opts.ImagePath)
 	}
@@ -59,20 +60,20 @@ func Create(opts CreateOptions) error {
 	}
 	defer loDevHandle.Close()
 
-	err = lvm.PVCreate(loDev.Path())
+	err = lvm.PVCreate(ctx, loDev.Path())
 	if err != nil {
 		return err
 	}
 
-	err = lvm.VGCreate(vgName, []string{loDev.Path()}, opts.LvmTags)
+	err = lvm.VGCreate(ctx, vgName, []string{loDev.Path()}, opts.LvmTags)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		_ = DeactivateVolume(vgName)
+		_ = DeactivateVolume(ctx, vgName)
 	}()
 
-	err = lvm.PVAddTags(loDev.Path(), opts.LvmTags)
+	err = lvm.PVAddTags(ctx, loDev.Path(), opts.LvmTags)
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func Create(opts CreateOptions) error {
 	var fsTags []string
 	fsTags = append(fsTags, opts.LvmTags...)
 	fsTags = append(fsTags, "filesystem")
-	err = lvm.LVCreate(vgName, volName, opts.FsSize, fsTags)
+	err = lvm.LVCreate(ctx, vgName, volName, opts.FsSize, fsTags)
 	if err != nil {
 		return err
 	}
@@ -89,7 +90,7 @@ func Create(opts CreateOptions) error {
 	if err != nil {
 		return err
 	}
-	err = util.RunCommand(fmt.Sprintf("mkfs.%s", opts.FsType), fsDev)
+	err = util.RunCommand(ctx, fmt.Sprintf("mkfs.%s", opts.FsType), fsDev)
 	if err != nil {
 		return err
 	}

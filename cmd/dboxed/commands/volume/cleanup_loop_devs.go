@@ -4,6 +4,7 @@ package volume
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -24,6 +25,8 @@ type CleanupLoopDevs struct {
 var onlyDigits = regexp.MustCompile("^[0-9]*$")
 
 func (cmd *CleanupLoopDevs) Run(g *flags.GlobalFlags) error {
+	ctx := context.Background()
+
 	usedRefs, err := cmd.findUsedLoopRefs()
 	if err != nil {
 		return err
@@ -34,7 +37,7 @@ func (cmd *CleanupLoopDevs) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	pvs, err := lvm.ListPVs()
+	pvs, err := lvm.ListPVs(ctx)
 	if err != nil {
 		return err
 	}
@@ -57,7 +60,7 @@ func (cmd *CleanupLoopDevs) Run(g *flags.GlobalFlags) error {
 		log.Info("loop dev is orphaned, trying to find physical volumes and volume groups to deactivate")
 		for _, pv := range pvs {
 			if pv.PvName == loDev.Path() {
-				err = volume.DeactivateVolume(pv.VgName)
+				err = volume.DeactivateVolume(ctx, pv.VgName)
 				if err != nil {
 					log.Warn("error in VGDeactivate", slog.Any("loDev", loDev.Path()), slog.Any("vgName", pv.VgName))
 				}

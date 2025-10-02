@@ -9,9 +9,9 @@ import (
 type VolumeSnapshot struct {
 	OwnedByWorkspace
 
-	VolumeProviderID int64  `db:"volume_provider_id"`
-	VolumedID        int64  `db:"volume_id"`
-	LockID           string `db:"lock_id"`
+	VolumeProviderID int64                      `db:"volume_provider_id"`
+	VolumedID        querier.NullForJoin[int64] `db:"volume_id"`
+	LockID           string                     `db:"lock_id"`
 
 	Rustic *VolumeSnapshotRustic `join:"true"`
 }
@@ -72,6 +72,14 @@ func GetVolumeSnapshotBySnapshotId(q *querier.Querier, snapshotId string, skipDe
 	return querier.GetOne[VolumeSnapshot](q, map[string]any{
 		"snapshot_id": snapshotId,
 		"deleted_at":  querier.ExcludeNonNull(skipDeleted),
+	})
+}
+
+func ListVolumeSnapshotsForProvider(q *querier.Querier, workspaceId *int64, providerId int64, skipDeleted bool) ([]VolumeSnapshot, error) {
+	return querier.GetMany[VolumeSnapshot](q, map[string]any{
+		"workspace_id":       querier.OmitIfNull(workspaceId),
+		"volume_provider_id": providerId,
+		"deleted_at":         querier.ExcludeNonNull(skipDeleted),
 	})
 }
 

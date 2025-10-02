@@ -17,6 +17,7 @@ type IsSoftDelete interface {
 	SetId(id int64)
 	GetId() int64
 	GetDeletedAt() *time.Time
+	SetDeletedAt(t *time.Time)
 	GetFinalizers() []string
 	SetFinalizers(finalizers []string)
 	HasFinalizer(k string) bool
@@ -34,6 +35,17 @@ func (v *SoftDeleteFields) GetDeletedAt() *time.Time {
 		return nil
 	}
 	return &v.DeletedAt.Time
+}
+
+func (v *SoftDeleteFields) SetDeletedAt(t *time.Time) {
+	if t == nil {
+		v.DeletedAt = sql.NullTime{}
+	} else {
+		v.DeletedAt = sql.NullTime{
+			Valid: true,
+			Time:  *t,
+		}
+	}
 }
 
 func (v *SoftDeleteFields) GetFinalizers() []string {
@@ -68,13 +80,39 @@ func (v *SoftDeleteFields) HasFinalizer(k string) bool {
 	return slices.Contains(v.GetFinalizers(), k)
 }
 
-func SoftDelete[T querier2.HasId](q *querier2.Querier, byFields map[string]any) error {
+func SoftDelete[T IsSoftDelete](q *querier2.Querier, byFields map[string]any) error {
 	return querier2.UpdateOneByFields[T](q, byFields, map[string]any{
 		"deleted_at": querier2.RawSql("current_timestamp"),
 	})
 }
 
-func SoftDeleteWithConstraints[T querier2.HasId](q *querier2.Querier, byFields map[string]any) error {
+func SoftDeleteByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64) error {
+	err := SoftDelete[T](q, map[string]any{
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"id":           id,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SoftDeleteByStruct[T IsSoftDelete](q *querier2.Querier, v T) error {
+	err := SoftDeleteByIds[T](q, nil, v.GetId())
+	if err != nil {
+		return err
+	}
+	l, err := querier2.GetMany[T](q, map[string]any{
+		"id": v.GetId(),
+	})
+	if err != nil {
+		return err
+	}
+	v.SetDeletedAt(l[0].GetDeletedAt())
+	return nil
+}
+
+func SoftDeleteWithConstraints[T IsSoftDelete](q *querier2.Querier, byFields map[string]any) error {
 	savepoint := "s_" + strings.ReplaceAll(uuid.NewString(), "-", "_")
 	_, err := q.ExecNamed(fmt.Sprintf("savepoint %s", savepoint), nil)
 	if err != nil {
@@ -98,7 +136,7 @@ func SoftDeleteWithConstraints[T querier2.HasId](q *querier2.Querier, byFields m
 	return nil
 }
 
-func SoftDeleteWithConstraintsByIds[T querier2.HasId](q *querier2.Querier, workspaceId *int64, id int64) error {
+func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64) error {
 	err := SoftDeleteWithConstraints[T](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,

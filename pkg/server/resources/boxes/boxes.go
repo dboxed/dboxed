@@ -323,7 +323,7 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[dmodel.Box](q, &w.ID, i.Id)
+	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}

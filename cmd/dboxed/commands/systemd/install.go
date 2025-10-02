@@ -5,7 +5,7 @@ package systemd
 import (
 	"context"
 
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/systemd"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -19,12 +19,12 @@ type SystemdInstallCmd struct {
 func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := g.BuildClient()
+	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	b, err := box.GetBox(ctx, c, cmd.Box)
+	b, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
 		return err
 	}

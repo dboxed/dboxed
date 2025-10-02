@@ -32,7 +32,7 @@ func (v *Workspace) SetId(id int64) {
 	v.ID = id
 }
 
-func (v Workspace) GetId() int64 {
+func (v *Workspace) GetId() int64 {
 	return v.ID
 }
 

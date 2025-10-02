@@ -1,6 +1,7 @@
 package lvm
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -94,52 +95,52 @@ func buildColNames[T any]() []string {
 	return ret
 }
 
-func ListPVs() ([]PVEntry, error) {
-	h, err := util.RunCommandJson[pvsReport]("pvs", "--reportformat=json", "-o", strings.Join(buildColNames[PVEntry](), ","))
+func ListPVs(ctx context.Context) ([]PVEntry, error) {
+	h, err := util.RunCommandJson[pvsReport](ctx, "pvs", "--reportformat=json", "-o", strings.Join(buildColNames[PVEntry](), ","))
 	if err != nil {
 		return nil, err
 	}
 	return h.Report[0].Pv, nil
 }
 
-func ListVGs() ([]VGEntry, error) {
-	h, err := util.RunCommandJson[vgsReport]("vgs", "--reportformat=json", "-o", strings.Join(buildColNames[VGEntry](), ","))
+func ListVGs(ctx context.Context) ([]VGEntry, error) {
+	h, err := util.RunCommandJson[vgsReport](ctx, "vgs", "--reportformat=json", "-o", strings.Join(buildColNames[VGEntry](), ","))
 	if err != nil {
 		return nil, err
 	}
 	return h.Report[0].Vg, nil
 }
 
-func ListLVs() ([]LVEntry, error) {
-	h, err := util.RunCommandJson[lvsReport]("lvs", "--all", "--reportformat=json", "-o", strings.Join(buildColNames[LVEntry](), ","))
+func ListLVs(ctx context.Context) ([]LVEntry, error) {
+	h, err := util.RunCommandJson[lvsReport](ctx, "lvs", "--all", "--reportformat=json", "-o", strings.Join(buildColNames[LVEntry](), ","))
 	if err != nil {
 		return nil, err
 	}
 	return h.Report[0].Lv, nil
 }
 
-func PVCreate(dev string) error {
-	err := util.RunCommand("pvcreate", dev)
+func PVCreate(ctx context.Context, dev string) error {
+	err := util.RunCommand(ctx, "pvcreate", dev)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func PVAddTags(dev string, tags []string) error {
+func PVAddTags(ctx context.Context, dev string, tags []string) error {
 	var args []string
 	for _, t := range tags {
 		args = append(args, "--addtag", t)
 	}
 	args = append(args, dev)
-	err := util.RunCommand("pvchange", args...)
+	err := util.RunCommand(ctx, "pvchange", args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func VGCreate(vgName string, devs []string, tags []string) error {
+func VGCreate(ctx context.Context, vgName string, devs []string, tags []string) error {
 	args := []string{
 		"--setautoactivation", "n",
 		vgName,
@@ -148,15 +149,15 @@ func VGCreate(vgName string, devs []string, tags []string) error {
 	for _, t := range tags {
 		args = append(args, "--addtag", t)
 	}
-	err := util.RunCommand("vgcreate", args...)
+	err := util.RunCommand(ctx, "vgcreate", args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func VGGet(vgName string) (*VGEntry, error) {
-	vgs, err := ListVGs()
+func VGGet(ctx context.Context, vgName string) (*VGEntry, error) {
+	vgs, err := ListVGs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +169,7 @@ func VGGet(vgName string) (*VGEntry, error) {
 	return nil, os.ErrNotExist
 }
 
-func VGDeactivate(vgName string) error {
+func VGDeactivate(ctx context.Context, vgName string) error {
 	cmd := util.CommandHelper{
 		Command: "vgchange",
 		Args: []string{
@@ -180,15 +181,15 @@ func VGDeactivate(vgName string) error {
 			fmt.Sprintf("LVM_SUPPRESS_FD_WARNINGS=1"),
 		},
 	}
-	err := cmd.Run()
+	err := cmd.Run(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LVGet(vgName string, lvName string) (*LVEntry, error) {
-	lvs, err := ListLVs()
+func LVGet(ctx context.Context, vgName string, lvName string) (*LVEntry, error) {
+	lvs, err := ListLVs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +201,7 @@ func LVGet(vgName string, lvName string) (*LVEntry, error) {
 	return nil, os.ErrNotExist
 }
 
-func LVCreate(vgName string, lvName string, size int64, tags []string) error {
+func LVCreate(ctx context.Context, vgName string, lvName string, size int64, tags []string) error {
 	args := []string{
 		"--name", lvName,
 		"-L", fmt.Sprintf("%dB", size),
@@ -210,43 +211,43 @@ func LVCreate(vgName string, lvName string, size int64, tags []string) error {
 	for _, t := range tags {
 		args = append(args, "--addtag", t)
 	}
-	err := util.RunCommand("lvcreate", args...)
+	err := util.RunCommand(ctx, "lvcreate", args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LVSnapCreate100Free(vgName string, lvName string, snapName string) error {
+func LVSnapCreate100Free(ctx context.Context, vgName string, lvName string, snapName string) error {
 	args := []string{
 		"-l100%FREE",
 		"-s", "--name", snapName,
 		fmt.Sprintf("%s/%s", vgName, lvName),
 	}
-	err := util.RunCommand("lvcreate", args...)
+	err := util.RunCommand(ctx, "lvcreate", args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LVRemove(vgName string, lvName string) error {
+func LVRemove(ctx context.Context, vgName string, lvName string) error {
 	args := []string{
 		"-f",
 		fmt.Sprintf("%s/%s", vgName, lvName),
 	}
-	err := util.RunCommand("lvremove", args...)
+	err := util.RunCommand(ctx, "lvremove", args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LVActivate(vgName string, lvName string, activate bool) error {
-	return LVActivateFullName(fmt.Sprintf("%s/%s", vgName, lvName), activate)
+func LVActivate(ctx context.Context, vgName string, lvName string, activate bool) error {
+	return LVActivateFullName(ctx, fmt.Sprintf("%s/%s", vgName, lvName), activate)
 }
 
-func LVActivateFullName(fullName string, activate bool) error {
+func LVActivateFullName(ctx context.Context, fullName string, activate bool) error {
 	args := []string{
 		"-K",
 		"-y",
@@ -258,15 +259,15 @@ func LVActivateFullName(fullName string, activate bool) error {
 	}
 	args = append(args, "--ignoremonitoring")
 	args = append(args, fullName)
-	err := util.RunCommand("lvchange", args...)
+	err := util.RunCommand(ctx, "lvchange", args...)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func FindPVLVs(pvName string) ([]LVEntry, error) {
-	pvs, err := ListPVs()
+func FindPVLVs(ctx context.Context, pvName string) ([]LVEntry, error) {
+	pvs, err := ListPVs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +286,7 @@ func FindPVLVs(pvName string) ([]LVEntry, error) {
 		return nil, fmt.Errorf("physical volume %s seems to not have a volume group", pvName)
 	}
 
-	vgs, err := ListVGs()
+	vgs, err := ListVGs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +302,7 @@ func FindPVLVs(pvName string) ([]LVEntry, error) {
 		return nil, fmt.Errorf("volume group %s not found in list of volume groups", foundPv.VgName)
 	}
 
-	lvs, err := ListLVs()
+	lvs, err := ListLVs(ctx)
 	if err != nil {
 		return nil, err
 	}

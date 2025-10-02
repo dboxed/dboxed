@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -25,18 +26,18 @@ type CommandHelper struct {
 	Stderr []byte
 }
 
-func (c *CommandHelper) Run() error {
+func (c *CommandHelper) Run(ctx context.Context) error {
 	var cmdStdout bytes.Buffer
 	var cmdStderr bytes.Buffer
 
-	cmd := exec.Command(c.Command, c.Args...)
+	cmd := exec.CommandContext(ctx, c.Command, c.Args...)
 	cmd.Dir = c.Dir
 	if c.CatchStdout {
 		cmd.Stdout = &cmdStdout
 	} else {
 		cmd.Stdout = os.Stdout
 	}
-	if c.CatchStdout {
+	if c.CatchStderr {
 		cmd.Stderr = &cmdStderr
 	} else {
 		cmd.Stderr = os.Stdout
@@ -51,14 +52,14 @@ func (c *CommandHelper) Run() error {
 	return err
 }
 
-func (c *CommandHelper) RunStdout() ([]byte, error) {
+func (c *CommandHelper) RunStdout(ctx context.Context) ([]byte, error) {
 	c.CatchStdout = true
-	err := c.Run()
+	err := c.Run(ctx)
 	return c.Stdout, err
 }
 
-func (c *CommandHelper) RunStdoutJson(ret any) error {
-	stdout, err := c.RunStdout()
+func (c *CommandHelper) RunStdoutJson(ctx context.Context, ret any) error {
+	stdout, err := c.RunStdout(ctx)
 	if err != nil {
 		return err
 	}
@@ -69,31 +70,31 @@ func (c *CommandHelper) RunStdoutJson(ret any) error {
 	return nil
 }
 
-func RunCommand(command string, args ...string) error {
+func RunCommand(ctx context.Context, command string, args ...string) error {
 	c := CommandHelper{
 		Command: command,
 		Args:    args,
 	}
-	return c.Run()
+	return c.Run(ctx)
 }
 
-func RunCommandStdout(command string, args ...string) ([]byte, error) {
+func RunCommandStdout(ctx context.Context, command string, args ...string) ([]byte, error) {
 	c := CommandHelper{
 		Command:     command,
 		Args:        args,
 		CatchStdout: true,
 	}
-	return c.RunStdout()
+	return c.RunStdout(ctx)
 }
 
-func RunCommandJson[T any](command string, args ...string) (*T, error) {
+func RunCommandJson[T any](ctx context.Context, command string, args ...string) (*T, error) {
 	var ret T
 	c := CommandHelper{
 		Command:     command,
 		Args:        args,
 		CatchStdout: true,
 	}
-	err := c.RunStdoutJson(&ret)
+	err := c.RunStdoutJson(ctx, &ret)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 )
@@ -15,14 +16,14 @@ type DeleteCmd struct {
 func (cmd *DeleteCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := g.BuildClient()
+	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}
 
 	c2 := &clients.WorkspacesClient{Client: c}
 
-	w, err := getWorkspace(ctx, c, cmd.Workspace)
+	w, err := commandutils.GetWorkspace(ctx, c, cmd.Workspace)
 	if err != nil {
 		return err
 	}

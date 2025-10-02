@@ -74,7 +74,7 @@ func (vs *VolumeServe) buildClient(ctx context.Context, s *VolumeState) (*basecl
 		return vs.opts.Client, nil
 	}
 
-	c, err := baseclient.FromClientAuth(nil, s.ClientAuth, false)
+	c, err := baseclient.New(nil, s.ClientAuth, false)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 		slog.Any("fsType", vs.volume.Rustic.FsType),
 		slog.Any("lvmTags", lvmTags),
 	)
-	err = volume.Create(volume.CreateOptions{
+	err = volume.Create(ctx, volume.CreateOptions{
 		LockId:    *vs.volume.LockId,
 		ImagePath: image,
 		ImageSize: imageSize,
@@ -186,13 +186,13 @@ func (vs *VolumeServe) Open(ctx context.Context) error {
 		slog.Any("path", image),
 	)
 
-	vs.LocalVolume, err = volume.Open(image, *vs.volume.LockId)
+	vs.LocalVolume, err = volume.Open(ctx, image, *vs.volume.LockId)
 	if err != nil {
 		return err
 	}
 
 	refMountDir := filepath.Join(vs.opts.Dir, "loop-ref")
-	err = volume.WriteLoopRef(refMountDir, *vs.volume.LockId)
+	err = volume.WriteLoopRef(ctx, refMountDir, *vs.volume.LockId)
 	if err != nil {
 		return err
 	}
@@ -200,14 +200,14 @@ func (vs *VolumeServe) Open(ctx context.Context) error {
 	return nil
 }
 
-func (vs *VolumeServe) Deactivate() error {
-	err := vs.LocalVolume.Deactivate()
+func (vs *VolumeServe) Deactivate(ctx context.Context) error {
+	err := vs.LocalVolume.Deactivate(ctx)
 	if err != nil {
 		return err
 	}
 
 	refMountDir := filepath.Join(vs.opts.Dir, "loop-ref")
-	err = volume.UnmountLoopRefs(refMountDir)
+	err = volume.UnmountLoopRefs(ctx, refMountDir)
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (vs *VolumeServe) Mount(ctx context.Context, readOnly bool) error {
 	}
 
 	vs.log.Info("mounting volume", slog.Any("mountPath", mount))
-	err = vs.LocalVolume.Mount(mount, readOnly)
+	err = vs.LocalVolume.Mount(ctx, mount, readOnly)
 	if err != nil {
 		return err
 	}

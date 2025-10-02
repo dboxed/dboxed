@@ -44,7 +44,7 @@ func (cmd *ReleaseCmd) Run() error {
 	}
 
 	slog.Info("Remounting read-only")
-	err = vs.LocalVolume.RemountReadOnly(vs.GetMountDir())
+	err = vs.LocalVolume.RemountReadOnly(ctx, vs.GetMountDir())
 	if err != nil {
 		return err
 	}
@@ -61,12 +61,12 @@ func (cmd *ReleaseCmd) Run() error {
 		return err
 	}
 
-	err = vs.LocalVolume.Unmount(vs.GetMountDir())
+	err = vs.LocalVolume.Unmount(ctx, vs.GetMountDir())
 	if err != nil {
 		return err
 	}
 
-	err = vs.Deactivate()
+	err = vs.Deactivate(ctx)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -24,7 +25,7 @@ func BuildRef(lockId string) string {
 	return s
 }
 
-func WriteLoopRef(refMountDir string, lockId string) error {
+func WriteLoopRef(ctx context.Context, refMountDir string, lockId string) error {
 	mounts, err := mountinfo.GetMounts(nil)
 	if err != nil {
 		return err
@@ -43,7 +44,7 @@ func WriteLoopRef(refMountDir string, lockId string) error {
 			return err
 		}
 		slog.Info("mounting tmpfs to hold loop-ref")
-		err = util.RunCommand("mount", "-t", "tmpfs", "none", refMountDir)
+		err = util.RunCommand(ctx, "mount", "-t", "tmpfs", "none", refMountDir)
 		if err != nil {
 			return err
 		}
@@ -56,7 +57,7 @@ func WriteLoopRef(refMountDir string, lockId string) error {
 	return nil
 }
 
-func UnmountLoopRefs(refMountDir string) error {
+func UnmountLoopRefs(ctx context.Context, refMountDir string) error {
 	mounts, err := mountinfo.GetMounts(nil)
 	if err != nil {
 		return err
@@ -73,7 +74,7 @@ func UnmountLoopRefs(refMountDir string) error {
 		return nil
 	}
 
-	err = util.RunCommand("umount", refMountDir)
+	err = util.RunCommand(ctx, "umount", refMountDir)
 	if err != nil {
 		return err
 	}

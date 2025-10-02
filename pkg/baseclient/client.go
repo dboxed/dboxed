@@ -14,41 +14,41 @@ type Client struct {
 	clientAuth      *ClientAuth
 	writeClientAuth bool
 
+	overrideApiUrl      string
+	overrideApiToken    string
+	overrideWorkspaceId int64
+
 	m        sync.Mutex
 	provider *oidc.Provider
 }
 
-func New(url *string, writeClientAuth bool) (*Client, error) {
-	if url == nil {
-		url = util.Ptr(defaultApiUrl)
+func New(clientAuthFile *string, clientAuth *ClientAuth, writeClientAuth bool) (*Client, error) {
+	clientAuth, err := util.CopyViaJson(clientAuth)
+	if err != nil {
+		return nil, err
+	}
+
+	if clientAuth.ApiUrl == "" {
+		clientAuth.ApiUrl = defaultApiUrl
 	}
 
 	c := &Client{
-		clientAuth: &ClientAuth{
-			ApiUrl: *url,
-		},
+		clientAuthFile:  clientAuthFile,
+		clientAuth:      clientAuth,
 		writeClientAuth: writeClientAuth,
 	}
 
 	return c, nil
 }
 
-func FromClientAuthFile(clientAuthFile *string) (*Client, error) {
-	return FromClientAuthFile2(clientAuthFile, true)
+func (c *Client) SetOverrideApiUrl(url string) {
+	c.overrideApiUrl = url
 }
 
-func FromClientAuthFile2(clientAuthFile *string, writeClientAuth bool) (*Client, error) {
-	clientAuth, err := ReadClientAuth(clientAuthFile)
-	if err != nil {
-		return nil, err
-	}
-	return FromClientAuth(clientAuthFile, clientAuth, writeClientAuth)
+func (c *Client) SetOverrideApiToken(token string) {
+	c.overrideApiToken = token
 }
 
-func FromClientAuth(clientAuthFile *string, clientAuth *ClientAuth, writeClientAuth bool) (*Client, error) {
-	return &Client{
-		clientAuthFile:  clientAuthFile,
-		clientAuth:      clientAuth,
-		writeClientAuth: writeClientAuth,
-	}, nil
+func (c *Client) SetOverrideWorkspaceId(id int64) {
+	c.overrideWorkspaceId = id
 }

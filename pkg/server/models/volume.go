@@ -94,7 +94,7 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 		Name: s.Name,
 
 		VolumeProvider:     s.VolumeProviderID,
-		VolumeProviderType: dmodel.VolumeProviderType(s.VolumeProviderType),
+		VolumeProviderType: s.VolumeProviderType,
 
 		LockId:      s.LockId,
 		LockTime:    s.LockTime,

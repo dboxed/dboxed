@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -18,7 +19,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks"
 	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers"
-	"github.com/dboxed/dboxed/pkg/reconcilers/volumes"
 	"github.com/dboxed/dboxed/pkg/reconcilers/workspaces"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/migration/migrator"
@@ -30,7 +30,8 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type runFunc func(ctx context.Context, config config2.Config) error
+type initRunFunc func(ctx context.Context, config config2.Config) (runFunc, error)
+type runFunc func(ctx context.Context) error
 
 type RunCmd struct {
 	Config string `help:"Config file" type:"existingfile"`
@@ -43,21 +44,20 @@ type RunCmd struct {
 	loadedConfig config2.Config
 }
 
-var apiFuncs = []runFunc{
+var apiFuncs = []initRunFunc{
 	runApiServer,
 }
 
-var natsServicesFuncs = []runFunc{
+var natsServicesFuncs = []initRunFunc{
 	runNatsAuthCallout,
 	runNatsServices,
 }
 
-var reconcilerFuncs = []runFunc{
+var reconcilerFuncs = []initRunFunc{
 	runReconcilerWorkspaces,
 	runReconcilerMachineProviders,
 	runReconcilerNetworks,
 	runReconcilerVolumeProviders,
-	runReconcilerVolumes,
 	runReconcilerBoxes,
 	runReconcilerMachines,
 }
@@ -120,7 +120,7 @@ func (cmd *RunReconcilersCmd) Run(runCmd *RunCmd) error {
 	)
 }
 
-func runMultiple(ctx context.Context, config config2.Config, allowMigrate bool, runs ...runFunc) error {
+func runMultiple(ctx context.Context, config config2.Config, allowMigrate bool, runs ...initRunFunc) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -138,11 +138,20 @@ func runMultiple(ctx context.Context, config config2.Config, allowMigrate bool, 
 	natsConnPool := nats_conn_pool.NewNatsConnectionPool(ctx)
 	ctx = context.WithValue(ctx, "nats-conn-pool", natsConnPool)
 
-	for _, run := range runs {
+	for _, initRun := range runs {
+		fnName := runtime.FuncForPC(reflect.ValueOf(initRun).Pointer()).Name()
+
+		slog.InfoContext(ctx, fmt.Sprintf("starting %s", fnName))
+
+		runFn, err := initRun(ctx, config)
+		if err != nil {
+			return fmt.Errorf("error in %s: %w", fnName, err)
+		}
+
 		go func() {
-			err := run(ctx, config)
+			err := runFn(ctx)
 			if err != nil {
-				slog.ErrorContext(ctx, fmt.Sprintf("error in %s", reflect.ValueOf(run).Type().Name()), slog.Any("error", err))
+				slog.ErrorContext(ctx, fnName, slog.Any("error", err))
 
 				m.Lock()
 				if firstErr == nil {
@@ -232,77 +241,72 @@ func initDB(ctx context.Context, config config2.Config, allowMigrate bool) (*sql
 	return db, nil
 }
 
-func runApiServer(ctx context.Context, config config2.Config) error {
+func runApiServer(ctx context.Context, config config2.Config) (runFunc, error) {
 	s, err := server.NewDboxedServer(ctx, config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = s.InitGin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = s.InitHuma()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = s.InitApi(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return s.ListenAndServe(ctx)
+	return s.ListenAndServe, nil
 }
 
-func runReconcilerWorkspaces(ctx context.Context, config config2.Config) error {
+func runReconcilerWorkspaces(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := workspaces.NewWorkspacesReconciler(config)
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runReconcilerMachineProviders(ctx context.Context, config config2.Config) error {
+func runReconcilerMachineProviders(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := machine_providers.NewMachineProvidersReconciler(config)
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runReconcilerNetworks(ctx context.Context, config config2.Config) error {
+func runReconcilerNetworks(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := networks.NewNetworksReconciler(config)
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runReconcilerVolumeProviders(ctx context.Context, config config2.Config) error {
+func runReconcilerVolumeProviders(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := volume_providers.NewVolumeProvidersReconciler(config)
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runReconcilerVolumes(ctx context.Context, config config2.Config) error {
-	r := volumes.NewVolumesReconciler(config)
-	return r.Run(ctx)
-}
-
-func runReconcilerBoxes(ctx context.Context, config config2.Config) error {
+func runReconcilerBoxes(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := boxes.NewBoxesReconciler(config)
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runReconcilerMachines(ctx context.Context, config config2.Config) error {
+func runReconcilerMachines(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := machines.NewMachinesReconciler(config)
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runNatsAuthCallout(ctx context.Context, config config2.Config) error {
+func runNatsAuthCallout(ctx context.Context, config config2.Config) (runFunc, error) {
 	r, err := nats_services.NewAuthCalloutService(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return r.Run(ctx)
+	return r.Run, nil
 }
 
-func runNatsServices(ctx context.Context, config config2.Config) error {
+func runNatsServices(ctx context.Context, config config2.Config) (runFunc, error) {
 	r, err := nats_services.NewDboxedServices(ctx, config)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return r.Run(ctx)
+	return r.Run, nil
 }

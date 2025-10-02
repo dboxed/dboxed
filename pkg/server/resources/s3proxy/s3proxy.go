@@ -101,6 +101,11 @@ func (s *S3ProxyServer) restListObjects(ctx context.Context, i *huma_utils.IdByP
 	ch := c.ListObjects(ctx, vp.Rustic.StorageS3.Bucket.V, minio.ListObjectsOptions{
 		Prefix: prefix,
 	})
+	defer func() {
+		// drain it
+		for range ch {
+		}
+	}()
 
 	rep := models.S3ProxyListObjectsResult{}
 	for o := range ch {

@@ -37,7 +37,6 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume)
 	huma.Post(workspacesGroup, "/volumes/{id}/release", s.restReleaseVolume)
 
-	huma.Post(workspacesGroup, "/volumes/{id}/snapshots", s.restCreateSnapshot)
 	huma.Get(workspacesGroup, "/volumes/{id}/snapshots", s.restListSnapshots)
 	huma.Get(workspacesGroup, "/volumes/{id}/snapshots/{snapshotId}", s.restGetSnapshot)
 	huma.Delete(workspacesGroup, "/volumes/{id}/snapshots/{snapshotId}", s.restDeleteSnapshot)
@@ -183,7 +182,7 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[dmodel.Volume](q, &w.ID, i.Id)
+	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Volume](q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}

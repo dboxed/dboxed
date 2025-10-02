@@ -220,7 +220,7 @@ func (s *MachineProviderServer) restDeleteMachineProvider(c context.Context, i *
 	q := querier.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[dmodel.MachineProvider](q, &w.ID, i.Id)
+	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.MachineProvider](q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}

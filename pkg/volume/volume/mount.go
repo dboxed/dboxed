@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"log/slog"
 	"path/filepath"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/moby/sys/mountinfo"
 )
 
-func (v *Volume) Mount(mountTarget string, readOnly bool) error {
+func (v *Volume) Mount(ctx context.Context, mountTarget string, readOnly bool) error {
 	lvDev, err := v.DevPath(true)
 	if err != nil {
 		return err
@@ -36,7 +37,7 @@ func (v *Volume) Mount(mountTarget string, readOnly bool) error {
 
 	args = append(args, lvDev, mountTarget)
 
-	err = util.RunCommand("mount", args...)
+	err = util.RunCommand(ctx, "mount", args...)
 	if err != nil {
 		return err
 	}
@@ -44,16 +45,16 @@ func (v *Volume) Mount(mountTarget string, readOnly bool) error {
 	return nil
 }
 
-func (v *Volume) RemountReadOnly(mountTarget string) error {
-	err := util.RunCommand("mount", "-o", "remount,ro", mountTarget)
+func (v *Volume) RemountReadOnly(ctx context.Context, mountTarget string) error {
+	err := util.RunCommand(ctx, "mount", "-o", "remount,ro", mountTarget)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (v *Volume) Unmount(mountTarget string) error {
-	err := util.RunCommand("umount", mountTarget)
+func (v *Volume) Unmount(ctx context.Context, mountTarget string) error {
+	err := util.RunCommand(ctx, "umount", mountTarget)
 	if err != nil {
 		return err
 	}

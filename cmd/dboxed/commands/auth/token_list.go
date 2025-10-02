@@ -13,7 +13,7 @@ type TokenListCmd struct{}
 func (cmd *TokenListCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	c, err := g.BuildClient()
+	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}

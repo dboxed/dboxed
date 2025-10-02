@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,8 +12,8 @@ import (
 	"github.com/moby/sys/mountinfo"
 )
 
-func (v *Volume) CreateSnapshot(snapshotName string, overwrite bool) error {
-	snapLv, err := lvm.LVGet(v.filesystemLv.VgName, snapshotName)
+func (v *Volume) CreateSnapshot(ctx context.Context, snapshotName string, overwrite bool) error {
+	snapLv, err := lvm.LVGet(ctx, v.filesystemLv.VgName, snapshotName)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -23,16 +24,16 @@ func (v *Volume) CreateSnapshot(snapshotName string, overwrite bool) error {
 			return fmt.Errorf("snapshot %s already exists", snapshotName)
 		}
 		slog.Info("snapshot already exists, removing it", slog.Any("snapshotName", snapshotName))
-		err = lvm.LVRemove(v.filesystemLv.VgName, snapshotName)
+		err = lvm.LVRemove(ctx, v.filesystemLv.VgName, snapshotName)
 		if err != nil {
 			return err
 		}
 	}
 
-	_ = util.RunCommand("sync")
+	_ = util.RunCommand(ctx, "sync")
 
 	slog.Info("creating snapshot", slog.Any("snapshotName", snapshotName))
-	err = lvm.LVSnapCreate100Free(v.filesystemLv.VgName, v.filesystemLv.LvName, snapshotName)
+	err = lvm.LVSnapCreate100Free(ctx, v.filesystemLv.VgName, v.filesystemLv.LvName, snapshotName)
 	if err != nil {
 		return err
 	}
@@ -40,14 +41,14 @@ func (v *Volume) CreateSnapshot(snapshotName string, overwrite bool) error {
 	deferRemoveSnapshot := true
 	defer func() {
 		if deferRemoveSnapshot {
-			err := lvm.LVRemove(v.filesystemLv.VgName, snapshotName)
+			err := lvm.LVRemove(ctx, v.filesystemLv.VgName, snapshotName)
 			if err != nil {
 				slog.Error("remove snapshot failed in defer", slog.Any("error", err))
 			}
 		}
 	}()
 
-	err = lvm.LVActivate(v.filesystemLv.VgName, snapshotName, true)
+	err = lvm.LVActivate(ctx, v.filesystemLv.VgName, snapshotName, true)
 	if err != nil {
 		return err
 	}
@@ -56,23 +57,23 @@ func (v *Volume) CreateSnapshot(snapshotName string, overwrite bool) error {
 	return nil
 }
 
-func (v *Volume) DeleteSnapshot(snapshotName string) error {
-	return lvm.LVRemove(v.filesystemLv.VgName, snapshotName)
+func (v *Volume) DeleteSnapshot(ctx context.Context, snapshotName string) error {
+	return lvm.LVRemove(ctx, v.filesystemLv.VgName, snapshotName)
 }
 
-func (v *Volume) MountSnapshot(snapshotName string, mountTarget string) error {
+func (v *Volume) MountSnapshot(ctx context.Context, snapshotName string, mountTarget string) error {
 	lvDev, err := buildDevPath(v.filesystemLv.VgName, snapshotName, false)
 	if err != nil {
 		return err
 	}
-	err = util.RunCommand("mount", "-oro", lvDev, mountTarget)
+	err = util.RunCommand(ctx, "mount", "-oro", lvDev, mountTarget)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (v *Volume) UnmountSnapshot(snapshotName string) error {
+func (v *Volume) UnmountSnapshot(ctx context.Context, snapshotName string) error {
 	isMounted, err := v.IsSnapshotMounted(snapshotName)
 	if err != nil {
 		return err
@@ -85,7 +86,7 @@ func (v *Volume) UnmountSnapshot(snapshotName string) error {
 	if err != nil {
 		return err
 	}
-	err = util.RunCommand("umount", lvDev)
+	err = util.RunCommand(ctx, "umount", lvDev)
 	return err
 }
 

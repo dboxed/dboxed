@@ -1,4 +1,4 @@
-package volume_backup
+package rustic
 
 import (
 	"time"
@@ -6,23 +6,34 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type RusticSnapshot struct {
-	Id             string                `json:"id"`
-	Parent         *string               `json:"parent,omitempty"`
-	Time           time.Time             `json:"time"`
-	ProgramVersion string                `json:"program_version"`
-	Tree           string                `json:"tree"`
-	Paths          []string              `json:"paths"`
-	Hostname       string                `json:"hostname"`
-	Username       string                `json:"username"`
-	Uid            int                   `json:"uid"`
-	Gid            int                   `json:"gid"`
-	Tags           []interface{}         `json:"tags"`
-	Original       string                `json:"original"`
-	Summary        RusticSnapshotSummary `json:"summary"`
+type SnapshotGroup struct {
+	GroupKey  GroupKey   `json:"group_key"`
+	Snapshots []Snapshot `json:"snapshots"`
 }
 
-type RusticSnapshotSummary struct {
+type GroupKey struct {
+	Hostname string   `json:"hostname"`
+	Paths    []string `json:"paths"`
+	Tags     []string `json:"tags"`
+}
+
+type Snapshot struct {
+	Id             string          `json:"id"`
+	Parent         *string         `json:"parent,omitempty"`
+	Time           time.Time       `json:"time"`
+	ProgramVersion string          `json:"program_version"`
+	Tree           string          `json:"tree"`
+	Paths          []string        `json:"paths"`
+	Hostname       string          `json:"hostname"`
+	Username       string          `json:"username"`
+	Uid            int             `json:"uid"`
+	Gid            int             `json:"gid"`
+	Tags           []string        `json:"tags"`
+	Original       string          `json:"original"`
+	Summary        SnapshotSummary `json:"summary"`
+}
+
+type SnapshotSummary struct {
 	FilesNew              int       `json:"files_new"`
 	FilesChanged          int       `json:"files_changed"`
 	FilesUnmodified       int       `json:"files_unmodified"`
@@ -48,7 +59,7 @@ type RusticSnapshotSummary struct {
 	TotalDuration         float64   `json:"total_duration"`
 }
 
-func (rs *RusticSnapshot) ToApi() models.VolumeSnapshotRustic {
+func (rs *Snapshot) ToApi() models.VolumeSnapshotRustic {
 	return models.VolumeSnapshotRustic{
 		SnapshotId:       rs.Id,
 		SnapshotTime:     rs.Time,
