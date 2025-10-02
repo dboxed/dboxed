@@ -17,14 +17,9 @@ import (
 
 type Querier struct {
 	Ctx context.Context
-	DB  *sqlx.DB
-	TX  *sqlx.Tx
 
-	E sqlx.ExtContext
-}
-
-func (q *Querier) GetDB() *sqlx.DB {
-	return q.DB
+	DB *ReadWriteDB
+	TX *sqlx.Tx
 }
 
 func (q *Querier) selectDriverQuery(query any) string {
@@ -32,7 +27,7 @@ func (q *Querier) selectDriverQuery(query any) string {
 	if queryStr, ok := query.(string); ok {
 		resolvedQuery = queryStr
 	} else if m, ok := query.(map[string]string); ok {
-		resolvedQuery, ok = m[q.E.DriverName()]
+		resolvedQuery, ok = m[q.DB.DriverName()]
 		if !ok {
 			panic("missing query for driver")
 		}
@@ -54,7 +49,7 @@ func (q *Querier) bindNamed(query any, arg interface{}) (string, []any, error) {
 			return "", nil, err
 		}
 	}
-	tmp, args, err := sqlx.BindNamed(sqlx.BindType(q.E.DriverName()), resolvedQuery, arg)
+	tmp, args, err := sqlx.BindNamed(sqlx.BindType(q.DB.DriverName()), resolvedQuery, arg)
 	if err != nil {
 		return "", nil, err
 	}
@@ -84,12 +79,19 @@ func (q *Querier) replacePlaceholders(query any, m map[string]any) (string, map[
 	return resolvedQuery, retMap, nil
 }
 
+func (q *Querier) getSqlxQueryer() sqlx.QueryerContext {
+	if q.TX != nil {
+		return q.TX
+	}
+	return q.DB
+}
+
 func (q *Querier) GetNamed(dest interface{}, query any, arg interface{}) error {
 	query2, args, err := q.bindNamed(query, arg)
 	if err != nil {
 		return err
 	}
-	return sqlx.GetContext(q.Ctx, q.E, dest, query2, args...)
+	return sqlx.GetContext(q.Ctx, q.getSqlxQueryer(), dest, query2, args...)
 }
 
 func (q *Querier) SelectNamed(dest interface{}, query any, arg interface{}) error {
@@ -97,7 +99,7 @@ func (q *Querier) SelectNamed(dest interface{}, query any, arg interface{}) erro
 	if err != nil {
 		return err
 	}
-	return sqlx.SelectContext(q.Ctx, q.E, dest, query2, args...)
+	return sqlx.SelectContext(q.Ctx, q.getSqlxQueryer(), dest, query2, args...)
 }
 
 func (q *Querier) ExecNamed(query any, arg interface{}) (sql.Result, error) {
@@ -105,7 +107,28 @@ func (q *Querier) ExecNamed(query any, arg interface{}) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return q.E.ExecContext(q.Ctx, query2, args...)
+
+	if q.TX != nil {
+		return q.TX.ExecContext(q.Ctx, query2, args...)
+	} else {
+		if IsForbidAutoTx(q.Ctx) {
+			return nil, fmt.Errorf("auto-tx not allowed")
+		}
+
+		var ret sql.Result
+		err = q.DB.Transaction(q.Ctx, func(tx *sqlx.Tx) (bool, error) {
+			var err error
+			ret, err = tx.ExecContext(q.Ctx, query2, args...)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		return ret, nil
+	}
 }
 
 func (q *Querier) ExecOneNamed(query string, arg interface{}) error {
@@ -414,18 +437,11 @@ func DeleteOneWhere[T any](q *Querier, where string, args map[string]any) error 
 	return q.ExecOneNamed(query, args)
 }
 
-func NewQuerier(ctx context.Context, db *sqlx.DB, tx *sqlx.Tx) *Querier {
-	var e sqlx.ExtContext
-	if tx != nil {
-		e = tx
-	} else {
-		e = db
-	}
+func NewQuerier(ctx context.Context, db *ReadWriteDB, tx *sqlx.Tx) *Querier {
 	q := &Querier{
 		Ctx: ctx,
 		DB:  db,
 		TX:  tx,
-		E:   e,
 	}
 	return q
 }

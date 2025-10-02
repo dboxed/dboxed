@@ -33,10 +33,11 @@ func New() *S3ProxyServer {
 }
 
 func (s *S3ProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/list-objects", s.restListObjects)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/presign-put", s.restPresignPut)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/rename-object", s.restRenameObject)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/delete-object", s.restDeleteObject)
+	noTxModifier := huma_utils.MetadataModifier(huma_utils.NoTx, true)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/list-objects", s.restListObjects, noTxModifier)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/presign-put", s.restPresignPut, noTxModifier)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/rename-object", s.restRenameObject, noTxModifier)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/delete-object", s.restDeleteObject, noTxModifier)
 
 	return nil
 }

@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"net/url"
 	"reflect"
 	"runtime"
 	"slices"
-	"strings"
 	"sync"
 
 	"github.com/dboxed/dboxed/pkg/nats_conn_pool"
@@ -24,9 +22,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/migration/migrator"
 	"github.com/dboxed/dboxed/pkg/server/db/migration/postgres"
 	"github.com/dboxed/dboxed/pkg/server/db/migration/sqlite"
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/server"
-	"github.com/jmoiron/sqlx"
-
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -167,40 +164,8 @@ func runMultiple(ctx context.Context, config config2.Config, allowMigrate bool, 
 	return firstErr
 }
 
-func openDB(ctx context.Context, config config2.Config, enableSqliteFKs bool) (*sqlx.DB, error) {
-	purl, err := url.Parse(config.DB.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	var sqlxDb *sqlx.DB
-	if purl.Scheme == "sqlite3" {
-		q := purl.Query()
-		if enableSqliteFKs {
-			if !q.Has("_foreign_keys") {
-				q.Set("_foreign_keys", "on")
-				purl.RawQuery = q.Encode()
-			}
-		}
-		dbfile := strings.Replace(purl.String(), "sqlite3://", "", 1)
-
-		sqlxDb, err = sqlx.Open("sqlite3", dbfile)
-		if err != nil {
-			return nil, err
-		}
-	} else if purl.Scheme == "postgresql" {
-		sqlxDb, err = sqlx.Open("pgx", purl.String())
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, fmt.Errorf("unsupported db url: %s", config.DB.Url)
-	}
-
-	sqlxDb.SetMaxIdleConns(8)
-	sqlxDb.SetMaxOpenConns(16)
-
-	return sqlxDb, nil
+func openDB(ctx context.Context, config config2.Config, enableSqliteFKs bool) (*querier.ReadWriteDB, error) {
+	return querier.OpenReadWriteDB(config.DB.Url, enableSqliteFKs)
 }
 
 func migrateDB(ctx context.Context, config config2.Config) error {
@@ -222,7 +187,7 @@ func migrateDB(ctx context.Context, config config2.Config) error {
 	return nil
 }
 
-func initDB(ctx context.Context, config config2.Config, allowMigrate bool) (*sqlx.DB, error) {
+func initDB(ctx context.Context, config config2.Config, allowMigrate bool) (*querier.ReadWriteDB, error) {
 	slog.InfoContext(ctx, "initializing database")
 
 	if allowMigrate && config.DB.Migrate {

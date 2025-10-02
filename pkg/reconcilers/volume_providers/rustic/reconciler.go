@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/dboxed/dboxed/pkg/server/db/dbutils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/s3utils"
@@ -218,7 +217,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 
 func (r *Reconciler) createDBSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, v *dmodel.Volume, rsSnapshot *rustic.Snapshot) (*dmodel.VolumeSnapshot, error) {
 	var ret *dmodel.VolumeSnapshot
-	err := dbutils.RunInTx(ctx, func(ctx context.Context) error {
+	err := querier.Transaction(ctx, func(ctx context.Context) error {
 		var err error
 		ret, err = r.createDBSnapshotInTx(ctx, log, vp, v, rsSnapshot)
 		if err != nil {

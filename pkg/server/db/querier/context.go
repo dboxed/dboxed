@@ -6,12 +6,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func GetDB(c context.Context) *sqlx.DB {
+func GetDB(c context.Context) *ReadWriteDB {
 	i := c.Value("db")
 	if i == nil {
 		panic("context has no db")
 	}
-	db, ok := i.(*sqlx.DB)
+	db, ok := i.(*ReadWriteDB)
 	if !ok {
 		panic("db in context has wrong type")
 	}
@@ -36,10 +36,6 @@ func getTX(c context.Context, doPanic bool) *sqlx.Tx {
 	return tx
 }
 
-func GetTX(c context.Context) *sqlx.Tx {
-	return getTX(c, true)
-}
-
 func GetQuerier(c context.Context) *Querier {
 	tx := getTX(c, false)
 	var tx2 *sqlx.Tx
@@ -47,4 +43,31 @@ func GetQuerier(c context.Context) *Querier {
 		tx2 = tx
 	}
 	return NewQuerier(c, GetDB(c), tx2)
+}
+
+func WithForbidAutoTx(ctx context.Context) context.Context {
+	return context.WithValue(ctx, "forbid-auto-tx", true)
+}
+
+func IsForbidAutoTx(ctx context.Context) bool {
+	v := ctx.Value("forbid-auto-tx")
+	if v == nil {
+		return false
+	}
+	b, ok := v.(bool)
+	if !ok || !b {
+		return false
+	}
+	return true
+}
+
+func Transaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	return GetDB(ctx).Transaction(ctx, func(tx *sqlx.Tx) (bool, error) {
+		ctx = context.WithValue(ctx, "tx", tx)
+		err := fn(ctx)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
 }

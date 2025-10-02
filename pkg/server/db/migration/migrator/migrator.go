@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/fs"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/pressly/goose/v3"
 )
 
-func Migrate(ctx context.Context, db *sqlx.DB, migrations map[string]fs.FS) error {
+func Migrate(ctx context.Context, db *querier.ReadWriteDB, migrations map[string]fs.FS) error {
 	fs, ok := migrations[db.DriverName()]
 	if !ok {
 		return fmt.Errorf("migrations for %s not found", db.DriverName())
@@ -21,7 +21,7 @@ func Migrate(ctx context.Context, db *sqlx.DB, migrations map[string]fs.FS) erro
 		return err
 	}
 
-	err = goose.UpContext(ctx, db.DB, ".")
+	err = goose.UpContext(ctx, db.GetWriteDB().DB, ".")
 	if err != nil {
 		return err
 	}
