@@ -105,16 +105,19 @@ func (r *Reconciler) getFilteredRusticSnapshots(ctx context.Context, vp *dmodel.
 func (r *Reconciler) deleteRusticSnapshots(ctx context.Context, vp *dmodel.VolumeProvider, snapshotIds []string) error {
 	slog.InfoContext(ctx, "deleting rustic snapshots", slog.Any("rsSnapshotIds", snapshotIds))
 
-	config, err := r.buildRusticConfig(vp)
+	c, err := s3utils.BuildS3Client(vp)
 	if err != nil {
 		return err
 	}
 
-	err = rustic.RunForget(ctx, *config, rustic.ForgetOpts{
-		SnapshotIds: snapshotIds,
-	})
-	if err != nil {
-		return err
+	prefix := path.Join(vp.Rustic.StorageS3.Prefix.V, "snapshots") + "/"
+
+	for _, id := range snapshotIds {
+		key := path.Join(prefix, id)
+		err = c.RemoveObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, minio.RemoveObjectOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to remove snapshot via S3 RemoveObject: %w", err)
+		}
 	}
 	return nil
 }
@@ -195,7 +198,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 			continue
 		}
 		log := log.With(
-			slog.Any("volumeId", s.VolumedID),
+			slog.Any("volumeId", s.VolumedID.V),
 			slog.Any("snapshotId", s.ID),
 			slog.Any("snapshotRusticId", s.Rustic.SnapshotId.V),
 		)
