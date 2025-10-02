@@ -45,15 +45,15 @@ func RunBackup(ctx context.Context, config RusticConfig, dir string, opts Backup
 }
 
 type RestoreOpts struct {
-	NumericIds bool
+	NumericId bool
 }
 
 func RunRestore(ctx context.Context, config RusticConfig, snapshotId string, dir string, opts RestoreOpts) error {
 	args := []string{
 		"restore",
 	}
-	if opts.NumericIds {
-		args = append(args, "--numeric-ids")
+	if opts.NumericId {
+		args = append(args, "--numeric-id")
 	}
 
 	args = append(args, snapshotId)
@@ -66,14 +66,26 @@ func RunRestore(ctx context.Context, config RusticConfig, snapshotId string, dir
 	return err
 }
 
-func RunSnapshots(ctx context.Context, config RusticConfig, groupBy *string) ([]SnapshotGroup, error) {
+type SnapshotOpts struct {
+	SnapshotIds []string
+	NoCache     bool
+}
+
+func RunSnapshots(ctx context.Context, config RusticConfig, opts SnapshotOpts) ([]Snapshot, error) {
 	args := []string{
 		"snapshots",
 		"--json",
 		"--no-progress",
+		"--group-by", "",
+	}
+	if opts.NoCache {
+		args = append(args, "--no-cache")
+	}
+	for _, id := range opts.SnapshotIds {
+		args = append(args, id)
 	}
 
-	ret, err := RunRusticCommandJson[[]SnapshotGroup](ctx, config, args)
+	ret, err := RunRusticCommandJson[[]Snapshot](ctx, config, args)
 	if err != nil {
 		return nil, err
 	}

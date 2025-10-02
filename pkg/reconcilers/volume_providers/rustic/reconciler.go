@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path"
 	"slices"
 	"strings"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dbutils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/s3utils"
 	"github.com/dboxed/dboxed/pkg/volume/rustic"
 	"github.com/dboxed/dboxed/pkg/volume/volume_backup"
+	"github.com/minio/minio-go/v7"
 )
 
 type Reconciler struct {
@@ -38,32 +41,61 @@ func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider) (*rustic.Rusti
 	return config, nil
 }
 
-func (r *Reconciler) listRusticSnapshots(ctx context.Context, vp *dmodel.VolumeProvider) ([]rustic.Snapshot, error) {
+func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider) ([]string, error) {
+	c, err := s3utils.BuildS3Client(vp)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := path.Join(vp.Rustic.StorageS3.Prefix.V, "snapshots") + "/"
+	ch := c.ListObjects(ctx, vp.Rustic.StorageS3.Bucket.V, minio.ListObjectsOptions{
+		Prefix: prefix,
+	})
+	defer func() {
+		// drain it
+		for range ch {
+		}
+	}()
+
+	var ret []string
+	for oi := range ch {
+		if oi.Err != nil {
+			return nil, err
+		}
+		id := path.Base(oi.Key)
+		ret = append(ret, id)
+	}
+
+	return ret, nil
+}
+
+func (r *Reconciler) getFilteredRusticSnapshots(ctx context.Context, vp *dmodel.VolumeProvider, snapshotIds []string) (map[string]*rustic.Snapshot, error) {
 	config, err := r.buildRusticConfig(vp)
 	if err != nil {
 		return nil, err
 	}
 
-	groups, err := rustic.RunSnapshots(ctx, *config, nil)
+	snapshots, err := rustic.RunSnapshots(ctx, *config, rustic.SnapshotOpts{
+		SnapshotIds: snapshotIds,
+		NoCache:     true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	expectedTags := volume_backup.BuildBackupTags(vp.ID, nil, nil, nil)
 
-	var ret []rustic.Snapshot
-	for _, g := range groups {
-		for _, s := range g.Snapshots {
-			allFound := true
-			for _, tag := range expectedTags {
-				if !slices.Contains(s.Tags, tag) {
-					allFound = false
-					break
-				}
+	ret := map[string]*rustic.Snapshot{}
+	for _, s := range snapshots {
+		allFound := true
+		for _, tag := range expectedTags {
+			if !slices.Contains(s.Tags, tag) {
+				allFound = false
+				break
 			}
-			if allFound {
-				ret = append(ret, s)
-			}
+		}
+		if allFound {
+			ret[s.Id] = &s
 		}
 	}
 
@@ -109,35 +141,45 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		dbVolumesByUuuid[v.Uuid] = v
 	}
 
-	rsSnapshots, err := r.listRusticSnapshots(ctx, vp)
+	rsSnapshotIds, err := r.listRusticSnapshotIds(ctx, vp)
 	if err != nil {
-		return fmt.Errorf("failed to list rustic snapshots: %w", err)
+		return fmt.Errorf("failed to list rustic snapshot ids: %w", err)
 	}
-	rsSnapshotsByRusticId := map[string]*rustic.Snapshot{}
-	for _, s := range rsSnapshots {
-		rsSnapshotsByRusticId[s.Id] = &s
+	rsSnapshotIdSet := map[string]struct{}{}
+	for _, id := range rsSnapshotIds {
+		rsSnapshotIdSet[id] = struct{}{}
 	}
 
 	var rsSnapshotsToDelete []string
-	for _, s := range rsSnapshotsByRusticId {
-		volumeUuid := r.getTagValue(s.Tags, "dboxed-volume-uuid")
-		v := dbVolumesByUuuid[volumeUuid]
-
-		if v == nil || v.DeletedAt.Valid {
-			rsSnapshotsToDelete = append(rsSnapshotsToDelete, s.Id)
-			continue
-		}
-
-		dbSnapshot, ok := dbSnapshotsByRusticId[s.Id]
+	var rsPotentialSnapshotsToCreate []string
+	for _, id := range rsSnapshotIds {
+		dbSnapshot, ok := dbSnapshotsByRusticId[id]
 		if !ok {
-			err = r.createDBSnapshot(ctx, log, vp, &v.Volume, s)
+			rsPotentialSnapshotsToCreate = append(rsPotentialSnapshotsToCreate, id)
+		} else if dbSnapshot.DeletedAt.Valid {
+			rsSnapshotsToDelete = append(rsSnapshotsToDelete, id)
+		}
+	}
+
+	if len(rsPotentialSnapshotsToCreate) != 0 {
+		rsSnapshots, err := r.getFilteredRusticSnapshots(ctx, vp, rsPotentialSnapshotsToCreate)
+		if err != nil {
+			return fmt.Errorf("failed to retrieve rustic snapshots: %w", err)
+		}
+		for _, s := range rsSnapshots {
+			volumeUuid := r.getTagValue(s.Tags, "dboxed-volume-uuid")
+			v := dbVolumesByUuuid[volumeUuid]
+
+			if v == nil || v.DeletedAt.Valid {
+				rsSnapshotsToDelete = append(rsSnapshotsToDelete, s.Id)
+				continue
+			}
+
+			newDbSnapshot, err := r.createDBSnapshot(ctx, log, vp, &v.Volume, s)
 			if err != nil {
 				return fmt.Errorf("failed to create snapshot: %w", err)
 			}
-			continue
-		}
-		if dbSnapshot.DeletedAt.Valid {
-			rsSnapshotsToDelete = append(rsSnapshotsToDelete, s.Id)
+			dbSnapshots[newDbSnapshot.ID] = newDbSnapshot
 		}
 	}
 
@@ -145,9 +187,6 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		err = r.deleteRusticSnapshots(ctx, vp, rsSnapshotsToDelete)
 		if err != nil {
 			return fmt.Errorf("failed to delete snapshots: %w", err)
-		}
-		for _, s := range rsSnapshotsToDelete {
-			delete(rsSnapshotsByRusticId, s)
 		}
 	}
 
@@ -161,7 +200,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 			slog.Any("snapshotRusticId", s.Rustic.SnapshotId.V),
 		)
 
-		_, ok := rsSnapshotsByRusticId[s.Rustic.SnapshotId.V]
+		_, ok := rsSnapshotIdSet[s.Rustic.SnapshotId.V]
 		if !ok {
 			log.InfoContext(ctx, "snapshot vanished from rustic, marking for deletion in DB")
 			err = dmodel.SoftDeleteByStruct(q, s)
@@ -174,13 +213,23 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 	return nil
 }
 
-func (r *Reconciler) createDBSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, v *dmodel.Volume, rsSnapshot *rustic.Snapshot) error {
-	return dbutils.RunInTx(ctx, func(ctx context.Context) error {
-		return r.createDBSnapshotInTx(ctx, log, vp, v, rsSnapshot)
+func (r *Reconciler) createDBSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, v *dmodel.Volume, rsSnapshot *rustic.Snapshot) (*dmodel.VolumeSnapshot, error) {
+	var ret *dmodel.VolumeSnapshot
+	err := dbutils.RunInTx(ctx, func(ctx context.Context) error {
+		var err error
+		ret, err = r.createDBSnapshotInTx(ctx, log, vp, v, rsSnapshot)
+		if err != nil {
+			return err
+		}
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
-func (r *Reconciler) createDBSnapshotInTx(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, v *dmodel.Volume, rsSnapshot *rustic.Snapshot) error {
+func (r *Reconciler) createDBSnapshotInTx(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, v *dmodel.Volume, rsSnapshot *rustic.Snapshot) (*dmodel.VolumeSnapshot, error) {
 	q := querier.GetQuerier(ctx)
 
 	log.InfoContext(ctx, "creating snapshot in database", slog.Any("rsSnapshotId", rsSnapshot.Id))
@@ -198,7 +247,7 @@ func (r *Reconciler) createDBSnapshotInTx(ctx context.Context, log *slog.Logger,
 
 	err := snapshot.Create(q)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if v.Rustic != nil {
@@ -233,10 +282,10 @@ func (r *Reconciler) createDBSnapshotInTx(ctx context.Context, log *slog.Logger,
 		}
 		err = snapshot.Rustic.Create(q)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &snapshot, nil
 }
 
 func (r *Reconciler) ReconcileDeleteVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, volumes map[int64]*dmodel.VolumeWithAttachment, snapshots map[int64]*dmodel.VolumeSnapshot) error {

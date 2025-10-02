@@ -6,17 +6,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type SnapshotGroup struct {
-	GroupKey  GroupKey   `json:"group_key"`
-	Snapshots []Snapshot `json:"snapshots"`
-}
-
-type GroupKey struct {
-	Hostname string   `json:"hostname"`
-	Paths    []string `json:"paths"`
-	Tags     []string `json:"tags"`
-}
-
 type Snapshot struct {
 	Id             string          `json:"id"`
 	Parent         *string         `json:"parent,omitempty"`
