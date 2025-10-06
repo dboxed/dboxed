@@ -3,7 +3,6 @@ package global
 import (
 	"context"
 
-	"github.com/dboxed/dboxed/pkg/nats_conn_pool"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 )
 
@@ -31,10 +30,6 @@ func MustGet[T any](c context.Context, key string) T {
 		panic("invalid value in context")
 	}
 	return v2
-}
-
-func GetNatsConnPool(c context.Context) *nats_conn_pool.NatsConnectionPool {
-	return MustGet[*nats_conn_pool.NatsConnectionPool](c, "nats-conn-pool")
 }
 
 func GetWorkspace(c context.Context) *dmodel.Workspace {

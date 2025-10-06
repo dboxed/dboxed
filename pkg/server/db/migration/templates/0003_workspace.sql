@@ -8,9 +8,7 @@ create table workspace
     reconcile_status         text           not null default 'Initializing',
     reconcile_status_details text           not null default '',
 
-    name                     text           not null,
-    nkey                     text           not null unique,
-    nkey_seed                text           not null
+    name                     text           not null
 );
 
 create table workspace_access

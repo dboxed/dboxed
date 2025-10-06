@@ -10,8 +10,6 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/dboxed/dboxed/pkg/nats_conn_pool"
-	"github.com/dboxed/dboxed/pkg/nats_services"
 	"github.com/dboxed/dboxed/pkg/reconcilers/boxes"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
@@ -33,21 +31,15 @@ type runFunc func(ctx context.Context) error
 type RunCmd struct {
 	Config string `help:"Config file" type:"existingfile"`
 
-	All          RunAllCmd          `cmd:"" help:"run the api server and all reconcilers"`
-	Api          RunApiCmd          `cmd:"" help:"run the api server"`
-	NatsServices RunNatsServicesCmd `cmd:"" help:"run the nats services"`
-	Reconcilers  RunReconcilersCmd  `cmd:"" help:"run all reconcilers"`
+	All         RunAllCmd         `cmd:"" help:"run the api server and all reconcilers"`
+	Api         RunApiCmd         `cmd:"" help:"run the api server"`
+	Reconcilers RunReconcilersCmd `cmd:"" help:"run all reconcilers"`
 
 	loadedConfig config2.Config
 }
 
 var apiFuncs = []initRunFunc{
 	runApiServer,
-}
-
-var natsServicesFuncs = []initRunFunc{
-	runNatsAuthCallout,
-	runNatsServices,
 }
 
 var reconcilerFuncs = []initRunFunc{
@@ -61,7 +53,6 @@ var reconcilerFuncs = []initRunFunc{
 
 var allFuncs = slices.Concat(
 	apiFuncs,
-	natsServicesFuncs,
 	reconcilerFuncs,
 )
 
@@ -101,14 +92,6 @@ func (cmd *RunAllCmd) Run(runCmd *RunCmd) error {
 	)
 }
 
-func (cmd *RunNatsServicesCmd) Run(runCmd *RunCmd) error {
-	ctx := context.Background()
-
-	return runMultiple(ctx, runCmd.loadedConfig, false,
-		natsServicesFuncs...,
-	)
-}
-
 func (cmd *RunReconcilersCmd) Run(runCmd *RunCmd) error {
 	ctx := context.Background()
 
@@ -131,9 +114,6 @@ func runMultiple(ctx context.Context, config config2.Config, allowMigrate bool, 
 
 	ctx = context.WithValue(ctx, "config", &config)
 	ctx = context.WithValue(ctx, "db", db)
-
-	natsConnPool := nats_conn_pool.NewNatsConnectionPool(ctx)
-	ctx = context.WithValue(ctx, "nats-conn-pool", natsConnPool)
 
 	for _, initRun := range runs {
 		fnName := runtime.FuncForPC(reflect.ValueOf(initRun).Pointer()).Name()
@@ -257,21 +237,5 @@ func runReconcilerBoxes(ctx context.Context, config config2.Config) (runFunc, er
 
 func runReconcilerMachines(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := machines.NewMachinesReconciler(config)
-	return r.Run, nil
-}
-
-func runNatsAuthCallout(ctx context.Context, config config2.Config) (runFunc, error) {
-	r, err := nats_services.NewAuthCalloutService(config)
-	if err != nil {
-		return nil, err
-	}
-	return r.Run, nil
-}
-
-func runNatsServices(ctx context.Context, config config2.Config) (runFunc, error) {
-	r, err := nats_services.NewDboxedServices(ctx, config)
-	if err != nil {
-		return nil, err
-	}
 	return r.Run, nil
 }

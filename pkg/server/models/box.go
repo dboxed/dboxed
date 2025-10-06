@@ -8,7 +8,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/global"
-	"github.com/dboxed/dboxed/pkg/server/nats_utils"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -29,8 +28,6 @@ type Box struct {
 	DboxedVersion string `json:"dboxedVersion"`
 
 	BoxSpec boxspec.BoxSpec `json:"boxSpec"`
-
-	BoxUrl string `json:"boxUrl"`
 }
 
 type CreateBox struct {
@@ -67,8 +64,6 @@ func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
 		NetworkType: networkType,
 
 		DboxedVersion: s.DboxedVersion,
-
-		BoxUrl: nats_utils.BuildBoxSpecsUrl(ctx, s.WorkspaceID, s.ID),
 	}
 
 	if len(s.BoxSpec) != 0 {

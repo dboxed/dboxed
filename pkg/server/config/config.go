@@ -14,7 +14,6 @@ type Config struct {
 	Auth   AuthConfig   `json:"auth"`
 	DB     DbConfig     `json:"db"`
 	Server ServerConfig `json:"server"`
-	Nats   NatsConfig   `json:"nats"`
 }
 
 type AuthConfig struct {
@@ -35,19 +34,6 @@ type ServerConfig struct {
 	BaseUrl       string `json:"baseUrl"`
 }
 
-type NatsConfig struct {
-	Url      string `json:"url"`
-	Replicas int    `json:"replicas"`
-
-	AdminNkey string `json:"adminNkey"`
-
-	AuthUserSeed       string `json:"authUserSeed"`
-	AuthIssuerSeed     string `json:"authIssuerSeed"`
-	AuthEncryptionSeed string `json:"authEncryptionSeed"`
-
-	ServicesSeed string `json:"servicesSeed"`
-}
-
 func LoadConfig(configPath string) (*Config, error) {
 	if configPath == "" {
 		return nil, fmt.Errorf("missing config path")
@@ -66,10 +52,6 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	if config.InstanceName == "" {
 		config.InstanceName = "dboxed"
-	}
-
-	if config.Nats.Replicas == 0 {
-		config.Nats.Replicas = 2
 	}
 
 	return &config, nil

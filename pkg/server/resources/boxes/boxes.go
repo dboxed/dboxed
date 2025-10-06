@@ -18,7 +18,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/google/uuid"
-	"github.com/nats-io/nkeys"
 )
 
 type BoxesServer struct {
@@ -99,19 +98,6 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		return nil, err.Error(), nil
 	}
 
-	nkeyPair, err := nkeys.CreateUser()
-	if err != nil {
-		return nil, "", err
-	}
-	nkeySeed, err := nkeyPair.Seed()
-	if err != nil {
-		return nil, "", err
-	}
-	nkeyPub, err := nkeyPair.PublicKey()
-	if err != nil {
-		return nil, "", err
-	}
-
 	var networkId *int64
 	var networkType *string
 	if body.Network != nil {
@@ -146,9 +132,6 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 
 		NetworkID:   networkId,
 		NetworkType: networkType,
-
-		Nkey:     nkeyPub,
-		NkeySeed: string(nkeySeed),
 	}
 
 	err = box.Create(q)

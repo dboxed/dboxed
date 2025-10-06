@@ -14,9 +14,7 @@ type Workspace struct {
 
 	ReconcileStatus
 
-	Name     string `db:"name"`
-	Nkey     string `db:"nkey"`
-	NkeySeed string `db:"nkey_seed"`
+	Name string `db:"name"`
 
 	Access []WorkspaceAccess
 }
@@ -118,16 +116,6 @@ func GetWorkspaceById(q *querier2.Querier, id int64, skipDeleted bool) (*Workspa
 	w, err := querier2.GetOne[Workspace](q, map[string]any{
 		"id":         id,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return postprocessWorkspace(q, w)
-}
-
-func GetWorkspaceByNkey(q *querier2.Querier, nkey string) (*Workspace, error) {
-	w, err := querier2.GetOne[Workspace](q, map[string]any{
-		"nkey": nkey,
 	})
 	if err != nil {
 		return nil, err

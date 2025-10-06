@@ -32,18 +32,9 @@ func (r *reconciler) Reconcile(ctx context.Context, w *dmodel.Workspace, log *sl
 		slog.Any("name", w.Name),
 	)
 
-	err := r.reconcileNats(ctx, w)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (r *reconciler) ReconcileDelete(ctx context.Context, w *dmodel.Workspace, log *slog.Logger) error {
-	err := r.reconcileDeleteNats(ctx, w)
-	if err != nil {
-		return err
-	}
 	return nil
 }

@@ -16,8 +16,6 @@ create table box
     network_type             text,
     dboxed_version           text           not null,
     box_spec                 bytea          not null,
-    nkey                     text           not null unique,
-    nkey_seed                text           not null,
     machine_id               bigint         references machine (id) on delete set null,
 
     unique (workspace_id, name)

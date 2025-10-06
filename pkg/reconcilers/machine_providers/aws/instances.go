@@ -13,7 +13,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/server_utils"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -149,8 +148,7 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 	}
 	ud := userdata.GetUserdata(
 		box.DboxedVersion,
-		server_utils.BuildBoxSpecNatsUrl(ctx, box.WorkspaceID, box.ID),
-		box.NkeySeed,
+		"dummy",
 		m.Name,
 	)
 

@@ -15,7 +15,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/nats-io/nkeys"
 )
 
 type Workspaces struct {
@@ -51,24 +50,9 @@ func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.Json
 	if err != nil {
 		return nil, err
 	}
-
-	nkeyPair, err := nkeys.CreateUser()
-	if err != nil {
-		return nil, err
-	}
-	nkeySeed, err := nkeyPair.Seed()
-	if err != nil {
-		return nil, err
-	}
-	nkeyPub, err := nkeyPair.PublicKey()
-	if err != nil {
-		return nil, err
-	}
-
+	
 	w := &dmodel.Workspace{
-		Name:     i.Body.Name,
-		Nkey:     nkeyPub,
-		NkeySeed: string(nkeySeed),
+		Name: i.Body.Name,
 		Access: []dmodel.WorkspaceAccess{
 			{UserId: user.ID},
 		},

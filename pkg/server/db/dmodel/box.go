@@ -17,9 +17,6 @@ type Box struct {
 	DboxedVersion string `db:"dboxed_version"`
 	BoxSpec       []byte `db:"box_spec"`
 
-	Nkey     string `db:"nkey"`
-	NkeySeed string `db:"nkey_seed"`
-
 	MachineID *int64 `db:"machine_id"`
 
 	Netbird *BoxNetbird `join:"true"`
@@ -61,12 +58,6 @@ func GetBoxByUuid(q *querier2.Querier, workspaceId int64, uuid string, skipDelet
 		"workspace_id": workspaceId,
 		"uuid":         uuid,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
-	})
-}
-
-func GetBoxByNkey(q *querier2.Querier, nkey string) (*Box, error) {
-	return querier2.GetOne[Box](q, map[string]any{
-		"nkey": nkey,
 	})
 }
 

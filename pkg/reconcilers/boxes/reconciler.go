@@ -30,11 +30,6 @@ func (r *reconciler) Reconcile(ctx context.Context, box *dmodel.Box, log *slog.L
 		slog.Any("name", box.Name),
 	)
 
-	err := r.reconcileNatsBoxSpec(ctx, box, log)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -42,11 +37,6 @@ func (r *reconciler) ReconcileDelete(ctx context.Context, box *dmodel.Box, log *
 	log = log.With(
 		slog.Any("name", box.Name),
 	)
-
-	err := r.reconcileDeleteNats(ctx, box, log)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

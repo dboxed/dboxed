@@ -10,7 +10,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/server/nats_utils"
 )
 
 func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (*boxspec.BoxFile, error) {
@@ -30,14 +29,6 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 	}
 
 	boxm.BoxSpec.Uuid = box.Uuid
-
-	boxm.BoxSpec.Logs = &boxspec.LogsSpec{
-		Nats: &boxspec.LogsNatsSpec{
-			MetadataKVStore: nats_utils.BuildMetadataKVStoreName(c, box.WorkspaceID),
-			LogStream:       nats_utils.BuildLogsStreamName(c, box.WorkspaceID),
-			LogId:           fmt.Sprintf("box-%d", box.ID),
-		},
-	}
 
 	if network != nil && box.NetworkType != nil {
 		switch global.NetworkType(*box.NetworkType) {
@@ -102,9 +93,6 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 func validateBoxSpec(boxSpec boxspec.BoxSpec) (map[string]struct{}, error) {
 	if boxSpec.Uuid != "" {
 		return nil, huma.Error400BadRequest("uuid can not be set in box spec")
-	}
-	if boxSpec.Logs != nil {
-		return nil, huma.Error400BadRequest("logs spec can not be set in box spec")
 	}
 
 	volumeNames := map[string]struct{}{}
