@@ -7,7 +7,6 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/sse"
 	"github.com/dboxed/dboxed/pkg/boxspec"
-	"github.com/dboxed/dboxed/pkg/runner/logs/multitail"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
@@ -48,17 +47,18 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restUpdateAttachedVolume)
 	huma.Delete(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restDetachVolume)
 
+	huma.Post(workspacesGroup, "/boxes/{id}/logs", s.restPostLogs)
 	huma.Get(workspacesGroup, "/boxes/{id}/logs", s.restListLogs)
 	sse.Register(workspacesGroup, huma.Operation{
 		OperationID: "logs-stream",
 		Method:      http.MethodGet,
-		Path:        "/boxes/{id}/logs/stream",
+		Path:        "/boxes/{id}/logs/{logId}/stream",
 		Metadata: map[string]any{
 			huma_utils.NoTx: true,
 		},
 	}, map[string]any{
-		"metadata": multitail.LogMetadata{},
-		"logs":     boxspec.LogsBatch{},
+		"metadata": models.LogMetadataModel{},
+		"line":     boxspec.LogsLine{},
 		"error":    models.LogsError{},
 	}, s.sseLogsStream)
 

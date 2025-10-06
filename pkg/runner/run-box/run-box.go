@@ -33,7 +33,6 @@ type RunBox struct {
 	BoxId  int64
 
 	InfraImage      string
-	Nkey            string
 	BoxName         string
 	WorkDir         string
 	VethNetworkCidr string
@@ -77,7 +76,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 	initialBoxSpec := &initialBoxFile.Spec
 
 	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
-	err = rn.initLogsPublishing(ctx, sandboxDir, initialBoxSpec)
+	err = rn.initLogsPublishing(ctx, sandboxDir)
 	if err != nil {
 		return err
 	}
@@ -176,7 +175,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 
 	// now that we ensured that the potentially running sandbox does not belong to another box, we can start publishing
 	// the sandbox internal logs
-	err = rn.initLogsPublishingSandbox(ctx, sandboxDir, initialBoxSpec)
+	err = rn.initLogsPublishingSandbox(ctx, sandboxDir)
 	if err != nil {
 		return err
 	}

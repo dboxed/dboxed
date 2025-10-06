@@ -19,8 +19,7 @@ type BoxSpec struct {
 	DboxedBinaryUrl  string `json:"dboxedBinaryUrl,omitempty"`
 	DboxedBinaryHash string `json:"dboxedBinaryHash,omitempty"`
 
-	Dns  *DnsSpec  `json:"dns"`
-	Logs *LogsSpec `json:"logs,omitempty"`
+	Dns *DnsSpec `json:"dns"`
 
 	Volumes         []BoxVolumeSpec `json:"volumes,omitempty"`
 	ComposeProjects []string        `json:"composeProjects,omitempty"`
@@ -29,16 +28,6 @@ type BoxSpec struct {
 type DnsSpec struct {
 	Hostname      string `json:"hostname"`
 	NetworkDomain string `json:"networkDomain"`
-}
-
-type LogsSpec struct {
-	Nats *LogsNatsSpec `json:"nats"`
-}
-
-type LogsNatsSpec struct {
-	MetadataKVStore string `json:"metadataKVStore"`
-	LogStream       string `json:"logStream"`
-	LogId           string `json:"logId"`
 }
 
 func (s *BoxSpec) LoadComposeProjects() ([]*ctypes.Project, error) {

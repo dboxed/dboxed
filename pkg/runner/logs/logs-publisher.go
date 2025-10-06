@@ -8,39 +8,30 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
-	"github.com/dboxed/dboxed/pkg/runner/logs/multitail"
-	"github.com/nats-io/nats.go"
 )
 
 type LogsPublisher struct {
-	nats *TailToNats
+	api *TailToApi
 }
 
 func (lp *LogsPublisher) Stop() {
-	if lp.nats != nil {
-		lp.nats.MultiTail.StopAndWait()
+	if lp.api != nil {
+		lp.api.MultiTail.StopAndWait()
 	}
 }
 
-func (lp *LogsPublisher) Start(ctx context.Context, natsConn *nats.Conn, boxSpec *boxspec.BoxSpec, tailDbFile string) error {
-	if boxSpec == nil || boxSpec.Logs == nil || boxSpec.Logs.Nats == nil {
-		return nil
-	}
+func (lp *LogsPublisher) Start(ctx context.Context, c *baseclient.Client, boxId int64, tailDbFile string) error {
+	slog.InfoContext(ctx, "initializing logs publishing to dboxed api")
 
-	slog.InfoContext(ctx, "initializing logs publishing to nats",
-		slog.Any("metadataKVStore", boxSpec.Logs.Nats.MetadataKVStore),
-		slog.Any("logStream", boxSpec.Logs.Nats.LogStream),
-		slog.Any("logId", boxSpec.Logs.Nats.LogId),
-	)
-
-	ttn, err := NewTailToNats(ctx, natsConn, tailDbFile, boxSpec.Logs.Nats.MetadataKVStore, boxSpec.Logs.Nats.LogStream, boxSpec.Logs.Nats.LogId)
+	tta, err := NewTailToApi(ctx, c, tailDbFile, boxId)
 	if err != nil {
 		return err
 	}
 
-	lp.nats = ttn
+	lp.api = tta
 	return nil
 }
 
@@ -50,21 +41,21 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 		return err
 	}
 
-	buildMetadata := func(path string) (multitail.LogMetadata, error) {
+	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
 		fileName := filepath.Base(path)
 		format := "slog-json"
 		if strings.HasSuffix(fileName, ".stdout.log") {
 			format = "raw"
 		}
-		return multitail.LogMetadata{
+		return boxspec.LogMetadata{
 			FileName: fileName,
 			Format:   format,
 			Metadata: map[string]any{},
 		}, nil
 	}
 
-	if lp.nats != nil {
-		return lp.nats.MultiTail.WatchDir(dir, "*.log", 0, buildMetadata)
+	if lp.api != nil {
+		return lp.api.MultiTail.WatchDir(dir, "*.log", 0, buildMetadata)
 	}
 	return nil
 }
@@ -76,14 +67,14 @@ func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
 		return err
 	}
 
-	buildMetadata := func(path string) (multitail.LogMetadata, error) {
+	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
 		serviceName := filepath.Base(filepath.Dir(path))
 		logFormatBytes, _ := os.ReadFile(filepath.Join(filepath.Dir(path), "log-format"))
 		logFormat := strings.TrimSpace(string(logFormatBytes))
 		if logFormat == "" {
 			logFormat = "raw"
 		}
-		return multitail.LogMetadata{
+		return boxspec.LogMetadata{
 			FileName: serviceName,
 			Format:   logFormat,
 			Metadata: map[string]any{
@@ -92,8 +83,8 @@ func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
 		}, nil
 	}
 
-	if lp.nats != nil {
-		return lp.nats.MultiTail.WatchDir(dir, "*/current", 1, buildMetadata)
+	if lp.api != nil {
+		return lp.api.MultiTail.WatchDir(dir, "*/current", 1, buildMetadata)
 	}
 	return nil
 }
@@ -104,34 +95,34 @@ func (lp *LogsPublisher) PublishDockerContainerLogsDir(containersDir string) err
 		return err
 	}
 
-	buildMetadata := func(path string) (multitail.LogMetadata, error) {
+	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
 		return lp.buildDockerContainerLogMetadata(containersDir, path)
 	}
 
-	if lp.nats != nil {
-		return lp.nats.MultiTail.WatchDir(containersDir, "*/*.log", 1, buildMetadata)
+	if lp.api != nil {
+		return lp.api.MultiTail.WatchDir(containersDir, "*/*.log", 1, buildMetadata)
 	}
 	return nil
 }
 
-func (lp *LogsPublisher) buildDockerContainerLogMetadata(dockerDataDir string, logPath string) (multitail.LogMetadata, error) {
+func (lp *LogsPublisher) buildDockerContainerLogMetadata(dockerDataDir string, logPath string) (boxspec.LogMetadata, error) {
 	relPath, err := filepath.Rel(dockerDataDir, logPath)
 	if err != nil {
-		return multitail.LogMetadata{}, err
+		return boxspec.LogMetadata{}, err
 	}
 	configPath := filepath.Join(filepath.Dir(logPath), "config.v2.json")
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
-		return multitail.LogMetadata{}, err
+		return boxspec.LogMetadata{}, err
 	}
 
 	var config dockercli.DockerContainerConfig
 	err = json.Unmarshal(configData, &config)
 	if err != nil {
-		return multitail.LogMetadata{}, err
+		return boxspec.LogMetadata{}, err
 	}
 
-	return multitail.LogMetadata{
+	return boxspec.LogMetadata{
 		FileName: relPath,
 		Format:   "docker-logs",
 		Metadata: map[string]any{

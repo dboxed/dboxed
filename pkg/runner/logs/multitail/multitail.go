@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gofrs/flock"
@@ -38,14 +39,8 @@ type MultiTailOptions struct {
 	LineBatchHandler LineBatchHandler
 }
 
-type LogMetadata struct {
-	FileName string         `json:"fileName"`
-	Format   string         `json:"format"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type LineBatchHandler func(metadata LogMetadata, lines []*Line) error
-type BuildMetadataFunc func(path string) (LogMetadata, error)
+type LineBatchHandler func(metadata boxspec.LogMetadata, lines []*Line) error
+type BuildMetadataFunc func(path string) (boxspec.LogMetadata, error)
 
 type dbFileEntry struct {
 	Inode  uint64 `json:"inode"`
@@ -103,7 +98,7 @@ func (mt *MultiTail) StopAndWait() {
 	_ = mt.fl.Unlock()
 }
 
-func (mt *MultiTail) TailFile(path string, metadata LogMetadata) error {
+func (mt *MultiTail) TailFile(path string, metadata boxspec.LogMetadata) error {
 	mt.m.Lock()
 	defer mt.m.Unlock()
 
@@ -275,7 +270,7 @@ func (mt *MultiTail) handleWatchedPath(
 	return nil
 }
 
-func (mt *MultiTail) runHandleTail(tf *Tail, path string, metadata LogMetadata) {
+func (mt *MultiTail) runHandleTail(tf *Tail, path string, metadata boxspec.LogMetadata) {
 	var curBatch []*Line
 
 	tryHandleBatch := func() {
@@ -314,14 +309,14 @@ loop:
 	}
 }
 
-func (mt *MultiTail) handleLineBatch(metadata LogMetadata, lines []*Line) {
+func (mt *MultiTail) handleLineBatch(metadata boxspec.LogMetadata, lines []*Line) {
 	for {
 		err := mt.opts.LineBatchHandler(metadata, lines)
 		if err == nil {
 			return
 		}
 		slog.Info("handleLineBatch failed, retrying", slog.Any("error", err))
-		time.Sleep(1 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 

@@ -73,3 +73,12 @@ func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {
 	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
 	return err
 }
+
+func (c *BoxClient) PostLogLines(ctx context.Context, boxId int64, req models.PostLogs) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs")
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "POST", p, req)
+	return err
+}
