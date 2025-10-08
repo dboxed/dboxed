@@ -2,17 +2,6 @@
 version: 2
 pro: true
 
-before:
-  hooks:
-    - cmd: docker build --platform=linux/amd64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64 --pull infra-image
-      output: true
-    - cmd: docker build --platform=linux/arm64 --tag ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64 --pull infra-image
-      output: true
-    - cmd: docker push ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64
-      output: true
-    - cmd: docker push ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64
-      output: true
-
 builds:
   - id: dboxed
     goos:
@@ -23,14 +12,17 @@ builds:
       - arm64
     main: ./cmd/dboxed
     binary: bin/dboxed
-    hooks:
-      pre:
-        - mkdir -p /tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}
-        - cp ./hack/cross-compile /tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/
     env:
       - CGO_ENABLED=1
-      - CC=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cc {{ .Os }} {{ .Arch }}
-      - CXX=/tmp/dboxed-cross-compile-{{ .Os }}-{{ .Arch }}/cross-compile cxx {{ .Os }} {{ .Arch }}
+      - >-
+        {{- if eq .Os "darwin" }}
+          {{- if eq .Arch "amd64"}}CC=o64-clang{{- end }}
+          {{- if eq .Arch "arm64"}}CC=aarch64-apple-darwin21.1-clang{{- end }}
+        {{- end }}
+        {{- if eq .Os "linux" }}
+          {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
+          {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
+        {{- end }}
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
       - '{{ if eq .Os "linux" }}-extldflags=-static{{ end }}'
@@ -42,48 +34,38 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
 
-dockers:
-  - id: linux-amd64
-    goos: linux
-    goarch: amd64
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/amd64"
-    image_templates:
-      - "ghcr.io/dboxed/dboxed:{{ .Version }}-amd64"
-  - id: linux-arm64
-    goos: linux
-    goarch: arm64
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/arm64"
-    image_templates:
-      - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
-docker_manifests:
-  - name_template: ghcr.io/dboxed/dboxed:nightly
-    image_templates:
-      - "ghcr.io/dboxed/dboxed:{{ .Version }}-amd64"
-      - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
-    skip_push: "{{ not .IsNightly }}"
-  - name_template: ghcr.io/dboxed/dboxed-infra:nightly
-    image_templates:
-      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64"
-      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64"
-    skip_push: "{{ not .IsNightly }}"
-  - name_template: ghcr.io/dboxed/dboxed:{{ .Version }}
-    image_templates:
-      - "ghcr.io/dboxed/dboxed:{{ .Version }}-amd64"
-      - "ghcr.io/dboxed/dboxed:{{ .Version }}-arm64"
-  - name_template: ghcr.io/dboxed/dboxed-infra:{{ .Version }}
-    image_templates:
-      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-amd64"
-      - "ghcr.io/dboxed/dboxed-infra:{{ .Version }}-arm64"
+dockers_v2:
+  - id: linux
+    images:
+      - ghcr.io/dboxed/dboxed
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    labels:
+      "org.opencontainers.image.description": "Dboxed"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+  - id: infra-image
+    images:
+      - ghcr.io/dboxed/dboxed-infra
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    labels:
+      "org.opencontainers.image.description": "Dboxed infra-image"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    dockerfile: infra-image/Dockerfile
+    extra_files:
+      - infra-image
 
 changelog:
   sort: asc

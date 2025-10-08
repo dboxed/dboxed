@@ -29,3 +29,17 @@ tasks:
       - check-migration-name
       - generate-migrations-sqlite
       - generate-migrations-postgres
+
+  goreleaser-helper:
+    vars:
+      GORELEASER_IMAGE: goreleaser/goreleaser-cross-pro:v1.25.1-v2.12.0
+    cmds:
+      - cmd: docker volume create goreleaser-cross-compile-cache
+      - cmd: docker run --rm -i -v $(pwd):/app -w /app -e GORELEASER_KEY=$GORELEASER_KEY -e GITHUB_TOKEN=$GITHUB_TOKEN -v goreleaser-cross-compile-cache:/root/.cache -v goreleaser-cross-compile-cache:/root/go/pkg/mod/cache --use-api-socket {{ .DOCKER_ARGS }} {{ .GORELEASER_IMAGE }} {{ .GORELEASER_ARGS }}
+        silent: false
+
+  goreleaser-nightly:
+    cmds:
+      - task: goreleaser-helper
+        vars:
+          GORELEASER_ARGS: release --clean --nightly
