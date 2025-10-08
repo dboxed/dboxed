@@ -23,3 +23,6 @@ create table log_line
     time   TYPES_DATETIME not null,
     line   text           not null
 );
+
+create index log_line_log_id_and_id on log_line (log_id, id);
+create index log_line_time_index on log_line (log_id, time);
