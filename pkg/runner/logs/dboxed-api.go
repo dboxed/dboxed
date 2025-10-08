@@ -9,6 +9,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 	multitail2 "github.com/dboxed/dboxed/pkg/runner/logs/multitail"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dustin/go-humanize"
 )
 
 type TailToApi struct {
@@ -29,9 +30,9 @@ func NewTailToApi(ctx context.Context, c *baseclient.Client, tailDbFile string, 
 
 	var err error
 	ttn.MultiTail, err = multitail2.NewMultiTail(ctx, tailDbFile, multitail2.MultiTailOptions{
-		LineBatchSize:    10,
-		LineBatchLinger:  time.Millisecond * 100,
-		LineBatchHandler: ttn.handleLineBatch,
+		LineBatchBytesCount: 512 * humanize.KiByte,
+		LineBatchLinger:     time.Millisecond * 100,
+		LineBatchHandler:    ttn.handleLineBatch,
 	})
 	if err != nil {
 		return nil, err

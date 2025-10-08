@@ -34,9 +34,9 @@ type MultiTail struct {
 }
 
 type MultiTailOptions struct {
-	LineBatchSize    int
-	LineBatchLinger  time.Duration
-	LineBatchHandler LineBatchHandler
+	LineBatchBytesCount int
+	LineBatchLinger     time.Duration
+	LineBatchHandler    LineBatchHandler
 }
 
 type LineBatchHandler func(metadata boxspec.LogMetadata, lines []*Line) error
@@ -125,8 +125,11 @@ func (mt *MultiTail) TailFile(path string, metadata boxspec.LogMetadata) error {
 		}
 		inode = e.Inode
 		offset = e.Offset
-		slog.Info("multitail: using stored offset", slog.Any("inode", inode),
-			slog.Any("offset", offset), slog.Any("fileName", metadata.FileName))
+		slog.Info("multitail: using stored offset",
+			slog.Any("curInode", inode),
+			slog.Any("offset", offset),
+			slog.Any("fileName", metadata.FileName),
+		)
 		return nil
 	})
 	if err != nil {
@@ -139,6 +142,13 @@ func (mt *MultiTail) TailFile(path string, metadata boxspec.LogMetadata) error {
 	})
 	if err != nil {
 		return err
+	}
+	if inode != 0 && tf.Inode != inode {
+		slog.Info("multitail: discarded stored offset due to inode change",
+			slog.Any("curInode", tf.Inode),
+			slog.Any("storedInode", inode),
+			slog.Any("fileName", metadata.FileName),
+		)
 	}
 
 	mt.tails[path] = tf
@@ -272,22 +282,27 @@ func (mt *MultiTail) handleWatchedPath(
 
 func (mt *MultiTail) runHandleTail(tf *Tail, path string, metadata boxspec.LogMetadata) {
 	var curBatch []*Line
+	curBatchBytes := 0
+	nextFlush := time.After(mt.opts.LineBatchLinger)
 
-	tryHandleBatch := func() {
-		if len(curBatch) != 0 {
-			lastLine := curBatch[len(curBatch)-1]
-			mt.handleLineBatch(metadata, curBatch)
-			curBatch = curBatch[0:0]
+	handleBatch := func() {
+		if len(curBatch) == 0 {
+			return
+		}
 
-			err := mt.bdb.Update(func(txn *badger.Txn) error {
-				return mt.setDbFileEntry(txn, metadata.FileName, dbFileEntry{
-					Offset: lastLine.Offset,
-					Inode:  tf.Inode,
-				})
+		lastLine := curBatch[len(curBatch)-1]
+		mt.handleLineBatch(metadata, curBatch)
+		curBatch = curBatch[0:0]
+		curBatchBytes = 0
+
+		err := mt.bdb.Update(func(txn *badger.Txn) error {
+			return mt.setDbFileEntry(txn, metadata.FileName, dbFileEntry{
+				Offset: lastLine.Offset,
+				Inode:  tf.Inode,
 			})
-			if err != nil {
-				slog.Error("failed to update tail db", slog.Any("path", path), slog.Any("error", err))
-			}
+		})
+		if err != nil {
+			slog.Error("failed to update tail db", slog.Any("path", path), slog.Any("error", err))
 		}
 	}
 
@@ -296,15 +311,17 @@ loop:
 		select {
 		case newLine, ok := <-tf.Lines:
 			if !ok {
-				tryHandleBatch()
+				handleBatch()
 				break loop
 			}
 			curBatch = append(curBatch, newLine)
-			if len(curBatch) >= mt.opts.LineBatchSize {
-				tryHandleBatch()
+			curBatchBytes += len(newLine.Line)
+			if curBatchBytes >= mt.opts.LineBatchBytesCount {
+				handleBatch()
 			}
-		case <-time.After(mt.opts.LineBatchLinger):
-			tryHandleBatch()
+		case <-nextFlush:
+			nextFlush = time.After(mt.opts.LineBatchLinger)
+			handleBatch()
 		}
 	}
 }
