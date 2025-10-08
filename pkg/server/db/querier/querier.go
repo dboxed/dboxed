@@ -150,23 +150,44 @@ func (q *Querier) ExecOneNamed(query string, arg interface{}) error {
 }
 
 func Create[T any](q *Querier, v *T) error {
-	return createOrUpdate(q, v, false, "")
+	l := []*T{v}
+	return createOrUpdate(q, l, false, "", true)
 }
 func CreateOrUpdate[T any](q *Querier, v *T, constraint string) error {
-	return createOrUpdate(q, v, true, constraint)
+	l := []*T{v}
+	return createOrUpdate(q, l, true, constraint, true)
 }
 
-func createOrUpdate[T any](q *Querier, v *T, allowUpdate bool, constraint string) error {
+func CreateMany[T any](q *Querier, l []*T, returning bool) error {
+	return createOrUpdate(q, l, false, "", returning)
+}
+
+func CreateManyBatches[T any](q *Querier, l []*T, batchSize int, returning bool) error {
+	for i := 0; i < len(l); i += batchSize {
+		e := i + batchSize
+		if e > len(l) {
+			e = len(l)
+		}
+		b := l[i:e]
+		err := CreateMany(q, b, returning)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint string, returning bool) error {
 	t := reflect.TypeFor[T]()
 	table := GetTableName2(t)
 	fields, _ := GetStructDBFields[T]()
 
+	var createFields []StructDBField
 	var createFieldNames []string
 	var returningFieldNames []string
-	var argsNames []string
-	var sets []string
 	var conflictSets []string
 	args := map[string]any{}
+
 	for _, f := range fields {
 		if strings.Contains(f.FieldName, ".") {
 			continue
@@ -177,41 +198,58 @@ func createOrUpdate[T any](q *Querier, v *T, allowUpdate bool, constraint string
 			continue
 		}
 
+		createFields = append(createFields, f)
 		createFieldNames = append(createFieldNames, f.FieldName)
-		argsNames = append(argsNames, ":"+f.FieldName)
-		sets = append(sets, fmt.Sprintf("%s = :%s", f.FieldName, f.FieldName))
 		conflictSets = append(conflictSets, fmt.Sprintf("%s = excluded.%s", f.FieldName, f.FieldName))
-
-		fv := GetStructValueByPath(v, f.Path)
-		args[f.FieldName] = fv.Interface()
 	}
 
-	query := fmt.Sprintf(`insert into "%s" (%s) values(%s)`,
+	var valuesList []string
+	for i, v := range l {
+		var values []string
+
+		for _, f := range createFields {
+			argName := fmt.Sprintf("i%d_%s", i, f.FieldName)
+			values = append(values, ":"+argName)
+			fv := GetStructValueByPath(v, f.Path)
+			args[argName] = fv.Interface()
+		}
+
+		valuesList = append(valuesList, fmt.Sprintf("(%s)", strings.Join(values, ", ")))
+	}
+
+	query := fmt.Sprintf("insert into \"%s\"\n(%s)\nvalues %s",
 		table,
 		strings.Join(createFieldNames, ", "),
-		strings.Join(argsNames, ", "),
+		strings.Join(valuesList, ",\n  "),
 	)
 	if allowUpdate {
-		query += fmt.Sprintf(` on conflict(%s) do update set %s`,
+		query += fmt.Sprintf("\non conflict(%s) do update set %s",
 			constraint,
 			strings.Join(conflictSets, ", "),
 		)
 	}
-	query += fmt.Sprintf(" returning %s", strings.Join(returningFieldNames, ", "))
+	if returning {
+		query += fmt.Sprintf("\nreturning %s", strings.Join(returningFieldNames, ", "))
+	}
 
-	var ret T
-	err := q.GetNamed(&ret, query, args)
+	var ret []T
+	err := q.SelectNamed(&ret, query, args)
 	if err != nil {
 		return err
 	}
 
-	for _, f := range fields {
-		if strings.Contains(f.FieldName, ".") {
-			continue
+	if returning {
+		for i, v := range l {
+			for _, f := range fields {
+				if strings.Contains(f.FieldName, ".") {
+					continue
+				}
+				rv := ret[i]
+				fv := GetStructValueByPath(&rv, f.Path)
+				tv := GetStructValueByPath(v, f.Path)
+				tv.Set(fv)
+			}
 		}
-		fv := GetStructValueByPath(&ret, f.Path)
-		tv := GetStructValueByPath(v, f.Path)
-		tv.Set(fv)
 	}
 
 	return nil
@@ -306,20 +344,21 @@ func BuildWhere[T any](byFields map[string]any) (string, map[string]any, error) 
 			}
 		}
 
-		isNil := util.IsAnyNil(v)
+		isArg := false
 		argName := "_where_" + df.FieldName
 
 		var right string
 		if rawSql, ok := v.(RawSqlT); ok {
-			right = rawSql.SQL
-		} else if isNil {
+			right = strings.ReplaceAll(rawSql.SQL, ":", "::")
+		} else if util.IsAnyNil(v) {
 			right = fmt.Sprintf(" is null")
 		} else {
 			right = fmt.Sprintf("= :%s", argName)
+			isArg = true
 		}
 
 		where = append(where, fmt.Sprintf(`%s %s`, df.SelectName, right))
-		if !isNil {
+		if isArg {
 			args[argName] = v
 		}
 	}
