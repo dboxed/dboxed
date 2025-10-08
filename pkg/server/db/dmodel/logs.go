@@ -49,7 +49,19 @@ func GetLogMetadataById(q *querier2.Querier, workspaceId *int64, logId int64, sk
 	})
 }
 
-func ListLogLines(q *querier2.Querier, logId int64, seq int64) ([]LogLine, error) {
+func ListLogLinesSinceTime(q *querier2.Querier, logId int64, since time.Time) ([]LogLine, error) {
+	return querier2.GetManySorted[LogLine](q, map[string]any{
+		"log_id": logId,
+		"time":   querier2.RawSql(fmt.Sprintf(">= datetime('%s', 'utc')", since.UTC().Format(time.RFC3339))),
+	}, []querier2.SortField{
+		{
+			Field:     "id",
+			Direction: querier2.SortOrderAsc,
+		},
+	})
+}
+
+func ListLogLinesSinceSeq(q *querier2.Querier, logId int64, seq int64) ([]LogLine, error) {
 	return querier2.GetManySorted[LogLine](q, map[string]any{
 		"log_id": logId,
 		"id":     querier2.RawSql(fmt.Sprintf(">= %d", seq)),

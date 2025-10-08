@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/sse"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -13,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (s *BoxesServer) putLogMetadata(c context.Context, boxId int64, logMetadata boxspec.LogMetadata) (*dmodel.LogMetadata, error) {
@@ -54,17 +56,30 @@ func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJ
 		return nil, err
 	}
 
+	lines := make([]*dmodel.LogLine, 0, len(i.Body.Lines))
+
 	for _, ll := range i.Body.Lines {
-		dl := dmodel.LogLine{
+		dl := &dmodel.LogLine{
 			LogID: dm.ID,
 			Line:  ll.Line,
 			Time:  ll.Time,
 		}
-		err = dl.Create(q)
-		if err != nil {
-			return nil, err
-		}
+		lines = append(lines, dl)
 	}
+
+	logFileName := i.Body.Metadata.FileName
+	if len(logFileName) > 20 {
+		logFileName = logFileName[:3] + "..." + logFileName[len(logFileName)-14:]
+	}
+	huma_utils.ExtraLogValue(c, "lineCount", len(lines))
+	huma_utils.ExtraLogValue(c, "logId", dm.ID)
+	huma_utils.ExtraLogValue(c, "fileName", logFileName)
+
+	err = querier.CreateManyBatches(q, lines, 100, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &huma_utils.Empty{}, nil
 }
 
@@ -92,8 +107,11 @@ func (s *BoxesServer) restListLogs(c context.Context, i *huma_utils.IdByPath) (*
 type sseLogsStreamInput struct {
 	huma_utils.IdByPath
 
-	LogId int64 `path:"logId"`
-	Seq   int64 `query:"seq"`
+	LogId int64  `path:"logId"`
+	Since string `query:"since"`
+}
+
+type endOfHistory struct {
 }
 
 func (s *BoxesServer) sseLogsStream(c context.Context, i *sseLogsStreamInput, send sse.Sender) {
@@ -128,9 +146,29 @@ func (s *BoxesServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput,
 	}
 
 	lastId := int64(-1)
+	var since *time.Time
 
+	if i.Since != "" {
+		d, err := time.ParseDuration(i.Since)
+		if err == nil {
+			since = util.Ptr(time.Now().Add(-d))
+		} else {
+			j := "\"" + i.Since + "\""
+			err = json.Unmarshal([]byte(j), &since)
+			if err != nil {
+				return huma.Error400BadRequest("invalid since argument")
+			}
+		}
+	}
+
+	didSendEndOfHistory := false
 	for {
-		lines, err := dmodel.ListLogLines(q, lm.ID, lastId+1)
+		var lines []dmodel.LogLine
+		if since != nil {
+			lines, err = dmodel.ListLogLinesSinceTime(q, lm.ID, *since)
+		} else {
+			lines, err = dmodel.ListLogLinesSinceSeq(q, lm.ID, lastId+1)
+		}
 		if err != nil {
 			if !querier.IsSqlNotFoundError(err) {
 				return err
@@ -145,11 +183,25 @@ func (s *BoxesServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput,
 			lastId = l.ID
 		}
 
-		select {
-		case <-time.After(time.Second * 2):
-			break
-		case <-c.Done():
-			return nil
+		if len(lines) != 0 {
+			// after the first line, go by sequence instead of time
+			since = nil
+		} else {
+			if !didSendEndOfHistory {
+				didSendEndOfHistory = true
+				err = send.Data(endOfHistory{})
+				if err != nil {
+					return err
+				}
+			}
+
+			// only sleep when no lines received
+			select {
+			case <-time.After(time.Second * 2):
+				break
+			case <-c.Done():
+				return nil
+			}
 		}
 	}
 }

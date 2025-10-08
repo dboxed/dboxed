@@ -14,7 +14,8 @@ import (
 
 func (s *DboxedServer) InitGin() error {
 	s.ginEngine = gin.New()
-	s.ginEngine.Use(gin.LoggerWithWriter(gin.DefaultWriter, "/healthz"))
+
+	huma_utils.SetupLogMiddleware(s.ginEngine)
 	s.ginEngine.Use(gin.CustomRecovery(func(c *gin.Context, err any) {
 		em := huma.ErrorModel{
 			Title:  "An internal server error happened",
@@ -68,6 +69,7 @@ func (s *DboxedServer) InitHuma() error {
 	s.humaConfig.DocsPath = ""
 	s.api = humagin.New(s.ginEngine, s.humaConfig)
 
+	huma_utils.SetupHumaGinContext(s.api)
 	huma_utils.SetupTxMiddlewares(s.ginEngine, s.api)
 	huma_utils.InitHumaErrorOverride()
 

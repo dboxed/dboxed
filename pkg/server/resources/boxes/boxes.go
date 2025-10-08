@@ -57,9 +57,10 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 			huma_utils.NoTx: true,
 		},
 	}, map[string]any{
-		"metadata": models.LogMetadataModel{},
-		"line":     boxspec.LogsLine{},
-		"error":    models.LogsError{},
+		"metadata":       models.LogMetadataModel{},
+		"line":           boxspec.LogsLine{},
+		"end-of-history": endOfHistory{},
+		"error":          models.LogsError{},
 	}, s.sseLogsStream)
 
 	return nil
