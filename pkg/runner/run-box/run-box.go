@@ -43,7 +43,7 @@ type RunBox struct {
 	sandbox       *sandbox.Sandbox
 }
 
-func (rn *RunBox) Run(ctx context.Context) error {
+func (rn *RunBox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
 	if rn.Client.GetApiToken() == nil {
 		return fmt.Errorf("can only run box with static token")
 	}
@@ -63,7 +63,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.initFileLogging(ctx, sandboxDir)
+	err = rn.initFileLogging(ctx, sandboxDir, logHandler)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (rn *RunBox) Run(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.writeDboxedAuthFile(ctx)
+	err = rn.writeDboxedConfFiles(ctx)
 	if err != nil {
 		return err
 	}
@@ -414,8 +414,23 @@ umount /sys
 	return nil
 }
 
-func (rn *RunBox) writeDboxedAuthFile(ctx context.Context) error {
-	err := util.AtomicWriteFileYaml(
+func (rn *RunBox) writeDboxedConfFiles(ctx context.Context) error {
+	envFile := ""
+	envFile += fmt.Sprintf("export DBOXED_SANDBOX=1\n")
+	if rn.Debug {
+		envFile += fmt.Sprintf("export DBOXED_DEBUG=1\n")
+	}
+
+	err := util.AtomicWriteFile(
+		filepath.Join(rn.sandbox.GetSandboxRoot(), consts.SandboxEnvironmentFile),
+		[]byte(envFile),
+		0600,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = util.AtomicWriteFileYaml(
 		filepath.Join(rn.sandbox.GetSandboxRoot(), consts.BoxClientAuthFile),
 		rn.Client.GetClientAuth(true),
 		0600,

@@ -17,8 +17,6 @@ import (
 )
 
 type RunBoxInSandbox struct {
-	Debug bool
-
 	networkConfig *boxspec.NetworkConfig
 	dnsProxy      *dns_proxy.DnsProxy
 

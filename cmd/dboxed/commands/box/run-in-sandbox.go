@@ -13,9 +13,7 @@ type RunInSandbox struct {
 }
 
 func (cmd *RunInSandbox) Run(g *flags.GlobalFlags) error {
-	runBox := run_box_in_sandbox.RunBoxInSandbox{
-		Debug: g.Debug,
-	}
+	runBox := run_box_in_sandbox.RunBoxInSandbox{}
 
 	ctx := context.Background()
 	err := runBox.Run(ctx)

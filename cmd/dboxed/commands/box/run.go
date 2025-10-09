@@ -10,6 +10,7 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/run-box"
 	"github.com/dboxed/dboxed/pkg/util"
 )
@@ -24,7 +25,7 @@ type RunCmd struct {
 	WaitBeforeExit *time.Duration `help:"Wait before finally exiting. This gives the process time to print stdout/stderr messages that might be lost. Especially useful in combination with --debug"`
 }
 
-func (cmd *RunCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) error {
 	ctx := context.Background()
 
 	defer func() {
@@ -63,7 +64,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags) error {
 		VethNetworkCidr: cmd.VethCidrArg,
 	}
 
-	err = runBox.Run(ctx)
+	err = runBox.Run(ctx, logHandler)
 	if err != nil {
 		return err
 	}

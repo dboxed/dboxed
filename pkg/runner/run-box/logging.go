@@ -4,23 +4,18 @@ package run_box
 
 import (
 	"context"
-	"io"
 	"log/slog"
-	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 )
 
-func (rn *RunBox) initFileLogging(ctx context.Context, sandboxDir string) error {
+func (rn *RunBox) initFileLogging(ctx context.Context, sandboxDir string, logHandler *logs.MultiLogHandler) error {
 	logFile := filepath.Join(sandboxDir, "logs", "run-box.log")
 	logWriter := logs.BuildRotatingLogger(logFile)
-	dupWriter := io.MultiWriter(os.Stderr, logWriter)
 
-	h := slog.NewJSONHandler(dupWriter, &slog.HandlerOptions{})
-	log := slog.New(h)
-	slog.SetDefault(log)
+	logHandler.AddWriter(logWriter)
 
 	return nil
 }

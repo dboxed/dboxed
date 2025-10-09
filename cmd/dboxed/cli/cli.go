@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/workspace"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/runner/logs"
 )
 
 type Cli struct {
@@ -33,11 +34,6 @@ type Cli struct {
 }
 
 func Execute() {
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})
-	slog.SetDefault(slog.New(handler))
-
 	cli := &Cli{}
 
 	ctx := kong.Parse(cli,
@@ -52,7 +48,16 @@ func Execute() {
 			"default_infra_image": consts.GetDefaultInfraImage(),
 		})
 
-	err := ctx.Run(&cli.GlobalFlags)
+	logLevel := slog.LevelInfo
+	if cli.GlobalFlags.Debug {
+		logLevel = slog.LevelDebug
+	}
+
+	handler := logs.NewMultiLogHandler(logLevel)
+	handler.AddWriter(os.Stderr)
+	slog.SetDefault(slog.New(handler))
+
+	err := ctx.Run(&cli.GlobalFlags, handler)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
