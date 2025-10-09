@@ -1,6 +1,6 @@
 //go:build linux
 
-package run_box
+package run_sandbox
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 )
 
-func (rn *RunBox) initFileLogging(ctx context.Context, sandboxDir string, logHandler *logs.MultiLogHandler) error {
+func (rn *RunSandbox) initFileLogging(ctx context.Context, sandboxDir string, logHandler *logs.MultiLogHandler) error {
 	logFile := filepath.Join(sandboxDir, "logs", "run-box.log")
 	logWriter := logs.BuildRotatingLogger(logFile)
 
@@ -20,7 +20,7 @@ func (rn *RunBox) initFileLogging(ctx context.Context, sandboxDir string, logHan
 	return nil
 }
 
-func (rn *RunBox) initLogsPublishing(ctx context.Context, sandboxDir string) error {
+func (rn *RunSandbox) initLogsPublishing(ctx context.Context, sandboxDir string) error {
 	if rn.Client == nil {
 		slog.InfoContext(ctx, "skipping logs publishing (only supported with dboxed api)")
 		return nil
@@ -41,7 +41,7 @@ func (rn *RunBox) initLogsPublishing(ctx context.Context, sandboxDir string) err
 	return nil
 }
 
-func (rn *RunBox) initLogsPublishingSandbox(ctx context.Context, sandboxDir string) error {
+func (rn *RunSandbox) initLogsPublishingSandbox(ctx context.Context, sandboxDir string) error {
 	if rn.Client == nil {
 		return nil
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
-	"github.com/dboxed/dboxed/pkg/runner/run-box"
+	"github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 )
 
 type RunCmd struct {
@@ -48,7 +48,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
-	runBox := run_box.RunBox{
+	runBox := run_sandbox.RunSandbox{
 		Debug:           g.Debug,
 		Client:          c,
 		BoxId:           box.ID,

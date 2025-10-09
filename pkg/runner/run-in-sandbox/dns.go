@@ -1,4 +1,4 @@
-package run_box_in_sandbox
+package run_in_sandbox
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (rn *RunBoxInSandbox) writeResolvConf() error {
+func (rn *RunInSandbox) writeResolvConf() error {
 	resolveConf := fmt.Sprintf(`# This is the dboxed dns proxy, which listens inside the sandboxed network namespace
 # and forwards requests to the host's resolv.conf nameservers
 nameserver %s
@@ -23,7 +23,7 @@ search .
 	return nil
 }
 
-func (rn *RunBoxInSandbox) startDnsProxy(ctx context.Context) error {
+func (rn *RunInSandbox) startDnsProxy(ctx context.Context) error {
 	err := rn.writeResolvConf()
 	if err != nil {
 		return err

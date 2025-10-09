@@ -6,14 +6,14 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/runner/run-box-in-sandbox"
+	"github.com/dboxed/dboxed/pkg/runner/run-in-sandbox"
 )
 
 type RunInSandbox struct {
 }
 
 func (cmd *RunInSandbox) Run(g *flags.GlobalFlags) error {
-	runBox := run_box_in_sandbox.RunBoxInSandbox{}
+	runBox := run_in_sandbox.RunInSandbox{}
 
 	ctx := context.Background()
 	err := runBox.Run(ctx)

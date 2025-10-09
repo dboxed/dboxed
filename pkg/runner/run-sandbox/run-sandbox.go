@@ -1,6 +1,6 @@
 //go:build linux
 
-package run_box
+package run_sandbox
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type RunBox struct {
+type RunSandbox struct {
 	Debug bool
 
 	Client *baseclient.Client
@@ -43,15 +43,15 @@ type RunBox struct {
 	sandbox       *sandbox.Sandbox
 }
 
-func (rn *RunBox) getSandboxDir() string {
+func (rn *RunSandbox) getSandboxDir() string {
 	return rn.getSandboxDir2(rn.SandboxName)
 }
 
-func (rn *RunBox) getSandboxDir2(sandboxName string) string {
+func (rn *RunSandbox) getSandboxDir2(sandboxName string) string {
 	return filepath.Join(rn.WorkDir, "boxes", sandboxName)
 }
 
-func (rn *RunBox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
+func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
 	if rn.Client.GetApiToken() == nil {
 		return fmt.Errorf("can only run box with static token")
 	}
@@ -243,7 +243,7 @@ func (rn *RunBox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) err
 	}
 }
 
-func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {
+func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 	slog.InfoContext(ctx, "reserving CIDR for veth pair")
 
 	fl := flock.New(filepath.Join(rn.WorkDir, "veth-cidrs.lock"))
@@ -302,11 +302,11 @@ func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunBox) readVethCidr() (*netip.Prefix, error) {
+func (rn *RunSandbox) readVethCidr() (*netip.Prefix, error) {
 	return rn.readVethCidr2(rn.SandboxName)
 }
 
-func (rn *RunBox) readVethCidr2(sandboxName string) (*netip.Prefix, error) {
+func (rn *RunSandbox) readVethCidr2(sandboxName string) (*netip.Prefix, error) {
 	pth := filepath.Join(rn.getSandboxDir2(sandboxName), consts.VethIPStoreFile)
 	ipB, err := os.ReadFile(pth)
 	if err != nil {
@@ -319,12 +319,12 @@ func (rn *RunBox) readVethCidr2(sandboxName string) (*netip.Prefix, error) {
 	return &p, nil
 }
 
-func (rn *RunBox) writeVethCidr(p *netip.Prefix) error {
+func (rn *RunSandbox) writeVethCidr(p *netip.Prefix) error {
 	pth := filepath.Join(rn.getSandboxDir(), consts.VethIPStoreFile)
 	return util.AtomicWriteFile(pth, []byte(p.String()), 0644)
 }
 
-func (rn *RunBox) readReservedIPs() ([]netip.Prefix, error) {
+func (rn *RunSandbox) readReservedIPs() ([]netip.Prefix, error) {
 	boxesDir := filepath.Join(rn.WorkDir, "boxes")
 	des, err := os.ReadDir(boxesDir)
 	if err != nil {
@@ -349,7 +349,7 @@ func (rn *RunBox) readReservedIPs() ([]netip.Prefix, error) {
 	return ret, nil
 }
 
-func (rn *RunBox) readBoxUuid() (string, error) {
+func (rn *RunSandbox) readBoxUuid() (string, error) {
 	pth := filepath.Join(rn.getSandboxDir(), consts.BoxSpecUuidFile)
 	b, err := os.ReadFile(pth)
 	if err != nil {
@@ -361,12 +361,12 @@ func (rn *RunBox) readBoxUuid() (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
-func (rn *RunBox) writeBoxUuid(uuid string) error {
+func (rn *RunSandbox) writeBoxUuid(uuid string) error {
 	pth := filepath.Join(rn.getSandboxDir(), consts.BoxSpecUuidFile)
 	return util.AtomicWriteFile(pth, []byte(uuid), 0644)
 }
 
-func (rn *RunBox) runDboxedVolumeCleanup(ctx context.Context) error {
+func (rn *RunSandbox) runDboxedVolumeCleanup(ctx context.Context) error {
 	// this must run in the host mount namespace, but at the same time we want to run
 	// inside the sandbox root, so we must setup a minimal chroot without switching namespaces
 
@@ -417,7 +417,7 @@ umount /sys
 	return nil
 }
 
-func (rn *RunBox) writeDboxedConfFiles(ctx context.Context) error {
+func (rn *RunSandbox) writeDboxedConfFiles(ctx context.Context) error {
 	envFile := ""
 	envFile += fmt.Sprintf("export DBOXED_SANDBOX=1\n")
 	if rn.Debug {
