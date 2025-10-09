@@ -4,6 +4,7 @@ package box
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 
 type RunCmd struct {
 	Box       string  `help:"Specify box name or id" required:"" arg:""`
-	LocalName *string `help:"Override local box name. Defaults to the box name"`
+	LocalName *string `help:"Override local box name. Defaults to the box <name>-<uuid>"`
 
 	InfraImage  string `help:"Specify the infra/sandbox image to use" default:"${default_infra_image}"`
 	VethCidrArg string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
@@ -43,7 +44,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	localName := box.Name
+	localName := fmt.Sprintf("%s-%s", box.Name, box.Uuid)
 	if cmd.LocalName != nil {
 		localName = *cmd.LocalName
 	}

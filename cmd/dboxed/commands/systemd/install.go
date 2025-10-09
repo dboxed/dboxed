@@ -4,6 +4,7 @@ package systemd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -13,7 +14,7 @@ import (
 
 type SystemdInstallCmd struct {
 	Box       string  `help:"Specify box name or id" required:"" arg:""`
-	LocalName *string `help:"Override local box name. Defaults to the box name"`
+	LocalName *string `help:"Override local box name. Defaults to the box <name>-<uuid>"`
 }
 
 func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
@@ -24,12 +25,12 @@ func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	b, err := commandutils.GetBox(ctx, c, cmd.Box)
+	box, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
 		return err
 	}
 
-	localName := b.Name
+	localName := fmt.Sprintf("%s-%s", box.Name, box.Uuid)
 	if cmd.LocalName != nil {
 		localName = *cmd.LocalName
 	}
@@ -40,7 +41,7 @@ func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
 
 	s := systemd.SystemdInstall{
 		ClientAuth: c.GetClientAuth(true),
-		Box:        b,
+		Box:        box,
 		LocalName:  localName,
 	}
 
