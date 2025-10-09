@@ -334,7 +334,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 		}
 
 		s = &VolumeState{
-			ClientAuth: vs.opts.Client.GetClientAuth(),
+			ClientAuth: vs.opts.Client.GetClientAuth(true),
 			VolumeId:   vs.volume.ID,
 			VolumeUuid: vs.volume.Uuid,
 			BoxUuid:    vs.opts.BoxUuid,

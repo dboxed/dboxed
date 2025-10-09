@@ -14,9 +14,9 @@ type Client struct {
 	clientAuth      *ClientAuth
 	writeClientAuth bool
 
-	overrideApiUrl      string
-	overrideApiToken    string
-	overrideWorkspaceId int64
+	overrideApiUrl      *string
+	overrideApiToken    *string
+	overrideWorkspaceId *int64
 
 	m        sync.Mutex
 	provider *oidc.Provider
@@ -42,13 +42,34 @@ func New(clientAuthFile *string, clientAuth *ClientAuth, writeClientAuth bool) (
 }
 
 func (c *Client) SetOverrideApiUrl(url string) {
-	c.overrideApiUrl = url
+	c.overrideApiUrl = &url
 }
 
 func (c *Client) SetOverrideApiToken(token string) {
-	c.overrideApiToken = token
+	c.overrideApiToken = &token
 }
 
 func (c *Client) SetOverrideWorkspaceId(id int64) {
-	c.overrideWorkspaceId = id
+	c.overrideWorkspaceId = &id
+}
+
+func (c *Client) getApiUrl() string {
+	if c.overrideApiUrl != nil {
+		return *c.overrideApiUrl
+	}
+	return c.clientAuth.ApiUrl
+}
+
+func (c *Client) GetApiToken() *string {
+	if c.overrideApiToken != nil {
+		return c.overrideApiToken
+	}
+	return c.clientAuth.StaticToken
+}
+
+func (c *Client) getWorkspaceId() *int64 {
+	if c.overrideWorkspaceId != nil {
+		return c.overrideWorkspaceId
+	}
+	return c.clientAuth.WorkspaceId
 }

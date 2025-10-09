@@ -39,7 +39,7 @@ func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	s := systemd.SystemdInstall{
-		ClientAuth: c.GetClientAuth(),
+		ClientAuth: c.GetClientAuth(true),
 		Box:        b,
 		LocalName:  localName,
 	}

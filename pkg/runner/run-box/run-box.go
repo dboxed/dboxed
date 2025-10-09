@@ -44,7 +44,7 @@ type RunBox struct {
 }
 
 func (rn *RunBox) Run(ctx context.Context) error {
-	if rn.Client.GetClientAuth().StaticToken == nil {
+	if rn.Client.GetApiToken() == nil {
 		return fmt.Errorf("can only run box with static token")
 	}
 
@@ -415,7 +415,11 @@ umount /sys
 }
 
 func (rn *RunBox) writeDboxedAuthFile(ctx context.Context) error {
-	err := util.AtomicWriteFileYaml(filepath.Join(rn.sandbox.GetSandboxRoot(), consts.BoxClientAuthFile), rn.Client.GetClientAuth(), 0600)
+	err := util.AtomicWriteFileYaml(
+		filepath.Join(rn.sandbox.GetSandboxRoot(), consts.BoxClientAuthFile),
+		rn.Client.GetClientAuth(true),
+		0600,
+	)
 	if err != nil {
 		return err
 	}

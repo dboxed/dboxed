@@ -18,14 +18,15 @@ func RequestApi[ReplyBody any, RequestBody any](ctx context.Context, c *Client, 
 }
 
 func requestApi2[ReplyBody any, RequestBody any](ctx context.Context, c *Client, method string, p string, body RequestBody, withToken bool) (*ReplyBody, error) {
-	if withToken && c.clientAuth.StaticToken == nil {
+	apiToken := c.GetApiToken()
+	if withToken && apiToken == nil {
 		err := c.RefreshToken(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	u, err := url.Parse(c.clientAuth.ApiUrl)
+	u, err := url.Parse(c.getApiUrl())
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +47,8 @@ func requestApi2[ReplyBody any, RequestBody any](ctx context.Context, c *Client,
 	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(b)))
 
 	if withToken {
-		if c.clientAuth.StaticToken != nil {
-			req.Header.Set("Authorization", "Bearer "+*c.clientAuth.StaticToken)
+		if apiToken != nil {
+			req.Header.Set("Authorization", "Bearer "+*apiToken)
 		} else if c.clientAuth.Oauth2Token != nil {
 			req.Header.Set("Authorization", "Bearer "+c.clientAuth.Oauth2Token.AccessToken)
 		}

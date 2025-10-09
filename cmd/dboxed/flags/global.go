@@ -10,11 +10,11 @@ import (
 type GlobalFlags struct {
 	Debug bool `help:"Enable debugging mode"`
 
-	ClientAuthFile *string `help:"Override client auth file. Defaults to ~/.dboxed/client-auto.yaml" type:"path"`
+	ClientAuthFile *string `help:"Override client auth file. Defaults to ~/.dboxed/client-auth.yaml" type:"path"`
 
-	ApiUrl    *string `help:"Specify the API url"`
-	ApiToken  *string `help:"Specify a static API token"`
-	Workspace *string `help:"Specify workspace"`
+	ApiUrl    *string `help:"Override API url"`
+	ApiToken  *string `help:"Override API token"`
+	Workspace *string `help:"Override workspace"`
 
 	WorkDir string `help:"dboxed work dir" default:"/var/lib/dboxed"`
 }
@@ -35,6 +35,14 @@ func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, erro
 	}
 	if f.ApiToken != nil {
 		c.SetOverrideApiToken(*f.ApiToken)
+
+		t, err := c.CurrentToken(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if f.Workspace == nil {
+			c.SetOverrideWorkspaceId(t.Workspace)
+		}
 	}
 	if f.Workspace != nil {
 		w, err := commandutils.GetWorkspace(ctx, c, *f.Workspace)

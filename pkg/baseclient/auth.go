@@ -8,10 +8,17 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 	"golang.org/x/oauth2"
 )
 
-func (c *Client) GetClientAuth() *ClientAuth {
+func (c *Client) GetClientAuth(withOverrides bool) *ClientAuth {
+	ret := util.MustCopyViaJson(c.clientAuth)
+	if withOverrides {
+		ret.ApiUrl = c.getApiUrl()
+		ret.StaticToken = c.GetApiToken()
+		ret.WorkspaceId = c.getWorkspaceId()
+	}
 	return c.clientAuth
 }
 
@@ -140,7 +147,7 @@ func (c *Client) RefreshToken(ctx context.Context) error {
 }
 
 func (c *Client) CheckAuth(ctx context.Context) error {
-	if c.clientAuth.StaticToken == nil {
+	if c.GetApiToken() == nil {
 		_, err := c.CurrentUser(ctx)
 		if err != nil {
 			return err
@@ -154,8 +161,9 @@ func (c *Client) CheckAuth(ctx context.Context) error {
 			c.clientAuth.WorkspaceId = &t.Workspace
 		}
 	}
-	if c.clientAuth.WorkspaceId != nil {
-		_, err := c.GetWorkspaceById(ctx, *c.clientAuth.WorkspaceId)
+	workspaceId := c.getWorkspaceId()
+	if workspaceId != nil {
+		_, err := c.GetWorkspaceById(ctx, *workspaceId)
 		if err != nil {
 			return err
 		}
@@ -203,10 +211,11 @@ func (c *Client) SwitchWorkspaceById(ctx context.Context, workspaceId int64) (*m
 }
 
 func (c *Client) WorkspaceApiPath() (string, error) {
-	if c.clientAuth.WorkspaceId == nil {
+	workspaceId := c.getWorkspaceId()
+	if workspaceId == nil {
 		return "", fmt.Errorf("no workspace selected")
 	}
-	return fmt.Sprintf("v1/workspaces/%d", *c.clientAuth.WorkspaceId), nil
+	return fmt.Sprintf("v1/workspaces/%d", *workspaceId), nil
 }
 
 func (c *Client) BuildApiPath(workspace bool, pathElems ...any) (string, error) {
