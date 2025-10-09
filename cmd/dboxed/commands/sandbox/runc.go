@@ -20,7 +20,7 @@ type RuncCmd struct {
 func (cmd *RuncCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	sandboxDir := filepath.Join(g.WorkDir, "boxes", cmd.SandboxName)
+	sandboxDir := filepath.Join(g.WorkDir, "sandboxes", cmd.SandboxName)
 
 	c := sandbox.BuildRuncCmd(ctx, sandboxDir, cmd.Args...)
 	c.Stdin = os.Stdin

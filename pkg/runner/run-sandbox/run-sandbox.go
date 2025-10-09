@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
@@ -19,7 +18,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
-	"github.com/dboxed/dboxed/pkg/runner/selfupdate"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
 	"go4.org/netipx"
@@ -48,7 +46,7 @@ func (rn *RunSandbox) getSandboxDir() string {
 }
 
 func (rn *RunSandbox) getSandboxDir2(sandboxName string) string {
-	return filepath.Join(rn.WorkDir, "boxes", sandboxName)
+	return filepath.Join(rn.WorkDir, "sandboxes", sandboxName)
 }
 
 func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
@@ -73,11 +71,15 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	}
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
-	initialBoxFile, err := boxesClient.GetBoxSpecById(ctx, rn.BoxId)
+	workspacesClient := clients.WorkspacesClient{Client: rn.Client}
+	box, err := boxesClient.GetBoxById(ctx, rn.BoxId)
 	if err != nil {
 		return err
 	}
-	initialBoxSpec := &initialBoxFile.Spec
+	workspace, err := workspacesClient.GetWorkspaceById(ctx, box.Workspace)
+	if err != nil {
+		return err
+	}
 
 	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
 	err = rn.initLogsPublishing(ctx, sandboxDir)
@@ -85,11 +87,6 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		return err
 	}
 	defer rn.logsPublisher.Stop()
-
-	err = selfupdate.SelfUpdateIfNeeded(ctx, initialBoxSpec.DboxedBinaryUrl, initialBoxSpec.DboxedBinaryHash, rn.WorkDir)
-	if err != nil {
-		return err
-	}
 
 	err = rn.reserveVethCIDR(ctx)
 	if err != nil {
@@ -108,12 +105,14 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 
 	needDestroy := false
 
-	localUuid, err := rn.readBoxUuid()
+	localSandboxInfo, err := sandbox.ReadSandboxInfo(sandboxDir)
 	if err != nil {
-		return err
+		if !os.IsNotExist(err) {
+			return err
+		}
 	}
-	if localUuid != initialBoxSpec.Uuid {
-		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%d, uuid=%d)", rn.SandboxName, rn.BoxId, initialBoxSpec.Uuid)
+	if localSandboxInfo != nil && localSandboxInfo.Box.Uuid != box.Uuid {
+		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%d, uuid=%s)", rn.SandboxName, rn.BoxId, box.Uuid)
 	}
 
 	runcState, err := rn.sandbox.RuncState(ctx)
@@ -162,7 +161,13 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		return err
 	}
 
-	err = rn.writeBoxUuid(initialBoxSpec.Uuid)
+	newSandboxInfo := &sandbox.SandboxInfo{
+		SandboxName:     rn.SandboxName,
+		Box:             box,
+		Workspace:       workspace,
+		VethNetworkCidr: rn.VethNetworkCidr,
+	}
+	err = sandbox.WriteSandboxInfo(sandboxDir, newSandboxInfo)
 	if err != nil {
 		return err
 	}
@@ -253,7 +258,7 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 	}
 	defer fl.Unlock()
 
-	p, err := rn.readVethCidr()
+	p, err := sandbox.ReadVethCidr(rn.getSandboxDir())
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -292,7 +297,7 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 		return fmt.Errorf("failed to reserve veth pair CIDR")
 	}
 
-	err = rn.writeVethCidr(&newPrefix)
+	err = sandbox.WriteVethCidr(rn.getSandboxDir(), &newPrefix)
 	if err != nil {
 		return err
 	}
@@ -302,31 +307,9 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunSandbox) readVethCidr() (*netip.Prefix, error) {
-	return rn.readVethCidr2(rn.SandboxName)
-}
-
-func (rn *RunSandbox) readVethCidr2(sandboxName string) (*netip.Prefix, error) {
-	pth := filepath.Join(rn.getSandboxDir2(sandboxName), consts.VethIPStoreFile)
-	ipB, err := os.ReadFile(pth)
-	if err != nil {
-		return nil, err
-	}
-	p, err := netip.ParsePrefix(string(ipB))
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-func (rn *RunSandbox) writeVethCidr(p *netip.Prefix) error {
-	pth := filepath.Join(rn.getSandboxDir(), consts.VethIPStoreFile)
-	return util.AtomicWriteFile(pth, []byte(p.String()), 0644)
-}
-
 func (rn *RunSandbox) readReservedIPs() ([]netip.Prefix, error) {
-	boxesDir := filepath.Join(rn.WorkDir, "boxes")
-	des, err := os.ReadDir(boxesDir)
+	sandboxesDir := rn.getSandboxDir2("")
+	des, err := os.ReadDir(sandboxesDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -337,7 +320,7 @@ func (rn *RunSandbox) readReservedIPs() ([]netip.Prefix, error) {
 		if !de.IsDir() {
 			continue
 		}
-		p, err := rn.readVethCidr2(de.Name())
+		p, err := sandbox.ReadVethCidr(rn.getSandboxDir2(de.Name()))
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return nil, err
@@ -347,23 +330,6 @@ func (rn *RunSandbox) readReservedIPs() ([]netip.Prefix, error) {
 		}
 	}
 	return ret, nil
-}
-
-func (rn *RunSandbox) readBoxUuid() (string, error) {
-	pth := filepath.Join(rn.getSandboxDir(), consts.BoxSpecUuidFile)
-	b, err := os.ReadFile(pth)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", err
-	}
-	return strings.TrimSpace(string(b)), nil
-}
-
-func (rn *RunSandbox) writeBoxUuid(uuid string) error {
-	pth := filepath.Join(rn.getSandboxDir(), consts.BoxSpecUuidFile)
-	return util.AtomicWriteFile(pth, []byte(uuid), 0644)
 }
 
 func (rn *RunSandbox) runDboxedVolumeCleanup(ctx context.Context) error {

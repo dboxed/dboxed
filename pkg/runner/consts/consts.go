@@ -22,7 +22,7 @@ const LogsTailDbFilename = "multitail.db"
 const VolumesDir = DboxedDataDir + "/volumes"
 
 const VethIPStoreFile = "veth-ip"
-const BoxSpecUuidFile = "box-spec-uuid"
+const SandboxInfoFile = "sandbox-info.yaml"
 
 func GetDefaultInfraImage() string {
 	tag := "nightly"

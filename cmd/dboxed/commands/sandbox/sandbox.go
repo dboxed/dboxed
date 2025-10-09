@@ -10,8 +10,9 @@ import (
 )
 
 type SandboxCommands struct {
-	Run  RunCmd  `cmd:"" help:"Run a box"`
-	Kill KillCmd `cmd:"" help:"Kill a box"`
+	Run  RunCmd  `cmd:"" help:"Run a box inside a sandbox"`
+	List ListCmd `cmd:"" help:"List sandboxes"`
+	Kill KillCmd `cmd:"" help:"Kill a sandbox"`
 
 	Runc RuncCmd `cmd:"" help:"Run runc for a box"`
 
