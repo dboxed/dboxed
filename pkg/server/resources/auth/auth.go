@@ -212,10 +212,12 @@ func (s *AuthHandler) checkDboxedToken(ctx huma.Context, authz string) (*models.
 		return nil, err
 	}
 
-	if t.ForWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowWorkspaceToken) {
+	allowTokensWithWorkspace := huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowTokensWithWorkspace)
+
+	if t.ForWorkspace && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowWorkspaceToken) {
 		return nil, fmt.Errorf("workspace token not allowed")
 	}
-	if t.BoxID != nil && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowBoxToken) {
+	if t.BoxID != nil && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowBoxToken) {
 		return nil, fmt.Errorf("box token not allowed")
 	}
 
