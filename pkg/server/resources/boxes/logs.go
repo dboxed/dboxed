@@ -50,35 +50,58 @@ func (s *BoxesServer) putLogMetadata(c context.Context, boxId int64, logMetadata
 
 func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJsonBody[models.PostLogs]) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
+	w := global.GetWorkspace(c)
 
-	dm, err := s.putLogMetadata(c, i.Id, i.Body.Metadata)
+	err := s.checkBoxToken(c, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	lines := make([]*dmodel.LogLine, 0, len(i.Body.Lines))
-
-	for _, ll := range i.Body.Lines {
-		dl := &dmodel.LogLine{
-			LogID: dm.ID,
-			Line:  ll.Line,
-			Time:  ll.Time,
-		}
-		lines = append(lines, dl)
+	lm, err := s.putLogMetadata(c, i.Id, i.Body.Metadata)
+	if err != nil {
+		return nil, err
 	}
 
 	logFileName := i.Body.Metadata.FileName
 	if len(logFileName) > 20 {
 		logFileName = logFileName[:3] + "..." + logFileName[len(logFileName)-14:]
 	}
-	huma_utils.ExtraLogValue(c, "lineCount", len(lines))
-	huma_utils.ExtraLogValue(c, "logId", dm.ID)
+	huma_utils.ExtraLogValue(c, "lineCount", len(i.Body.Lines))
+	huma_utils.ExtraLogValue(c, "logId", lm.ID)
 	huma_utils.ExtraLogValue(c, "fileName", logFileName)
 
+	lines := make([]*dmodel.LogLine, 0, len(i.Body.Lines))
+
+	addBytes := int64(0)
+	for _, ll := range i.Body.Lines {
+		addBytes += int64(len([]byte(ll.Line)))
+		dl := &dmodel.LogLine{
+			WorkspaceID: w.ID,
+			LogID:       lm.ID,
+			Line:        ll.Line,
+			Time:        ll.Time,
+		}
+		lines = append(lines, dl)
+	}
+
+	huma_utils.ExtraLogValue(c, "addBytes", addBytes)
+	if len(i.Body.Lines) == 0 {
+		return &huma_utils.Empty{}, nil
+	}
+
+	tm := huma_utils.TimeMeasure(c, "timeCreateManyBatches")
 	err = querier.CreateManyBatches(q, lines, 100, false)
 	if err != nil {
 		return nil, err
 	}
+	tm()
+
+	tm = huma_utils.TimeMeasure(c, "timeAddLogMetadataTotalBytes")
+	err = dmodel.AddLogMetadataTotalBytes(q, lm.ID, addBytes)
+	if err != nil {
+		return nil, err
+	}
+	tm()
 
 	return &huma_utils.Empty{}, nil
 }
@@ -86,6 +109,11 @@ func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJ
 func (s *BoxesServer) restListLogs(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.LogMetadataModel], error) {
 	q := querier.GetQuerier(c)
 	w := global.GetWorkspace(c)
+
+	err := s.checkBoxToken(c, i.Id)
+	if err != nil {
+		return nil, err
+	}
 
 	l, err := dmodel.ListLogMetadataForBox(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -165,27 +193,38 @@ func (s *BoxesServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput,
 	for {
 		var lines []dmodel.LogLine
 		if since != nil {
-			lines, err = dmodel.ListLogLinesSinceTime(q, lm.ID, *since)
+			lines, err = dmodel.ListLogLinesSinceTime(q, lm.ID, *since, util.Ptr(int64(1000)))
 		} else {
-			lines, err = dmodel.ListLogLinesSinceSeq(q, lm.ID, lastId+1)
+			lines, err = dmodel.ListLogLinesSinceSeq(q, lm.ID, lastId+1, util.Ptr(int64(1000)))
 		}
 		if err != nil {
 			if !querier.IsSqlNotFoundError(err) {
 				return err
 			}
 		}
-		for _, l := range lines {
-			lm := models.LogLineFromDB(l)
-			err = send.Data(lm)
-			if err != nil {
-				return err
-			}
-			lastId = l.ID
-		}
 
 		if len(lines) != 0 {
 			// after the first line, go by sequence instead of time
 			since = nil
+
+			batchSize := 128
+			for i := 0; i < len(lines) && c.Err() == nil; i += batchSize {
+				e := min(i+batchSize, len(lines))
+				b := lines[i:e]
+				lb := boxspec.LogsBatch{
+					Lines: make([]boxspec.LogsLine, 0, len(b)),
+				}
+				for _, l := range b {
+					lm := models.LogLineFromDB(l)
+					lb.Lines = append(lb.Lines, lm)
+					lastId = l.ID
+				}
+				lb.Seq = lastId
+				err = send.Data(lb)
+				if err != nil {
+					return err
+				}
+			}
 		} else {
 			if !didSendEndOfHistory {
 				didSendEndOfHistory = true

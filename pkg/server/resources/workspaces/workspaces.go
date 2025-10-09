@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/danielgtaylor/huma/v2"
+	config2 "github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
@@ -43,6 +44,7 @@ func (s *Workspaces) Init(api huma.API) error {
 
 func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.JsonBody[models.CreateWorkspace]) (*huma_utils.JsonBody[models.Workspace], error) {
 	q := querier2.GetQuerier(ctx)
+	config := config2.GetConfig(ctx)
 
 	user := auth.MustGetUser(ctx)
 
@@ -50,7 +52,7 @@ func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.Json
 	if err != nil {
 		return nil, err
 	}
-	
+
 	w := &dmodel.Workspace{
 		Name: i.Body.Name,
 		Access: []dmodel.WorkspaceAccess{
@@ -58,6 +60,15 @@ func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.Json
 		},
 	}
 	err = w.Create(q)
+	if err != nil {
+		return nil, err
+	}
+
+	wq := dmodel.WorkspaceQuotas{
+		WorkspaceId: w.ID,
+		MaxLogBytes: config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes,
+	}
+	err = wq.Create(q)
 	if err != nil {
 		return nil, err
 	}

@@ -26,6 +26,12 @@ type WorkspaceAccess struct {
 	User User `join:"true" join_left_field:"user_id"`
 }
 
+type WorkspaceQuotas struct {
+	WorkspaceId int64 `db:"workspace_id"`
+
+	MaxLogBytes int64 `db:"max_log_bytes"`
+}
+
 func (v *Workspace) SetId(id int64) {
 	v.ID = id
 }
@@ -55,10 +61,14 @@ func (v *WorkspaceAccess) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
+func (v *WorkspaceQuotas) Create(q *querier2.Querier) error {
+	return querier2.Create(q, v)
+}
+
 func GetWorkspaceAccessesById(q *querier2.Querier, id int64) ([]WorkspaceAccess, error) {
 	l, err := querier2.GetMany[WorkspaceAccess](q, map[string]any{
 		"workspace_id": id,
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -121,4 +131,10 @@ func GetWorkspaceById(q *querier2.Querier, id int64, skipDeleted bool) (*Workspa
 		return nil, err
 	}
 	return postprocessWorkspace(q, w)
+}
+
+func GetWorkspaceQuotaById(q *querier2.Querier, id int64) (*WorkspaceQuotas, error) {
+	return querier2.GetOne[WorkspaceQuotas](q, map[string]any{
+		"workspace_id": id,
+	})
 }

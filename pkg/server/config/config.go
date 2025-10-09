@@ -14,6 +14,8 @@ type Config struct {
 	Auth   AuthConfig   `json:"auth"`
 	DB     DbConfig     `json:"db"`
 	Server ServerConfig `json:"server"`
+
+	DefaultWorkspaceQuotas DefaultWorkspaceQuotas `json:"defaultWorkspaceQuotas"`
 }
 
 type AuthConfig struct {
@@ -32,6 +34,10 @@ type DbConfig struct {
 type ServerConfig struct {
 	ListenAddress string `json:"listenAddress"`
 	BaseUrl       string `json:"baseUrl"`
+}
+
+type DefaultWorkspaceQuotas struct {
+	MaxLogBytes util.HumanBytes `json:"maxLogBytes"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {

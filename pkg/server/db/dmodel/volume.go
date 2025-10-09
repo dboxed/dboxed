@@ -109,20 +109,20 @@ func ListVolumesForWorkspace(q *querier.Querier, workspaceId int64, skipDeleted 
 	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }
 
 func ListVolumesForVolumeProvider(q *querier.Querier, volumeProviderId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
 	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
 		"volume_provider_id": volumeProviderId,
 		"deleted_at":         querier.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }
 
 func ListBoxVolumeAttachments(q *querier.Querier, boxId int64) ([]BoxVolumeAttachmentWithVolume, error) {
 	return querier.GetMany[BoxVolumeAttachmentWithVolume](q, map[string]any{
 		"box_id": boxId,
-	})
+	}, nil)
 }
 
 func GetBoxVolumeAttachment(q *querier.Querier, boxId int64, volumeId int64) (*BoxVolumeAttachmentWithVolume, error) {

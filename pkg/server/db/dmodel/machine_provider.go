@@ -50,7 +50,7 @@ func ListMachineProviders(q *querier2.Querier, workspaceId int64, skipDeleted bo
 	l, err := querier2.GetMany[MachineProvider](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func ListMachineProviders(q *querier2.Querier, workspaceId int64, skipDeleted bo
 func getMachineProviderAwsSubnets(q *querier2.Querier, machineProviderId int64) ([]MachineProviderAwsSubnet, error) {
 	return querier2.GetMany[MachineProviderAwsSubnet](q, map[string]any{
 		"machine_provider_id": machineProviderId,
-	})
+	}, nil)
 }
 
 func (v *MachineProvider) Create(q *querier2.Querier) error {

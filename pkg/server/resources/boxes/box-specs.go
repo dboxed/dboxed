@@ -3,25 +3,21 @@ package boxes
 import (
 	"context"
 
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/box_spec_utils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
-	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 )
 
 func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[boxspec.BoxFile], error) {
 	q := querier.GetQuerier(c)
 	w := global.GetWorkspace(c)
-	token := auth.GetToken(c)
 
-	if token != nil && token.BoxID != nil {
-		if *token.BoxID != i.Id {
-			return nil, huma.Error403Forbidden("no access to box")
-		}
+	err := s.checkBoxToken(c, i.Id)
+	if err != nil {
+		return nil, err
 	}
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)

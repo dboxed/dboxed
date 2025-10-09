@@ -32,6 +32,11 @@ func (r *reconciler) Reconcile(ctx context.Context, w *dmodel.Workspace, log *sl
 		slog.Any("name", w.Name),
 	)
 
+	err := r.reconcileLogQuotas(ctx, w, log)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

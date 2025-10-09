@@ -38,6 +38,15 @@ func ExtraLogValue(ctx any, name string, value any) {
 	}
 }
 
+func TimeMeasure(ctx any, name string) func() {
+	startTime := time.Now()
+	return func() {
+		endTime := time.Now()
+		d := endTime.Sub(startTime)
+		ExtraLogValue(ctx, name, d.String())
+	}
+}
+
 func SetupLogMiddleware(ginEngine *gin.Engine) {
 	loggerConfig := gin.LoggerConfig{
 		Output:    gin.DefaultWriter,

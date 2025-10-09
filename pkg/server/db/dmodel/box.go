@@ -65,14 +65,14 @@ func ListBoxesForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted b
 	return querier2.GetMany[Box](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }
 
 func ListBoxesForNetwork(q *querier2.Querier, networkId int64, skipDeleted bool) ([]Box, error) {
 	return querier2.GetMany[Box](q, map[string]any{
 		"network_id": networkId,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }
 
 func (v *Box) UpdateBoxSpec(q *querier2.Querier, b []byte) error {

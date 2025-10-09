@@ -17,6 +17,11 @@ func (s *BoxesServer) restListAttachedVolumes(c context.Context, i *huma_utils.I
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
+	err := s.checkBoxToken(c, i.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err

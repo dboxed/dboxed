@@ -80,7 +80,7 @@ func ListVolumeSnapshotsForProvider(q *querier.Querier, workspaceId *int64, prov
 		"workspace_id":       querier.OmitIfNull(workspaceId),
 		"volume_provider_id": providerId,
 		"deleted_at":         querier.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }
 
 func ListVolumeSnapshotsForVolume(q *querier.Querier, workspaceId *int64, volumeId int64, skipDeleted bool) ([]VolumeSnapshot, error) {
@@ -88,7 +88,9 @@ func ListVolumeSnapshotsForVolume(q *querier.Querier, workspaceId *int64, volume
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"volume_id":    volumeId,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
-	}, []querier.SortField{
-		{Field: "created_at", Direction: querier.SortOrderDesc},
+	}, &querier.SortAndPage{
+		Sort: []querier.SortField{
+			{Field: "created_at", Direction: querier.SortOrderDesc},
+		},
 	})
 }

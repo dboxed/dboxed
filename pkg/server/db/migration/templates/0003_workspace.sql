@@ -18,3 +18,10 @@ create table workspace_access
 
     primary key (workspace_id, user_id)
 );
+
+create table workspace_quotas
+(
+    workspace_id bigint not null primary key references workspace (id) on delete cascade,
+
+    max_log_bytes int not null default 100
+);

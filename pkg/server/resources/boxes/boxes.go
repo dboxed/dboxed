@@ -47,8 +47,8 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restUpdateAttachedVolume)
 	huma.Delete(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restDetachVolume)
 
-	huma.Post(workspacesGroup, "/boxes/{id}/logs", s.restPostLogs)
-	huma.Get(workspacesGroup, "/boxes/{id}/logs", s.restListLogs)
+	huma.Post(workspacesGroup, "/boxes/{id}/logs", s.restPostLogs, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/{id}/logs", s.restListLogs, allowBoxTokenModifier)
 	sse.Register(workspacesGroup, huma.Operation{
 		OperationID: "logs-stream",
 		Method:      http.MethodGet,
@@ -58,7 +58,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 		},
 	}, map[string]any{
 		"metadata":       models.LogMetadataModel{},
-		"line":           boxspec.LogsLine{},
+		"logs-batch":     boxspec.LogsBatch{},
 		"end-of-history": endOfHistory{},
 		"error":          models.LogsError{},
 	}, s.sseLogsStream)
@@ -189,13 +189,22 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.Box) (*huma_utils.JsonBody[models.Box], error) {
+func (s *BoxesServer) checkBoxToken(c context.Context, boxId int64) error {
 	token := auth.GetToken(c)
 
 	if token != nil && token.BoxID != nil {
-		if *token.BoxID != box.ID {
-			return nil, huma.Error403Forbidden("no access to box")
+		if *token.BoxID != boxId {
+			return huma.Error403Forbidden("no access to box")
 		}
+	}
+
+	return nil
+}
+
+func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.Box) (*huma_utils.JsonBody[models.Box], error) {
+	err := s.checkBoxToken(c, box.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	boxm, err := s.postprocessBox(c, *box)

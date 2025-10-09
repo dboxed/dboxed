@@ -104,7 +104,7 @@ func SoftDeleteByStruct[T IsSoftDelete](q *querier2.Querier, v T) error {
 	}
 	l, err := querier2.GetMany[T](q, map[string]any{
 		"id": v.GetId(),
-	})
+	}, nil)
 	if err != nil {
 		return err
 	}

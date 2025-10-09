@@ -55,7 +55,7 @@ func ListVolumeProviders(q *querier.Querier, workspaceId *int64, skipDeleted boo
 	l, err := querier.GetMany[VolumeProvider](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}

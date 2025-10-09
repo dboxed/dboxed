@@ -14,7 +14,7 @@ type User struct {
 }
 
 func ListAllUsers(q *querier.Querier) ([]User, error) {
-	return querier.GetMany[User](q, nil)
+	return querier.GetMany[User](q, nil, nil)
 }
 
 func GetUserById(q *querier.Querier, id string) (*User, error) {

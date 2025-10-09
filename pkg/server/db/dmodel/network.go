@@ -30,5 +30,5 @@ func ListNetworksForWorkspace(q *querier2.Querier, workspaceId int64, skipDelete
 	return querier2.GetMany[Network](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }

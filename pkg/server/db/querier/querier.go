@@ -200,7 +200,10 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 
 		createFields = append(createFields, f)
 		createFieldNames = append(createFieldNames, f.FieldName)
-		conflictSets = append(conflictSets, fmt.Sprintf("%s = excluded.%s", f.FieldName, f.FieldName))
+
+		if f.StructField.Tag.Get("omitOnConflictUpdate") != "true" {
+			conflictSets = append(conflictSets, fmt.Sprintf("%s = excluded.%s", f.FieldName, f.FieldName))
+		}
 	}
 
 	var valuesList []string
@@ -367,7 +370,7 @@ func BuildWhere[T any](byFields map[string]any) (string, map[string]any, error) 
 	return whereStr, args, nil
 }
 
-func BuildSelectWhereQuery[T any](where string, sort []SortField) (string, error) {
+func BuildSelectWhereQuery[T any](where string, sp *SortAndPage) (string, error) {
 	dbFields, dbJoins := GetStructDBFields[T]()
 
 	var selects []string
@@ -389,16 +392,24 @@ func BuildSelectWhereQuery[T any](where string, sort []SortField) (string, error
 	if len(where) != 0 {
 		query += fmt.Sprintf("\nwhere %s", where)
 	}
-	if len(sort) != 0 {
-		var orders []string
-		for _, s := range sort {
-			f, ok := dbFields[s.Field]
-			if !ok {
-				return "", fmt.Errorf("sort field %s not found in %s", s.Field, reflect.TypeFor[T]().Name())
+	if sp != nil {
+		if len(sp.Sort) != 0 {
+			var orders []string
+			for _, s := range sp.Sort {
+				f, ok := dbFields[s.Field]
+				if !ok {
+					return "", fmt.Errorf("sort field %s not found in %s", s.Field, reflect.TypeFor[T]().Name())
+				}
+				orders = append(orders, fmt.Sprintf("%s %s", f.SelectName, s.Direction))
 			}
-			orders = append(orders, fmt.Sprintf("%s %s", f.SelectName, s.Direction))
+			query += "\norder by " + strings.Join(orders, ", ")
 		}
-		query += "\norder by " + strings.Join(orders, ", ")
+		if sp.Limit != nil {
+			query += fmt.Sprintf("\nlimit %d", *sp.Limit)
+		}
+		if sp.Offset != 0 {
+			query += fmt.Sprintf("\noffset %d", sp.Offset)
+		}
 	}
 	return query, nil
 }
@@ -426,20 +437,26 @@ func GetOneWhere[T any](q *Querier, where string, args map[string]any) (*T, erro
 	return &ret, nil
 }
 
-func GetMany[T any](q *Querier, byFields map[string]any) ([]T, error) {
-	return GetManySorted[T](q, byFields, nil)
+type SortAndPage struct {
+	Sort   []SortField
+	Offset int64
+	Limit  *int64
 }
 
-func GetManySorted[T any](q *Querier, byFields map[string]any, sort []SortField) ([]T, error) {
+func GetMany[T any](q *Querier, byFields map[string]any, sp *SortAndPage) ([]T, error) {
+	return GetManySorted[T](q, byFields, sp)
+}
+
+func GetManySorted[T any](q *Querier, byFields map[string]any, sp *SortAndPage) ([]T, error) {
 	where, args, err := BuildWhere[T](byFields)
 	if err != nil {
 		return nil, err
 	}
-	return GetManyWhere[T](q, where, args, sort)
+	return GetManyWhere[T](q, where, args, sp)
 }
 
-func GetManyWhere[T any](q *Querier, where string, args map[string]any, sort []SortField) ([]T, error) {
-	query, err := BuildSelectWhereQuery[T](where, sort)
+func GetManyWhere[T any](q *Querier, where string, args map[string]any, sp *SortAndPage) ([]T, error) {
+	query, err := BuildSelectWhereQuery[T](where, sp)
 	if err != nil {
 		return nil, err
 	}

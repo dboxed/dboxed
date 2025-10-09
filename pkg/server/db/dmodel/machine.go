@@ -38,7 +38,7 @@ func listMachines(q *querier2.Querier, workspaceId *int64, machineProviderId *in
 		"workspace_id":        querier2.OmitIfNull(workspaceId),
 		"machine_provider_id": querier2.OmitIfNull(machineProviderId),
 		"deleted_at":          querier2.ExcludeNonNull(skipDeleted),
-	})
+	}, nil)
 }
 
 func ListMachinesForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]Machine, error) {

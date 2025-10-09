@@ -41,5 +41,5 @@ func GetTokenByToken(q *querier.Querier, token string) (*Token, error) {
 func ListTokensForWorkspace(q *querier.Querier, workspaceId int64) ([]Token, error) {
 	return querier.GetMany[Token](q, map[string]any{
 		"workspace_id": workspaceId,
-	})
+	}, nil)
 }
