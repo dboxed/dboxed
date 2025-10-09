@@ -124,7 +124,7 @@ func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
 	dnsResolver := net.JoinHostPort(resolveConf.Servers[0], resolveConf.Port)
 
 	log := slog.With(slog.Any("id", r.request.Id), slog.Any("tcp", r.tcp), slog.Any("dnsResolver", dnsResolver))
-	//log.DebugContext(ctx, "handling request"+r.request.String())
+	log.DebugContext(ctx, "handling request"+r.request.String())
 
 	if len(r.request.Question) != 1 {
 		m := &dns.Msg{}
@@ -155,7 +155,7 @@ func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
 		_ = r.writer.WriteMsg(m)
 		return
 	}
-	//log.DebugContext(ctx, "responding with "+resp.String())
+	log.DebugContext(ctx, "responding with "+resp.String())
 	resp.SetReply(r.request)
 	err = r.writer.WriteMsg(resp)
 	if err != nil {
@@ -204,7 +204,7 @@ func (d *DnsProxy) startListen(ctx context.Context, dnsNet string) (*dns.Server,
 
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(writer dns.ResponseWriter, r *dns.Msg) {
-		//slog.DebugContext(ctx, "queuing request"+r.String())
+		slog.DebugContext(ctx, "queuing request"+r.String())
 		req := dnsRequest{
 			tcp:     isTcp,
 			writer:  writer,
