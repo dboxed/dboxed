@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"os"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/util"
@@ -68,7 +69,7 @@ func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink n
 			select {
 			case ru := <-routeUpdateChan:
 				err := n.updateRoute(ctx, ru, peerLink)
-				if err != nil {
+				if err != nil && !os.IsExist(err) {
 					slog.ErrorContext(ctx, "failed to update route", slog.Any("error", err))
 				}
 			case <-ctx.Done():

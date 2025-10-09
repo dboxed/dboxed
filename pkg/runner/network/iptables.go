@@ -34,7 +34,7 @@ func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.NamesAndIps.Base) + "\n"
 	script2 += script
 
-	slog.InfoContext(ctx, "running iptables script:\n"+script2+"\n")
+	slog.DebugContext(ctx, "running iptables script:\n"+script2+"\n")
 
 	chrootBin := filepath.Join(n.InfraContainerRoot, "/usr/sbin/chroot")
 	cmd := exec.CommandContext(ctx, chrootBin, n.InfraContainerRoot, "/bin/sh", "-c", script2)
@@ -52,10 +52,10 @@ func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 }
 
 func (n *Iptables) runPurgeOldRules(ctx context.Context) error {
+	slog.InfoContext(ctx, "purging old dboxed iptables rules")
 	script := `
 OLD_RULES="$(iptables-save)"
 if echo "$OLD_RULES" | grep "\--comment ${NAME_BASE}" > /dev/null; then
-  echo "purging old dboxed iptables rules"
   echo "$OLD_RULES" | grep -v "\--comment ${NAME_BASE}" | iptables-restore
 fi
 if echo "$OLD_RULES" | grep "^:${NAME_BASE}-pf-1" > /dev/null; then
@@ -71,13 +71,12 @@ fi
 }
 
 func (n *Iptables) setupIptables(ctx context.Context) error {
-	log := slog.With()
-	log.InfoContext(ctx, "setting up iptables rules")
-
 	err := n.runPurgeOldRules(ctx)
 	if err != nil {
 		return err
 	}
+
+	slog.InfoContext(ctx, "setting up iptables rules")
 
 	t, err := template.New("").Parse(`
 COMMENT="-m comment --comment ${NAME_BASE}"
