@@ -5,7 +5,7 @@ After=network.target local-fs.target
 
 [Service]
 EnvironmentFile=/etc/dboxed/box-url.env
-ExecStart=/usr/local/bin/dboxed run --client-auth-file {{ .ClientAuthFile }} --local-name {{ .LocalName }} {{ .ExtraArgs }}
+ExecStart=/usr/local/bin/dboxed sandbox run --client-auth-file {{ .ClientAuthFile }} --sandbox-name {{ .SandboxName }} {{ .ExtraArgs }}
 
 Type=simple
 Delegate=yes

@@ -15,5 +15,5 @@ runcmd:
     swapon -a
 {{- if .BoxUrl }}
   - mkdir -p /etc/dboxed && chmod 0700 /etc/dboxed
-  - dboxed systemd install --box-url "{{ .BoxUrl }}" --box-name={{ .BoxName }}
+  - dboxed systemd install --box-url "{{ .BoxUrl }}"
 {{- end -}}

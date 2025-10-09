@@ -16,9 +16,9 @@ import (
 )
 
 type SystemdInstall struct {
-	ClientAuth *baseclient.ClientAuth
-	Box        *models.Box
-	LocalName  string
+	ClientAuth  *baseclient.ClientAuth
+	Box         *models.Box
+	SandboxName string
 }
 
 func (s *SystemdInstall) Run(ctx context.Context) error {
@@ -31,7 +31,7 @@ func (s *SystemdInstall) Run(ctx context.Context) error {
 		return fmt.Errorf("systemd units only work with static tokens")
 	}
 
-	clientAuthPath := filepath.Join("/etc/dboxed/", fmt.Sprintf("client-auth-%s.yaml", s.LocalName))
+	clientAuthPath := filepath.Join("/etc/dboxed/", fmt.Sprintf("client-auth-%s.yaml", s.SandboxName))
 	b, err := yaml.Marshal(s.ClientAuth)
 	if err != nil {
 		return err
@@ -41,13 +41,13 @@ func (s *SystemdInstall) Run(ctx context.Context) error {
 		return err
 	}
 
-	serviceName := fmt.Sprintf("dboxed-%s", s.LocalName)
+	serviceName := fmt.Sprintf("dboxed-%s", s.SandboxName)
 	extraArgs := []string{
 		fmt.Sprintf("--workspace=%d", s.Box.Workspace),
 		fmt.Sprintf("%d", s.Box.ID),
 	}
 
-	systemdUnitContent := units.GetDboxedUnit(s.LocalName, clientAuthPath, strings.Join(extraArgs, " "))
+	systemdUnitContent := units.GetDboxedUnit(s.SandboxName, clientAuthPath, strings.Join(extraArgs, " "))
 	err = os.WriteFile(fmt.Sprintf("/etc/systemd/system/%s.service", serviceName), []byte(systemdUnitContent), 0644)
 	if err != nil {
 		return err

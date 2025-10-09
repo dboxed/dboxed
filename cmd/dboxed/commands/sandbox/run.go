@@ -1,10 +1,9 @@
 //go:build linux
 
-package box
+package sandbox
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -12,12 +11,11 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/run-box"
-	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type RunCmd struct {
-	Box       string  `help:"Specify box name or id" required:"" arg:""`
-	LocalName *string `help:"Override local box name. Defaults to the box <name>-<uuid>"`
+	Box         string  `help:"Specify box name or id" required:"" arg:""`
+	SandboxName *string `help:"Override local sandbox name. Defaults to the box <name>-<uuid>"`
 
 	InfraImage  string `help:"Specify the infra/sandbox image to use" default:"${default_infra_image}"`
 	VethCidrArg string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
@@ -45,11 +43,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
-	localName := fmt.Sprintf("%s-%s", box.Name, box.Uuid)
-	if cmd.LocalName != nil {
-		localName = *cmd.LocalName
-	}
-	err = util.CheckName(localName)
+	sandboxName, err := GetSandboxName(box, cmd.SandboxName)
 	if err != nil {
 		return err
 	}
@@ -59,7 +53,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		Client:          c,
 		BoxId:           box.ID,
 		InfraImage:      cmd.InfraImage,
-		BoxName:         localName,
+		SandboxName:     sandboxName,
 		WorkDir:         g.WorkDir,
 		VethNetworkCidr: cmd.VethCidrArg,
 	}

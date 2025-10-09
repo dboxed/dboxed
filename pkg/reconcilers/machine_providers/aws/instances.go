@@ -149,7 +149,6 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 	ud := userdata.GetUserdata(
 		box.DboxedVersion,
 		"dummy",
-		m.Name,
 	)
 
 	image, err := r.selectAwsImage(ctx, *m)

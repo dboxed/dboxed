@@ -131,7 +131,6 @@ func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, 
 	ud := userdata.GetUserdata(
 		box.DboxedVersion,
 		"dummy",
-		m.Name,
 	)
 
 	log.InfoContext(ctx, "creating hetzner server")

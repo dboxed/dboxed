@@ -1,6 +1,6 @@
 //go:build linux
 
-package box
+package sandbox
 
 import (
 	"context"

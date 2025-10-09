@@ -5,6 +5,4 @@ type BoxCommands struct {
 	Get    GetCmd    `cmd:"" help:"Get a box"`
 	List   ListCmd   `cmd:"" help:"List boxes"`
 	Delete DeleteCmd `cmd:"" help:"Delete a box"`
-
-	onlyLinux
 }

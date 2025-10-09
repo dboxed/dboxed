@@ -33,7 +33,7 @@ type RunBox struct {
 	BoxId  int64
 
 	InfraImage      string
-	BoxName         string
+	SandboxName     string
 	WorkDir         string
 	VethNetworkCidr string
 
@@ -43,18 +43,22 @@ type RunBox struct {
 	sandbox       *sandbox.Sandbox
 }
 
+func (rn *RunBox) getSandboxDir() string {
+	return rn.getSandboxDir2(rn.SandboxName)
+}
+
+func (rn *RunBox) getSandboxDir2(sandboxName string) string {
+	return filepath.Join(rn.WorkDir, "boxes", sandboxName)
+}
+
 func (rn *RunBox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
 	if rn.Client.GetApiToken() == nil {
 		return fmt.Errorf("can only run box with static token")
 	}
 
-	sandboxDir := filepath.Join(rn.WorkDir, "boxes", rn.BoxName)
+	sandboxDir := rn.getSandboxDir()
 
-	err := os.MkdirAll(rn.WorkDir, 0700)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(sandboxDir, 0700)
+	err := os.MkdirAll(sandboxDir, 0700)
 	if err != nil {
 		return err
 	}
@@ -97,37 +101,32 @@ func (rn *RunBox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) err
 		Debug:           rn.Debug,
 		InfraImage:      rn.InfraImage,
 		HostWorkDir:     rn.WorkDir,
-		SandboxName:     rn.BoxName,
+		SandboxName:     rn.SandboxName,
 		SandboxDir:      sandboxDir,
 		VethNetworkCidr: rn.acquiredVethNetworkCidr,
 	}
 
 	needDestroy := false
 
-	localUuid, err := rn.readBoxUuid(rn.BoxName)
+	localUuid, err := rn.readBoxUuid()
 	if err != nil {
 		return err
 	}
 	if localUuid != initialBoxSpec.Uuid {
-		if localUuid != "" {
-			slog.InfoContext(ctx, fmt.Sprintf("serving a new box (new uuid %s), destroying old one (uuid %s)", initialBoxSpec.Uuid, localUuid))
-		}
-		needDestroy = true
+		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%d, uuid=%d)", rn.SandboxName, rn.BoxId, initialBoxSpec.Uuid)
 	}
 
-	if !needDestroy {
-		runcState, err := rn.sandbox.RuncState(ctx)
-		if err != nil {
-			return err
-		}
+	runcState, err := rn.sandbox.RuncState(ctx)
+	if err != nil {
+		return err
+	}
 
-		if runcState == nil {
+	if runcState == nil {
+		needDestroy = true
+	} else {
+		if runcState.Status != "running" {
+			slog.InfoContext(ctx, fmt.Sprintf("old sandbox container is in state '%s', re-creating it", runcState.Status))
 			needDestroy = true
-		} else {
-			if runcState.Status != "running" {
-				slog.InfoContext(ctx, fmt.Sprintf("old sandbox container is in state '%s', re-creating it", runcState.Status))
-				needDestroy = true
-			}
 		}
 	}
 
@@ -254,7 +253,7 @@ func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {
 	}
 	defer fl.Unlock()
 
-	p, err := rn.readVethCidr(rn.BoxName)
+	p, err := rn.readVethCidr()
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -303,8 +302,12 @@ func (rn *RunBox) reserveVethCIDR(ctx context.Context) error {
 	return nil
 }
 
-func (rn *RunBox) readVethCidr(boxName string) (*netip.Prefix, error) {
-	pth := filepath.Join(rn.WorkDir, "boxes", boxName, consts.VethIPStoreFile)
+func (rn *RunBox) readVethCidr() (*netip.Prefix, error) {
+	return rn.readVethCidr2(rn.SandboxName)
+}
+
+func (rn *RunBox) readVethCidr2(sandboxName string) (*netip.Prefix, error) {
+	pth := filepath.Join(rn.getSandboxDir2(sandboxName), consts.VethIPStoreFile)
 	ipB, err := os.ReadFile(pth)
 	if err != nil {
 		return nil, err
@@ -317,7 +320,7 @@ func (rn *RunBox) readVethCidr(boxName string) (*netip.Prefix, error) {
 }
 
 func (rn *RunBox) writeVethCidr(p *netip.Prefix) error {
-	pth := filepath.Join(rn.WorkDir, "boxes", rn.BoxName, consts.VethIPStoreFile)
+	pth := filepath.Join(rn.getSandboxDir(), consts.VethIPStoreFile)
 	return util.AtomicWriteFile(pth, []byte(p.String()), 0644)
 }
 
@@ -334,7 +337,7 @@ func (rn *RunBox) readReservedIPs() ([]netip.Prefix, error) {
 		if !de.IsDir() {
 			continue
 		}
-		p, err := rn.readVethCidr(de.Name())
+		p, err := rn.readVethCidr2(de.Name())
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return nil, err
@@ -346,8 +349,8 @@ func (rn *RunBox) readReservedIPs() ([]netip.Prefix, error) {
 	return ret, nil
 }
 
-func (rn *RunBox) readBoxUuid(boxName string) (string, error) {
-	pth := filepath.Join(rn.WorkDir, "boxes", boxName, consts.BoxSpecUuidFile)
+func (rn *RunBox) readBoxUuid() (string, error) {
+	pth := filepath.Join(rn.getSandboxDir(), consts.BoxSpecUuidFile)
 	b, err := os.ReadFile(pth)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -359,7 +362,7 @@ func (rn *RunBox) readBoxUuid(boxName string) (string, error) {
 }
 
 func (rn *RunBox) writeBoxUuid(uuid string) error {
-	pth := filepath.Join(rn.WorkDir, "boxes", rn.BoxName, consts.BoxSpecUuidFile)
+	pth := filepath.Join(rn.getSandboxDir(), consts.BoxSpecUuidFile)
 	return util.AtomicWriteFile(pth, []byte(uuid), 0644)
 }
 

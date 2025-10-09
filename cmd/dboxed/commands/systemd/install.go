@@ -4,17 +4,16 @@ package systemd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/systemd"
-	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type SystemdInstallCmd struct {
-	Box       string  `help:"Specify box name or id" required:"" arg:""`
-	LocalName *string `help:"Override local box name. Defaults to the box <name>-<uuid>"`
+	Box         string  `help:"Specify box name or id" required:"" arg:""`
+	SandboxName *string `help:"Override local sandbox name. Defaults to the box <name>-<uuid>"`
 }
 
 func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
@@ -30,19 +29,15 @@ func (cmd *SystemdInstallCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	localName := fmt.Sprintf("%s-%s", box.Name, box.Uuid)
-	if cmd.LocalName != nil {
-		localName = *cmd.LocalName
-	}
-	err = util.CheckName(localName)
+	sandboxName, err := sandbox.GetSandboxName(box, cmd.SandboxName)
 	if err != nil {
 		return err
 	}
 
 	s := systemd.SystemdInstall{
-		ClientAuth: c.GetClientAuth(true),
-		Box:        box,
-		LocalName:  localName,
+		ClientAuth:  c.GetClientAuth(true),
+		Box:         box,
+		SandboxName: sandboxName,
 	}
 
 	return s.Run(ctx)
