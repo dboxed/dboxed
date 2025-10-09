@@ -212,6 +212,15 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 
 	lastBoxSpecHash := ""
 	for {
+		runcState, err := rn.sandbox.RuncState(ctx)
+		if err != nil || runcState == nil || runcState.Status != "running" {
+			slog.ErrorContext(ctx, "sandbox container is not in running state, exiting", slog.Any("error", err), slog.Any("status", runcState.Status))
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("sandbox container is not in running state anymore")
+		}
+
 		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.BoxId)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
