@@ -96,7 +96,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 
 	for _, s := range dbSnapshots {
 		if s.DeletedAt.Valid {
-			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Rustic.SnapshotId))
+			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Rustic.SnapshotId.V))
 			err = querier.DeleteOneByStruct(q, s)
 			if err != nil {
 				return err

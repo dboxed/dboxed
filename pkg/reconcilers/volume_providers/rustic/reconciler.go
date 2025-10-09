@@ -59,7 +59,7 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 	var ret []string
 	for oi := range ch {
 		if oi.Err != nil {
-			return nil, err
+			return nil, oi.Err
 		}
 		id := path.Base(oi.Key)
 		ret = append(ret, id)
