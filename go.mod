@@ -28,10 +28,6 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/miekg/dns v1.1.68
-	github.com/mr-tron/base58 v1.2.0
-	github.com/nats-io/jwt/v2 v2.8.0
-	github.com/nats-io/nats.go v1.45.0
-	github.com/nats-io/nkeys v0.4.11
 	github.com/netbirdio/netbird v0.58.1 // don't forget to update the pion/ice replacement at the bottom
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/pressly/goose/v3 v3.25.0
@@ -54,6 +50,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4
 	golang.org/x/net v0.44.0
 	golang.org/x/oauth2 v0.31.0
+	k8s.io/apimachinery v0.34.1
 )
 
 require (
@@ -109,7 +106,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -142,7 +138,6 @@ require (
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
-	k8s.io/apimachinery v0.34.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 )
