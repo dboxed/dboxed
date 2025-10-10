@@ -117,6 +117,11 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.writeDnsProxyResolvConf()
+	if err != nil {
+		return err
+	}
+
 	rn.routesMirror = network2.RoutesMirror{
 		NamesAndIps: rn.network.NamesAndIps,
 	}
