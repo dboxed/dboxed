@@ -213,7 +213,11 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	for {
 		runcState, err := rn.sandbox.RuncState(ctx)
 		if err != nil || runcState == nil || runcState.Status != "running" {
-			slog.ErrorContext(ctx, "sandbox container is not in running state, exiting", slog.Any("error", err), slog.Any("status", runcState.Status))
+			status := "unknown"
+			if runcState != nil {
+				status = runcState.Status
+			}
+			slog.ErrorContext(ctx, "sandbox container is not in running state, exiting", slog.Any("error", err), slog.Any("status", status))
 			if err != nil {
 				return err
 			}
