@@ -46,6 +46,7 @@ func Execute() {
 			Compact: true,
 			Summary: true,
 		}),
+		kong.DefaultEnvars("DBOXED"),
 		kong.Vars{
 			"default_infra_image": consts.GetDefaultInfraImage(),
 		})
