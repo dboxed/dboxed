@@ -65,12 +65,3 @@ func RunRuncList(ctx context.Context, sandboxDir string) ([]RuncState, error) {
 	}
 	return ret, nil
 }
-
-func RunRuncState(ctx context.Context, sandboxDir string, name string) (*RuncState, error) {
-	var ret RuncState
-	err := RunRuncJson(ctx, sandboxDir, &ret, "state", name)
-	if err != nil {
-		return nil, err
-	}
-	return &ret, nil
-}

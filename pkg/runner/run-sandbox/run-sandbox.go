@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -35,7 +34,7 @@ type RunSandbox struct {
 	WorkDir         string
 	VethNetworkCidr string
 
-	acquiredVethNetworkCidr *net.IPNet
+	acquiredVethNetworkCidr string
 
 	logsPublisher logs.LogsPublisher
 	sandbox       *sandbox.Sandbox
@@ -92,7 +91,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	if err != nil {
 		return err
 	}
-	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr.String()))
+	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr))
 
 	rn.sandbox = &sandbox.Sandbox{
 		Debug:           rn.Debug,
@@ -225,7 +224,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box spec was deleted, exiting")
-				err = rn.sandbox.Stop(ctx)
+				err = rn.sandbox.KillSandboxContainer(ctx)
 				if err != nil {
 					return err
 				}
@@ -273,7 +272,7 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 			return err
 		}
 	} else {
-		_, rn.acquiredVethNetworkCidr, _ = net.ParseCIDR(p.String())
+		rn.acquiredVethNetworkCidr = p.String()
 		return nil
 	}
 
@@ -311,7 +310,7 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 		return err
 	}
 
-	_, rn.acquiredVethNetworkCidr, _ = net.ParseCIDR(newPrefix.String())
+	rn.acquiredVethNetworkCidr = newPrefix.String()
 
 	return nil
 }

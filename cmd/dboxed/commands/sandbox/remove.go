@@ -4,19 +4,22 @@ package sandbox
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 )
 
-type KillCmd struct {
+type RemoveCmd struct {
 	SandboxName *string `help:"Specify the local sandbox name" optional:"" arg:""`
 
-	All bool `help:"Kill all running sandboxes"`
+	All   bool `help:"Remove all sandboxes"`
+	Force bool `help:"Force removal of running sandboxes. This will kill them first."`
 }
 
-func (cmd *KillCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	sandboxBaseDir := filepath.Join(g.WorkDir, "sandboxes")
@@ -37,7 +40,29 @@ func (cmd *KillCmd) Run(g *flags.GlobalFlags) error {
 			VethNetworkCidr: si.VethNetworkCidr,
 		}
 
-		err = s.KillSandboxContainer(ctx)
+		if cmd.Force {
+			err = s.KillSandboxContainer(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = s.PrepareNetworkingConfig()
+		if err != nil {
+			return err
+		}
+		err = s.DestroyNetworking(ctx)
+		if err != nil {
+			slog.WarnContext(ctx,
+				"destroying networking failed, but you might be able to ignore this failure",
+				slog.Any("error", err.Error()),
+			)
+		}
+		err = s.Destroy(ctx)
+		if err != nil {
+			return err
+		}
+		err = os.RemoveAll(sandboxDir)
 		if err != nil {
 			return err
 		}

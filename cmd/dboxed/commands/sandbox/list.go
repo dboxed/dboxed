@@ -35,11 +35,17 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 
 	var printList []PrintSandbox
 	for _, si := range sandboxInfos {
-		var runcStatusStr string
-		runcState, err := sandbox.RunRuncState(ctx, filepath.Join(sandboxBaseDir, si.SandboxName), "sandbox")
-		if err != nil {
-			runcStatusStr = "unknown"
-		} else {
+		s := sandbox.Sandbox{
+			Debug:           g.Debug,
+			HostWorkDir:     g.WorkDir,
+			SandboxName:     si.SandboxName,
+			SandboxDir:      filepath.Join(sandboxBaseDir, si.SandboxName),
+			VethNetworkCidr: si.VethNetworkCidr,
+		}
+
+		runcStatusStr := "unknown"
+		runcState, err := s.RuncState(ctx)
+		if err == nil && runcState != nil {
 			runcStatusStr = runcState.Status
 		}
 

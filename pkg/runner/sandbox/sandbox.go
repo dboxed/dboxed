@@ -21,7 +21,7 @@ type Sandbox struct {
 	SandboxName string
 	SandboxDir  string
 
-	VethNetworkCidr *net.IPNet
+	VethNetworkCidr string
 
 	network      *network2.Network
 	routesMirror network2.RoutesMirror
@@ -43,10 +43,6 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (rn *Sandbox) Stop(ctx context.Context) error {
-	return rn.killSandboxContainer(ctx)
 }
 
 func (rn *Sandbox) Prepare(ctx context.Context) error {
@@ -155,13 +151,17 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 }
 
 func (rn *Sandbox) buildNetworkConfig() (*boxspec.NetworkConfig, error) {
-	namesAndIps, err := network2.NewNamesAndIPs(rn.SandboxName, rn.VethNetworkCidr)
+	_, cidr, err := net.ParseCIDR(rn.VethNetworkCidr)
+	if err != nil {
+		return nil, err
+	}
+	namesAndIps, err := network2.NewNamesAndIPs(rn.SandboxName, cidr)
 	if err != nil {
 		return nil, err
 	}
 	cfg := &boxspec.NetworkConfig{
 		SandboxName:     rn.SandboxName,
-		VethNetworkCidr: rn.VethNetworkCidr,
+		VethNetworkCidr: cidr,
 		DnsProxyIP:      namesAndIps.PeerAddr.IP.String(),
 	}
 

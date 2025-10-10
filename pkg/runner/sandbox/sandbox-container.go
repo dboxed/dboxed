@@ -57,7 +57,7 @@ func (rn *Sandbox) killSandboxContainerWithSignal(ctx context.Context, id string
 	return nil
 }
 
-func (rn *Sandbox) killSandboxContainer(ctx context.Context) error {
+func (rn *Sandbox) KillSandboxContainer(ctx context.Context) error {
 	checkAnyRunning := func() (bool, error) {
 		l, err := RunRuncList(ctx, rn.SandboxDir)
 		if err != nil {
@@ -139,7 +139,7 @@ func (rn *Sandbox) killSandboxContainer(ctx context.Context) error {
 }
 
 func (rn *Sandbox) destroySandboxContainer(ctx context.Context) error {
-	err := rn.killSandboxContainer(ctx)
+	err := rn.KillSandboxContainer(ctx)
 	if err != nil {
 		return err
 	}
