@@ -3,7 +3,6 @@
 package sandbox
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 
@@ -28,22 +27,4 @@ func getOneOrAllSandboxes(sandboxBaseDir string, sandboxName *string, all bool) 
 		return nil, fmt.Errorf("you must either specify a sandbox name or use --all")
 	}
 	return sandboxes, nil
-}
-
-func killSandbox(ctx context.Context, sandboxDir string, signal *string) error {
-	args := []string{
-		"kill",
-		"sandbox",
-	}
-	if signal != nil {
-		args = append(args, *signal)
-	}
-
-	c := sandbox.BuildRuncCmd(ctx, sandboxDir, args...)
-	err := c.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

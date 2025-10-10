@@ -3,7 +3,6 @@
 package sandbox
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -24,8 +23,6 @@ type PrintSandbox struct {
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
-	ctx := context.Background()
-
 	sandboxBaseDir := filepath.Join(g.WorkDir, "sandboxes")
 
 	sandboxInfos, err := sandbox.ListSandboxes(sandboxBaseDir)
@@ -43,17 +40,20 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			VethNetworkCidr: si.VethNetworkCidr,
 		}
 
-		runcStatusStr := "unknown"
-		runcState, err := s.RuncState(ctx)
-		if err == nil && runcState != nil {
-			runcStatusStr = runcState.Status
+		statusStr := "unknown"
+		c, err := s.GetSandboxContainer()
+		if err == nil {
+			s, err := c.Status()
+			if err == nil {
+				statusStr = s.String()
+			}
 		}
 
 		printList = append(printList, PrintSandbox{
 			SandboxName: si.SandboxName,
 			Box:         fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Box.ID),
 			Workspace:   fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Workspace.ID),
-			Status:      runcStatusStr,
+			Status:      statusStr,
 		})
 	}
 

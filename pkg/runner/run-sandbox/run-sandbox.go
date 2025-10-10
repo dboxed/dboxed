@@ -4,6 +4,7 @@ package run_sandbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/netip"
@@ -19,6 +20,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
+	"github.com/opencontainers/runc/libcontainer"
 	"go4.org/netipx"
 	"sigs.k8s.io/yaml"
 )
@@ -114,16 +116,22 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%d, uuid=%s)", rn.SandboxName, rn.BoxId, box.Uuid)
 	}
 
-	runcState, err := rn.sandbox.RuncState(ctx)
+	container, err := rn.sandbox.GetSandboxContainer()
 	if err != nil {
-		return err
+		if !errors.Is(err, libcontainer.ErrNotExist) {
+			return err
+		}
 	}
 
-	if runcState == nil {
+	if container == nil {
 		needDestroy = true
 	} else {
-		if runcState.Status != "running" {
-			slog.InfoContext(ctx, fmt.Sprintf("old sandbox container is in state '%s', re-creating it", runcState.Status))
+		s, err := container.Status()
+		if err != nil {
+			return err
+		}
+		if s != libcontainer.Running {
+			slog.InfoContext(ctx, fmt.Sprintf("old sandbox container is in state '%s', re-creating it", s))
 			needDestroy = true
 		}
 	}
@@ -138,6 +146,8 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		if err != nil {
 			return err
 		}
+		container = nil
+
 		err = rn.sandbox.Prepare(ctx)
 		if err != nil {
 			return err
@@ -201,6 +211,10 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		if err != nil {
 			return err
 		}
+		container, err = rn.sandbox.GetSandboxContainer()
+		if err != nil {
+			return err
+		}
 	} else {
 		slog.InfoContext(ctx, "starting dboxed service inside sandbox")
 		err = rn.sandbox.S6SvcUp(ctx, "dboxed")
@@ -211,13 +225,12 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 
 	lastBoxSpecHash := ""
 	for {
-		runcState, err := rn.sandbox.RuncState(ctx)
-		if err != nil || runcState == nil || runcState.Status != "running" {
-			status := "unknown"
-			if runcState != nil {
-				status = runcState.Status
-			}
-			slog.ErrorContext(ctx, "sandbox container is not in running state, exiting", slog.Any("error", err), slog.Any("status", status))
+		s, err := container.Status()
+		if err != nil {
+			return err
+		}
+		if s != libcontainer.Running {
+			slog.ErrorContext(ctx, "sandbox container is not in running state, exiting", slog.Any("error", err), slog.Any("status", s))
 			if err != nil {
 				return err
 			}

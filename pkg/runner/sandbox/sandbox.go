@@ -28,7 +28,7 @@ type Sandbox struct {
 }
 
 func (rn *Sandbox) Destroy(ctx context.Context) error {
-	if _, err := os.Stat(getRuncStateDir(rn.SandboxDir)); err != nil {
+	if _, err := os.Stat(GetContainerStateDir(rn.SandboxDir)); err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
@@ -46,15 +46,11 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 }
 
 func (rn *Sandbox) Prepare(ctx context.Context) error {
-	err := os.MkdirAll(getRuncStateDir(rn.SandboxDir), 0700)
+	err := os.MkdirAll(GetContainerStateDir(rn.SandboxDir), 0700)
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(rn.getSandboxContainerDir(), 0700)
-	if err != nil {
-		return err
-	}
 	err = os.MkdirAll(filepath.Join(rn.SandboxDir, "logs"), 0700)
 	if err != nil {
 		return err
@@ -78,12 +74,7 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 }
 
 func (rn *Sandbox) CopyBinaries(ctx context.Context) error {
-	err := rn.copyRuncFromInfraRoot()
-	if err != nil {
-		return err
-	}
-
-	err = rn.copyDboxedIntoInfraRoot()
+	err := rn.copyDboxedIntoInfraRoot()
 	if err != nil {
 		return err
 	}
@@ -143,11 +134,7 @@ func (rn *Sandbox) DestroyNetworking(ctx context.Context) error {
 }
 
 func (rn *Sandbox) Start(ctx context.Context) error {
-	err := rn.createSandboxContainer(ctx)
-	if err != nil {
-		return err
-	}
-	err = rn.startSandboxContainer(ctx)
+	err := rn.createAndStartSandboxContainer(ctx)
 	if err != nil {
 		return err
 	}

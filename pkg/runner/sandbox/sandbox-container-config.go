@@ -3,95 +3,96 @@
 package sandbox
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/devices/config"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 )
 
-func (rn *Sandbox) buildSandboxContainerMounts() []specs.Mount {
-	mounts := []specs.Mount{
+func (rn *Sandbox) buildSandboxContainerMounts() []*configs.Mount {
+	mounts := []*configs.Mount{
 		{
 			Destination: "/proc",
-			Type:        "proc",
+			Device:      "proc",
 			Source:      "proc",
-			Options:     []string{"rw", "nosuid", "nodev", "noexec", "relatime"},
+			Flags:       unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC | unix.MS_RELATIME,
 		},
 		{
 			Destination: "/sys",
-			Type:        "sysfs",
+			Device:      "sysfs",
 			Source:      "sysfs",
-			Options:     []string{"rw", "nosuid", "nodev", "noexec", "relatime"},
+			Flags:       unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC | unix.MS_RELATIME,
 		},
 		{
 			Source:      "devtmpfs",
 			Destination: "/dev",
-			Type:        "devtmpfs",
-			Options:     []string{"nosuid", "strictatime", "mode=755", "size=65536k"},
+			Device:      "devtmpfs",
+			Flags:       unix.MS_NOSUID | unix.MS_STRICTATIME | unix.MS_RELATIME,
+			Data:        "size=65536k",
 		},
 		{
 			Destination: "/sys/fs/cgroup",
-			Type:        "cgroup",
+			Device:      "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "rw"},
+			Flags:       unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC | unix.MS_RELATIME,
 		},
 		{
 			Destination: "/dev/pts",
-			Type:        "devpts",
+			Device:      "devpts",
 			Source:      "devpts",
-			Options:     []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620", "gid=5"},
+			Flags:       unix.MS_NOSUID | unix.MS_NOEXEC,
+			Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
 		},
 		{
 			Destination: "/dev/shm",
-			Type:        "tmpfs",
+			Device:      "tmpfs",
 			Source:      "shm",
-			Options:     []string{"nosuid", "noexec", "nodev", "mode=1777", "size=65536k"},
+			Flags:       unix.MS_NOSUID | unix.MS_NOEXEC | unix.MS_NODEV,
+			Data:        "mode=1777,size=65536k",
 		},
 		{
 			Destination: "/dev/mqueue",
-			Type:        "mqueue",
+			Device:      "mqueue",
 			Source:      "mqueue",
-			Options:     []string{"nosuid", "noexec", "nodev"},
+			Flags:       unix.MS_NOSUID | unix.MS_NOEXEC | unix.MS_NODEV,
 		},
 		{
 			Destination: "/hostfs",
-			Type:        "rbind",
+			Device:      "rbind",
 			Source:      "/",
-			Options:     []string{"rbind"},
+			Flags:       unix.MS_BIND | unix.MS_REC,
 		},
 		{
 			Destination: consts.ContainersDir,
-			Type:        "bind",
+			Device:      "bind",
 			Source:      filepath.Join(rn.SandboxDir, "containers"),
-			Options:     []string{"bind"},
+			Flags:       unix.MS_BIND,
 		},
 		{
 			Destination: consts.LogsDir,
-			Type:        "bind",
+			Device:      "bind",
 			Source:      filepath.Join(rn.SandboxDir, "logs"),
-			Options:     []string{"bind"},
+			Flags:       unix.MS_BIND,
 		},
 		{
 			Destination: consts.VolumesDir,
-			Type:        "rbind",
+			Device:      "rbind",
 			Source:      filepath.Join(rn.SandboxDir, "volumes"),
-			Options:     []string{"rbind", "shared"},
+			Flags:       unix.MS_BIND | unix.MS_REC | unix.MS_SHARED,
 		},
 	}
 
 	return mounts
 }
 
-func (rn *Sandbox) buildSandboxContainerProcessSpec(image *v1.Image) (*specs.Process, error) {
-	caps := rn.buildContainerCaps(true)
-
-	usr := specs.User{} // root user
-
+func (rn *Sandbox) buildSandboxContainerProcessSpec(image *v1.Image) (*libcontainer.Process, error) {
 	var env []string
 	env = append(env, image.Config.Env...)
 
@@ -104,118 +105,84 @@ func (rn *Sandbox) buildSandboxContainerProcessSpec(image *v1.Image) (*specs.Pro
 		workingDir = "/"
 	}
 
-	rlimits := []specs.POSIXRlimit{
-		{
-			Type: "RLIMIT_NOFILE",
-			Hard: uint64(1048576),
-			Soft: uint64(1048576),
-		},
-		{
-			Type: "RLIMIT_NPROC",
-			Hard: uint64(unix.RLIM_INFINITY),
-			Soft: uint64(unix.RLIM_INFINITY),
-		},
-		{
-			Type: "RLIMIT_CORE",
-			Hard: uint64(unix.RLIM_INFINITY),
-			Soft: uint64(unix.RLIM_INFINITY),
-		},
-	}
-
-	process := &specs.Process{
-		User:            usr,
-		Args:            args,
-		Env:             env,
-		Cwd:             workingDir,
-		NoNewPrivileges: false,
-		Capabilities: &specs.LinuxCapabilities{
-			Bounding:  caps,
-			Permitted: caps,
-			Effective: caps,
-		},
-		Rlimits: rlimits,
+	process := &libcontainer.Process{
+		Args: args,
+		Env:  env,
+		Cwd:  workingDir,
+		Init: true,
 	}
 
 	return process, nil
 }
 
-func (rn *Sandbox) buildSandboxContainerOciSpec(image *v1.Image) (*specs.Spec, error) {
-	process, err := rn.buildSandboxContainerProcessSpec(image)
-	if err != nil {
-		return nil, err
-	}
-
-	namespaces := []specs.LinuxNamespace{
-		{Type: specs.MountNamespace},
-		{Type: specs.UTSNamespace},
-		{Type: specs.IPCNamespace},
-		{Type: specs.PIDNamespace},
-		{Type: specs.CgroupNamespace},
-		{Type: specs.NetworkNamespace, Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName)},
+func (rn *Sandbox) buildSandboxContainerConfig(image *v1.Image) (*configs.Config, error) {
+	namespaces := []configs.Namespace{
+		{Type: configs.NEWNS},
+		{Type: configs.NEWUTS},
+		{Type: configs.NEWIPC},
+		{Type: configs.NEWPID},
+		{Type: configs.NEWCGROUP},
+		{Type: configs.NEWNET, Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName)},
 	}
 
 	mounts := rn.buildSandboxContainerMounts()
 
-	spec := &specs.Spec{
-		Version: specs.Version,
-		Root: &specs.Root{
-			Path:     rn.GetSandboxRoot(),
-			Readonly: false,
-		},
-		Process: process,
-		//Hostname: rn.BoxSpec.Hostname,
-		Mounts: mounts,
-		Linux: &specs.Linux{
-			MaskedPaths: []string{
-				"/proc/acpi",
-				"/proc/asound",
-				"/proc/kcore",
-				"/proc/keys",
-				"/proc/latency_stats",
-				"/proc/timer_list",
-				"/proc/timer_stats",
-				"/proc/sched_debug",
-				"/sys/firmware",
-				"/proc/scsi",
-			},
-			ReadonlyPaths: []string{
-				"/proc/bus",
-				"/proc/fs",
-				"/proc/irq",
-				"/proc/sysrq-trigger",
-			},
-			Resources: &specs.LinuxResources{
-				Devices: []specs.LinuxDeviceCgroup{
-					{
-						Allow:  true,
-						Access: "rwm",
-					},
+	cg := &cgroups.Cgroup{
+		Path: fmt.Sprintf(":dboxed:%s", rn.SandboxName),
+		Resources: &cgroups.Resources{
+			Devices: []*config.Rule{
+				{
+					Type:        config.CharDevice,
+					Major:       config.Wildcard,
+					Minor:       config.Wildcard,
+					Allow:       true,
+					Permissions: "rwm",
+				},
+				{
+					Type:        config.BlockDevice,
+					Major:       config.Wildcard,
+					Minor:       config.Wildcard,
+					Allow:       true,
+					Permissions: "rwm",
 				},
 			},
-			Namespaces:  namespaces,
-			CgroupsPath: fmt.Sprintf(":dboxed:%s", rn.SandboxName),
 		},
 	}
 
-	return spec, nil
-}
-
-func (rn *Sandbox) writeSandboxContainerOciSpec(spec *specs.Spec) error {
-	pth := filepath.Join(rn.getSandboxContainerDir(), "config.json")
-
-	err := os.MkdirAll(filepath.Dir(pth), 0700)
-	if err != nil {
-		return err
+	rlimits := []configs.Rlimit{
+		{
+			Type: unix.RLIMIT_NOFILE,
+			Hard: uint64(1048576),
+			Soft: uint64(1048576),
+		},
+		{
+			Type: unix.RLIMIT_NPROC,
+			Hard: uint64(unix.RLIM_INFINITY),
+			Soft: uint64(unix.RLIM_INFINITY),
+		},
+		{
+			Type: unix.RLIMIT_CORE,
+			Hard: uint64(unix.RLIM_INFINITY),
+			Soft: uint64(unix.RLIM_INFINITY),
+		},
 	}
 
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return err
+	caps := rn.buildContainerCaps(true)
+
+	config := &configs.Config{
+		Version: specs.Version,
+		Rootfs:  rn.GetSandboxRoot(),
+		//Hostname: rn.BoxSpec.Hostname,
+		Mounts:     mounts,
+		Cgroups:    cg,
+		Namespaces: namespaces,
+		Rlimits:    rlimits,
+		Capabilities: &configs.Capabilities{
+			Bounding:  caps,
+			Permitted: caps,
+			Effective: caps,
+		},
 	}
 
-	err = os.WriteFile(pth, b, 0600)
-	if err != nil {
-		return err
-	}
-	return nil
+	return config, nil
 }
