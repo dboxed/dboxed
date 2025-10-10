@@ -14,8 +14,7 @@ type SandboxCommands struct {
 	List   ListCmd   `cmd:"" help:"List sandboxes"`
 	Kill   KillCmd   `cmd:"" help:"Kill a sandbox"`
 	Remove RemoveCmd `cmd:"" help:"Remove a sandbox" aliases:"delete,rm"`
-
-	Runc RuncCmd `cmd:"" help:"Run runc for a box"`
+	Exec   ExecCmd   `cmd:"" help:"execute new process inside the sandbox"`
 
 	RunInSandbox RunInSandbox `cmd:"" hidden:""`
 }
