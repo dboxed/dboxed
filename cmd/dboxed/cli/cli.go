@@ -30,7 +30,7 @@ type Cli struct {
 	Volume         volume.VolumeCommands                  `cmd:"" help:"manage volumes"`
 
 	Box     box.BoxCommands         `cmd:"" help:"manage boxes"`
-	Sandbox sandbox.SandboxCommands `cmd:"" help:"manage sandboxes"`
+	Sandbox sandbox.SandboxCommands `cmd:"" help:"manage sandboxes" aliases:"sb"`
 
 	cliOnlyLinux
 }
