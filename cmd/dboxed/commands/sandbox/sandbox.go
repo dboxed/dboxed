@@ -11,7 +11,7 @@ import (
 
 type SandboxCommands struct {
 	Run    RunCmd    `cmd:"" help:"Run a box inside a sandbox"`
-	List   ListCmd   `cmd:"" help:"List sandboxes"`
+	List   ListCmd   `cmd:"" help:"List sandboxes" aliases:"ls"`
 	Stop   StopCmd   `cmd:"" help:"Stop a sandbox"`
 	Remove RemoveCmd `cmd:"" help:"Remove a sandbox" aliases:"delete,rm"`
 	Exec   ExecCmd   `cmd:"" help:"execute new process inside the sandbox"`
