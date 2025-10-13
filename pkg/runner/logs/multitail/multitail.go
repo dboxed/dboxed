@@ -30,6 +30,7 @@ type MultiTail struct {
 	watchers  map[string]*fsnotify.Watcher
 	doneGroup sync.WaitGroup
 	stopped   bool
+	cancelCh  chan struct{}
 	m         sync.Mutex
 }
 
@@ -72,13 +73,18 @@ func NewMultiTail(ctx context.Context, tailDbFile string, opts MultiTailOptions)
 		opts:     opts,
 		tails:    map[string]*Tail{},
 		watchers: map[string]*fsnotify.Watcher{},
+		cancelCh: make(chan struct{}),
 	}, nil
 }
 
-func (mt *MultiTail) StopAndWait() {
+func (mt *MultiTail) StopAndWait(cancel bool) {
 	slog.Info("multitail: stopping...")
 
 	mt.m.Lock()
+	if mt.stopped {
+		mt.m.Unlock()
+		return
+	}
 	mt.stopped = true
 	for _, w := range mt.watchers {
 		_ = w.Close()
@@ -87,6 +93,10 @@ func (mt *MultiTail) StopAndWait() {
 		t.Stop()
 	}
 	mt.m.Unlock()
+
+	if cancel {
+		close(mt.cancelCh)
+	}
 
 	slog.Info("multitail: waiting for routines to finish")
 	mt.doneGroup.Wait()
@@ -322,6 +332,10 @@ loop:
 		case <-nextFlush:
 			nextFlush = time.After(mt.opts.LineBatchLinger)
 			handleBatch()
+		case <-mt.cancelCh:
+			break loop
+		case <-mt.ctx.Done():
+			break loop
 		}
 	}
 }
@@ -333,7 +347,14 @@ func (mt *MultiTail) handleLineBatch(metadata boxspec.LogMetadata, lines []*Line
 			return
 		}
 		slog.Info("handleLineBatch failed, retrying", slog.Any("error", err))
-		time.Sleep(5 * time.Second)
+		select {
+		case <-time.After(5 * time.Second):
+			continue
+		case <-mt.cancelCh:
+			return
+		case <-mt.ctx.Done():
+			return
+		}
 	}
 }
 

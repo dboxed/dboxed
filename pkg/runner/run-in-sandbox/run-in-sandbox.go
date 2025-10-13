@@ -55,7 +55,7 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer rn.logsPublisher.Stop()
+	defer rn.logsPublisher.Stop(false)
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
@@ -76,7 +76,14 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
-				slog.InfoContext(ctx, "box spec was deleted, exiting")
+				slog.InfoContext(ctx, "box was deleted, exiting")
+				// if the box got deleted, we won't be able to upload remaining logs
+				rn.logsPublisher.Stop(true)
+				// ensure we don't restart the sandbox
+				err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
+				if err != nil {
+					return err
+				}
 				return nil
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))

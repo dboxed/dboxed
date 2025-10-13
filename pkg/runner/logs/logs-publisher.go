@@ -17,9 +17,9 @@ type LogsPublisher struct {
 	mt *multitail.MultiTail
 }
 
-func (lp *LogsPublisher) Stop() {
+func (lp *LogsPublisher) Stop(cancel bool) {
 	if lp.mt != nil {
-		lp.mt.StopAndWait()
+		lp.mt.StopAndWait(cancel)
 	}
 }
 
