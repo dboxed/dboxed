@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -22,7 +21,6 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/opencontainers/runc/libcontainer"
 	"go4.org/netipx"
-	"sigs.k8s.io/yaml"
 )
 
 type RunSandbox struct {
@@ -38,8 +36,7 @@ type RunSandbox struct {
 
 	acquiredVethNetworkCidr string
 
-	logsPublisher logs.LogsPublisher
-	sandbox       *sandbox.Sandbox
+	sandbox *sandbox.Sandbox
 }
 
 func (rn *RunSandbox) getSandboxDir() string {
@@ -81,13 +78,6 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	if err != nil {
 		return err
 	}
-
-	// we should start publishing logs asap, but the earliest point at the moment is after box spec retrieval
-	err = rn.initLogsPublishing(ctx, sandboxDir)
-	if err != nil {
-		return err
-	}
-	defer rn.logsPublisher.Stop()
 
 	err = rn.reserveVethCIDR(ctx)
 	if err != nil {
@@ -185,20 +175,15 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	if err != nil {
 		return err
 	}
+	err = sandbox.WriteSandboxInfo(filepath.Join(rn.sandbox.GetSandboxRoot(), consts.DboxedDataDir), newSandboxInfo)
+	if err != nil {
+		return err
+	}
 
 	err = rn.sandbox.SetupNetworking(ctx)
 	if err != nil {
 		return err
 	}
-
-	// now that we ensured that the potentially running sandbox does not belong to another box, we can start publishing
-	// the sandbox internal logs
-	err = rn.initLogsPublishingSandbox(ctx, sandboxDir)
-	if err != nil {
-		return err
-	}
-
-	specFile := filepath.Join(rn.sandbox.GetSandboxRoot(), consts.BoxSpecFile)
 
 	err = rn.runDboxedVolumeCleanup(ctx)
 	if err != nil {
@@ -228,54 +213,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		}
 	}
 
-	lastBoxSpecHash := ""
-	for {
-		s, err := container.Status()
-		if err != nil {
-			return err
-		}
-		if s != libcontainer.Running {
-			slog.ErrorContext(ctx, "sandbox container is not in running state, exiting", slog.Any("error", err), slog.Any("status", s))
-			if err != nil {
-				return err
-			}
-			return fmt.Errorf("sandbox container is not in running state anymore")
-		}
-
-		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.BoxId)
-		if err != nil {
-			if baseclient.IsNotFound(err) {
-				slog.InfoContext(ctx, "box spec was deleted, exiting")
-				err = rn.sandbox.StopOrKillSandboxContainer(ctx)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
-		} else {
-			newHash, err := util.Sha256SumJson(boxFile.Spec)
-			if err != nil {
-				return err
-			}
-			if newHash != lastBoxSpecHash {
-				slog.InfoContext(ctx, "a new box spec was received")
-				b, err := yaml.Marshal(boxFile)
-				if err != nil {
-					return err
-				}
-				err = util.AtomicWriteFile(specFile, b, 0600)
-				if err != nil {
-					return err
-				}
-				lastBoxSpecHash = newHash
-			}
-		}
-
-		if !util.SleepWithContext(ctx, time.Second*5) {
-			return ctx.Err()
-		}
-	}
+	return nil
 }
 
 func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {

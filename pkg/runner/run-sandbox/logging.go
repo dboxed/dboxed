@@ -4,10 +4,8 @@ package run_sandbox
 
 import (
 	"context"
-	"log/slog"
 	"path/filepath"
 
-	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 )
 
@@ -17,51 +15,5 @@ func (rn *RunSandbox) initFileLogging(ctx context.Context, sandboxDir string, lo
 
 	logHandler.AddWriter(logWriter)
 
-	return nil
-}
-
-func (rn *RunSandbox) initLogsPublishing(ctx context.Context, sandboxDir string) error {
-	if rn.Client == nil {
-		slog.InfoContext(ctx, "skipping logs publishing (only supported with dboxed api)")
-		return nil
-	}
-
-	logsDir := filepath.Join(sandboxDir, "logs")
-
-	tta, err := logs.NewTailToApi(ctx, rn.Client, filepath.Join(logsDir, consts.LogsTailDbFilename), rn.BoxId)
-	if err != nil {
-		return err
-	}
-
-	err = rn.logsPublisher.Start(ctx, tta.MultiTail)
-	if err != nil {
-		return err
-	}
-
-	err = rn.logsPublisher.PublishDboxedLogsDir(logsDir)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (rn *RunSandbox) initLogsPublishingSandbox(ctx context.Context, sandboxDir string) error {
-	if rn.Client == nil {
-		return nil
-	}
-
-	logsDir := filepath.Join(sandboxDir, "logs")
-	containersDir := filepath.Join(sandboxDir, "containers")
-
-	err := rn.logsPublisher.PublishMultilogLogsDir(filepath.Join(logsDir, "s6"))
-	if err != nil {
-		return err
-	}
-
-	err = rn.logsPublisher.PublishDockerContainerLogsDir(containersDir)
-	if err != nil {
-		return err
-	}
 	return nil
 }

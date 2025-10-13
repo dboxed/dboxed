@@ -11,7 +11,6 @@ const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
 const DboxedDataDir = "/var/lib/dboxed"
 
 const SandboxEnvironmentFile = DboxedDataDir + "/sandbox.env"
-const BoxSpecFile = DboxedDataDir + "/box-spec.yaml"
 const NetworkConfFile = DboxedDataDir + "/network.yaml"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 
@@ -23,6 +22,7 @@ const VolumesDir = DboxedDataDir + "/volumes"
 
 const VethIPStoreFile = "veth-ip"
 const SandboxInfoFile = "sandbox-info.yaml"
+const SandboxInfoFileInSandbox = DboxedDataDir + "/" + SandboxInfoFile
 
 func GetDefaultInfraImage() string {
 	tag := "nightly"

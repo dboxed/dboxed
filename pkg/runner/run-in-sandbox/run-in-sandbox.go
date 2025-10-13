@@ -3,24 +3,30 @@ package run_in_sandbox
 import (
 	"context"
 	"log/slog"
-	"os"
 	"time"
 
+	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/box-spec-runner"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
+	"github.com/dboxed/dboxed/pkg/runner/logs"
+	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
-	"sigs.k8s.io/yaml"
 )
 
 type RunInSandbox struct {
+	Client *baseclient.Client
+
+	sandboxInfo *sandbox.SandboxInfo
+
 	networkConfig *boxspec.NetworkConfig
 	dnsProxy      *dns_proxy.DnsProxy
 
-	oldBoxSpecHash string
+	logsPublisher logs.LogsPublisher
 }
 
 func (rn *RunInSandbox) Run(ctx context.Context) error {
@@ -30,6 +36,11 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	util2.LoadMod(ctx, "dm-zero")
 
 	var err error
+	rn.sandboxInfo, err = sandbox.ReadSandboxInfo(consts.DboxedDataDir)
+	if err != nil {
+		return err
+	}
+
 	rn.networkConfig, err = util.UnmarshalYamlFile[boxspec.NetworkConfig](consts.NetworkConfFile)
 	if err != nil {
 		return err
@@ -39,6 +50,12 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	err = rn.initLogsPublishing(ctx)
+	if err != nil {
+		return err
+	}
+	defer rn.logsPublisher.Stop()
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
@@ -52,52 +69,46 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	}
 	slog.InfoContext(ctx, "docker is up and running")
 
+	boxesClient := clients.BoxClient{Client: rn.Client}
+
+	lastBoxSpecHash := ""
 	for {
-		err := rn.reconcileBoxSpec(ctx)
+		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
-			slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
+			if baseclient.IsNotFound(err) {
+				slog.InfoContext(ctx, "box spec was deleted, exiting")
+				return nil
+			}
+			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
+		} else {
+			newHash, err := util.Sha256SumJson(boxFile.Spec)
+			if err != nil {
+				return err
+			}
+			if newHash != lastBoxSpecHash {
+				slog.InfoContext(ctx, "a new box spec was received")
+				err = rn.reconcileBoxSpec(ctx, &boxFile.Spec)
+				if err != nil {
+					slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
+				}
+				lastBoxSpecHash = newHash
+			}
 		}
-		if !util.SleepWithContext(ctx, 2*time.Second) {
+
+		if !util.SleepWithContext(ctx, time.Second*5) {
 			return ctx.Err()
 		}
 	}
 }
 
-func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context) error {
-	boxSpec, err := rn.readBoxSpec()
-	if err != nil {
-		return err
-	}
-	hash, err := util.Sha256SumJson(boxSpec)
-	if err != nil {
-		return err
-	}
-	if hash == rn.oldBoxSpecHash {
-		return nil
-	}
-	rn.oldBoxSpecHash = hash
-
+func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
 		BoxSpec: boxSpec,
 	}
-	err = boxSpecRunner.Reconcile(ctx)
+	err := boxSpecRunner.Reconcile(ctx)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (rn *RunInSandbox) readBoxSpec() (*boxspec.BoxSpec, error) {
-	b, err := os.ReadFile(consts.BoxSpecFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var boxSpec boxspec.BoxFile
-	err = yaml.Unmarshal(b, &boxSpec)
-	if err != nil {
-		return nil, err
-	}
-	return &boxSpec.Spec, nil
 }
