@@ -53,6 +53,14 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 		if !stopped {
 			return fmt.Errorf("failed to stop sandbox %s", si.SandboxName)
 		}
+		err = s.PrepareNetworkingConfig()
+		if err != nil {
+			return err
+		}
+		err = s.DestroyNetworking(ctx)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
