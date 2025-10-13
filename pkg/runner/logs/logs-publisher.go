@@ -8,30 +8,24 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
+	"github.com/dboxed/dboxed/pkg/runner/logs/multitail"
 )
 
 type LogsPublisher struct {
-	api *TailToApi
+	mt *multitail.MultiTail
 }
 
 func (lp *LogsPublisher) Stop() {
-	if lp.api != nil {
-		lp.api.MultiTail.StopAndWait()
+	if lp.mt != nil {
+		lp.mt.StopAndWait()
 	}
 }
 
-func (lp *LogsPublisher) Start(ctx context.Context, c *baseclient.Client, boxId int64, tailDbFile string) error {
+func (lp *LogsPublisher) Start(ctx context.Context, mt *multitail.MultiTail) error {
 	slog.InfoContext(ctx, "initializing logs publishing to dboxed api")
-
-	tta, err := NewTailToApi(ctx, c, tailDbFile, boxId)
-	if err != nil {
-		return err
-	}
-
-	lp.api = tta
+	lp.mt = mt
 	return nil
 }
 
@@ -54,8 +48,8 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 		}, nil
 	}
 
-	if lp.api != nil {
-		return lp.api.MultiTail.WatchDir(dir, "*.log", 0, buildMetadata)
+	if lp.mt != nil {
+		return lp.mt.WatchDir(dir, "*.log", 0, buildMetadata)
 	}
 	return nil
 }
@@ -83,8 +77,8 @@ func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
 		}, nil
 	}
 
-	if lp.api != nil {
-		return lp.api.MultiTail.WatchDir(dir, "*/current", 1, buildMetadata)
+	if lp.mt != nil {
+		return lp.mt.WatchDir(dir, "*/current", 1, buildMetadata)
 	}
 	return nil
 }
@@ -99,8 +93,8 @@ func (lp *LogsPublisher) PublishDockerContainerLogsDir(containersDir string) err
 		return lp.buildDockerContainerLogMetadata(containersDir, path)
 	}
 
-	if lp.api != nil {
-		return lp.api.MultiTail.WatchDir(containersDir, "*/*.log", 1, buildMetadata)
+	if lp.mt != nil {
+		return lp.mt.WatchDir(containersDir, "*/*.log", 1, buildMetadata)
 	}
 	return nil
 }
