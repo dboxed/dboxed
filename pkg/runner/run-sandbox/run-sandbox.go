@@ -164,7 +164,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		}
 	} else {
 		slog.InfoContext(ctx, "stopping dboxed service inside sandbox")
-		err = rn.sandbox.S6SvcDown(ctx, "dboxed")
+		err = rn.sandbox.S6SvcDown(ctx, "run-in-sandbox")
 		if err != nil {
 			return err
 		}
@@ -222,7 +222,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		}
 	} else {
 		slog.InfoContext(ctx, "starting dboxed service inside sandbox")
-		err = rn.sandbox.S6SvcUp(ctx, "dboxed")
+		err = rn.sandbox.S6SvcUp(ctx, "run-in-sandbox")
 		if err != nil {
 			return err
 		}
