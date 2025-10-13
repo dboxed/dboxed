@@ -4,19 +4,23 @@ package sandbox
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"golang.org/x/sys/unix"
 )
 
-type KillCmd struct {
+type StopCmd struct {
 	SandboxName *string `help:"Specify the local sandbox name" optional:"" arg:""`
 
-	All bool `help:"Kill all running sandboxes"`
+	Signal *string `help:"Specify the signal to send to the init process" short:"s"`
+	All    bool    `help:"Stop all running sandboxes"`
 }
 
-func (cmd *KillCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	sandboxBaseDir := filepath.Join(g.WorkDir, "sandboxes")
@@ -24,6 +28,11 @@ func (cmd *KillCmd) Run(g *flags.GlobalFlags) error {
 	sandboxes, err := getOneOrAllSandboxes(sandboxBaseDir, cmd.SandboxName, cmd.All)
 	if err != nil {
 		return err
+	}
+
+	signal := unix.SIGTERM
+	if cmd.Signal != nil {
+		signal = unix.SignalNum(*cmd.Signal)
 	}
 
 	for _, si := range sandboxes {
@@ -37,9 +46,12 @@ func (cmd *KillCmd) Run(g *flags.GlobalFlags) error {
 			VethNetworkCidr: si.VethNetworkCidr,
 		}
 
-		err = s.KillSandboxContainer(ctx)
+		stopped, err := s.KillSandboxContainer(ctx, signal, time.Second*10)
 		if err != nil {
 			return err
+		}
+		if !stopped {
+			return fmt.Errorf("failed to stop sandbox %s", si.SandboxName)
 		}
 	}
 	return nil

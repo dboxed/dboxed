@@ -142,6 +142,11 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	}
 
 	if needDestroy {
+		err = rn.sandbox.StopOrKillSandboxContainer(ctx)
+		if err != nil {
+			return err
+		}
+
 		err = rn.sandbox.Destroy(ctx)
 		if err != nil {
 			return err
@@ -241,7 +246,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box spec was deleted, exiting")
-				err = rn.sandbox.KillSandboxContainer(ctx)
+				err = rn.sandbox.StopOrKillSandboxContainer(ctx)
 				if err != nil {
 					return err
 				}

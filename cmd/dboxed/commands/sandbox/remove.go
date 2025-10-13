@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
@@ -41,7 +42,7 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 		}
 
 		if cmd.Force {
-			err = s.KillSandboxContainer(ctx)
+			err = s.StopSandboxContainer(ctx, time.Second*10)
 			if err != nil {
 				return err
 			}

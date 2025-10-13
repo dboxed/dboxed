@@ -4,12 +4,15 @@ package sandbox
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	network2 "github.com/dboxed/dboxed/pkg/runner/network"
+	"github.com/opencontainers/runc/libcontainer"
 )
 
 type Sandbox struct {
@@ -28,17 +31,25 @@ type Sandbox struct {
 }
 
 func (rn *Sandbox) Destroy(ctx context.Context) error {
-	if _, err := os.Stat(GetContainerStateDir(rn.SandboxDir)); err != nil {
-		if !os.IsNotExist(err) {
+	c, err := rn.GetSandboxContainer()
+	if err != nil {
+		if !errors.Is(err, libcontainer.ErrNotExist) && !os.IsNotExist(err) {
 			return err
 		}
 	} else {
-		err := rn.destroySandboxContainer(ctx)
+		err = rn.StopOrKillSandboxContainer(ctx)
+		if err != nil {
+			return err
+		}
+		slog.InfoContext(ctx, "destroying old sandbox container")
+		err = c.Destroy()
 		if err != nil {
 			return err
 		}
 	}
-	err := os.RemoveAll(rn.GetSandboxRoot())
+
+	slog.InfoContext(ctx, "removing sandbox rootfs")
+	err = os.RemoveAll(rn.GetSandboxRoot())
 	if err != nil {
 		return err
 	}

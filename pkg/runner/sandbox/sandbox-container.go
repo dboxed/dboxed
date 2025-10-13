@@ -37,13 +37,41 @@ func (rn *Sandbox) GetSandboxContainer() (*libcontainer.Container, error) {
 	return libcontainer.Load(GetContainerStateDir(rn.SandboxDir), "sandbox")
 }
 
-func (rn *Sandbox) KillSandboxContainer(ctx context.Context) error {
+func (rn *Sandbox) StopSandboxContainer(ctx context.Context, timeout time.Duration) error {
+	stopped, err := rn.KillSandboxContainer(ctx, unix.SIGTERM, timeout)
+	if err != nil {
+		return err
+	}
+	if !stopped {
+		return fmt.Errorf("failed to stop sandbox container")
+	}
+	return nil
+}
+
+func (rn *Sandbox) StopOrKillSandboxContainer(ctx context.Context) error {
+	stopped, err := rn.KillSandboxContainer(ctx, unix.SIGTERM, time.Second*10)
+	if err != nil {
+		return err
+	}
+	if !stopped {
+		stopped, err = rn.KillSandboxContainer(ctx, unix.SIGKILL, time.Second*10)
+		if err != nil {
+			return err
+		}
+		if !stopped {
+			return fmt.Errorf("failed to stop/kill sandbox container")
+		}
+	}
+	return nil
+}
+
+func (rn *Sandbox) KillSandboxContainer(ctx context.Context, signal os.Signal, timeout time.Duration) (bool, error) {
 	c, err := rn.GetSandboxContainer()
 	if err != nil {
 		if errors.Is(err, libcontainer.ErrNotExist) {
-			return nil
+			return true, nil
 		}
-		return err
+		return false, err
 	}
 
 	checkRunning := func() (bool, error) {
@@ -74,67 +102,28 @@ func (rn *Sandbox) KillSandboxContainer(ctx context.Context) error {
 
 	running, err := checkRunning()
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !running {
-		return nil
+		return true, nil
 	}
 
-	slog.InfoContext(ctx, "trying to gracefully stop sandbox container")
-	err = c.Signal(unix.SIGTERM)
+	slog.InfoContext(ctx, "sending signal to sandbox container", slog.Any("signal", signal.String()))
+	err = c.Signal(signal)
 	if err != nil {
-		return err
+		return false, err
 	}
 	slog.InfoContext(ctx, "waiting for sandbox container to exit")
 
-	running, err = waitRunning(time.Now().Add(time.Second * 10))
+	running, err = waitRunning(time.Now().Add(timeout))
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !running {
 		slog.InfoContext(ctx, "sandbox container has exited")
-		return nil
+		return true, nil
 	}
-
-	slog.InfoContext(ctx, "sandbox container still running, killing it now")
-	err = c.Signal(unix.SIGKILL)
-	if err != nil {
-		return err
-	}
-
-	running, err = waitRunning(time.Now().Add(time.Second * 10))
-	if err != nil {
-		return err
-	}
-	if running {
-		return fmt.Errorf("failed to stop/kill sandbox container")
-	}
-
-	slog.InfoContext(ctx, "sandbox container has exited")
-	return nil
-}
-
-func (rn *Sandbox) destroySandboxContainer(ctx context.Context) error {
-	err := rn.KillSandboxContainer(ctx)
-	if err != nil {
-		return err
-	}
-
-	c, err := rn.GetSandboxContainer()
-	if err != nil {
-		if errors.Is(err, libcontainer.ErrNotExist) {
-			return nil
-		}
-		return err
-	}
-
-	slog.InfoContext(ctx, "destroying old sandbox container")
-	err = c.Destroy()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return false, fmt.Errorf("timeout while waiting for sandbox container to exit")
 }
 
 func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
