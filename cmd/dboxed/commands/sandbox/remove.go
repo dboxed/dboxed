@@ -4,6 +4,7 @@ package sandbox
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"github.com/opencontainers/runc/libcontainer"
 )
 
 type RemoveCmd struct {
@@ -45,6 +47,14 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 			err = s.StopSandboxContainer(ctx, time.Second*10)
 			if err != nil {
 				return err
+			}
+		} else {
+			cs, err := s.GetSandboxContainerStatus()
+			if err != nil {
+				return err
+			}
+			if cs == libcontainer.Running {
+				return fmt.Errorf("sandbox is running, stop it first (or use --force)")
 			}
 		}
 

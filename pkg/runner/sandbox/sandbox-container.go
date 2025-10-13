@@ -37,6 +37,21 @@ func (rn *Sandbox) GetSandboxContainer() (*libcontainer.Container, error) {
 	return libcontainer.Load(GetContainerStateDir(rn.SandboxDir), "sandbox")
 }
 
+func (rn *Sandbox) GetSandboxContainerStatus() (libcontainer.Status, error) {
+	c, err := rn.GetSandboxContainer()
+	if err != nil {
+		if !errors.Is(err, libcontainer.ErrNotExist) {
+			return -1, err
+		}
+		return libcontainer.Stopped, nil
+	}
+	cs, err := c.Status()
+	if err != nil {
+		return -1, err
+	}
+	return cs, nil
+}
+
 func (rn *Sandbox) StopSandboxContainer(ctx context.Context, timeout time.Duration) error {
 	stopped, err := rn.KillSandboxContainer(ctx, unix.SIGTERM, timeout)
 	if err != nil {

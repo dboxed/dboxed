@@ -41,12 +41,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		}
 
 		statusStr := "unknown"
-		c, err := s.GetSandboxContainer()
+		cs, err := s.GetSandboxContainerStatus()
 		if err == nil {
-			s, err := c.Status()
-			if err == nil {
-				statusStr = s.String()
-			}
+			statusStr = cs.String()
 		}
 
 		printList = append(printList, PrintSandbox{
