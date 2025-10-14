@@ -5,28 +5,30 @@ package volume_mount
 import (
 	"context"
 	"log/slog"
+	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
 type ReleaseCmd struct {
-	Dir string `help:"Specify the local directory for the volume" required:"" type:"existingdir"`
+	Volume string `help:"Specify volume" required:"" arg:""`
 
 	flags.WebdavProxyFlags
 }
 
-func (cmd *ReleaseCmd) Run() error {
+func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	volumeState, err := volume_serve.LoadVolumeState(cmd.Dir)
+	baseDir := filepath.Join(g.WorkDir, "volumes")
+	volumeState, err := getMountedVolume(baseDir, cmd.Volume)
 	if err != nil {
 		return err
 	}
 
 	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
-		VolumeId:          volumeState.VolumeId,
-		Dir:               cmd.Dir,
+		VolumeId:          volumeState.Volume.ID,
+		Dir:               filepath.Join(baseDir, volumeState.MountName),
 		WebdavProxyListen: cmd.WebdavProxyListen,
 	})
 	if err != nil {

@@ -23,7 +23,10 @@ import (
 type VolumeServeOpts struct {
 	Client *baseclient.Client
 
+	MountName string
+
 	VolumeId int64
+	BoxId    *int64
 	BoxUuid  *string
 
 	Dir            string
@@ -301,7 +304,10 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 	vs.volume = newVolume
 
 	s.LockId = nil
+	s.BoxId = nil
 	s.BoxUuid = nil
+	s.Volume = newVolume
+
 	err = vs.saveVolumeState(*s)
 	if err != nil {
 		return err
@@ -335,8 +341,9 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 
 		s = &VolumeState{
 			ClientAuth: vs.opts.Client.GetClientAuth(true),
-			VolumeId:   vs.volume.ID,
-			VolumeUuid: vs.volume.Uuid,
+			MountName:  vs.opts.MountName,
+			Volume:     vs.volume,
+			BoxId:      vs.opts.BoxId,
 			BoxUuid:    vs.opts.BoxUuid,
 		}
 	}
@@ -372,7 +379,6 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 	newLock := true
 	if prevLockId == nil || *prevLockId != *vs.volume.LockId {
 		newLock = false
-		s.VolumeUuid = vs.volume.Uuid
 		s.LockId = vs.volume.LockId
 		err = vs.saveVolumeState(*s)
 		if err != nil {

@@ -1,9 +1,11 @@
 package volume_serve
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	"sigs.k8s.io/yaml"
 )
@@ -11,10 +13,12 @@ import (
 type VolumeState struct {
 	ClientAuth *baseclient.ClientAuth `json:"clientAuth,omitempty"`
 
-	VolumeId   int64   `json:"volumeId"`
-	VolumeUuid string  `json:"volumeUuid"`
-	LockId     *string `json:"lockId,omitempty"`
-	BoxUuid    *string `json:"boxUuid,omitempty"`
+	MountName string `json:"mountName"`
+
+	Volume  *models.Volume `json:"volume"`
+	LockId  *string        `json:"lockId,omitempty"`
+	BoxId   *int64         `json:"boxId"`
+	BoxUuid *string        `json:"boxUuid,omitempty"`
 }
 
 func (vs *VolumeServe) loadVolumeState() (*VolumeState, error) {
@@ -39,4 +43,27 @@ func (vs *VolumeServe) saveVolumeState(s VolumeState) error {
 		return err
 	}
 	return util.AtomicWriteFile(filepath.Join(vs.opts.Dir, "volume-state.yaml"), b, 0600)
+}
+
+func ListVolumeState(baseDir string) ([]*VolumeState, error) {
+	des, err := os.ReadDir(baseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, err
+		}
+	}
+
+	var ret []*VolumeState
+	for _, de := range des {
+		dir := filepath.Join(baseDir, de.Name())
+		info, err := LoadVolumeState(dir)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return nil, err
+			}
+		}
+		ret = append(ret, info)
+	}
+
+	return ret, nil
 }

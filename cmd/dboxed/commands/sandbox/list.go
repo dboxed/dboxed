@@ -3,11 +3,13 @@
 package sandbox
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 )
@@ -23,6 +25,16 @@ type PrintSandbox struct {
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
+	ctx := context.Background()
+
+	c, err := g.BuildClient(ctx)
+	if err != nil {
+		return err
+	}
+	ct := commandutils.ClientTool{
+		Client: c,
+	}
+
 	sandboxBaseDir := filepath.Join(g.WorkDir, "sandboxes")
 
 	sandboxInfos, err := sandbox.ListSandboxes(sandboxBaseDir)
@@ -49,7 +61,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		printList = append(printList, PrintSandbox{
 			SandboxName: si.SandboxName,
 			Box:         fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Box.ID),
-			Workspace:   fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Workspace.ID),
+			Workspace:   ct.GetWorkspaceColumn(ctx, si.Box.Workspace),
 			Status:      statusStr,
 		})
 	}

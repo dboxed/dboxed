@@ -4,6 +4,8 @@ package volume_mount
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -11,10 +13,10 @@ import (
 )
 
 type LockCmd struct {
-	Volume string  `help:"Specify volume" required:"" args:""`
+	Volume string  `help:"Specify volume" required:"" arg:""`
 	Box    *string `help:"Specify the box that wants to lock this volume"`
 
-	Dir string `help:"Specify the local directory for the volume" required:"" type:"path"`
+	MountName *string `help:"Override the local mount name. Defaults to the volume UUID"`
 }
 
 func (cmd *LockCmd) Run(g *flags.GlobalFlags) error {
@@ -30,10 +32,22 @@ func (cmd *LockCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
+	mountName := v.Uuid
+	if cmd.MountName != nil {
+		mountName = *cmd.MountName
+	}
+
+	dir := filepath.Join(g.WorkDir, "volumes", v.Uuid)
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		return err
+	}
+
 	vsOpts := volume_serve.VolumeServeOpts{
-		Client:   c,
-		VolumeId: v.ID,
-		Dir:      cmd.Dir,
+		Client:    c,
+		MountName: mountName,
+		VolumeId:  v.ID,
+		Dir:       dir,
 	}
 
 	if cmd.Box != nil {

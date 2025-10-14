@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -16,14 +17,14 @@ import (
 )
 
 type ServeCmd struct {
-	Dir string `help:"Specify the local directory for the volume" required:"" type:"existingdir"`
+	Volume string `help:"Specify volume" required:"" arg:""`
 
 	BackupInterval string `help:"Specify the backup interval" default:"5m"`
 
 	flags.WebdavProxyFlags
 }
 
-func (cmd *ServeCmd) Run() error {
+func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	sigs := make(chan os.Signal, 1)
@@ -34,15 +35,17 @@ func (cmd *ServeCmd) Run() error {
 		return err
 	}
 
-	volumeState, err := volume_serve.LoadVolumeState(cmd.Dir)
+	baseDir := filepath.Join(g.WorkDir, "volumes")
+	volumeState, err := getMountedVolume(baseDir, cmd.Volume)
 	if err != nil {
 		return err
 	}
 
 	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
-		VolumeId:          volumeState.VolumeId,
+		MountName:         volumeState.MountName,
+		VolumeId:          volumeState.Volume.ID,
 		BoxUuid:           volumeState.BoxUuid,
-		Dir:               cmd.Dir,
+		Dir:               filepath.Join(baseDir, volumeState.MountName),
 		BackupInterval:    backupInterval,
 		WebdavProxyListen: cmd.WebdavProxyListen,
 	})
