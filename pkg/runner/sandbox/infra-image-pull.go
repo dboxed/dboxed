@@ -24,7 +24,7 @@ func (rn *Sandbox) pullInfraImage(ctx context.Context) error {
 	manifestPath := rn.getInfraImageConfig()
 	err := rn.pullImage(ctx, rn.InfraImage, manifestPath, dst)
 	if err != nil {
-		return fmt.Errorf("failed to pull imfra image: %w", err)
+		return fmt.Errorf("failed to pull infra-image: %w", err)
 	}
 	return nil
 }
