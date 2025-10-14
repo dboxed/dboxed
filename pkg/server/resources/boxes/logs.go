@@ -43,6 +43,10 @@ func (s *BoxesServer) putLogMetadata(c context.Context, boxId int64, logMetadata
 	}
 	err := lm.CreateOrUpdate(q)
 	if err != nil {
+		if querier.IsSqlConstraintViolationError(err) {
+			// only viable constraint violation here is when the box id is invalid
+			return nil, huma.Error404NotFound("box not found", err)
+		}
 		return nil, err
 	}
 	return &lm, nil
