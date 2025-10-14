@@ -10,7 +10,7 @@ import (
 )
 
 func (rn *RunSandbox) initFileLogging(ctx context.Context, sandboxDir string, logHandler *logs.MultiLogHandler) error {
-	logFile := filepath.Join(sandboxDir, "logs", "run-box.log")
+	logFile := filepath.Join(sandboxDir, "logs", "sandbox-run.log")
 	logWriter := logs.BuildRotatingLogger(logFile)
 
 	logHandler.AddWriter(logWriter)
