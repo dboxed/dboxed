@@ -54,6 +54,9 @@ func ListVolumeState(baseDir string) ([]*VolumeState, error) {
 
 	var ret []*VolumeState
 	for _, de := range des {
+		if !de.IsDir() {
+			continue
+		}
 		dir := filepath.Join(baseDir, de.Name())
 		info, err := LoadVolumeState(dir)
 		if err != nil {

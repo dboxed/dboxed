@@ -28,6 +28,10 @@ func ListSandboxes(sandboxBaseDir string) ([]SandboxInfo, error) {
 
 	var ret []SandboxInfo
 	for _, de := range des {
+		if !de.IsDir() {
+			continue
+		}
+
 		sandboxDir := filepath.Join(sandboxBaseDir, de.Name())
 		si, err := ReadSandboxInfo(sandboxDir)
 		if err != nil {
