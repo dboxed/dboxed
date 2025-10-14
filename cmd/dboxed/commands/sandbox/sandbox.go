@@ -3,10 +3,7 @@
 package sandbox
 
 import (
-	"fmt"
-
-	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox/service"
 )
 
 type SandboxCommands struct {
@@ -16,19 +13,7 @@ type SandboxCommands struct {
 	Remove RemoveCmd `cmd:"" help:"Remove a sandbox" aliases:"delete,rm"`
 	Exec   ExecCmd   `cmd:"" help:"execute new process inside the sandbox"`
 
-	RunInSandbox RunInSandbox `cmd:"" hidden:""`
-}
+	Service service.ServiceCmd `cmd:"" help:"Manage sandboxes as services"`
 
-func GetSandboxName(box *models.Box, sandboxName *string) (string, error) {
-	var ret string
-	if sandboxName != nil {
-		err := util.CheckName(*sandboxName)
-		if err != nil {
-			return "", err
-		}
-		ret = *sandboxName
-	} else {
-		ret = fmt.Sprintf("%s-%s", box.Name, box.Uuid)
-	}
-	return ret, nil
+	RunInSandbox RunInSandbox `cmd:"" hidden:""`
 }

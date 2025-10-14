@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/runc_exec"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -34,7 +34,7 @@ func (cmd *ExecCmd) Run(g *flags.GlobalFlags) error {
 		return fmt.Errorf("at least one command argument must be passed")
 	}
 
-	sandboxDir := filepath.Join(g.WorkDir, "sandboxes", cmd.SandboxName)
+	sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, cmd.SandboxName)
 
 	si, err := sandbox.ReadSandboxInfo(sandboxDir)
 	if err != nil {

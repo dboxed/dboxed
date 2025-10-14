@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/opencontainers/runc/libcontainer"
 )
@@ -25,7 +25,7 @@ type RemoveCmd struct {
 func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	sandboxBaseDir := filepath.Join(g.WorkDir, "sandboxes")
+	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
 
 	sandboxes, err := getOneOrAllSandboxes(sandboxBaseDir, cmd.SandboxName, cmd.All)
 	if err != nil {
@@ -33,7 +33,7 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	for _, si := range sandboxes {
-		sandboxDir := filepath.Join(g.WorkDir, "sandboxes", si.SandboxName)
+		sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxName)
 
 		s := sandbox.Sandbox{
 			Debug:           g.Debug,

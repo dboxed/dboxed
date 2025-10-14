@@ -11,6 +11,7 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 )
 
@@ -35,7 +36,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		Client: c,
 	}
 
-	sandboxBaseDir := filepath.Join(g.WorkDir, "sandboxes")
+	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
 
 	sandboxInfos, err := sandbox.ListSandboxes(sandboxBaseDir)
 	if err != nil {

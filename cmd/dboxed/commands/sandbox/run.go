@@ -14,11 +14,7 @@ import (
 )
 
 type RunCmd struct {
-	Box         string  `help:"Specify box name or id" required:"" arg:""`
-	SandboxName *string `help:"Override local sandbox name. Defaults to the box <name>-<uuid>"`
-
-	InfraImage  string `help:"Specify the infra/sandbox image to use" default:"${default_infra_image}"`
-	VethCidrArg string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
+	flags.SandboxRunArgs
 
 	WaitBeforeExit *time.Duration `help:"Wait before finally exiting. This gives the process time to print stdout/stderr messages that might be lost. Especially useful in combination with --debug"`
 }
@@ -43,7 +39,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
-	sandboxName, err := GetSandboxName(box, cmd.SandboxName)
+	sandboxName, err := cmd.GetSandboxName(box)
 	if err != nil {
 		return err
 	}
@@ -55,7 +51,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		InfraImage:      cmd.InfraImage,
 		SandboxName:     sandboxName,
 		WorkDir:         g.WorkDir,
-		VethNetworkCidr: cmd.VethCidrArg,
+		VethNetworkCidr: cmd.VethCidr,
 	}
 
 	err = runBox.Run(ctx, logHandler)

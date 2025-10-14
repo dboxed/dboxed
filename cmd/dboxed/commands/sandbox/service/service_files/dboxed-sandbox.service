@@ -1,13 +1,22 @@
 [Unit]
-Description=dboxed-{{ .LocalName }}
+Description=dboxed sandbox {{ .SandboxName }}
 Documentation=https://dboxed.io
 After=network.target local-fs.target
 
 [Service]
-EnvironmentFile=/etc/dboxed/box-url.env
-ExecStart=/usr/local/bin/dboxed sandbox run --client-auth-file {{ .ClientAuthFile }} --sandbox-name {{ .SandboxName }} {{ .ExtraArgs }}
+ExecStart={{ .ExePath }} \
+    --workspace={{ .WorkspaceId }} \
+    --client-auth-file={{ .ClientAuthFile }} \
+    sandbox run {{ .BoxId }} \
+    --sandbox-name={{ .SandboxName }} \
+    {{ .ExtraArgs }}
+
+ExecStop={{ .ExePath }} \
+    sandbox stop {{ .SandboxName }}
 
 Type=simple
+RemainAfterExit=yes
+
 Delegate=yes
 KillMode=process
 Restart=always

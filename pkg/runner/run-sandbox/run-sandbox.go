@@ -44,7 +44,11 @@ func (rn *RunSandbox) getSandboxDir() string {
 }
 
 func (rn *RunSandbox) getSandboxDir2(sandboxName string) string {
-	return filepath.Join(rn.WorkDir, "sandboxes", sandboxName)
+	return GetSandboxDir(rn.WorkDir, sandboxName)
+}
+
+func GetSandboxDir(workDir string, sandboxName string) string {
+	return filepath.Join(workDir, "sandboxes", sandboxName)
 }
 
 func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
