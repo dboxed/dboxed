@@ -30,7 +30,7 @@ func (rn *Sandbox) pullInfraImage(ctx context.Context) error {
 }
 
 func (rn *Sandbox) pullImage(ctx context.Context, imageRef string, configPath, rootfs string) error {
-	imageCacheDir := filepath.Join(rn.HostWorkDir, "image-cache")
+	imageCacheDir := filepath.Join(rn.HostWorkDir, "sandboxes", "image-cache")
 
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {

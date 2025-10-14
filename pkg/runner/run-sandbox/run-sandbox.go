@@ -219,7 +219,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 	slog.InfoContext(ctx, "reserving CIDR for veth pair")
 
-	fl := flock.New(filepath.Join(rn.WorkDir, "veth-cidrs.lock"))
+	fl := flock.New(filepath.Join(rn.getSandboxDir2(""), "veth-cidrs.lock"))
 	err := fl.Lock()
 	if err != nil {
 		return err
