@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"log/slog"
 	"time"
 
 	"golang.org/x/net/webdav"
@@ -22,7 +23,7 @@ func (f *fileRead) Stat() (fs.FileInfo, error) {
 }
 
 func (f *fileRead) Close() error {
-	//slog.Info("close", slog.Any("key", f.content.statResult.ObjectInfo.Key))
+	slog.Debug("close", slog.Any("key", f.content.oi.Key))
 	return nil
 }
 

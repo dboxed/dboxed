@@ -38,7 +38,7 @@ func (f *fileWrite) Stat() (fs.FileInfo, error) {
 }
 
 func (f *fileWrite) presignPutUrl() error {
-	slog.Info("presignPutUrl", slog.Any("key", f.key))
+	slog.Debug("presignPutUrl", slog.Any("key", f.key))
 
 	rep, err := f.fs.client2.S3ProxyPresignPut(f.fs.ctx, f.fs.volumeProviderId, models.S3ProxyPresignPutRequest{
 		Key: f.key,
@@ -60,7 +60,7 @@ func (f *fileWrite) beginUpload(url string) error {
 		return fmt.Errorf("upload already started")
 	}
 
-	slog.Info("beginUpload", slog.Any("key", f.key))
+	slog.Debug("beginUpload", slog.Any("key", f.key))
 
 	req, err := http.NewRequest("PUT", url, bufio.NewReaderSize(bodyReader, 1024*64))
 	if err != nil {
@@ -83,7 +83,7 @@ func (f *fileWrite) handleUploadDone(resp *http.Response, err error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	slog.Info("handleUploadDone", slog.Any("key", f.key))
+	slog.Debug("handleUploadDone", slog.Any("key", f.key))
 
 	f.uploadResp = resp
 	f.uploadErr = err
@@ -128,7 +128,7 @@ func (f *fileWrite) Close() error {
 		return err
 	}
 
-	//slog.Info("Close", slog.Any("key", f.key))
+	slog.Debug("close", slog.Any("key", f.key))
 
 	err = f.uploadWriter.Close()
 	if err != nil {
@@ -140,9 +140,9 @@ func (f *fileWrite) Close() error {
 		return err
 	}
 
-	//slog.Info("wait for close", slog.Any("key", f.key))
+	slog.Debug("wait for close", slog.Any("key", f.key))
 	<-f.uploadDone
-	//slog.Info("close done", slog.Any("key", f.key))
+	slog.Debug("close done", slog.Any("key", f.key))
 
 	err = f.checkUploadErr()
 	if err != nil {
@@ -153,7 +153,7 @@ func (f *fileWrite) Close() error {
 }
 
 func (f *fileWrite) Write(p []byte) (int, error) {
-	//slog.Info("Write", slog.Any("key", f.key), slog.Any("len", len(p)))
+	slog.Debug("write", slog.Any("key", f.key), slog.Any("len", len(p)))
 	return f.uploadWriter.Write(p)
 }
 

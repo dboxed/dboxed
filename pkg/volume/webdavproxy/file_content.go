@@ -84,7 +84,7 @@ func (f *fileContent) fillChunks(firstChunk int, lastChunk int) error {
 
 	rangeHeader := fmt.Sprintf("bytes=%d-%d", firstByte, lastByte)
 
-	slog.Info("fillChunks", slog.Any("key", f.oi.Key),
+	slog.Debug("fillChunks", slog.Any("key", f.oi.Key),
 		slog.Any("chunks", fmt.Sprintf("%d-%d", firstChunk, lastChunk)),
 		slog.Any("bytes", fmt.Sprintf("%d-%d (%s)", firstByte, lastByte, humanize.Bytes(uint64(lastByte-firstByte+1)))))
 

@@ -152,7 +152,7 @@ func (fs *FileSystem) doOpenFile(ctx context.Context, name string, flag int, per
 func (fs *FileSystem) delete(ctx context.Context, key string) error {
 	fs.forgetCache(key, true)
 
-	slog.Info("delete", slog.Any("key", key))
+	slog.Debug("delete", slog.Any("key", key))
 	_, err := fs.client2.S3ProxyDeleteObject(ctx, fs.volumeProviderId, models.S3ProxyDeleteObjectRequest{
 		Key: key,
 	})
@@ -227,7 +227,7 @@ func (fs *FileSystem) Rename(ctx context.Context, oldName, newName string) error
 	trimmedOldName := strings.TrimPrefix(oldName, "/")
 	trimmedNewName := strings.TrimPrefix(newName, "/")
 
-	slog.Info("rename", slog.Any("oldName", oldName), slog.Any("newName", newName))
+	slog.Debug("rename", slog.Any("oldName", oldName), slog.Any("newName", newName))
 	_, err = fs.client2.S3ProxyRenameObject(ctx, fs.volumeProviderId, models.S3ProxyRenameObjectRequest{
 		OldKey: trimmedOldName,
 		NewKey: trimmedNewName,
@@ -327,7 +327,7 @@ func (fs *FileSystem) cleanupCache() {
 		}
 		if anyExpired {
 			delete(fs.dirCache, k)
-			slog.Info("removing dir cache", slog.Any("key", k))
+			slog.Debug("removing dir cache", slog.Any("key", k))
 		}
 	}
 
@@ -335,7 +335,7 @@ func (fs *FileSystem) cleanupCache() {
 		if now.Before(cf.lastUsed.Add(60 * time.Second)) {
 			continue
 		}
-		slog.Info("removing content cache", slog.Any("key", k))
+		slog.Debug("removing content cache", slog.Any("key", k))
 
 		delete(fs.contentCache, k)
 	}
