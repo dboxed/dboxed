@@ -25,7 +25,7 @@ func (rn *Sandbox) GetSandboxRoot() string {
 	return filepath.Join(rn.SandboxDir, "sandbox-rootfs")
 }
 
-func (rn *Sandbox) getInfraImageConfig() string {
+func (rn *Sandbox) GetInfraImageConfig() string {
 	return filepath.Join(rn.SandboxDir, "infra-image-config.json")
 }
 
@@ -144,7 +144,7 @@ func (rn *Sandbox) KillSandboxContainer(ctx context.Context, signal os.Signal, t
 func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 	slog.InfoContext(ctx, "creating sandbox container")
 
-	imageConfig, err := util.UnmarshalYamlFile[v1.Image](rn.getInfraImageConfig())
+	imageConfig, err := util.UnmarshalYamlFile[v1.Image](rn.GetInfraImageConfig())
 	if err != nil {
 		return err
 	}
