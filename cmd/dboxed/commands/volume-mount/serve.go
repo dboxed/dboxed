@@ -68,6 +68,13 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
+	slog.Info("performing initial backup")
+	err = vs.BackupOnce(ctx)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("starting periodic backup", slog.Any("interval", cmd.BackupInterval))
 	vs.Start(ctx)
 
 	s := <-sigs
