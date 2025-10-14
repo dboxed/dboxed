@@ -11,6 +11,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/volume"
+	volume_mount "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-mount"
 	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/workspace"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -28,6 +29,7 @@ type Cli struct {
 
 	VolumeProvider volume_provider.VolumeProviderCommands `cmd:"" help:"manage volume providers"`
 	Volume         volume.VolumeCommands                  `cmd:"" help:"manage volumes"`
+	VolumeMount    volume_mount.VolumeMountCommands       `cmd:"" help:"manage volume mounts"`
 
 	Box     box.BoxCommands         `cmd:"" help:"manage boxes"`
 	Sandbox sandbox.SandboxCommands `cmd:"" help:"manage sandboxes" aliases:"sb"`

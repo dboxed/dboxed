@@ -313,7 +313,7 @@ set -e
 mount -t proc none /proc
 mount -t devtmpfs none /dev
 mount -t sysfs none /sys
-dboxed volume cleanup-loop-devs
+dboxed volume-mount cleanup-loop-devs
 `
 
 	cleanupScript := `
