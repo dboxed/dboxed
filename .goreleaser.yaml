@@ -24,7 +24,8 @@ builds:
           {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
         {{- end }}
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser'
+      - -s -w
+      - '{{ if ne .Env.NO_GO_VERSION "1" }}-X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.builtBy=goreleaser{{ end }}'
       - '{{ if eq .Os "linux" }}-extldflags=-static{{ end }}'
 
 archives:

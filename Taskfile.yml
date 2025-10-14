@@ -35,7 +35,7 @@ tasks:
       GORELEASER_IMAGE: goreleaser/goreleaser-cross-pro:v1.25.1-v2.12.0
     cmds:
       - cmd: docker volume create goreleaser-cross-compile-cache
-      - cmd: docker run --rm -i -v $(pwd):/app -w /app -e GORELEASER_KEY=$GORELEASER_KEY -e GITHUB_TOKEN=$GITHUB_TOKEN -v goreleaser-cross-compile-cache:/root/.cache -v goreleaser-cross-compile-cache:/root/go/pkg/mod/cache --use-api-socket {{ .DOCKER_ARGS }} {{ .GORELEASER_IMAGE }} {{ .GORELEASER_ARGS }}
+      - cmd: docker run --rm -i -v $(pwd):/app -w /app -e GORELEASER_KEY=$GORELEASER_KEY -e GITHUB_TOKEN=$GITHUB_TOKEN -e NO_GO_VERSION={{ or .NO_GO_VERSION "0" }} -v goreleaser-cross-compile-cache:/root/.cache -v goreleaser-cross-compile-cache:/root/go/pkg/mod/cache --use-api-socket {{ .DOCKER_ARGS }} {{ .GORELEASER_IMAGE }} {{ .GORELEASER_ARGS }}
         silent: false
 
   goreleaser-build-snapshot:
@@ -43,6 +43,7 @@ tasks:
       - task: goreleaser-helper
         vars:
           GORELEASER_ARGS: build --clean --snapshot
+          NO_GO_VERSION: "1"
 
   goreleaser-release-nightly:
     cmds:
