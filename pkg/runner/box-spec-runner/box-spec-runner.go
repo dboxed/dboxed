@@ -31,10 +31,6 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) DownVolumes(ctx context.Context) error {
-	return rn.reconcileVolumes(ctx, nil, false)
-}
-
 func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
@@ -87,6 +83,12 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	slog.InfoContext(ctx, "releasing dboxed volumes")
+	err = rn.reconcileVolumes(ctx, nil, false)
+	if err != nil {
+		return err
 	}
 
 	return nil

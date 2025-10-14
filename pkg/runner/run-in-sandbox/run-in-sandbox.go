@@ -130,12 +130,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context, lastBoxSpec *boxspec.BoxSp
 		if err != nil {
 			return err
 		}
-
-		slog.InfoContext(ctx, "shutting down volumes")
-		err = boxSpecRunner.DownVolumes(ctx)
-		if err != nil {
-			return err
-		}
 	}
 
 	slog.InfoContext(ctx, "shutting down dockerd")

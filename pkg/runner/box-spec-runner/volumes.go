@@ -124,7 +124,9 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 
 	for _, oldVolume := range oldVolumesByName {
 		if _, ok := newVolumeByName[oldVolume.Name]; !ok {
-			slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Name))
+			if allowDownService {
+				slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Name))
+			}
 			needDown = true
 			deleteVolumes = append(deleteVolumes, *oldVolume)
 		}
@@ -141,10 +143,14 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 			}
 			changed := false
 			if reflect.TypeOf(vi) != reflect.TypeOf(oldVi) {
-				slog.InfoContext(ctx, "need to down services due to volume type change", slog.Any("name", newVolume.Name))
+				if allowDownService {
+					slog.InfoContext(ctx, "need to down services due to volume type change", slog.Any("name", newVolume.Name))
+				}
 				changed = true
 			} else if vi.CheckRecreateNeeded(*oldVolume, *newVolume) {
-				slog.InfoContext(ctx, "need to down services due to volume spec change", slog.Any("name", newVolume.Name))
+				if allowDownService {
+					slog.InfoContext(ctx, "need to down services due to volume spec change", slog.Any("name", newVolume.Name))
+				}
 				changed = true
 			}
 			if changed {
