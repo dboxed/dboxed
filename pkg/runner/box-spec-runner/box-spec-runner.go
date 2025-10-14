@@ -18,7 +18,7 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.reconcileVolumes(ctx)
+	err = rn.reconcileVolumes(ctx, rn.BoxSpec.Volumes, true)
 	if err != nil {
 		return err
 	}
@@ -29,6 +29,10 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (rn *BoxSpecRunner) DownVolumes(ctx context.Context) error {
+	return rn.reconcileVolumes(ctx, nil, false)
 }
 
 func (rn *BoxSpecRunner) Down(ctx context.Context) error {

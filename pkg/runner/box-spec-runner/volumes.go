@@ -94,7 +94,7 @@ func (rn *BoxSpecRunner) deleteVolumeSpec(vi volumeInterface, vol boxspec.BoxVol
 	return nil
 }
 
-func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context) error {
+func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxspec.BoxVolumeSpec, allowDownService bool) error {
 	oldVolumesByName := map[string]*boxspec.BoxVolumeSpec{}
 	newVolumeByName := map[string]*boxspec.BoxVolumeSpec{}
 
@@ -110,7 +110,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context) error {
 		}
 		oldVolumesByName[v.Name] = &v
 	}
-	for _, v := range rn.BoxSpec.Volumes {
+	for _, v := range newVolumes {
 		_, err := rn.buildVolumeInterface(v)
 		if err != nil {
 			return err
@@ -156,7 +156,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context) error {
 			createVolumes = append(createVolumes, *newVolume)
 		}
 	}
-	if needDown {
+	if allowDownService && needDown {
 		err := rn.runComposeDown(ctx)
 		if err != nil {
 			return err

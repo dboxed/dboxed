@@ -72,15 +72,13 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	boxesClient := clients.BoxClient{Client: rn.Client}
 
 	lastBoxSpecHash := ""
+	var lastBoxSpec *boxspec.BoxSpec
 	for {
 		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
-				// if the box got deleted, we won't be able to upload remaining logs
-				rn.logsPublisher.Stop(true)
-				// ensure we don't restart the sandbox
-				err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
+				err = rn.shutdown(ctx, lastBoxSpec)
 				if err != nil {
 					return err
 				}
@@ -99,6 +97,7 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 					slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 				}
 				lastBoxSpecHash = newHash
+				lastBoxSpec = &boxFile.Spec
 			}
 		}
 
@@ -117,5 +116,40 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 		return err
 	}
 
+	return nil
+}
+
+func (rn *RunInSandbox) shutdown(ctx context.Context, lastBoxSpec *boxspec.BoxSpec) error {
+	if lastBoxSpec != nil {
+		boxSpecRunner := box_spec_runner.BoxSpecRunner{
+			BoxSpec: lastBoxSpec,
+		}
+
+		slog.InfoContext(ctx, "shutting down compose projects")
+		err := boxSpecRunner.Down(ctx)
+		if err != nil {
+			return err
+		}
+
+		slog.InfoContext(ctx, "shutting down volumes")
+		err = boxSpecRunner.DownVolumes(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	slog.InfoContext(ctx, "shutting down dockerd")
+	err := rn.S6SvcDown(ctx, "dockerd")
+	if err != nil {
+		return err
+	}
+
+	// if the box got deleted, we won't be able to upload remaining logs
+	rn.logsPublisher.Stop(true)
+	// ensure we don't restart the sandbox
+	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
+	if err != nil {
+		return err
+	}
 	return nil
 }
