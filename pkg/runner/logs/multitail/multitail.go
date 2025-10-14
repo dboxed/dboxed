@@ -17,6 +17,7 @@ import (
 	"github.com/dgraph-io/badger/v4"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gofrs/flock"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type MultiTail struct {
@@ -341,14 +342,25 @@ loop:
 }
 
 func (mt *MultiTail) handleLineBatch(metadata boxspec.LogMetadata, lines []*Line) {
+	backoff := wait.Backoff{
+		Duration: 1 * time.Second,
+		Cap:      30 * time.Second,
+		Steps:    30,
+		Factor:   2.0,
+		Jitter:   1.0,
+	}
+
 	for {
 		err := mt.opts.LineBatchHandler(metadata, lines)
 		if err == nil {
 			return
 		}
-		slog.Info("handleLineBatch failed, retrying", slog.Any("error", err))
+
+		delay := backoff.Step()
+
+		slog.Info("handleLineBatch failed, retrying", slog.Any("error", err), slog.Any("delay", delay.String()))
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(delay):
 			continue
 		case <-mt.cancelCh:
 			return
