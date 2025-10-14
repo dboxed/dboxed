@@ -53,4 +53,5 @@ COPY infra-image/daemon.json /etc/docker/
 
 ENV S6_LOGGING_SCRIPT="n10 s10000000"
 ENV S6_KEEP_ENV=1
+ENV DBOXED_SANDBOX=1
 ENTRYPOINT ["/init"]

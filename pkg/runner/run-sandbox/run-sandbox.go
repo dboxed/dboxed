@@ -353,7 +353,6 @@ umount /sys
 
 func (rn *RunSandbox) writeDboxedConfFiles(ctx context.Context) error {
 	envFile := ""
-	envFile += fmt.Sprintf("export DBOXED_SANDBOX=1\n")
 	if rn.Debug {
 		envFile += fmt.Sprintf("export DBOXED_DEBUG=1\n")
 	}
