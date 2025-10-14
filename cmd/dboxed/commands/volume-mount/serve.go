@@ -44,7 +44,7 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
 		MountName:         volumeState.MountName,
 		VolumeId:          volumeState.Volume.ID,
-		BoxUuid:           volumeState.BoxUuid,
+		BoxId:             volumeState.BoxId,
 		Dir:               filepath.Join(baseDir, volumeState.MountName),
 		BackupInterval:    backupInterval,
 		WebdavProxyListen: cmd.WebdavProxyListen,

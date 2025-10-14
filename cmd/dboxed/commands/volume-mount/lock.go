@@ -55,7 +55,7 @@ func (cmd *LockCmd) Run(g *flags.GlobalFlags) error {
 		if err != nil {
 			return err
 		}
-		vsOpts.BoxUuid = &b.Uuid
+		vsOpts.BoxId = &b.ID
 	}
 
 	vs, err := volume_serve.New(vsOpts)

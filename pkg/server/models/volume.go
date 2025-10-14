@@ -18,9 +18,9 @@ type Volume struct {
 	VolumeProvider     int64                     `json:"volumeProvider"`
 	VolumeProviderType dmodel.VolumeProviderType `json:"volumeProviderType"`
 
-	LockId      *string    `json:"lockId,omitempty"`
-	LockTime    *time.Time `json:"lockTime,omitempty"`
-	LockBoxUuid *string    `json:"lockBoxUuid,omitempty"`
+	LockId    *string    `json:"lockId,omitempty"`
+	LockTime  *time.Time `json:"lockTime,omitempty"`
+	LockBoxId *int64     `json:"lockBoxId,omitempty"`
 
 	LatestSnapshotId *int64 `json:"latestSnapshotId,omitempty"`
 
@@ -77,11 +77,11 @@ type UpdateVolumeAttachmentRequest struct {
 
 type VolumeLockRequest struct {
 	PrevLockId *string `json:"prevLockId,omitempty"`
-	BoxUuid    *string `json:"boxUuid,omitempty"`
+	BoxId      *int64  `json:"boxId,omitempty"`
 }
 
 type VolumeReleaseRequest struct {
-	LockId string `json:"lockI"`
+	LockId string `json:"lockId"`
 }
 
 func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volume {
@@ -96,9 +96,9 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 		VolumeProvider:     s.VolumeProviderID,
 		VolumeProviderType: s.VolumeProviderType,
 
-		LockId:      s.LockId,
-		LockTime:    s.LockTime,
-		LockBoxUuid: s.LockBoxUuid,
+		LockId:    s.LockId,
+		LockTime:  s.LockTime,
+		LockBoxId: s.LockBoxId,
 
 		LatestSnapshotId: s.LatestSnapshotId,
 	}

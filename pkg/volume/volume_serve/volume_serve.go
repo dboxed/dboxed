@@ -27,7 +27,6 @@ type VolumeServeOpts struct {
 
 	VolumeId int64
 	BoxId    *int64
-	BoxUuid  *string
 
 	Dir            string
 	BackupInterval time.Duration
@@ -65,8 +64,8 @@ func New(opts VolumeServeOpts) (*VolumeServe, error) {
 		slog.Any("volumeId", opts.VolumeId),
 		slog.Any("dir", opts.Dir),
 	)
-	if opts.BoxUuid != nil {
-		vs.log = vs.log.With(slog.Any("boxId", *opts.BoxUuid))
+	if opts.BoxId != nil {
+		vs.log = vs.log.With(slog.Any("boxId", *opts.BoxId))
 	}
 
 	return vs, nil
@@ -250,7 +249,7 @@ func (vs *VolumeServe) Mount(ctx context.Context, readOnly bool) error {
 			return fmt.Errorf("mount point %s is already mounted from source %s and type %s", mount, mountInfo.Source, mountInfo.FSType)
 		}
 		opts := strings.Split(mountInfo.Options, ",")
-		if slices.Contains(opts, "ro") {
+		if slices.Contains(opts, "ro") && !readOnly {
 			return fmt.Errorf("mount point %s is already mounted but it is read-only", mount)
 		}
 	}
@@ -305,7 +304,6 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 
 	s.LockId = nil
 	s.BoxId = nil
-	s.BoxUuid = nil
 	s.Volume = newVolume
 
 	err = vs.saveVolumeState(*s)
@@ -344,7 +342,6 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 			MountName:  vs.opts.MountName,
 			Volume:     vs.volume,
 			BoxId:      vs.opts.BoxId,
-			BoxUuid:    vs.opts.BoxUuid,
 		}
 	}
 
@@ -365,7 +362,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 
 	lockRequest := models.VolumeLockRequest{
 		PrevLockId: prevLockId,
-		BoxUuid:    s.BoxUuid,
+		BoxId:      s.BoxId,
 	}
 	newVolume, err := c2.VolumeLock(ctx, vs.volume.ID, lockRequest)
 	if err != nil {

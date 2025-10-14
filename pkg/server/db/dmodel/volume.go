@@ -15,9 +15,9 @@ type Volume struct {
 	VolumeProviderID   int64              `db:"volume_provider_id"`
 	VolumeProviderType VolumeProviderType `db:"volume_provider_type"`
 
-	LockId      *string    `db:"lock_id"`
-	LockTime    *time.Time `db:"lock_time"`
-	LockBoxUuid *string    `db:"lock_box_uuid"`
+	LockId    *string    `db:"lock_id"`
+	LockTime  *time.Time `db:"lock_time"`
+	LockBoxId *int64     `db:"lock_box_id"`
 
 	LatestSnapshotId *int64 `db:"latest_snapshot_id"`
 
@@ -132,21 +132,20 @@ func GetBoxVolumeAttachment(q *querier.Querier, boxId int64, volumeId int64) (*B
 	})
 }
 
-func (v *Volume) UpdateLock(q *querier.Querier, newLockId *string, newLockTime *time.Time, boxUuid *string) error {
+func (v *Volume) UpdateLock(q *querier.Querier, newLockId *string, newLockTime *time.Time, boxId *int64) error {
 	oldLockId := v.LockId
 	oldLockTime := v.LockTime
 	v.LockId = newLockId
-	v.LockTime = nil
 	v.LockTime = newLockTime
-	v.LockBoxUuid = boxUuid
+	v.LockBoxId = boxId
 	return querier.UpdateOneByFields[Volume](q, map[string]any{
 		"id":        v.ID,
 		"lock_id":   oldLockId,
 		"lock_time": oldLockTime,
 	}, map[string]any{
-		"lock_id":       v.LockId,
-		"lock_time":     v.LockTime,
-		"lock_box_uuid": v.LockBoxUuid,
+		"lock_id":     v.LockId,
+		"lock_time":   v.LockTime,
+		"lock_box_id": v.LockBoxId,
 	})
 }
 

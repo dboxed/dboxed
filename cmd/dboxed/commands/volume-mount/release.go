@@ -5,6 +5,7 @@ package volume_mount
 import (
 	"context"
 	"log/slog"
+	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -25,10 +26,11 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
+	dir := filepath.Join(baseDir, volumeState.MountName)
 
 	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
 		VolumeId:          volumeState.Volume.ID,
-		Dir:               filepath.Join(baseDir, volumeState.MountName),
+		Dir:               dir,
 		WebdavProxyListen: cmd.WebdavProxyListen,
 	})
 	if err != nil {
@@ -45,7 +47,7 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	slog.Info("Remounting read-only")
+	slog.Info("remounting read-only")
 	err = vs.LocalVolume.RemountReadOnly(ctx, vs.GetMountDir())
 	if err != nil {
 		return err
@@ -58,17 +60,25 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	// we unlock early, because the volume being read-only already ensures we don't lose data
+	slog.Info("releasing volume lock")
 	err = vs.Unlock(ctx)
 	if err != nil {
 		return err
 	}
 
+	slog.Info("unmounting volume")
 	err = vs.LocalVolume.Unmount(ctx, vs.GetMountDir())
 	if err != nil {
 		return err
 	}
 
 	err = vs.Deactivate(ctx)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("removing volume dir")
+	err = os.RemoveAll(dir)
 	if err != nil {
 		return err
 	}

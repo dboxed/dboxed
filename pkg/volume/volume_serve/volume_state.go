@@ -15,10 +15,9 @@ type VolumeState struct {
 
 	MountName string `json:"mountName"`
 
-	Volume  *models.Volume `json:"volume"`
-	LockId  *string        `json:"lockId,omitempty"`
-	BoxId   *int64         `json:"boxId"`
-	BoxUuid *string        `json:"boxUuid,omitempty"`
+	Volume *models.Volume `json:"volume"`
+	LockId *string        `json:"lockId,omitempty"`
+	BoxId  *int64         `json:"boxId,omitempty"`
 }
 
 func (vs *VolumeServe) loadVolumeState() (*VolumeState, error) {
