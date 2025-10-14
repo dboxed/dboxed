@@ -34,6 +34,8 @@ type Cli struct {
 	Box     box.BoxCommands         `cmd:"" help:"manage boxes"`
 	Sandbox sandbox.SandboxCommands `cmd:"" help:"manage sandboxes" aliases:"sb"`
 
+	Version VersionCmd `cmd:"" help:"Print version"`
+
 	cliOnlyLinux
 }
 
