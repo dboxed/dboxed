@@ -5,14 +5,13 @@ import (
 	"time"
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
-	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject *ctypes.Project) (*boxspec.BoxVolumeSpec, error) {
+func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject *ctypes.Project) error {
 	if box.Netbird.SetupKey == nil {
-		return nil, fmt.Errorf("box %d has no setup key", box.ID)
+		return fmt.Errorf("box %d has no setup key", box.ID)
 	}
 
 	if composeProject.Services == nil {
@@ -21,6 +20,13 @@ func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject
 	if composeProject.Volumes == nil {
 		composeProject.Volumes = map[string]ctypes.VolumeConfig{}
 	}
+	if composeProject.Configs == nil {
+		composeProject.Configs = map[string]ctypes.ConfigObjConfig{}
+	}
+	if composeProject.Secrets == nil {
+		composeProject.Secrets = map[string]ctypes.SecretConfig{}
+	}
+
 	composeProject.Volumes["netbird-client-socket"] = ctypes.VolumeConfig{
 		Name: "netbird-client-socket",
 	}
@@ -31,24 +37,12 @@ func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject
 		Name: "netbird-client-ip",
 	}
 
-	// this bundle also contains the setup key, so it should be considered a secret
-	scriptVolume := &boxspec.BoxVolumeSpec{
-		Name:     "netbird-scripts",
-		RootMode: "0700",
-		FileBundle: &boxspec.FileBundle{
-			Files: []boxspec.FileBundleEntry{
-				{
-					Path:       "setup-key",
-					Mode:       "0700",
-					StringData: *box.Netbird.SetupKey,
-				},
-				{
-					Path: "run-netbird.sh",
-					Mode: "0700",
-					StringData: `
+	composeProject.Configs["run-netbird-script"] = ctypes.ConfigObjConfig{
+		Name: "run-netbird-script",
+		Content: `
 set -e
 export NB_FOREGROUND_MODE=false
-export NB_SETUP_KEY=$(cat /scripts/setup-key)
+export NB_SETUP_KEY=$(cat /setup-key)
 export NB_MANAGEMENT_URL=` + n2.ApiUrl.V + `
 export NB_HOSTNAME=` + box.Name + `
 netbird service run &
@@ -56,20 +50,20 @@ NETBIRD_PID=$!
 netbird up
 wait $NETBIRD_PID
 `,
-				},
-				{
-					Path: "healthcheck.sh",
-					Mode: "0700",
-					StringData: `
+	}
+	composeProject.Configs["healthcheck-script"] = ctypes.ConfigObjConfig{
+		Name: "healthcheck-script",
+		Content: `
 set -e
 set -o pipefail
 IP=$(netbird status --ipv4)
 echo IP=$IP
 echo $IP > /netbird-ip/ip
 `,
-				},
-			},
-		},
+	}
+	composeProject.Secrets["setup-key"] = ctypes.SecretConfig{
+		Name:    "setup-key",
+		Content: *box.Netbird.SetupKey,
 	}
 
 	composeProject.Services["netbird"] = ctypes.ServiceConfig{
@@ -84,12 +78,31 @@ echo $IP > /netbird-ip/ip
 		NetworkMode: "host",
 		Entrypoint: []string{
 			"sh",
-			"/scripts/run-netbird.sh",
+			"/run-netbird.sh",
 		},
 		HealthCheck: &ctypes.HealthCheckConfig{
-			Test:     []string{"CMD", "sh", "/scripts/healthcheck.sh"},
+			Test:     []string{"CMD", "sh", "/healthcheck.sh"},
 			Interval: util.Ptr(ctypes.Duration(time.Second * 10)),
 			Retries:  util.Ptr(uint64(1)),
+		},
+		Configs: []ctypes.ServiceConfigObjConfig{
+			{
+				Source: "run-netbird-script",
+				Target: "/run-netbird.sh",
+				Mode:   util.Ptr(ctypes.FileMode(0755)),
+			},
+			{
+				Source: "healthcheck-script",
+				Target: "/healthcheck.sh",
+				Mode:   util.Ptr(ctypes.FileMode(0755)),
+			},
+		},
+		Secrets: []ctypes.ServiceSecretConfig{
+			{
+				Source: "setup-key",
+				Target: "/setup-key",
+				Mode:   util.Ptr(ctypes.FileMode(0600)),
+			},
 		},
 		Volumes: []ctypes.ServiceVolumeConfig{
 			{
@@ -102,13 +115,8 @@ echo $IP > /netbird-ip/ip
 				Source: "netbird-client-ip",
 				Target: "/netbird-ip",
 			},
-			{
-				Type:   "dboxed",
-				Source: scriptVolume.Name,
-				Target: "/scripts",
-			},
 		},
 	}
 
-	return scriptVolume, nil
+	return nil
 }

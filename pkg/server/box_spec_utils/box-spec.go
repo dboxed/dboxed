@@ -67,21 +67,15 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 			volumeProviders[at.Volume.VolumeProviderID] = vp
 		}
 
-		switch dmodel.VolumeProviderType(vp.Type) {
-		case dmodel.VolumeProviderTypeRustic:
-			boxSpec.Volumes = append(boxSpec.Volumes, boxspec.BoxVolumeSpec{
-				Name:     at.Volume.Name,
-				RootUid:  uint32(at.RootUid.V),
-				RootGid:  uint32(at.RootGid.V),
-				RootMode: at.RootMode.V,
-				Dboxed: &boxspec.DboxedVolume{
-					VolumeId:       at.Volume.ID,
-					BackupInterval: "1m",
-				},
-			})
-		default:
-			return huma.Error400BadRequest(fmt.Sprintf("not supported volume provider %s in attachment %s", vp.Type, at.Volume.Name))
-		}
+		boxSpec.Volumes = append(boxSpec.Volumes, boxspec.DboxedVolume{
+			Uuid:           at.Volume.Uuid,
+			Name:           at.Volume.Name,
+			Id:             at.Volume.ID,
+			RootUid:        uint32(at.RootUid.V),
+			RootGid:        uint32(at.RootGid.V),
+			RootMode:       at.RootMode.V,
+			BackupInterval: "1m",
+		})
 	}
 	return nil
 }

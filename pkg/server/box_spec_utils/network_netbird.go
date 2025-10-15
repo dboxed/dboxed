@@ -13,7 +13,7 @@ func addNetbirdComposeProject(ctx context.Context, box *dmodel.Box, network *dmo
 	composeProject := &ctypes.Project{
 		Name: "dboxed-netbird",
 	}
-	volume, err := box_specs.AddNetbirdService(*network.Netbird, box, composeProject)
+	err := box_specs.AddNetbirdService(*network.Netbird, box, composeProject)
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,6 @@ func addNetbirdComposeProject(ctx context.Context, box *dmodel.Box, network *dmo
 		return err
 	}
 
-	boxSpec.Volumes = append(boxSpec.Volumes, *volume)
 	boxSpec.ComposeProjects = append([]string{string(b)}, boxSpec.ComposeProjects...)
 
 	return nil
