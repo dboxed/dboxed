@@ -22,7 +22,8 @@ func (cmd *RunInSandbox) Run(g *flags.GlobalFlags) error {
 	}
 
 	runBox := run_in_sandbox.RunInSandbox{
-		Client: c,
+		WorkDir: g.WorkDir,
+		Client:  c,
 	}
 
 	err = runBox.Run(ctx)

@@ -5,161 +5,72 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strconv"
+	"strings"
+	"syscall"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
-	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/util"
-	"sigs.k8s.io/yaml"
+	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
+	"github.com/moby/sys/mountinfo"
 )
 
-type volumeInterface interface {
-	WorkDirBase(vol boxspec.BoxVolumeSpec) string
-	IsReadOnly(vol boxspec.BoxVolumeSpec) bool
-
-	Create(ctx context.Context, vol boxspec.BoxVolumeSpec) error
-	Delete(ctx context.Context, vol boxspec.BoxVolumeSpec) error
-
-	CheckRecreateNeeded(oldVol boxspec.BoxVolumeSpec, newVol boxspec.BoxVolumeSpec) bool
+func (rn *BoxSpecRunner) getVolumeWorkDir(uuid string) string {
+	return filepath.Join(rn.WorkDir, "volumes", uuid)
 }
 
-func (rn *BoxSpecRunner) buildVolumeInterface(vol boxspec.BoxVolumeSpec) (volumeInterface, error) {
-	if vol.FileBundle != nil {
-		return &volumeInterfaceFileBundle{}, nil
-	} else if vol.Dboxed != nil {
-		return &volumeInterfaceDboxed{rn: rn}, nil
-	} else {
-		return nil, fmt.Errorf("unknown volume type for %s", vol.Name)
-	}
+func (rn *BoxSpecRunner) getVolumeMountDir(uuid string) string {
+	return filepath.Join(rn.getVolumeWorkDir(uuid), "mount")
 }
 
-func getVolumeWorkDir(i volumeInterface, vol boxspec.BoxVolumeSpec) string {
-	return filepath.Join(consts.VolumesDir, i.WorkDirBase(vol))
-}
+func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
+	oldVolumesByName := map[int64]*volume_serve.VolumeState{}
+	newVolumeByName := map[int64]*boxspec.DboxedVolume{}
 
-func getVolumeMountDir(i volumeInterface, vol boxspec.BoxVolumeSpec) string {
-	return filepath.Join(getVolumeWorkDir(i, vol), "mount")
-}
-
-func (rn *BoxSpecRunner) buildVolumeSpecPath(vi volumeInterface, vol boxspec.BoxVolumeSpec) string {
-	volumeSpecFile := filepath.Join(consts.VolumesDir, fmt.Sprintf("volume-spec-%s.yaml", vi.WorkDirBase(vol)))
-	return volumeSpecFile
-}
-
-func (rn *BoxSpecRunner) readOldVolumeSpecs() ([]boxspec.BoxVolumeSpec, error) {
-	des, err := os.ReadDir(consts.VolumesDir)
-	if err != nil && !os.IsNotExist(err) {
-		return nil, err
-	}
-	var oldVolumes []boxspec.BoxVolumeSpec
-	for _, de := range des {
-		if de.IsDir() {
-			continue
-		}
-		if m, _ := filepath.Match("volume-spec-*.yaml", de.Name()); !m {
-			continue
-		}
-
-		volumeSpecFile := filepath.Join(consts.VolumesDir, de.Name())
-		volSpec, err := util.UnmarshalYamlFile[boxspec.BoxVolumeSpec](volumeSpecFile)
-		if err != nil && !os.IsNotExist(err) {
-			return nil, err
-		}
-		if volSpec != nil {
-			oldVolumes = append(oldVolumes, *volSpec)
-		}
-	}
-	return oldVolumes, nil
-}
-
-func (rn *BoxSpecRunner) writeVolumeSpec(vi volumeInterface, vol boxspec.BoxVolumeSpec) error {
-	b, err := yaml.Marshal(vol)
-	if err != nil {
-		return err
-	}
-	err = util.AtomicWriteFile(rn.buildVolumeSpecPath(vi, vol), b, 0600)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rn *BoxSpecRunner) deleteVolumeSpec(vi volumeInterface, vol boxspec.BoxVolumeSpec) error {
-	err := os.Remove(rn.buildVolumeSpecPath(vi, vol))
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return nil
-}
-
-func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxspec.BoxVolumeSpec, allowDownService bool) error {
-	oldVolumesByName := map[string]*boxspec.BoxVolumeSpec{}
-	newVolumeByName := map[string]*boxspec.BoxVolumeSpec{}
-
-	oldVolumes, err := rn.readOldVolumeSpecs()
+	oldVolumes, err := volume_serve.ListVolumeState(rn.WorkDir)
 	if err != nil {
 		return err
 	}
 
 	for _, v := range oldVolumes {
-		_, err := rn.buildVolumeInterface(v)
-		if err != nil {
-			return err
-		}
-		oldVolumesByName[v.Name] = &v
+		oldVolumesByName[v.Volume.ID] = v
 	}
 	for _, v := range newVolumes {
-		_, err := rn.buildVolumeInterface(v)
-		if err != nil {
-			return err
-		}
-		newVolumeByName[v.Name] = &v
+		newVolumeByName[v.Id] = &v
 	}
 
 	needDown := false
-	var deleteVolumes []boxspec.BoxVolumeSpec
-	var createVolumes []boxspec.BoxVolumeSpec
+	var deleteVolumes []*volume_serve.VolumeState
+
+	var lockVolumes []*boxspec.DboxedVolume
+	var installServices []*boxspec.DboxedVolume
 
 	for _, oldVolume := range oldVolumesByName {
-		if _, ok := newVolumeByName[oldVolume.Name]; !ok {
+		if _, ok := newVolumeByName[oldVolume.Volume.ID]; !ok {
 			if allowDownService {
-				slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Name))
+				slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Volume.Name))
 			}
 			needDown = true
-			deleteVolumes = append(deleteVolumes, *oldVolume)
+			deleteVolumes = append(deleteVolumes, oldVolume)
 		}
 	}
 	for _, newVolume := range newVolumeByName {
-		vi, err := rn.buildVolumeInterface(*newVolume)
-		if err != nil {
-			return err
-		}
-		if oldVolume, ok := oldVolumesByName[newVolume.Name]; ok {
-			oldVi, err := rn.buildVolumeInterface(*oldVolume)
+		if oldVolume, ok := oldVolumesByName[newVolume.Id]; ok {
+			mountDir := rn.getVolumeMountDir(oldVolume.Volume.Uuid)
+
+			mounted, err := mountinfo.Mounted(mountDir)
 			if err != nil {
-				return err
-			}
-			changed := false
-			if reflect.TypeOf(vi) != reflect.TypeOf(oldVi) {
-				if allowDownService {
-					slog.InfoContext(ctx, "need to down services due to volume type change", slog.Any("name", newVolume.Name))
+				if !os.IsNotExist(err) {
+					return err
 				}
-				changed = true
-			} else if vi.CheckRecreateNeeded(*oldVolume, *newVolume) {
-				if allowDownService {
-					slog.InfoContext(ctx, "need to down services due to volume spec change", slog.Any("name", newVolume.Name))
-				}
-				changed = true
 			}
-			if changed {
-				needDown = true
-				deleteVolumes = append(deleteVolumes, *oldVolume)
-				createVolumes = append(createVolumes, *newVolume)
+			if !mounted {
+				lockVolumes = append(lockVolumes, newVolume)
 			}
 		} else {
-			createVolumes = append(createVolumes, *newVolume)
+			lockVolumes = append(lockVolumes, newVolume)
+			installServices = append(installServices, newVolume)
 		}
 	}
 	if allowDownService && needDown {
@@ -170,29 +81,30 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 	}
 
 	for _, v := range deleteVolumes {
-		vi, err := rn.buildVolumeInterface(v)
+		err = rn.uninstallVolumeService(ctx, v)
 		if err != nil {
 			return err
 		}
-		err = vi.Delete(ctx, v)
-		if err != nil {
-			return err
-		}
-		err = rn.deleteVolumeSpec(vi, v)
+		err = rn.releaseVolume(ctx, v)
 		if err != nil {
 			return err
 		}
 	}
-	for _, v := range createVolumes {
-		vi, err := rn.buildVolumeInterface(v)
+	for _, v := range lockVolumes {
+		err = rn.lockVolume(ctx, v)
 		if err != nil {
 			return err
 		}
-		err = vi.Create(ctx, v)
+	}
+	for _, v := range newVolumes {
+		mountDir := rn.getVolumeMountDir(v.Uuid)
+		err = rn.fixVolumePermissions(v, mountDir)
 		if err != nil {
 			return err
 		}
-		err = rn.writeVolumeSpec(vi, v)
+	}
+	for _, v := range installServices {
+		err = rn.installVolumeService(ctx, v)
 		if err != nil {
 			return err
 		}
@@ -201,25 +113,113 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 	return nil
 }
 
-func fixVolumePermissions(vol boxspec.BoxVolumeSpec, volumeDir string) error {
-	err := os.Chown(volumeDir, int(vol.RootUid), int(vol.RootGid))
+func (rn *BoxSpecRunner) lockVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
+	slog.InfoContext(ctx, "locking volume",
+		slog.Any("name", vol.Name),
+	)
+
+	args := []string{
+		"--work-dir", rn.WorkDir,
+		"volume-mount",
+		"lock",
+		vol.Uuid,
+	}
+
+	err := rn.runDboxedVolume(ctx, args)
 	if err != nil {
 		return err
 	}
-	rootMode, err := parseMode(vol.RootMode)
-	if err != nil {
-		return fmt.Errorf("failed to parse root dir mode: %w", err)
+
+	return nil
+}
+
+func (rn *BoxSpecRunner) releaseVolume(ctx context.Context, vol *volume_serve.VolumeState) error {
+	slog.InfoContext(ctx, "releasing volume",
+		slog.Any("name", vol.Volume.Name),
+	)
+
+	args := []string{
+		"--work-dir", rn.WorkDir,
+		"volume-mount",
+		"release",
+		vol.Volume.Uuid,
 	}
-	if rootMode != 0 {
-		err = os.Chmod(volumeDir, rootMode)
+
+	err := rn.runDboxedVolume(ctx, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.DboxedVolume) error {
+	slog.InfoContext(ctx, "installing volume service",
+		slog.Any("name", vol.Name),
+	)
+
+	args := []string{
+		"--work-dir", rn.WorkDir,
+		"volume-mount",
+		"service",
+		"install",
+		vol.Uuid,
+	}
+
+	err := rn.runDboxedVolume(ctx, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) uninstallVolumeService(ctx context.Context, vol *volume_serve.VolumeState) error {
+	slog.InfoContext(ctx, "installing volume service",
+		slog.Any("name", vol.Volume.Name),
+	)
+
+	args := []string{
+		"--work-dir", rn.WorkDir,
+		"volume-mount",
+		"service",
+		"uninstall",
+		vol.Volume.Uuid,
+	}
+
+	err := rn.runDboxedVolume(ctx, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) fixVolumePermissions(vol boxspec.DboxedVolume, mountDir string) error {
+	st, err := os.Stat(mountDir)
+	if err != nil {
+		return err
+	}
+
+	newMode, err := rn.parseMode(vol.RootMode)
+	if err != nil {
+		return err
+	}
+	if st.Mode().Perm() != newMode {
+		err = os.Chmod(mountDir, newMode)
 		if err != nil {
 			return err
+		}
+	}
+	st2, ok := st.Sys().(*syscall.Stat_t)
+	if ok {
+		if st2.Uid != vol.RootUid || st2.Gid != vol.RootUid {
+			err = os.Chown(mountDir, int(vol.RootUid), int(vol.RootGid))
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func parseMode(s string) (os.FileMode, error) {
+func (rn *BoxSpecRunner) parseMode(s string) (os.FileMode, error) {
 	n, err := strconv.ParseInt(s, 8, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid file mode %s: %w", s, err)
@@ -229,4 +229,17 @@ func parseMode(s string) (os.FileMode, error) {
 		return 0, fmt.Errorf("invalid file mode %s", s)
 	}
 	return fm, nil
+}
+
+func (rn *BoxSpecRunner) runDboxedVolume(ctx context.Context, args []string) error {
+	cmd := exec.CommandContext(ctx, "dboxed", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	slog.Info("running dboxed volume command", slog.Any("args", strings.Join(args, " ")))
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

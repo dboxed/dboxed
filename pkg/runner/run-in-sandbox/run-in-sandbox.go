@@ -19,7 +19,8 @@ import (
 )
 
 type RunInSandbox struct {
-	Client *baseclient.Client
+	WorkDir string
+	Client  *baseclient.Client
 
 	sandboxInfo *sandbox.SandboxInfo
 
@@ -109,6 +110,7 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 
 func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
+		WorkDir: rn.WorkDir,
 		BoxSpec: boxSpec,
 	}
 	err := boxSpecRunner.Reconcile(ctx)

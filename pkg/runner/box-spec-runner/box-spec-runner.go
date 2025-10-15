@@ -9,6 +9,7 @@ import (
 )
 
 type BoxSpecRunner struct {
+	WorkDir string
 	BoxSpec *boxspec.BoxSpec
 }
 

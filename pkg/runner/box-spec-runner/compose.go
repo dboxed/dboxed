@@ -120,7 +120,7 @@ func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 		compose.Volumes = map[string]ctypes.VolumeConfig{}
 	}
 
-	volumesByName := map[string]*boxspec.BoxVolumeSpec{}
+	volumesByName := map[string]*boxspec.DboxedVolume{}
 	for _, vol := range rn.BoxSpec.Volumes {
 		volumesByName[vol.Name] = &vol
 	}
@@ -133,13 +133,10 @@ func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
 				if !ok {
 					return fmt.Errorf("volume with name %s not found", volume.Source)
 				}
-				vi, err := rn.buildVolumeInterface(*vol)
-				if err != nil {
-					return err
-				}
+
+				mountDir := rn.getVolumeMountDir(vol.Uuid)
 				volume.Type = ctypes.VolumeTypeBind
-				volume.Source = getVolumeMountDir(vi, *vol)
-				volume.ReadOnly = vi.IsReadOnly(*vol)
+				volume.Source = mountDir
 			}
 		}
 	}

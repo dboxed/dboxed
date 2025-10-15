@@ -12,8 +12,9 @@ import (
 type BoxSpec struct {
 	Uuid string `json:"uuid"`
 
-	Volumes         []BoxVolumeSpec `json:"volumes,omitempty"`
-	ComposeProjects []string        `json:"composeProjects,omitempty"`
+	Volumes []DboxedVolume `json:"volumes,omitempty"`
+
+	ComposeProjects []string `json:"composeProjects,omitempty"`
 }
 
 func (s *BoxSpec) LoadComposeProjects() ([]*ctypes.Project, error) {
