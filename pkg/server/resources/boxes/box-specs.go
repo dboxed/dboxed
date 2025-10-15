@@ -11,7 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 )
 
-func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[boxspec.BoxFile], error) {
+func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[boxspec.BoxSpec], error) {
 	q := querier.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -32,7 +32,7 @@ func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) 
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-func (s *BoxesServer) buildBoxSpec(c context.Context, box *dmodel.Box) (*boxspec.BoxFile, error) {
+func (s *BoxesServer) buildBoxSpec(c context.Context, box *dmodel.Box) (*boxspec.BoxSpec, error) {
 	q := querier.GetQuerier(c)
 
 	var network *dmodel.Network

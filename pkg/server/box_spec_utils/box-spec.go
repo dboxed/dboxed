@@ -12,7 +12,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (*boxspec.BoxFile, error) {
+func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (*boxspec.BoxSpec, error) {
 	boxm, err := models.BoxFromDB(c, *box)
 	if err != nil {
 		return nil, err
@@ -42,11 +42,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 		}
 	}
 
-	file := &boxspec.BoxFile{
-		Spec: boxm.BoxSpec,
-	}
-
-	return file, nil
+	return &boxm.BoxSpec, nil
 }
 
 func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec.BoxSpec, volumeNames map[string]struct{}) error {

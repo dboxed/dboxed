@@ -9,10 +9,6 @@ import (
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 )
 
-type BoxFile struct {
-	Spec BoxSpec `json:"spec"`
-}
-
 type BoxSpec struct {
 	Uuid string `json:"uuid"`
 

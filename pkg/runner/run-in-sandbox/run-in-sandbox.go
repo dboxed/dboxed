@@ -74,7 +74,7 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	lastBoxSpecHash := ""
 	var lastBoxSpec *boxspec.BoxSpec
 	for {
-		boxFile, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
+		boxSpec, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
@@ -86,18 +86,18 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
 		} else {
-			newHash, err := util.Sha256SumJson(boxFile.Spec)
+			newHash, err := util.Sha256SumJson(boxSpec)
 			if err != nil {
 				return err
 			}
 			if newHash != lastBoxSpecHash {
 				slog.InfoContext(ctx, "a new box spec was received")
-				err = rn.reconcileBoxSpec(ctx, &boxFile.Spec)
+				err = rn.reconcileBoxSpec(ctx, boxSpec)
 				if err != nil {
 					slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 				}
 				lastBoxSpecHash = newHash
-				lastBoxSpec = &boxFile.Spec
+				lastBoxSpec = boxSpec
 			}
 		}
 
