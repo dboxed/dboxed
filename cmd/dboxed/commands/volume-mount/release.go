@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
@@ -22,7 +23,7 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	baseDir := filepath.Join(g.WorkDir, "volumes")
-	volumeState, err := getMountedVolume(baseDir, cmd.Volume)
+	volumeState, err := commandutils.GetMountedVolume(baseDir, cmd.Volume)
 	if err != nil {
 		return err
 	}

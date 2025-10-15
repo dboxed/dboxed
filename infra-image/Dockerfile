@@ -37,7 +37,7 @@ RUN mkdir /tmp/rustic && cd /tmp/rustic  \
     && cd / && rm -rf /tmp/rustic
 
 # extra tools we need for dboxed volumes
-RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools
+RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools procps
 
 # cleanup
 RUN apk --no-cache del git openssh-client
@@ -54,4 +54,5 @@ COPY infra-image/daemon.json /etc/docker/
 ENV S6_LOGGING_SCRIPT="n10 s10000000"
 ENV S6_KEEP_ENV=1
 ENV DBOXED_SANDBOX=1
+ENV PATH=/command:$PATH
 ENTRYPOINT ["/init"]

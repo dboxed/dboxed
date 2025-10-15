@@ -12,14 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
 type ServeCmd struct {
-	Volume string `help:"Specify volume" required:"" arg:""`
-
-	BackupInterval string `help:"Specify the backup interval" default:"5m"`
+	flags.VolumeServeArgs
 
 	flags.WebdavProxyFlags
 }
@@ -36,7 +35,7 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	baseDir := filepath.Join(g.WorkDir, "volumes")
-	volumeState, err := getMountedVolume(baseDir, cmd.Volume)
+	volumeState, err := commandutils.GetMountedVolume(baseDir, cmd.Volume)
 	if err != nil {
 		return err
 	}

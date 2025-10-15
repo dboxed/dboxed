@@ -1,4 +1,4 @@
-package volume_mount
+package commandutils
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
-func getMountedVolume(baseDir string, volume string) (*volume_serve.VolumeState, error) {
+func GetMountedVolume(baseDir string, volume string) (*volume_serve.VolumeState, error) {
 	mountedVolumes, err := volume_serve.ListVolumeState(baseDir)
 	if err != nil {
 		return nil, err

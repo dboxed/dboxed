@@ -1,0 +1,5 @@
+#!/bin/sh
+mkdir -p {{ .DboxedWorkdir }}/volumes/{{ .MountName }}/logs
+echo "slog-json" > {{ .DboxedWorkdir }}/volumes/{{ .MountName }}/logs/log-format
+
+exec s6-log n20 s1000000 {{ .DboxedWorkdir }}/volumes/{{ .MountName }}/logs
