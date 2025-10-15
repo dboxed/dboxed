@@ -35,10 +35,10 @@ func ListSandboxes(sandboxBaseDir string) ([]SandboxInfo, error) {
 		sandboxDir := filepath.Join(sandboxBaseDir, de.Name())
 		si, err := ReadSandboxInfo(sandboxDir)
 		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
+			if os.IsNotExist(err) {
+				continue
 			}
-			continue
+			return nil, err
 		}
 		ret = append(ret, *si)
 	}

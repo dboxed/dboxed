@@ -60,9 +60,10 @@ func ListVolumeState(baseDir string) ([]*VolumeState, error) {
 		dir := filepath.Join(baseDir, de.Name())
 		info, err := LoadVolumeState(dir)
 		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
+			if os.IsNotExist(err) {
+				continue
 			}
+			return nil, err
 		}
 		ret = append(ret, info)
 	}
