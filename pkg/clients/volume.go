@@ -49,6 +49,14 @@ func (c *VolumesClient) GetVolumeById(ctx context.Context, volumeId int64) (*mod
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "GET", p, struct{}{})
 }
 
+func (c *VolumesClient) GetVolumeByUuid(ctx context.Context, uuid string) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", "by-uuid", uuid)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Volume](ctx, c.Client, "GET", p, struct{}{})
+}
+
 func (c *VolumesClient) GetVolumeByName(ctx context.Context, name string) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", "by-name", name)
 	if err != nil {

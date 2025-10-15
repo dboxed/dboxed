@@ -8,6 +8,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/google/uuid"
 )
 
 func GetWorkspace(ctx context.Context, c *baseclient.Client, workspace string) (*models.Workspace, error) {
@@ -43,19 +44,22 @@ func GetBox(ctx context.Context, c *baseclient.Client, box string) (*models.Box,
 		}
 		return v, nil
 	} else {
-		v, err := c2.GetBoxByUuid(ctx, box)
+		err = uuid.Validate(box)
 		if err == nil {
-			return v, nil
-		} else {
-			if !baseclient.IsNotFound(err) {
-				return nil, err
-			}
-			v, err = c2.GetBoxByName(ctx, box)
+			v, err := c2.GetBoxByUuid(ctx, box)
 			if err != nil {
-				return nil, err
+				if !baseclient.IsNotFound(err) {
+					return nil, err
+				}
+			} else {
+				return v, nil
 			}
-			return v, nil
 		}
+		v, err := c2.GetBoxByName(ctx, box)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
 	}
 }
 
@@ -87,6 +91,18 @@ func GetVolume(ctx context.Context, c *baseclient.Client, volume string) (*model
 		}
 		return v, nil
 	} else {
+		err = uuid.Validate(volume)
+		if err == nil {
+			v, err := c2.GetVolumeByUuid(ctx, volume)
+			if err != nil {
+				if !baseclient.IsNotFound(err) {
+					return nil, err
+				}
+			} else {
+				return v, nil
+			}
+		}
+
 		v, err := c2.GetVolumeByName(ctx, volume)
 		if err != nil {
 			return nil, err

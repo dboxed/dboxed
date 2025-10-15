@@ -31,7 +31,8 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 	huma.Post(workspacesGroup, "/volumes", s.restCreateVolume)
 	huma.Get(workspacesGroup, "/volumes", s.restListVolumes)
 	huma.Get(workspacesGroup, "/volumes/{id}", s.restGetVolume)
-	huma.Get(workspacesGroup, "/volumes/by-name/{volumeName}", s.restGetVolumeByName)
+	huma.Get(workspacesGroup, "/volumes/by-uuid/{uuid}", s.restGetVolumeByUuid)
+	huma.Get(workspacesGroup, "/volumes/by-name/{name}", s.restGetVolumeByName)
 	huma.Delete(workspacesGroup, "/volumes/{id}", s.restDeleteVolume)
 
 	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume)
@@ -161,8 +162,25 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 	return huma_utils.NewJsonBody(m), nil
 }
 
+type VolumeUuid struct {
+	VolumeUuid string `path:"uuid"`
+}
+
+func (s *VolumeServer) restGetVolumeByUuid(c context.Context, i *VolumeUuid) (*huma_utils.JsonBody[models.Volume], error) {
+	q := querier.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	v, err := dmodel.GetVolumeByUuid(q, &w.ID, i.VolumeUuid, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment)
+	return huma_utils.NewJsonBody(m), nil
+}
+
 type VolumeName struct {
-	VolumeName string `path:"volumeName"`
+	VolumeName string `path:"name"`
 }
 
 func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*huma_utils.JsonBody[models.Volume], error) {
