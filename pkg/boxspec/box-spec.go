@@ -16,18 +16,8 @@ type BoxFile struct {
 type BoxSpec struct {
 	Uuid string `json:"uuid"`
 
-	DboxedBinaryUrl  string `json:"dboxedBinaryUrl,omitempty"`
-	DboxedBinaryHash string `json:"dboxedBinaryHash,omitempty"`
-
-	Dns *DnsSpec `json:"dns"`
-
 	Volumes         []BoxVolumeSpec `json:"volumes,omitempty"`
 	ComposeProjects []string        `json:"composeProjects,omitempty"`
-}
-
-type DnsSpec struct {
-	Hostname      string `json:"hostname"`
-	NetworkDomain string `json:"networkDomain"`
 }
 
 func (s *BoxSpec) LoadComposeProjects() ([]*ctypes.Project, error) {

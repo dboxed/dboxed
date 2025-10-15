@@ -111,11 +111,7 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		networkType = &network.Type
 	}
 
-	defaultBoxSpec := boxspec.BoxSpec{
-		Dns: &boxspec.DnsSpec{
-			Hostname: body.Name,
-		},
-	}
+	defaultBoxSpec := boxspec.BoxSpec{}
 	b, err := models.MarshalBoxSpec(&defaultBoxSpec)
 	if err != nil {
 		return nil, "", err
