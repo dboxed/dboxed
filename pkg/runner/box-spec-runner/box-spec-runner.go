@@ -47,7 +47,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 		}
 	}
 
-	containers, err := util.RunCommandJsonLines[dockercli.DockerPS](ctx, "ps", "-a", "--format=json")
+	containers, err := util.RunCommandJsonLines[dockercli.DockerPS](ctx, "docker", "ps", "-a", "--format=json")
 	if err != nil {
 		return err
 	}
