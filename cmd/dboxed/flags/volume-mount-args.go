@@ -1,7 +1,11 @@
 package flags
 
-type VolumeServeArgs struct {
+type VolumeMountArgs struct {
 	Volume string `help:"Specify volume" required:"" arg:""`
+}
+
+type VolumeServeArgs struct {
+	VolumeMountArgs
 
 	BackupInterval string `help:"Specify the backup interval" default:"5m"`
 }

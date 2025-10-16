@@ -8,13 +8,10 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
 type ServeCmd struct {
@@ -34,35 +31,7 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	baseDir := filepath.Join(g.WorkDir, "volumes")
-	volumeState, err := commandutils.GetMountedVolume(baseDir, cmd.Volume)
-	if err != nil {
-		return err
-	}
-
-	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
-		MountName:         volumeState.MountName,
-		VolumeId:          volumeState.Volume.ID,
-		BoxId:             volumeState.BoxId,
-		Dir:               filepath.Join(baseDir, volumeState.MountName),
-		BackupInterval:    backupInterval,
-		WebdavProxyListen: cmd.WebdavProxyListen,
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vs.Open(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = vs.Lock(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = vs.Mount(ctx, false)
+	vs, err := lockAndMountVolume(ctx, g.WorkDir, cmd.Volume, &backupInterval, &cmd.WebdavProxyListen)
 	if err != nil {
 		return err
 	}
