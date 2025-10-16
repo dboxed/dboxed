@@ -312,7 +312,19 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &w.ID, i.Id)
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+	v, err := dmodel.ListVolumesByLockBoxId(q, &w.ID, box.ID, false) // we must also include deleted volumes
+	if err != nil {
+		return nil, err
+	}
+	if len(v) != 0 {
+		return nil, huma.Error400BadRequest("can't delete box while a volume is locked by the box")
+	}
+
+	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}

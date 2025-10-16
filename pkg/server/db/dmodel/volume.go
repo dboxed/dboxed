@@ -105,6 +105,14 @@ func GetVolumeByName(q *querier.Querier, workspaceId int64, name string, skipDel
 	})
 }
 
+func ListVolumesByLockBoxId(q *querier.Querier, workspaceId *int64, boxId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
+	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
+		"workspace_id": querier.OmitIfNull(workspaceId),
+		"lock_box_id":  boxId,
+		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
+	}, nil)
+}
+
 func ListVolumesForWorkspace(q *querier.Querier, workspaceId int64, skipDeleted bool) ([]VolumeWithAttachment, error) {
 	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
 		"workspace_id": workspaceId,
