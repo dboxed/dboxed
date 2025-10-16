@@ -129,6 +129,8 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
+				// if the box got deleted, we won't be able to upload remaining logs
+				rn.logsPublisher.Stop(true)
 				return true, nil
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
@@ -192,8 +194,8 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	}
 	slog.InfoContext(ctx, "dockerd has exited")
 
-	// if the box got deleted, we won't be able to upload remaining logs
-	rn.logsPublisher.Stop(true)
+	// if the box was deleted, this will be a no-op due to doRun already doing the Stop with cancel=true
+	rn.logsPublisher.Stop(false)
 
 	// ensure we don't restart the sandbox
 	slog.InfoContext(ctx, "running s6 halt")
