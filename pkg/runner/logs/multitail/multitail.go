@@ -121,7 +121,7 @@ func (mt *MultiTail) TailFile(path string, metadata boxspec.LogMetadata) error {
 		return nil
 	}
 
-	slog.Info("multitail: tailing new path", slog.Any("path", path), slog.Any("fileName", metadata.FileName))
+	slog.Debug("multitail: tailing new path", slog.Any("path", path), slog.Any("fileName", metadata.FileName))
 
 	var inode uint64
 	var offset int64
@@ -136,7 +136,7 @@ func (mt *MultiTail) TailFile(path string, metadata boxspec.LogMetadata) error {
 		}
 		inode = e.Inode
 		offset = e.Offset
-		slog.Info("multitail: using stored offset",
+		slog.Debug("multitail: using stored offset",
 			slog.Any("curInode", inode),
 			slog.Any("offset", offset),
 			slog.Any("fileName", metadata.FileName),
@@ -155,7 +155,7 @@ func (mt *MultiTail) TailFile(path string, metadata boxspec.LogMetadata) error {
 		return err
 	}
 	if inode != 0 && tf.Inode != inode {
-		slog.Info("multitail: discarded stored offset due to inode change",
+		slog.Debug("multitail: discarded stored offset due to inode change",
 			slog.Any("curInode", tf.Inode),
 			slog.Any("storedInode", inode),
 			slog.Any("fileName", metadata.FileName),
@@ -201,7 +201,7 @@ func (mt *MultiTail) WatchDir(dir string, pattern string, watchDepth int,
 				mt.m.Lock()
 				tf := mt.tails[e.Name]
 				if tf != nil {
-					slog.Info("multitail: stopping tail for file", slog.Any("path", e.Name))
+					slog.Debug("multitail: stopping tail for file", slog.Any("path", e.Name))
 
 					tf.Stop()
 					delete(mt.tails, e.Name)
