@@ -91,7 +91,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 		}
 	}
 	for _, v := range lockVolumes {
-		err = rn.lockVolume(ctx, v)
+		err = rn.createVolume(ctx, v)
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 	return nil
 }
 
-func (rn *BoxSpecRunner) lockVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
+func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
 	slog.InfoContext(ctx, "locking volume",
 		slog.Any("name", vol.Name),
 	)
@@ -121,7 +121,7 @@ func (rn *BoxSpecRunner) lockVolume(ctx context.Context, vol *boxspec.DboxedVolu
 	args := []string{
 		"--work-dir", rn.WorkDir,
 		"volume-mount",
-		"lock",
+		"create",
 		vol.Uuid,
 	}
 

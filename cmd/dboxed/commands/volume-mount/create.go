@@ -12,14 +12,14 @@ import (
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
-type LockCmd struct {
+type CreateCmd struct {
 	Volume string  `help:"Specify volume" required:"" arg:""`
 	Box    *string `help:"Specify the box that wants to lock this volume"`
 
 	MountName *string `help:"Override the local mount name. Defaults to the volume UUID"`
 }
 
-func (cmd *LockCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
