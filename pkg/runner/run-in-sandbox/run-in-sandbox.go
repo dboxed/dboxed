@@ -14,7 +14,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/box-spec-runner"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
-	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/service"
@@ -108,7 +107,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
-		_, err := dockercli.RunDockerCli(ctx, slog.Default(), true, "", "info")
+		_, err := util.RunCommandStdout(ctx, "docker", "info")
 		if err == nil {
 			break
 		}

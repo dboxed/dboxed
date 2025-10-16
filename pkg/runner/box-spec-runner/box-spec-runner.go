@@ -6,6 +6,7 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type BoxSpecRunner struct {
@@ -40,14 +41,13 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 
 	for i := len(composeProjects) - 1; i >= 0; i-- {
 		composeProject := composeProjects[i]
-		err = rn.runComposeCli(ctx, composeProject.Name, "down", "-v", "--remove-orphans", "--timeout=10")
+		err = rn.runComposeCli(ctx, composeProject.Name, nil, "down", "-v", "--remove-orphans", "--timeout=10")
 		if err != nil {
 			return err
 		}
 	}
 
-	var containers []dockercli.DockerPS
-	err = dockercli.RunDockerCliJsonLines(ctx, slog.Default(), &containers, "", "ps", "-a", "--format=json")
+	containers, err := util.RunCommandJsonLines[dockercli.DockerPS](ctx, "ps", "-a", "--format=json")
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 			"--timeout=10",
 		}
 		args = append(args, stopIds...)
-		_, err = dockercli.RunDockerCli(ctx, slog.Default(), false, "", args...)
+		err = util.RunCommand(ctx, "docker", args...)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 			"-fv",
 		}
 		args = append(args, rmIds...)
-		_, err = dockercli.RunDockerCli(ctx, slog.Default(), false, "", args...)
+		err = util.RunCommand(ctx, "docker", args...)
 		if err != nil {
 			return err
 		}

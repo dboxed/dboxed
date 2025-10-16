@@ -6,12 +6,11 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/dockercli"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context) error {
@@ -46,14 +45,14 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 	}
 
 	for _, composeProject := range composeProjects {
-		err = rn.runComposeCli(ctx, composeProject.Name, "pull", "-q")
+		err = rn.runComposeCli(ctx, composeProject.Name, nil, "pull", "-q")
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, composeProject := range composeProjects {
-		err = rn.runComposeCli(ctx, composeProject.Name, "up", "-d", "--remove-orphans", "--pull=never")
+		err = rn.runComposeCli(ctx, composeProject.Name, nil, "up", "-d", "--remove-orphans", "--pull=never")
 		if err != nil {
 			return err
 		}
@@ -68,7 +67,7 @@ func (rn *BoxSpecRunner) runComposeDown(ctx context.Context) error {
 	}
 
 	for _, composeProject := range composeProjects {
-		err = rn.runComposeCli(ctx, composeProject.Name, "down", "--remove-orphans")
+		err = rn.runComposeCli(ctx, composeProject.Name, nil, "down", "--remove-orphans")
 		if err != nil {
 			return err
 		}
@@ -100,15 +99,20 @@ func (rn *BoxSpecRunner) buildComposeDir(name string) string {
 	return dir
 }
 
-func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, args ...string) error {
-	log := slog.With("composeProject", projectName)
-
+func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, cmdEnv []string, args ...string) error {
 	var args2 []string
 	args2 = append(args2, "compose")
 	args2 = append(args2, args...)
 
-	slog.InfoContext(ctx, fmt.Sprintf("running 'docker compose %s'", strings.Join(args, " ")), slog.Any("projectName", projectName))
-	_, err := dockercli.RunDockerCli(ctx, log, false, rn.buildComposeDir(projectName), args2...)
+	cmd := util.CommandHelper{
+		Command: "docker",
+		Args:    args2,
+		Env:     cmdEnv,
+		Dir:     rn.buildComposeDir(projectName),
+		Logger:  slog.Default(),
+		LogCmd:  true,
+	}
+	err := cmd.Run(ctx)
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,10 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
+
+	"github.com/dboxed/dboxed/pkg/runner/logs/line_handler"
 )
 
 type CommandHelper struct {
@@ -21,6 +24,7 @@ type CommandHelper struct {
 
 	CatchStdout bool
 	CatchStderr bool
+	Logger      *slog.Logger
 	Dir         string
 
 	Stdout []byte
@@ -33,13 +37,29 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 	if c.LogCmd {
 		s := c.Command
 		if len(c.Args) != 0 {
-			s += strings.Join(c.Args, " ")
+			s += " " + strings.Join(c.Args, " ")
+		}
+		log := c.Logger
+		if log == nil {
+			log = slog.Default()
 		}
 		if c.isContainer() {
-			slog.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
+			log.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
 		} else {
-			slog.InfoContext(ctx, fmt.Sprintf("running command in container: %s", s))
+			log.InfoContext(ctx, fmt.Sprintf("running command in container: %s", s))
 		}
+	}
+
+	var lhStdout, lhStderr io.WriteCloser
+	if c.Logger != nil {
+		lhStdout = line_handler.NewLineHandler(func(line string) {
+			c.Logger.InfoContext(ctx, line)
+		})
+		lhStderr = line_handler.NewLineHandler(func(line string) {
+			c.Logger.WarnContext(ctx, line)
+		})
+		defer lhStdout.Close()
+		defer lhStderr.Close()
 	}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
@@ -47,12 +67,20 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 	if c.CatchStdout {
 		stdout = &stdoutBuf
 	} else {
-		stdout = os.Stdout
+		if c.Logger != nil {
+			stdout = lhStdout
+		} else {
+			stdout = os.Stdout
+		}
 	}
 	if c.CatchStderr {
 		stderr = &stderrBuf
 	} else {
-		stderr = os.Stdout
+		if c.Logger != nil {
+			stderr = lhStderr
+		} else {
+			stderr = os.Stderr
+		}
 	}
 
 	var err error
@@ -95,6 +123,23 @@ func (c *CommandHelper) RunStdoutJson(ctx context.Context, ret any) error {
 	return nil
 }
 
+func (c *CommandHelper) RunStdoutJsonLines(ctx context.Context, ret any) error {
+	stdout, err := c.RunStdout(ctx)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(stdout), "\n")
+	lines = slices.DeleteFunc(lines, func(s string) bool {
+		return strings.TrimSpace(s) == ""
+	})
+	array := "[" + strings.Join(lines, ",") + "]"
+	err = json.Unmarshal([]byte(array), ret)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func RunCommand(ctx context.Context, command string, args ...string) error {
 	c := CommandHelper{
 		Command: command,
@@ -124,4 +169,18 @@ func RunCommandJson[T any](ctx context.Context, command string, args ...string) 
 		return nil, err
 	}
 	return &ret, nil
+}
+
+func RunCommandJsonLines[T any](ctx context.Context, command string, args ...string) ([]T, error) {
+	var ret []T
+	c := CommandHelper{
+		Command:     command,
+		Args:        args,
+		CatchStdout: true,
+	}
+	err := c.RunStdoutJsonLines(ctx, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
