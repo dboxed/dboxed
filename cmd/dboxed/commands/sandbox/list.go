@@ -37,7 +37,6 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
-
 	sandboxInfos, err := sandbox.ListSandboxes(sandboxBaseDir)
 	if err != nil {
 		return err
@@ -48,8 +47,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		s := sandbox.Sandbox{
 			Debug:           g.Debug,
 			HostWorkDir:     g.WorkDir,
-			SandboxName:     si.SandboxName,
-			SandboxDir:      filepath.Join(sandboxBaseDir, si.SandboxName),
+			SandboxDir:      filepath.Join(sandboxBaseDir, si.Box.Uuid),
 			VethNetworkCidr: si.VethNetworkCidr,
 		}
 

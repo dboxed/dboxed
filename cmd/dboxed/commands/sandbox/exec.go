@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/runc_exec"
@@ -15,7 +16,7 @@ import (
 )
 
 type ExecCmd struct {
-	SandboxName string `help:"Specify the local sandbox name" required:"" arg:""`
+	flags.SandboxArgs
 
 	Args []string `help:"Args..." arg:""`
 
@@ -32,9 +33,8 @@ func (cmd *ExecCmd) Run(g *flags.GlobalFlags) error {
 		return fmt.Errorf("at least one command argument must be passed")
 	}
 
-	sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, cmd.SandboxName)
-
-	si, err := sandbox.ReadSandboxInfo(sandboxDir)
+	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
+	si, err := commandutils.GetSandboxInfo(sandboxBaseDir, cmd.Sandbox)
 	if err != nil {
 		return err
 	}
@@ -42,8 +42,7 @@ func (cmd *ExecCmd) Run(g *flags.GlobalFlags) error {
 	s := sandbox.Sandbox{
 		Debug:           g.Debug,
 		HostWorkDir:     g.WorkDir,
-		SandboxName:     si.SandboxName,
-		SandboxDir:      sandboxDir,
+		SandboxDir:      run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxName),
 		VethNetworkCidr: si.VethNetworkCidr,
 	}
 

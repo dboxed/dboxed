@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
@@ -16,7 +17,7 @@ import (
 )
 
 type RemoveCmd struct {
-	SandboxName *string `help:"Specify the local sandbox name" optional:"" arg:""`
+	flags.SandboxArgs
 
 	All   bool `help:"Remove all sandboxes"`
 	Force bool `help:"Force removal of running sandboxes. This will kill them first."`
@@ -26,8 +27,7 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
-
-	sandboxes, err := getOneOrAllSandboxes(sandboxBaseDir, cmd.SandboxName, cmd.All)
+	sandboxes, err := commandutils.GetOneOrAllSandboxInfos(sandboxBaseDir, cmd.Sandbox, cmd.All)
 	if err != nil {
 		return err
 	}
