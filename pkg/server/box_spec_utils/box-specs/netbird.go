@@ -42,13 +42,13 @@ func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject
 		Content: `
 set -e
 export NB_FOREGROUND_MODE=false
-export NB_SETUP_KEY=$(cat /setup-key)
+export NB_SETUP_KEY=$$(cat /setup-key)
 export NB_MANAGEMENT_URL=` + n2.ApiUrl.V + `
 export NB_HOSTNAME=` + box.Name + `
 netbird service run &
-NETBIRD_PID=$!
+NETBIRD_PID=$$!
 netbird up
-wait $NETBIRD_PID
+wait $$NETBIRD_PID
 `,
 	}
 	composeProject.Configs["healthcheck-script"] = ctypes.ConfigObjConfig{
@@ -56,9 +56,9 @@ wait $NETBIRD_PID
 		Content: `
 set -e
 set -o pipefail
-IP=$(netbird status --ipv4)
-echo IP=$IP
-echo $IP > /netbird-ip/ip
+IP=$$(netbird status --ipv4)
+echo IP=$$IP
+echo $$IP > /netbird-ip/ip
 `,
 	}
 	composeProject.Secrets["setup-key"] = ctypes.SecretConfig{
