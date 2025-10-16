@@ -191,6 +191,7 @@ func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.
 		"service",
 		"install",
 		vol.Uuid,
+		"--backup-interval", vol.BackupInterval,
 	}
 
 	err := rn.runDboxedVolume(ctx, args)
