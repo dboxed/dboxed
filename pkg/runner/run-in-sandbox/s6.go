@@ -15,6 +15,7 @@ func (rn *RunInSandbox) s6SvcCmd(ctx context.Context, serviceName string, args .
 	c := util.CommandHelper{
 		Command: "/command/s6-svc",
 		Args:    args,
+		LogCmd:  true,
 	}
 
 	err := c.Run(ctx)

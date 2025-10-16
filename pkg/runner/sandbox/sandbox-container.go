@@ -76,6 +76,7 @@ func (rn *Sandbox) StopRunInSandboxService(ctx context.Context, shutdown bool) e
 	if err != nil {
 		return err
 	}
+	slog.InfoContext(ctx, "dboxed service inside sandbox has stopped")
 	return nil
 }
 

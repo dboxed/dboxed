@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type RunCommandOptions struct {
@@ -24,11 +27,21 @@ type CommandHelper struct {
 
 	Stdout []byte
 	Stderr []byte
+
+	LogCmd bool
 }
 
 func (c *CommandHelper) Run(ctx context.Context) error {
 	var cmdStdout bytes.Buffer
 	var cmdStderr bytes.Buffer
+
+	if c.LogCmd {
+		s := c.Command
+		if len(c.Args) != 0 {
+			s += strings.Join(c.Args, " ")
+		}
+		slog.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
+	}
 
 	cmd := exec.CommandContext(ctx, c.Command, c.Args...)
 	cmd.Dir = c.Dir

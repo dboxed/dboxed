@@ -79,13 +79,13 @@ func NewMultiTail(ctx context.Context, tailDbFile string, opts MultiTailOptions)
 }
 
 func (mt *MultiTail) StopAndWait(cancel bool) {
-	slog.Info("multitail: stopping...")
-
 	mt.m.Lock()
 	if mt.stopped {
 		mt.m.Unlock()
 		return
 	}
+	slog.Info("multitail: stopping...")
+
 	mt.stopped = true
 	for _, w := range mt.watchers {
 		_ = w.Close()

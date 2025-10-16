@@ -189,13 +189,18 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	slog.InfoContext(ctx, "dockerd has exited")
 
 	// if the box got deleted, we won't be able to upload remaining logs
 	rn.logsPublisher.Stop(true)
+
 	// ensure we don't restart the sandbox
+	slog.InfoContext(ctx, "running s6 halt")
 	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
 	if err != nil {
 		return err
 	}
+
+	slog.InfoContext(ctx, "shutdown finished")
 	return nil
 }
