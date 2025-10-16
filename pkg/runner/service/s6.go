@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/dboxed/dboxed/pkg/util"
 )
@@ -175,7 +177,7 @@ func DetectS6Dirs() (*S6Dirs, error) {
 }
 
 func s6svc(ctx context.Context, args ...string) error {
-	slog.InfoContext(ctx, "scanning s6 services")
+	slog.InfoContext(ctx, fmt.Sprintf("running s6-svc %s", strings.Join(args, " ")))
 	cmd := exec.CommandContext(ctx, "s6-svc", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -195,5 +197,8 @@ func s6svscanctl(ctx context.Context, servicesDir string) error {
 	if err != nil {
 		return err
 	}
+	// A race comdition in s6 causes follow up errors when running s6-svc too early after this
+	// see https://github.com/just-containers/s6-overlay/issues/460
+	time.Sleep(100 * time.Millisecond)
 	return nil
 }
