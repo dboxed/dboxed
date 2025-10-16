@@ -33,7 +33,7 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) Down(ctx context.Context) error {
+func (rn *BoxSpecRunner) Down(ctx context.Context, ignoreComposeErrors bool) error {
 	composeProjects, err := rn.loadComposeProjects()
 	if err != nil {
 		return err
@@ -43,7 +43,10 @@ func (rn *BoxSpecRunner) Down(ctx context.Context) error {
 		composeProject := composeProjects[i]
 		err = rn.runComposeCli(ctx, composeProject.Name, nil, "down", "-v", "--remove-orphans", "--timeout=10")
 		if err != nil {
-			return err
+			if !ignoreComposeErrors {
+				return err
+			}
+			slog.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))
 		}
 	}
 

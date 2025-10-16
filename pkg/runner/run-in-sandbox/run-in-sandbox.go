@@ -181,7 +181,7 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		}
 
 		slog.InfoContext(ctx, "shutting down compose projects")
-		err := boxSpecRunner.Down(ctx)
+		err := boxSpecRunner.Down(ctx, true)
 		if err != nil {
 			return err
 		}
