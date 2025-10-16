@@ -11,6 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/logs/multitail"
+	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
 type LogsPublisher struct {
@@ -54,16 +55,17 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 	return nil
 }
 
-// PublishMultilogLogsDir publishes logs from s6-log output
-func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
+// PublishS6Logs publishes logs from s6-log output
+func (lp *LogsPublisher) PublishS6Logs(dir string) error {
 	err := os.MkdirAll(dir, 0700)
 	if err != nil {
 		return err
 	}
 
 	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
-		serviceName := filepath.Base(filepath.Dir(path))
-		logFormatBytes, _ := os.ReadFile(filepath.Join(filepath.Dir(path), "log-format"))
+		logDir := filepath.Dir(path)
+		serviceName := filepath.Base(logDir)
+		logFormatBytes, _ := os.ReadFile(filepath.Join(logDir, "log-format"))
 		logFormat := strings.TrimSpace(string(logFormatBytes))
 		if logFormat == "" {
 			logFormat = "raw"
@@ -79,6 +81,38 @@ func (lp *LogsPublisher) PublishMultilogLogsDir(dir string) error {
 
 	if lp.mt != nil {
 		return lp.mt.WatchDir(dir, "*/current", 1, buildMetadata)
+	}
+	return nil
+}
+
+func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
+	err := os.MkdirAll(volumesDir, 0700)
+	if err != nil {
+		return err
+	}
+
+	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
+		logDir := filepath.Dir(path)
+		volumeDir := filepath.Dir(logDir)
+		fileName := filepath.Base(volumeDir)
+
+		metdata := map[string]any{}
+		volumeState, err := volume_serve.LoadVolumeState(volumesDir)
+		if err == nil {
+			metdata["volume-name"] = volumeState.Volume.Name
+			metdata["volume-id"] = volumeState.Volume.ID
+			metdata["volume-uuid"] = volumeState.Volume.Uuid
+			metdata["volume-mount-name"] = volumeState.MountName
+		}
+		return boxspec.LogMetadata{
+			FileName: fileName,
+			Format:   "slog-json",
+			Metadata: metdata,
+		}, nil
+	}
+
+	if lp.mt != nil {
+		return lp.mt.WatchDir(volumesDir, "*/logs/current", 2, buildMetadata)
 	}
 	return nil
 }

@@ -30,7 +30,12 @@ func (rn *RunInSandbox) initLogsPublishing(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.logsPublisher.PublishMultilogLogsDir(filepath.Join(consts.LogsDir, "s6"))
+	err = rn.logsPublisher.PublishS6Logs(filepath.Join(consts.LogsDir, "s6"))
+	if err != nil {
+		return err
+	}
+
+	err = rn.logsPublisher.PublishVolumeServiceLogs(consts.VolumesDir)
 	if err != nil {
 		return err
 	}
