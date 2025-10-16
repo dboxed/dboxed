@@ -23,9 +23,6 @@ func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject
 	if composeProject.Configs == nil {
 		composeProject.Configs = map[string]ctypes.ConfigObjConfig{}
 	}
-	if composeProject.Secrets == nil {
-		composeProject.Secrets = map[string]ctypes.SecretConfig{}
-	}
 
 	composeProject.Volumes["netbird-client-socket"] = ctypes.VolumeConfig{
 		Name: "netbird-client-socket",
@@ -42,7 +39,6 @@ func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject
 		Content: `
 set -e
 export NB_FOREGROUND_MODE=false
-export NB_SETUP_KEY=$$(cat /setup-key)
 export NB_MANAGEMENT_URL=` + n2.ApiUrl.V + `
 export NB_HOSTNAME=` + box.Name + `
 netbird service run &
@@ -61,10 +57,6 @@ echo IP=$$IP
 echo $$IP > /netbird-ip/ip
 `,
 	}
-	composeProject.Secrets["setup-key"] = ctypes.SecretConfig{
-		Name:    "setup-key",
-		Content: *box.Netbird.SetupKey,
-	}
 
 	composeProject.Services["netbird"] = ctypes.ServiceConfig{
 		Name:    "netbird",
@@ -79,6 +71,9 @@ echo $$IP > /netbird-ip/ip
 		Entrypoint: []string{
 			"sh",
 			"/run-netbird.sh",
+		},
+		Environment: map[string]*string{
+			"NB_SETUP_KEY": box.Netbird.SetupKey,
 		},
 		HealthCheck: &ctypes.HealthCheckConfig{
 			Test:     []string{"CMD", "sh", "/healthcheck.sh"},
@@ -95,13 +90,6 @@ echo $$IP > /netbird-ip/ip
 				Source: "healthcheck-script",
 				Target: "/healthcheck.sh",
 				Mode:   util.Ptr(ctypes.FileMode(0755)),
-			},
-		},
-		Secrets: []ctypes.ServiceSecretConfig{
-			{
-				Source: "setup-key",
-				Target: "/setup-key",
-				Mode:   util.Ptr(ctypes.FileMode(0600)),
 			},
 		},
 		Volumes: []ctypes.ServiceVolumeConfig{
