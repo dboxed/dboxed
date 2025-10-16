@@ -11,7 +11,7 @@ import (
 )
 
 type SandboxInfo struct {
-	SandboxName     string
+	SandboxName     string            `json:"sandboxName"`
 	Box             *models.Box       `json:"box"`
 	Workspace       *models.Workspace `json:"workspace"`
 	VethNetworkCidr string            `json:"vethNetworkCidr"`

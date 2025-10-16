@@ -33,6 +33,7 @@ func RunRusticCommand(ctx context.Context, config RusticConfig, catchStdout bool
 			Args:        args,
 			Dir:         configDir,
 			CatchStdout: catchStdout,
+			LogCmd:      true,
 		}
 		err := c.Run(ctx)
 		if err != nil {
