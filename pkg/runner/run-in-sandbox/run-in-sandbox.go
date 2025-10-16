@@ -17,6 +17,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
 )
@@ -187,8 +188,13 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		}
 	}
 
+	s6, err := rn.getS6Helper()
+	if err != nil {
+		return err
+	}
+
 	slog.InfoContext(ctx, "shutting down dockerd")
-	err := rn.S6SvcDown(ctx, "dockerd")
+	err = s6.S6SvcDown(ctx, "dockerd")
 	if err != nil {
 		return err
 	}
@@ -206,4 +212,9 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 
 	slog.InfoContext(ctx, "shutdown finished")
 	return nil
+}
+
+func (rn *RunInSandbox) getS6Helper() (*service.S6Helper, error) {
+	s6 := &service.S6Helper{}
+	return s6, nil
 }

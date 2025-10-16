@@ -5,18 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 )
 
-type RunCommandOptions struct {
-	CatchStdout bool
-	Dir         string
-}
-
 type CommandHelper struct {
+	ContainerHolder
+
 	Command string
 	Args    []string
 	Env     []string
@@ -32,37 +30,51 @@ type CommandHelper struct {
 }
 
 func (c *CommandHelper) Run(ctx context.Context) error {
-	var cmdStdout bytes.Buffer
-	var cmdStderr bytes.Buffer
-
 	if c.LogCmd {
 		s := c.Command
 		if len(c.Args) != 0 {
 			s += strings.Join(c.Args, " ")
 		}
-		slog.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
+		if c.isContainer() {
+			slog.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
+		} else {
+			slog.InfoContext(ctx, fmt.Sprintf("running command in container: %s", s))
+		}
 	}
 
-	cmd := exec.CommandContext(ctx, c.Command, c.Args...)
-	cmd.Dir = c.Dir
+	var stdoutBuf, stderrBuf bytes.Buffer
+	var stdout, stderr io.Writer
 	if c.CatchStdout {
-		cmd.Stdout = &cmdStdout
+		stdout = &stdoutBuf
 	} else {
-		cmd.Stdout = os.Stdout
+		stdout = os.Stdout
 	}
 	if c.CatchStderr {
-		cmd.Stderr = &cmdStderr
+		stderr = &stderrBuf
 	} else {
-		cmd.Stderr = os.Stdout
+		stderr = os.Stdout
 	}
+
+	var err error
+	if c.isContainer() {
+		err = c.runContainer(ctx, stdout, stderr)
+	} else {
+		err = c.runNormal(ctx, stdout, stderr)
+	}
+	c.Stdout = stdoutBuf.Bytes()
+	c.Stderr = stderrBuf.Bytes()
+	return err
+}
+
+func (c *CommandHelper) runNormal(ctx context.Context, stdout io.Writer, stderr io.Writer) error {
+	cmd := exec.CommandContext(ctx, c.Command, c.Args...)
+	cmd.Dir = c.Dir
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	if c.Env != nil {
 		cmd.Env = c.Env
 	}
-	err := cmd.Run()
-
-	c.Stdout = cmdStdout.Bytes()
-	c.Stderr = cmdStderr.Bytes()
-	return err
+	return cmd.Run()
 }
 
 func (c *CommandHelper) RunStdout(ctx context.Context) ([]byte, error) {

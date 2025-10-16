@@ -12,8 +12,6 @@ import (
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/runc_exec"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
-	"github.com/dboxed/dboxed/pkg/util"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 type ExecCmd struct {
@@ -54,7 +52,7 @@ func (cmd *ExecCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	imageConfig, err := util.UnmarshalYamlFile[v1.Image](s.GetInfraImageConfig())
+	imageConfig, err := s.GetInfraImageConfig()
 	if err != nil {
 		return err
 	}

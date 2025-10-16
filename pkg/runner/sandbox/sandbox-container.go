@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer"
@@ -25,8 +26,12 @@ func (rn *Sandbox) GetSandboxRoot() string {
 	return filepath.Join(rn.SandboxDir, "sandbox-rootfs")
 }
 
-func (rn *Sandbox) GetInfraImageConfig() string {
+func (rn *Sandbox) GetInfraImageConfigPath() string {
 	return filepath.Join(rn.SandboxDir, "infra-image-config.json")
+}
+
+func (rn *Sandbox) GetInfraImageConfig() (*v1.Image, error) {
+	return util.UnmarshalYamlFile[v1.Image](rn.GetInfraImageConfigPath())
 }
 
 func GetContainerStateDir(sandboxDir string) string {
@@ -52,6 +57,23 @@ func (rn *Sandbox) GetSandboxContainerStatus() (libcontainer.Status, error) {
 	return cs, nil
 }
 
+func (rn *Sandbox) GetS6Helper() (*service.S6Helper, error) {
+	c, err := rn.GetSandboxContainer()
+	if err != nil {
+		return nil, err
+	}
+	imageConfig, err := rn.GetInfraImageConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	s6 := &service.S6Helper{
+		Container:   c,
+		ImageConfig: &imageConfig.Config,
+	}
+	return s6, nil
+}
+
 func (rn *Sandbox) writeShutdownMarker() error {
 	p := filepath.Join(rn.GetSandboxRoot(), consts.ShutdownSandboxMarkerFile)
 	if _, err := os.Stat(filepath.Dir(p)); err == nil {
@@ -72,7 +94,13 @@ func (rn *Sandbox) StopRunInSandboxService(ctx context.Context, shutdown bool) e
 			return err
 		}
 	}
-	err := rn.S6SvcDown(ctx, "run-in-sandbox")
+
+	s6, err := rn.GetS6Helper()
+	if err != nil {
+		return err
+	}
+
+	err = s6.S6SvcDown(ctx, "run-in-sandbox")
 	if err != nil {
 		return err
 	}
@@ -172,7 +200,7 @@ func (rn *Sandbox) KillSandboxContainer(ctx context.Context, signal os.Signal, t
 func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 	slog.InfoContext(ctx, "creating sandbox container")
 
-	imageConfig, err := util.UnmarshalYamlFile[v1.Image](rn.GetInfraImageConfig())
+	imageConfig, err := rn.GetInfraImageConfig()
 	if err != nil {
 		return err
 	}
