@@ -51,6 +51,10 @@ func (s *BoxSpec) loadComposeProject(str string) (*ctypes.Project, error) {
 		// we need to skip validation as we're using "bundle" volumes, which are not valid as by the spec
 		cli.WithLoadOptions(loader.WithSkipValidation),
 		cli.WithNormalization(false),
+		cli.WithInterpolation(false),
+		cli.WithConsistency(false),
+		cli.WithResolvedPaths(false),
+		cli.WithoutEnvironmentResolution,
 	)
 	if err != nil {
 		return nil, err
