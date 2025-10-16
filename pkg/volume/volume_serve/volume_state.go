@@ -48,8 +48,9 @@ func ListVolumeState(baseDir string) ([]*VolumeState, error) {
 	des, err := os.ReadDir(baseDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, err
+			return nil, nil
 		}
+		return nil, err
 	}
 
 	var ret []*VolumeState
