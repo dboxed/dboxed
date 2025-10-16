@@ -174,6 +174,7 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
+			WorkDir: rn.WorkDir,
 			BoxSpec: rn.lastBoxSpec,
 		}
 
