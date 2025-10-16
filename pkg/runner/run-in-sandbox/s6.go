@@ -13,8 +13,8 @@ func (rn *RunInSandbox) s6SvcCmd(ctx context.Context, serviceName string, args .
 	args2 = append(args2, filepath.Join("/run/service", serviceName))
 
 	c := util.CommandHelper{
-		Command: "/command/s6-svc",
-		Args:    args,
+		Command: "s6-svc",
+		Args:    args2,
 		LogCmd:  true,
 	}
 
