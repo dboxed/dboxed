@@ -28,7 +28,6 @@ type VolumeProviderStorageS3 struct {
 	ID querier.NullForJoin[int64] `db:"id"`
 
 	Endpoint        querier.NullForJoin[string] `db:"endpoint"`
-	Region          *string                     `db:"region"`
 	Bucket          querier.NullForJoin[string] `db:"bucket"`
 	Prefix          querier.NullForJoin[string] `db:"prefix"`
 	AccessKeyId     querier.NullForJoin[string] `db:"access_key_id"`
@@ -114,13 +113,6 @@ func (v *VolumeProviderStorageS3) UpdateEndpoint(q *querier.Querier, endpoint st
 	v.Endpoint = querier.N(endpoint)
 	return querier.UpdateOneFromStruct(q, v,
 		"endpoint",
-	)
-}
-
-func (v *VolumeProviderStorageS3) UpdateRegion(q *querier.Querier, region *string) error {
-	v.Region = region
-	return querier.UpdateOneFromStruct(q, v,
-		"region",
 	)
 }
 

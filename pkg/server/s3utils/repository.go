@@ -9,7 +9,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-func BuildS3ClientForRegion(vp *dmodel.VolumeProvider, region string) (*minio.Client, error) {
+func BuildS3Client(vp *dmodel.VolumeProvider, region string) (*minio.Client, error) {
 	if vp.Rustic == nil || vp.Rustic.StorageS3 == nil {
 		return nil, fmt.Errorf("not a S3 repository")
 	}
@@ -30,17 +30,4 @@ func BuildS3ClientForRegion(vp *dmodel.VolumeProvider, region string) (*minio.Cl
 	}
 
 	return mc, nil
-}
-
-func BuildS3Client(vp *dmodel.VolumeProvider) (*minio.Client, error) {
-	if vp.Rustic == nil || vp.Rustic.StorageS3 == nil {
-		return nil, fmt.Errorf("not a S3 repository")
-	}
-
-	region := ""
-	if vp.Rustic.StorageS3.Region != nil {
-		region = *vp.Rustic.StorageS3.Region
-	}
-
-	return BuildS3ClientForRegion(vp, region)
 }

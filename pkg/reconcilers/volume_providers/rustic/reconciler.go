@@ -30,7 +30,6 @@ func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider) (*rustic.Rusti
 			Options: rustic.RusticConfigRepositoryOptions{
 				Endpoint:        vp.Rustic.StorageS3.Endpoint.V,
 				Bucket:          vp.Rustic.StorageS3.Bucket.V,
-				Region:          vp.Rustic.StorageS3.Region,
 				AccessKeyId:     vp.Rustic.StorageS3.AccessKeyId.V,
 				SecretAccessKey: vp.Rustic.StorageS3.SecretAccessKey.V,
 				Root:            vp.Rustic.StorageS3.Prefix.V,
@@ -41,7 +40,7 @@ func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider) (*rustic.Rusti
 }
 
 func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider) ([]string, error) {
-	c, err := s3utils.BuildS3Client(vp)
+	c, err := s3utils.BuildS3Client(vp, "")
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +103,7 @@ func (r *Reconciler) getFilteredRusticSnapshots(ctx context.Context, vp *dmodel.
 func (r *Reconciler) deleteRusticSnapshots(ctx context.Context, vp *dmodel.VolumeProvider, snapshotIds []string) error {
 	slog.InfoContext(ctx, "deleting rustic snapshots", slog.Any("rsSnapshotIds", snapshotIds))
 
-	c, err := s3utils.BuildS3Client(vp)
+	c, err := s3utils.BuildS3Client(vp, "")
 	if err != nil {
 		return err
 	}

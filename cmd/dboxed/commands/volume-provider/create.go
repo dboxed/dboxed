@@ -12,11 +12,10 @@ import (
 type CreateCmd struct {
 	Name string `help:"Specify the repository name. Must be unique." required:"" arg:""`
 
-	S3Endpoint        string  `name:"s3-endpoint" help:"Specify S3 endpoint" default:"https://s3.amazonaws.com"`
-	S3Region          *string `name:"s3-region" help:"Specify S3 region" optional:""`
-	S3Bucket          string  `name:"s3-bucket" help:"Specify S3 bucket" required:""`
-	S3AccessKeyId     string  `name:"s3-access-key-id" help:"Specify S3 access key id" required:""`
-	S3SecretAccessKey string  `name:"s3-secret-access-key" help:"Specify S3 secret access key" required:""`
+	S3Endpoint        string `name:"s3-endpoint" help:"Specify S3 endpoint" default:"https://s3.amazonaws.com"`
+	S3Bucket          string `name:"s3-bucket" help:"Specify S3 bucket" required:""`
+	S3AccessKeyId     string `name:"s3-access-key-id" help:"Specify S3 access key id" required:""`
+	S3SecretAccessKey string `name:"s3-secret-access-key" help:"Specify S3 secret access key" required:""`
 
 	S3Prefix string `name:"s3-prefix" help:"Specify the s3 prefix"`
 
@@ -42,7 +41,6 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 
 	req.Rustic.StorageS3 = &models.CreateVolumeProviderStorageS3{
 		Endpoint:        cmd.S3Endpoint,
-		Region:          cmd.S3Region,
 		Bucket:          cmd.S3Bucket,
 		AccessKeyId:     cmd.S3AccessKeyId,
 		SecretAccessKey: cmd.S3SecretAccessKey,

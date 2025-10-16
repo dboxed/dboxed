@@ -26,10 +26,9 @@ type VolumeProviderRustic struct {
 }
 
 type VolumeStorageS3 struct {
-	Endpoint string  `json:"endpoint"`
-	Region   *string `json:"region"`
-	Bucket   string  `json:"bucket"`
-	Prefix   string  `json:"prefix"`
+	Endpoint string `json:"endpoint"`
+	Bucket   string `json:"bucket"`
+	Prefix   string `json:"prefix"`
 }
 
 type CreateVolumeProvider struct {
@@ -40,12 +39,11 @@ type CreateVolumeProvider struct {
 }
 
 type CreateVolumeProviderStorageS3 struct {
-	Endpoint        string  `json:"endpoint"`
-	Region          *string `json:"region"`
-	Bucket          string  `json:"bucket"`
-	Prefix          string  `json:"prefix"`
-	AccessKeyId     string  `json:"accessKeyId"`
-	SecretAccessKey string  `json:"secretAccessKey"`
+	Endpoint        string `json:"endpoint"`
+	Bucket          string `json:"bucket"`
+	Prefix          string `json:"prefix"`
+	AccessKeyId     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
 }
 
 type CreateVolumeProviderRustic struct {
@@ -66,7 +64,6 @@ type UpdateVolumeProviderRustic struct {
 
 type UpdateRepositoryStorageS3 struct {
 	Endpoint        *string `json:"endpoint,omitempty"`
-	Region          *string `json:"region,omitempty"`
 	Bucket          *string `json:"bucket,omitempty"`
 	Prefix          *string `json:"prefix,omitempty"`
 	AccessKeyId     *string `json:"accessKeyId,omitempty"`
@@ -90,7 +87,6 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 		if v.Rustic.StorageS3 != nil && v.Rustic.StorageS3.ID.Valid {
 			ret.Rustic.StorageS3 = &VolumeStorageS3{
 				Endpoint: v.Rustic.StorageS3.Endpoint.V,
-				Region:   v.Rustic.StorageS3.Region,
 				Bucket:   v.Rustic.StorageS3.Bucket.V,
 				Prefix:   v.Rustic.StorageS3.Prefix.V,
 			}

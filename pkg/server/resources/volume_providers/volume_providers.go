@@ -103,7 +103,6 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 			r.Rustic.StorageS3 = &dmodel.VolumeProviderStorageS3{
 				ID:              querier.N(r.ID),
 				Endpoint:        querier.N(i.Body.Rustic.StorageS3.Endpoint),
-				Region:          i.Body.Rustic.StorageS3.Region,
 				Bucket:          querier.N(i.Body.Rustic.StorageS3.Bucket),
 				AccessKeyId:     querier.N(i.Body.Rustic.StorageS3.AccessKeyId),
 				SecretAccessKey: querier.N(i.Body.Rustic.StorageS3.SecretAccessKey),
@@ -220,12 +219,6 @@ func (s *VolumeProviderServer) doUpdateVolumeProvider(c context.Context, r *dmod
 					return err
 				}
 				err = r.Rustic.StorageS3.UpdateEndpoint(q, *body.Rustic.StorageS3.Endpoint)
-				if err != nil {
-					return err
-				}
-			}
-			if body.Rustic.StorageS3.Region != nil {
-				err := r.Rustic.StorageS3.UpdateRegion(q, body.Rustic.StorageS3.Region)
 				if err != nil {
 					return err
 				}

@@ -55,31 +55,27 @@ func (s *S3ProxyServer) handleBase(ctx context.Context, vpId int64) (*dmodel.Vol
 		return nil, nil, huma.Error500InternalServerError("missing S3 config")
 	}
 
-	region := vp.Rustic.StorageS3.Region
-
-	if region == nil {
-		key := bucketLocationCacheKey{
-			endpoint: vp.Rustic.StorageS3.Endpoint.V,
-			bucket:   vp.Rustic.StorageS3.Bucket.V,
-		}
-
-		cachedRegion, ok := s.bucketLocationCache.Load(key)
-		if !ok {
-			c, err := s3utils.BuildS3ClientForRegion(vp, "")
-			if err != nil {
-				return nil, nil, err
-			}
-			loc, err := c.GetBucketLocation(ctx, vp.Rustic.StorageS3.Bucket.V)
-			if err != nil {
-				return nil, nil, err
-			}
-			cachedRegion = &loc
-			s.bucketLocationCache.Store(key, cachedRegion)
-		}
-		region = cachedRegion.(*string)
+	key := bucketLocationCacheKey{
+		endpoint: vp.Rustic.StorageS3.Endpoint.V,
+		bucket:   vp.Rustic.StorageS3.Bucket.V,
 	}
 
-	c, err := s3utils.BuildS3ClientForRegion(vp, *region)
+	cachedRegion, ok := s.bucketLocationCache.Load(key)
+	if !ok {
+		c, err := s3utils.BuildS3Client(vp, "")
+		if err != nil {
+			return nil, nil, err
+		}
+		loc, err := c.GetBucketLocation(ctx, vp.Rustic.StorageS3.Bucket.V)
+		if err != nil {
+			return nil, nil, err
+		}
+		cachedRegion = &loc
+		s.bucketLocationCache.Store(key, cachedRegion)
+	}
+	region := cachedRegion.(*string)
+
+	c, err := s3utils.BuildS3Client(vp, *region)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,6 +150,7 @@ func (s *S3ProxyServer) restPresignPut(ctx context.Context, i *huma_utils.IdByPa
 	if err != nil {
 		return nil, err
 	}
+	slog.InfoContext(ctx, "restPresignPut: "+pr.String())
 
 	return huma_utils.NewJsonBody(models.S3ProxyPresignPutResult{
 		PresignedUrl: pr.String(),

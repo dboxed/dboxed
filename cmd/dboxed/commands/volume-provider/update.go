@@ -46,7 +46,6 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 
 	req.Rustic.StorageS3 = &models.UpdateRepositoryStorageS3{
 		Endpoint:        cmd.S3Endpoint,
-		Region:          cmd.S3Region,
 		Bucket:          cmd.S3Bucket,
 		Prefix:          cmd.S3Prefix,
 		AccessKeyId:     cmd.S3AccessKeyId,

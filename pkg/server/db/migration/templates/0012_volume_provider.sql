@@ -29,7 +29,6 @@ create table volume_provider_storage_s3
     id                bigint not null primary key references volume_provider (id) on delete cascade,
 
     endpoint          text   not null,
-    region            text,
     bucket            text   not null,
     access_key_id     text   not null,
     secret_access_key text   not null,
