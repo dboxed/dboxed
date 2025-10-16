@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	network2 "github.com/dboxed/dboxed/pkg/runner/network"
@@ -37,7 +38,7 @@ func (rn *Sandbox) Destroy(ctx context.Context) error {
 			return err
 		}
 	} else {
-		err = rn.StopOrKillSandboxContainer(ctx)
+		err = rn.StopOrKillSandboxContainer(ctx, time.Second*30, time.Second*10)
 		if err != nil {
 			return err
 		}

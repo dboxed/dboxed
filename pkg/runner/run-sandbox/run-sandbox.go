@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -136,7 +137,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	}
 
 	if needDestroy {
-		err = rn.sandbox.StopOrKillSandboxContainer(ctx)
+		err = rn.sandbox.StopOrKillSandboxContainer(ctx, time.Second*30, time.Second*10)
 		if err != nil {
 			return err
 		}
@@ -157,8 +158,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 			return err
 		}
 	} else {
-		slog.InfoContext(ctx, "stopping dboxed service inside sandbox")
-		err = rn.sandbox.S6SvcDown(ctx, "run-in-sandbox")
+		err = rn.sandbox.StopRunInSandboxService(ctx, false)
 		if err != nil {
 			return err
 		}

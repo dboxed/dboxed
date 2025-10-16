@@ -10,14 +10,15 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"github.com/opencontainers/runc/libcontainer"
 	"golang.org/x/sys/unix"
 )
 
 type StopCmd struct {
 	SandboxName *string `help:"Specify the local sandbox name" optional:"" arg:""`
 
-	Signal *string `help:"Specify the signal to send to the init process" short:"s"`
-	All    bool    `help:"Stop all running sandboxes"`
+	Kill bool `help:"Send the kill signal "`
+	All  bool `help:"Stop all running sandboxes"`
 }
 
 func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
@@ -31,8 +32,8 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	signal := unix.SIGTERM
-	if cmd.Signal != nil {
-		signal = unix.SignalNum(*cmd.Signal)
+	if cmd.Kill {
+		signal = unix.SIGKILL
 	}
 
 	for _, si := range sandboxes {
@@ -44,6 +45,17 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 			SandboxName:     si.SandboxName,
 			SandboxDir:      sandboxDir,
 			VethNetworkCidr: si.VethNetworkCidr,
+		}
+
+		cs, err := s.GetSandboxContainerStatus()
+		if err != nil {
+			return err
+		}
+		if cs == libcontainer.Running && !cmd.Kill {
+			err = s.StopRunInSandboxService(ctx, true)
+			if err != nil {
+				return err
+			}
 		}
 
 		stopped, err := s.KillSandboxContainer(ctx, signal, time.Second*10)

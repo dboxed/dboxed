@@ -52,6 +52,33 @@ func (rn *Sandbox) GetSandboxContainerStatus() (libcontainer.Status, error) {
 	return cs, nil
 }
 
+func (rn *Sandbox) writeShutdownMarker() error {
+	p := filepath.Join(rn.GetSandboxRoot(), consts.ShutdownSandboxMarkerFile)
+	if _, err := os.Stat(filepath.Dir(p)); err == nil {
+		err := os.WriteFile(filepath.Join(rn.GetSandboxRoot(), consts.ShutdownSandboxMarkerFile), nil, 0644)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rn *Sandbox) StopRunInSandboxService(ctx context.Context, shutdown bool) error {
+	slog.InfoContext(ctx, "stopping dboxed service inside sandbox")
+
+	if shutdown {
+		err := rn.writeShutdownMarker()
+		if err != nil {
+			return err
+		}
+	}
+	err := rn.S6SvcDown(ctx, "run-in-sandbox")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (rn *Sandbox) StopSandboxContainer(ctx context.Context, timeout time.Duration) error {
 	stopped, err := rn.KillSandboxContainer(ctx, unix.SIGTERM, timeout)
 	if err != nil {
@@ -63,13 +90,13 @@ func (rn *Sandbox) StopSandboxContainer(ctx context.Context, timeout time.Durati
 	return nil
 }
 
-func (rn *Sandbox) StopOrKillSandboxContainer(ctx context.Context) error {
-	stopped, err := rn.KillSandboxContainer(ctx, unix.SIGTERM, time.Second*10)
+func (rn *Sandbox) StopOrKillSandboxContainer(ctx context.Context, stopTimeout time.Duration, killTimeout time.Duration) error {
+	stopped, err := rn.KillSandboxContainer(ctx, unix.SIGTERM, stopTimeout)
 	if err != nil {
 		return err
 	}
 	if !stopped {
-		stopped, err = rn.KillSandboxContainer(ctx, unix.SIGKILL, time.Second*10)
+		stopped, err = rn.KillSandboxContainer(ctx, unix.SIGKILL, killTimeout)
 		if err != nil {
 			return err
 		}

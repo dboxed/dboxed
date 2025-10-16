@@ -3,6 +3,9 @@ package run_in_sandbox
 import (
 	"context"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
@@ -28,33 +31,77 @@ type RunInSandbox struct {
 	dnsProxy      *dns_proxy.DnsProxy
 
 	logsPublisher logs.LogsPublisher
+
+	lastBoxSpecHash string
+	lastBoxSpec     *boxspec.BoxSpec
 }
 
 func (rn *RunInSandbox) Run(ctx context.Context) error {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer func() {
+		signal.Stop(sigs)
+	}()
+
+	shutdown, err := rn.doRun(ctx, sigs)
+	if err != nil {
+		return err
+	}
+
+	if !shutdown {
+		if _, err := os.Stat(consts.ShutdownSandboxMarkerFile); err == nil {
+			shutdown = true
+			slog.InfoContext(ctx, "detected stop marker file, shutting down sandbox")
+		}
+	}
+
+	if shutdown {
+		err = rn.shutdown(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, error) {
 	util2.LoadMod(ctx, "dm-mod")
 	util2.LoadMod(ctx, "dm-thin-pool")
 	util2.LoadMod(ctx, "dm-snapshot")
 	util2.LoadMod(ctx, "dm-zero")
 
+	sleepWithSignals := func(d time.Duration) (bool, error) {
+		select {
+		case <-ctx.Done():
+			return true, ctx.Err()
+		case <-time.After(2 * time.Second):
+			return false, nil
+		case s := <-sigs:
+			slog.InfoContext(ctx, "received signal, exiting now", slog.Any("signal", s.String()))
+			return true, nil
+		}
+	}
+
 	var err error
 	rn.sandboxInfo, err = sandbox.ReadSandboxInfo(consts.DboxedDataDir)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rn.networkConfig, err = util.UnmarshalYamlFile[boxspec.NetworkConfig](consts.NetworkConfFile)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = rn.startDnsProxy(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = rn.initLogsPublishing(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer rn.logsPublisher.Stop(false)
 
@@ -64,46 +111,49 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 		if err == nil {
 			break
 		}
-		if !util.SleepWithContext(ctx, 2*time.Second) {
-			return ctx.Err()
+
+		exit, err := sleepWithSignals(2 * time.Second)
+		if err != nil {
+			return false, err
+		}
+		if exit {
+			return false, nil
 		}
 	}
 	slog.InfoContext(ctx, "docker is up and running")
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
 
-	lastBoxSpecHash := ""
-	var lastBoxSpec *boxspec.BoxSpec
 	for {
 		boxSpec, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
-				err = rn.shutdown(ctx, lastBoxSpec)
-				if err != nil {
-					return err
-				}
-				return nil
+				return true, nil
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
 		} else {
 			newHash, err := util.Sha256SumJson(boxSpec)
 			if err != nil {
-				return err
+				return false, err
 			}
-			if newHash != lastBoxSpecHash {
+			if newHash != rn.lastBoxSpecHash {
 				slog.InfoContext(ctx, "a new box spec was received")
 				err = rn.reconcileBoxSpec(ctx, boxSpec)
 				if err != nil {
 					slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 				}
-				lastBoxSpecHash = newHash
-				lastBoxSpec = boxSpec
+				rn.lastBoxSpecHash = newHash
+				rn.lastBoxSpec = boxSpec
 			}
 		}
 
-		if !util.SleepWithContext(ctx, time.Second*5) {
-			return ctx.Err()
+		exit, err := sleepWithSignals(5 * time.Second)
+		if err != nil {
+			return false, err
+		}
+		if exit {
+			return false, nil
 		}
 	}
 }
@@ -121,10 +171,10 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 	return nil
 }
 
-func (rn *RunInSandbox) shutdown(ctx context.Context, lastBoxSpec *boxspec.BoxSpec) error {
-	if lastBoxSpec != nil {
+func (rn *RunInSandbox) shutdown(ctx context.Context) error {
+	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
-			BoxSpec: lastBoxSpec,
+			BoxSpec: rn.lastBoxSpec,
 		}
 
 		slog.InfoContext(ctx, "shutting down compose projects")

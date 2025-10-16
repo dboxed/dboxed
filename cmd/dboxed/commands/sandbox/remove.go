@@ -43,7 +43,19 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 			VethNetworkCidr: si.VethNetworkCidr,
 		}
 
+		cs, err := s.GetSandboxContainerStatus()
+		if err != nil {
+			return err
+		}
+
 		if cmd.Force {
+			if cs == libcontainer.Running {
+				err = s.StopRunInSandboxService(ctx, true)
+				if err != nil {
+					return err
+				}
+			}
+
 			err = s.StopSandboxContainer(ctx, time.Second*10)
 			if err != nil {
 				return err

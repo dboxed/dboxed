@@ -22,7 +22,8 @@ const VolumesDir = DboxedDataDir + "/volumes"
 
 const VethIPStoreFile = "veth-ip"
 const SandboxInfoFile = "sandbox-info.yaml"
-const SandboxInfoFileInSandbox = DboxedDataDir + "/" + SandboxInfoFile
+
+const ShutdownSandboxMarkerFile = DboxedDataDir + "/" + "stop-sandbox"
 
 func GetDefaultInfraImage() string {
 	tag := "nightly"
