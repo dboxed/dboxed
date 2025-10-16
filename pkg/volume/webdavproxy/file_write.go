@@ -1,13 +1,12 @@
 package webdavproxy
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"sync"
+	"os"
 
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"golang.org/x/net/webdav"
@@ -19,20 +18,18 @@ type fileWrite struct {
 
 	presignedPut *models.S3ProxyPresignPutResult
 
-	m            sync.Mutex
-	uploadReq    *http.Request
-	uploadResp   *http.Response
-	uploadWriter *io.PipeWriter
-	uploadErr    error
-	uploadDone   chan struct{}
-	written      int64
+	tmpFile *os.File
 }
 
 func (f *fileWrite) Stat() (fs.FileInfo, error) {
+	st, err := f.tmpFile.Stat()
+	if err != nil {
+		return nil, err
+	}
 	return &fileInfo{
 		oi: models.S3ObjectInfo{
 			Key:  f.key,
-			Size: f.written,
+			Size: st.Size(),
 		},
 	}, nil
 }
@@ -50,58 +47,31 @@ func (f *fileWrite) presignPutUrl() error {
 	return nil
 }
 
-func (f *fileWrite) beginUpload(url string) error {
-	bodyReader, bodyWriter := io.Pipe()
-
-	f.m.Lock()
-	defer f.m.Unlock()
-
-	if f.uploadReq != nil {
-		return fmt.Errorf("upload already started")
+func (f *fileWrite) upload() error {
+	_, err := f.tmpFile.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
 	}
-
-	slog.Debug("beginUpload", slog.Any("key", f.key))
-
-	req, err := http.NewRequest("PUT", url, bufio.NewReaderSize(bodyReader, 1024*64))
+	st, err := f.tmpFile.Stat()
 	if err != nil {
 		return err
 	}
 
-	f.uploadReq = req
-	f.uploadDone = make(chan struct{})
-	f.uploadWriter = bodyWriter
-	go func() {
-		resp, err := http.DefaultClient.Do(req)
-		defer resp.Body.Close()
-		f.handleUploadDone(resp, err)
-	}()
+	slog.Debug("upload", slog.Any("key", f.key), slog.Any("size", st.Size()))
 
-	return nil
-}
-
-func (f *fileWrite) handleUploadDone(resp *http.Response, err error) {
-	f.m.Lock()
-	defer f.m.Unlock()
-
-	slog.Debug("handleUploadDone", slog.Any("key", f.key))
-
-	f.uploadResp = resp
-	f.uploadErr = err
-	close(f.uploadDone)
-}
-
-func (f *fileWrite) checkUploadErr() error {
-	f.m.Lock()
-	defer f.m.Unlock()
-	if f.uploadErr != nil {
-		return f.uploadErr
+	req, err := http.NewRequest("PUT", f.presignedPut.PresignedUrl, f.tmpFile)
+	if err != nil {
+		return err
 	}
-	if f.uploadResp == nil {
-		return nil
+	req.ContentLength = st.Size()
+
+	resp, err := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("upload request returned status %s", resp.Status)
 	}
-	if f.uploadResp.StatusCode < 200 || f.uploadResp.StatusCode >= 300 {
-		return fmt.Errorf("upload status: %s", f.uploadResp.Status)
-	}
+
 	return nil
 }
 
@@ -111,40 +81,29 @@ func (f *fileWrite) Start() error {
 		return err
 	}
 
-	err = f.beginUpload(f.presignedPut.PresignedUrl)
+	f.tmpFile, err = os.CreateTemp("", "")
 	if err != nil {
 		return err
 	}
+	// we remove the file immediately and keep it open, so we can be sure it's deleted when the
+	// process exits
+	err = os.Remove(f.tmpFile.Name())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (f *fileWrite) Close() error {
 	defer func() {
 		f.fs.forgetCache(f.key, true)
+		_ = f.tmpFile.Close()
 	}()
-
-	err := f.checkUploadErr()
-	if err != nil {
-		return err
-	}
 
 	slog.Debug("close", slog.Any("key", f.key))
 
-	err = f.uploadWriter.Close()
-	if err != nil {
-		f.m.Lock()
-		if f.uploadErr != nil {
-			f.uploadErr = err
-		}
-		f.m.Unlock()
-		return err
-	}
-
-	slog.Debug("wait for close", slog.Any("key", f.key))
-	<-f.uploadDone
-	slog.Debug("close done", slog.Any("key", f.key))
-
-	err = f.checkUploadErr()
+	err := f.upload()
 	if err != nil {
 		return err
 	}
@@ -154,15 +113,15 @@ func (f *fileWrite) Close() error {
 
 func (f *fileWrite) Write(p []byte) (int, error) {
 	slog.Debug("write", slog.Any("key", f.key), slog.Any("len", len(p)))
-	return f.uploadWriter.Write(p)
+	return f.tmpFile.Write(p)
 }
 
 func (f *fileWrite) Seek(offset int64, whence int) (int64, error) {
-	return 0, webdav.ErrNotImplemented
+	return f.tmpFile.Seek(offset, whence)
 }
 
 func (f *fileWrite) Read(p []byte) (n int, err error) {
-	return 0, webdav.ErrNotImplemented
+	return f.tmpFile.Read(p)
 }
 
 func (f *fileWrite) Readdir(count int) ([]fs.FileInfo, error) {
