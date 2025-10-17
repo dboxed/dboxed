@@ -37,9 +37,8 @@ type VolumeServeOpts struct {
 type VolumeServe struct {
 	opts VolumeServeOpts
 
-	volumeProvider *models.VolumeProvider
-	volume         *models.Volume
-	log            *slog.Logger
+	volume *models.Volume
+	log    *slog.Logger
 
 	LocalVolume *volume.Volume
 
@@ -91,14 +90,8 @@ func (vs *VolumeServe) getVolume(ctx context.Context, s *VolumeState) error {
 	}
 
 	c2 := &clients.VolumesClient{Client: c}
-	c3 := &clients.VolumeProvidersClient{Client: c}
 
 	vs.volume, err = c2.GetVolumeById(ctx, vs.opts.VolumeId)
-	if err != nil {
-		return err
-	}
-
-	vs.volumeProvider, err = c3.GetVolumeProviderById(ctx, vs.volume.VolumeProvider)
 	if err != nil {
 		return err
 	}
@@ -401,11 +394,11 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 	vb := &volume_backup.VolumeBackup{
 		Client:                c,
 		Volume:                vs.LocalVolume,
-		VolumeProviderId:      vs.volumeProvider.ID,
+		VolumeProviderId:      vs.volume.VolumeProvider,
 		VolumeId:              vs.volume.ID,
 		VolumeUuid:            vs.volume.Uuid,
 		LockId:                *vs.volume.LockId,
-		RusticPassword:        vs.volumeProvider.Rustic.Password,
+		RusticPassword:        vs.volume.Rustic.Password,
 		Mount:                 mount,
 		SnapshotMount:         snapshotMount,
 		WebdavProxyListenAddr: vs.opts.WebdavProxyListen,

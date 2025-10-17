@@ -30,6 +30,8 @@ type Volume struct {
 }
 
 type VolumeRustic struct {
+	Password string `json:"password"`
+
 	FsSize int64  `json:"fsSize"`
 	FsType string `json:"fsType"`
 }
@@ -84,7 +86,7 @@ type VolumeReleaseRequest struct {
 	LockId string `json:"lockId"`
 }
 
-func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volume {
+func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volumeProvider *dmodel.VolumeProvider) Volume {
 	ret := Volume{
 		ID:        s.ID,
 		Workspace: s.WorkspaceID,
@@ -104,7 +106,7 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 	}
 
 	if attachment != nil && attachment.VolumeId.Valid {
-		ret.Attachment = util.Ptr(VolumeAttachmentFromDB(*attachment, nil))
+		ret.Attachment = util.Ptr(VolumeAttachmentFromDB(*attachment, nil, volumeProvider))
 	}
 
 	if s.Rustic != nil && s.Rustic.ID.Valid {
@@ -112,12 +114,15 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) Volum
 			FsSize: s.Rustic.FsSize.V,
 			FsType: s.Rustic.FsType.V,
 		}
+		if volumeProvider != nil {
+			ret.Rustic.Password = volumeProvider.Rustic.Password.V
+		}
 	}
 
 	return ret
 }
 
-func VolumeAttachmentFromDB(attachment dmodel.BoxVolumeAttachment, volume *dmodel.Volume) VolumeAttachment {
+func VolumeAttachmentFromDB(attachment dmodel.BoxVolumeAttachment, volume *dmodel.Volume, volumeProvider *dmodel.VolumeProvider) VolumeAttachment {
 	ret := VolumeAttachment{
 		BoxID:    attachment.BoxId.V,
 		VolumeID: attachment.VolumeId.V,
@@ -127,7 +132,7 @@ func VolumeAttachmentFromDB(attachment dmodel.BoxVolumeAttachment, volume *dmode
 	}
 
 	if volume != nil {
-		ret.Volume = util.Ptr(VolumeFromDB(*volume, nil))
+		ret.Volume = util.Ptr(VolumeFromDB(*volume, nil, volumeProvider))
 	}
 
 	return ret

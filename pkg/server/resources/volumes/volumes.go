@@ -60,7 +60,7 @@ func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonB
 		return nil, huma.Error400BadRequest(inputErr)
 	}
 
-	ret := models.VolumeFromDB(*v, nil)
+	ret := models.VolumeFromDB(*v, nil, nil)
 
 	err = dmodel.AddChangeTracking(q, v)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolum
 		return nil, "", err
 	}
 
-	switch dmodel.VolumeProviderType(vp.Type) {
+	switch vp.Type {
 	case dmodel.VolumeProviderTypeRustic:
 		if body.Rustic == nil {
 			return nil, "missing rustic config", nil
@@ -152,7 +152,7 @@ func (s *VolumeServer) restListVolumes(ctx context.Context, i *struct{}) (*huma_
 			continue
 		}
 
-		mm := models.VolumeFromDB(r.Volume, r.Attachment)
+		mm := models.VolumeFromDB(r.Volume, r.Attachment, nil)
 		ret = append(ret, mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
@@ -172,7 +172,7 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -194,7 +194,7 @@ func (s *VolumeServer) restGetVolumeByUuid(c context.Context, i *VolumeUuid) (*h
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -216,7 +216,7 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -282,7 +282,12 @@ func (s *VolumeServer) restLockVolume(ctx context.Context, i *restLockVolume) (*
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment)
+	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, v.VolumeProviderID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -318,7 +323,7 @@ func (s *VolumeServer) restReleaseVolume(ctx context.Context, i *restReleaseVolu
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
 	return huma_utils.NewJsonBody(m), nil
 }
 

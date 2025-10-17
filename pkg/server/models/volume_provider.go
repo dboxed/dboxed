@@ -19,8 +19,6 @@ type VolumeProvider struct {
 }
 
 type VolumeProviderRustic struct {
-	Password string `json:"password"`
-
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
 	StorageS3   *VolumeStorageS3                 `json:"storageS3"`
 }
@@ -81,7 +79,6 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 	}
 	if v.Rustic != nil && v.Rustic.ID.Valid {
 		ret.Rustic = &VolumeProviderRustic{
-			Password:    v.Rustic.Password.V,
 			StorageType: v.Rustic.StorageType,
 		}
 		if v.Rustic.StorageS3 != nil && v.Rustic.StorageS3.ID.Valid {
