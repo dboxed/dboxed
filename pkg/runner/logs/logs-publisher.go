@@ -96,18 +96,20 @@ func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
 		volumeDir := filepath.Dir(logDir)
 		fileName := filepath.Base(volumeDir)
 
-		metdata := map[string]any{}
-		volumeState, err := volume_serve.LoadVolumeState(volumesDir)
+		metadata := map[string]any{}
+		volumeState, err := volume_serve.LoadVolumeState(volumeDir)
 		if err == nil {
-			metdata["volume-name"] = volumeState.Volume.Name
-			metdata["volume-id"] = volumeState.Volume.ID
-			metdata["volume-uuid"] = volumeState.Volume.Uuid
-			metdata["volume-mount-name"] = volumeState.MountName
+			metadata["volume"] = map[string]any{
+				"name":       volumeState.Volume.Name,
+				"id":         volumeState.Volume.ID,
+				"uuid":       volumeState.Volume.Uuid,
+				"mount-name": volumeState.MountName,
+			}
 		}
 		return boxspec.LogMetadata{
 			FileName: fileName,
 			Format:   "slog-json",
-			Metadata: metdata,
+			Metadata: metadata,
 		}, nil
 	}
 
