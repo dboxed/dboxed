@@ -14,6 +14,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/auth"
+	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/server/s3utils"
 	"github.com/minio/minio-go/v7"
 )
@@ -34,10 +36,12 @@ func New() *S3ProxyServer {
 
 func (s *S3ProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	noTxModifier := huma_utils.MetadataModifier(huma_utils.NoTx, true)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/list-objects", s.restListObjects, noTxModifier)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/presign-put", s.restPresignPut, noTxModifier)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/rename-object", s.restRenameObject, noTxModifier)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/delete-object", s.restDeleteObject, noTxModifier)
+	allowBoxTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true)
+
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/list-objects", s.restListObjects, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/presign-put", s.restPresignPut, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/rename-object", s.restRenameObject, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/delete-object", s.restDeleteObject, noTxModifier, allowBoxTokenModifier)
 
 	return nil
 }
@@ -45,6 +49,13 @@ func (s *S3ProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error
 func (s *S3ProxyServer) handleBase(ctx context.Context, vpId int64) (*dmodel.VolumeProvider, *minio.Client, error) {
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
+	token := auth.GetToken(ctx)
+
+	if token != nil {
+		if w.ID != token.Workspace {
+			return nil, nil, huma.Error403Forbidden("no access to volume provider")
+		}
+	}
 
 	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, vpId, true)
 	if err != nil {
