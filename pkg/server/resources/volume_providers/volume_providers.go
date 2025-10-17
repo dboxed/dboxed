@@ -277,7 +277,7 @@ func (s *VolumeProviderServer) checkEndpoint(endpoint string) error {
 	return nil
 }
 
-var prefixRegex = regexp.MustCompile(`^([a-zA-Z0-9]*)(/([a-zA-Z0-9]+))*/?$`)
+var prefixRegex = regexp.MustCompile(`^([-a-zA-Z0-9]*)(/([-a-zA-Z0-9]+))*/?$`)
 
 func (s *VolumeProviderServer) checkPrefix(prefix string) error {
 	if !prefixRegex.MatchString(prefix) {
