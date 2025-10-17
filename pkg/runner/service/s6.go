@@ -263,7 +263,6 @@ func (s *S6Helper) S6SvcExists(serviceName string) bool {
 	}
 
 	serviceDir := filepath.Join(s.Rootfs, s.ServiceLinksDir, serviceName)
-	slog.Info("check", slog.Any("serviceDir", serviceDir))
 	_, err = os.Lstat(serviceDir)
 	if err != nil {
 		return false
