@@ -5,6 +5,6 @@ RUN apk add --no-cache kmod iproute2 nftables
 
 VOLUME /var/lib/dboxed
 
-COPY $TARGETPLATFORM/bin/dboxed /usr/bin/dboxed
+COPY $TARGETPLATFORM/dboxed /usr/bin/dboxed
 
 ENTRYPOINT ["dboxed"]
