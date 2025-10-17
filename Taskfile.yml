@@ -50,3 +50,9 @@ tasks:
       - task: goreleaser-helper
         vars:
           GORELEASER_ARGS: release --clean --nightly
+
+  goreleaser-release-final:
+    cmds:
+      - task: goreleaser-helper
+        vars:
+          GORELEASER_ARGS: release --clean
