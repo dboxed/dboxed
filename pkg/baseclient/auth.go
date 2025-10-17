@@ -19,7 +19,7 @@ func (c *Client) GetClientAuth(withOverrides bool) *ClientAuth {
 		ret.StaticToken = c.GetApiToken()
 		ret.WorkspaceId = c.getWorkspaceId()
 	}
-	return c.clientAuth
+	return ret
 }
 
 func (c *Client) WriteClientAuth() error {
