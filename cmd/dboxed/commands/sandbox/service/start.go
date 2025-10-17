@@ -14,14 +14,14 @@ import (
 )
 
 type StartCmd struct {
-	flags.SandboxArgs
+	flags.SandboxArgsRequired
 }
 
 func (cmd *StartCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
-	si, err := commandutils.GetSandboxInfo(sandboxBaseDir, cmd.Sandbox)
+	si, err := commandutils.GetSandboxInfo(sandboxBaseDir, &cmd.Sandbox)
 	if err != nil {
 		return err
 	}

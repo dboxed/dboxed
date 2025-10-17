@@ -13,8 +13,11 @@ type SandboxRunArgs struct {
 	VethCidr   string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
 }
 
-type SandboxArgs struct {
-	Sandbox string `help:"Specify the local sandbox name, box name, box id, or box uuid" arg:""`
+type SandboxArgsOptional struct {
+	Sandbox *string `help:"Specify the local sandbox name, box name, box id, or box uuid" optional:"" arg:""`
+}
+type SandboxArgsRequired struct {
+	Sandbox string `help:"Specify the local sandbox name, box name, box id, or box uuid" required:"" arg:""`
 }
 
 func (a SandboxRunArgs) GetSandboxName(box *models.Box) (string, error) {

@@ -16,7 +16,7 @@ import (
 )
 
 type ExecCmd struct {
-	flags.SandboxArgs
+	flags.SandboxArgsRequired
 
 	Args []string `help:"Args..." arg:""`
 
@@ -34,7 +34,7 @@ func (cmd *ExecCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
-	si, err := commandutils.GetSandboxInfo(sandboxBaseDir, cmd.Sandbox)
+	si, err := commandutils.GetSandboxInfo(sandboxBaseDir, &cmd.Sandbox)
 	if err != nil {
 		return err
 	}

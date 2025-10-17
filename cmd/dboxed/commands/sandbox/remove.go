@@ -17,7 +17,7 @@ import (
 )
 
 type RemoveCmd struct {
-	flags.SandboxArgs
+	flags.SandboxArgsOptional
 
 	All   bool `help:"Remove all sandboxes"`
 	Force bool `help:"Force removal of running sandboxes. This will kill them first."`

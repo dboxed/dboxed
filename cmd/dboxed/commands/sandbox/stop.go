@@ -16,7 +16,7 @@ import (
 )
 
 type StopCmd struct {
-	flags.SandboxArgs
+	flags.SandboxArgsOptional
 
 	Kill bool `help:"Send the kill signal "`
 	All  bool `help:"Stop all running sandboxes"`

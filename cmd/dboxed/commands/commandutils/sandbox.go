@@ -8,8 +8,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 )
 
-func GetSandboxInfo(baseDir string, sandboxArg string) (*sandbox.SandboxInfo, error) {
-	if sandboxArg == "" {
+func GetSandboxInfo(baseDir string, sandboxArg *string) (*sandbox.SandboxInfo, error) {
+	if sandboxArg == nil {
 		return nil, fmt.Errorf("missing sandbox arg")
 	}
 
@@ -18,22 +18,22 @@ func GetSandboxInfo(baseDir string, sandboxArg string) (*sandbox.SandboxInfo, er
 		return nil, err
 	}
 
-	sandboxId, err := strconv.ParseInt(sandboxArg, 10, 64)
+	sandboxId, err := strconv.ParseInt(*sandboxArg, 10, 64)
 	if err != nil {
 		sandboxId = -1
 	}
 
 	for _, s := range sandboxes {
-		if s.SandboxName == sandboxArg || s.Box.Name == sandboxArg || s.Box.ID == sandboxId || s.Box.Uuid == sandboxArg {
+		if s.SandboxName == *sandboxArg || s.Box.Name == *sandboxArg || s.Box.ID == sandboxId || s.Box.Uuid == *sandboxArg {
 			return &s, nil
 		}
 	}
 	return nil, os.ErrNotExist
 }
 
-func GetOneOrAllSandboxInfos(baseDir string, sandboxArg string, all bool) ([]sandbox.SandboxInfo, error) {
+func GetOneOrAllSandboxInfos(baseDir string, sandboxArg *string, all bool) ([]sandbox.SandboxInfo, error) {
 	var sandboxes []sandbox.SandboxInfo
-	if sandboxArg != "" {
+	if sandboxArg != nil {
 		si, err := GetSandboxInfo(baseDir, sandboxArg)
 		if err != nil {
 			return nil, err
