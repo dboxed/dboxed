@@ -12,14 +12,14 @@ import (
 
 type GetMountFunc func(volumeUuid string) string
 
-func (s *BoxSpec) LoadComposeProjects(ctx context.Context, getMount GetMountFunc) ([]*ctypes.Project, error) {
-	var ret []*ctypes.Project
+func (s *BoxSpec) LoadComposeProjects(ctx context.Context, getMount GetMountFunc) (map[string]*ctypes.Project, error) {
+	ret := map[string]*ctypes.Project{}
 	for name, str := range s.ComposeProjects {
 		p, err := s.loadAndSetupComposeProject(ctx, name, str, getMount)
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, p)
+		ret[name] = p
 	}
 	return ret, nil
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 
+	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 	"github.com/moby/sys/mountinfo"
@@ -24,7 +25,7 @@ func (rn *BoxSpecRunner) getVolumeMountDir(uuid string) string {
 	return filepath.Join(rn.getVolumeWorkDir(uuid), "mount")
 }
 
-func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
+func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects map[string]*ctypes.Project, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
 	oldVolumesByName := map[int64]*volume_serve.VolumeState{}
 	newVolumeByName := map[int64]*boxspec.DboxedVolume{}
 
@@ -76,7 +77,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, newVolumes []boxs
 		}
 	}
 	if allowDownService && needDown {
-		err := rn.runComposeDown(ctx)
+		err = rn.runComposeDown(ctx, composeProjects, false, false)
 		if err != nil {
 			return err
 		}

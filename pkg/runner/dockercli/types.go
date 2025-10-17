@@ -29,3 +29,8 @@ type DockerContainerConfig struct {
 	Created time.Time `json:"Created"`
 	Name    string    `json:"Name"`
 }
+
+type DockerComposeListEntry struct {
+	Name   string `json:"Name"`
+	Status string `json:"Status"`
+}
