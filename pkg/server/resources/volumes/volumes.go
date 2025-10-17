@@ -13,6 +13,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/auth"
+	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
 	"github.com/dustin/go-humanize"
@@ -28,15 +30,17 @@ func New(config config.Config) *VolumeServer {
 }
 
 func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	allowBoxTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true)
+
 	huma.Post(workspacesGroup, "/volumes", s.restCreateVolume)
-	huma.Get(workspacesGroup, "/volumes", s.restListVolumes)
-	huma.Get(workspacesGroup, "/volumes/{id}", s.restGetVolume)
-	huma.Get(workspacesGroup, "/volumes/by-uuid/{uuid}", s.restGetVolumeByUuid)
-	huma.Get(workspacesGroup, "/volumes/by-name/{name}", s.restGetVolumeByName)
+	huma.Get(workspacesGroup, "/volumes", s.restListVolumes, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/volumes/{id}", s.restGetVolume, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/volumes/by-uuid/{uuid}", s.restGetVolumeByUuid, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/volumes/by-name/{name}", s.restGetVolumeByName, allowBoxTokenModifier)
 	huma.Delete(workspacesGroup, "/volumes/{id}", s.restDeleteVolume)
 
-	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume)
-	huma.Post(workspacesGroup, "/volumes/{id}/release", s.restReleaseVolume)
+	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/volumes/{id}/release", s.restReleaseVolume, allowBoxTokenModifier)
 
 	huma.Get(workspacesGroup, "/volumes/{id}/snapshots", s.restListSnapshots)
 	huma.Get(workspacesGroup, "/volumes/{id}/snapshots/{snapshotId}", s.restGetSnapshot)
@@ -143,6 +147,11 @@ func (s *VolumeServer) restListVolumes(ctx context.Context, i *struct{}) (*huma_
 
 	var ret []models.Volume
 	for _, r := range l {
+		err = s.checkBoxToken(ctx, &r.Volume, r.Attachment)
+		if err != nil {
+			continue
+		}
+
 		mm := models.VolumeFromDB(r.Volume, r.Attachment)
 		ret = append(ret, mm)
 	}
@@ -154,6 +163,11 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 	w := global.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkBoxToken(ctx, &v.Volume, v.Attachment)
 	if err != nil {
 		return nil, err
 	}
@@ -175,6 +189,11 @@ func (s *VolumeServer) restGetVolumeByUuid(c context.Context, i *VolumeUuid) (*h
 		return nil, err
 	}
 
+	err = s.checkBoxToken(c, &v.Volume, v.Attachment)
+	if err != nil {
+		return nil, err
+	}
+
 	m := models.VolumeFromDB(v.Volume, v.Attachment)
 	return huma_utils.NewJsonBody(m), nil
 }
@@ -188,6 +207,11 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 	w := global.GetWorkspace(c)
 
 	v, err := dmodel.GetVolumeByName(q, w.ID, i.VolumeName, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkBoxToken(c, &v.Volume, v.Attachment)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +242,11 @@ func (s *VolumeServer) restLockVolume(ctx context.Context, i *restLockVolume) (*
 	w := global.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkBoxToken(ctx, &v.Volume, v.Attachment)
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +300,11 @@ func (s *VolumeServer) restReleaseVolume(ctx context.Context, i *restReleaseVolu
 		return nil, err
 	}
 
+	err = s.checkBoxToken(ctx, &v.Volume, v.Attachment)
+	if err != nil {
+		return nil, err
+	}
+
 	log := slog.With(slog.Any("volId", v.ID))
 
 	if v.LockId == nil || *v.LockId != i.Body.LockId {
@@ -286,4 +320,28 @@ func (s *VolumeServer) restReleaseVolume(ctx context.Context, i *restReleaseVolu
 
 	m := models.VolumeFromDB(v.Volume, v.Attachment)
 	return huma_utils.NewJsonBody(m), nil
+}
+
+func (s *VolumeServer) checkBoxToken(ctx context.Context, volume *dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) error {
+	q := querier.GetQuerier(ctx)
+	token := auth.GetToken(ctx)
+
+	if token == nil || token.BoxID != nil {
+		// not a box token
+		return nil
+	}
+
+	if attachment == nil || !attachment.BoxId.Valid {
+		return huma.Error403Forbidden("access to volume not allowed")
+	}
+
+	box, err := dmodel.GetBoxById(q, &volume.WorkspaceID, *token.BoxID, true)
+	if err != nil {
+		return err
+	}
+
+	if box.WorkspaceID != volume.WorkspaceID || box.ID != attachment.BoxId.V {
+		return huma.Error403Forbidden("access to volume not allowed")
+	}
+	return nil
 }
