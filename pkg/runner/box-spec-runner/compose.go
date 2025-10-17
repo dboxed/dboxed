@@ -50,6 +50,13 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 	}
 
 	for _, composeProject := range composeProjects {
+		err = rn.runComposeCli(ctx, composeProject.Name, nil, "build", "-q")
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, composeProject := range composeProjects {
 		err = rn.runComposeCli(ctx, composeProject.Name, nil, "up", "-d", "--remove-orphans", "--pull=never")
 		if err != nil {
 			return err
