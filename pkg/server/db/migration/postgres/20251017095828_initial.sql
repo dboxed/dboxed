@@ -13,14 +13,17 @@ CREATE TABLE "box" (
   "network_id" bigint NULL,
   "network_type" text NULL,
   "dboxed_version" text NOT NULL,
-  "box_spec" bytea NOT NULL,
-  "nkey" text NOT NULL,
-  "nkey_seed" text NOT NULL,
   "machine_id" bigint NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "box_nkey_key" UNIQUE ("nkey"),
   CONSTRAINT "box_uuid_key" UNIQUE ("uuid"),
   CONSTRAINT "box_workspace_id_name_key" UNIQUE ("workspace_id", "name")
+);
+-- create "box_compose_project" table
+CREATE TABLE "box_compose_project" (
+  "box_id" bigint NOT NULL,
+  "name" text NOT NULL,
+  "compose_project" text NOT NULL,
+  PRIMARY KEY ("box_id", "name")
 );
 -- create "box_netbird" table
 CREATE TABLE "box_netbird" (
@@ -49,6 +52,34 @@ CREATE TABLE "change_tracking" (
 );
 -- create index "idx_table_and_id" to table: "change_tracking"
 CREATE INDEX "idx_table_and_id" ON "change_tracking" ("table_name", "id");
+-- create "log_line" table
+CREATE TABLE "log_line" (
+  "id" bigserial NOT NULL,
+  "workspace_id" bigint NOT NULL,
+  "log_id" bigint NOT NULL,
+  "time" timestamptz NOT NULL,
+  "line" text NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "log_line_log_id_and_id" to table: "log_line"
+CREATE INDEX "log_line_log_id_and_id" ON "log_line" ("log_id", "id");
+-- create index "log_line_time_index" to table: "log_line"
+CREATE INDEX "log_line_time_index" ON "log_line" ("log_id", "time");
+-- create "log_metadata" table
+CREATE TABLE "log_metadata" (
+  "id" bigserial NOT NULL,
+  "workspace_id" bigint NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "deleted_at" timestamptz NULL,
+  "finalizers" text NOT NULL DEFAULT '{}',
+  "box_id" bigint NULL,
+  "file_name" text NOT NULL,
+  "format" text NOT NULL,
+  "metadata" text NOT NULL,
+  "total_line_bytes" bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "log_metadata_box_id_file_name_key" UNIQUE ("box_id", "file_name")
+);
 -- create "machine" table
 CREATE TABLE "machine" (
   "id" bigserial NOT NULL,
@@ -211,7 +242,7 @@ CREATE TABLE "volume" (
   "name" text NOT NULL,
   "lock_id" text NULL,
   "lock_time" timestamptz NULL,
-  "lock_box_uuid" text NULL,
+  "lock_box_id" bigint NULL,
   "latest_snapshot_id" bigint NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "volume_uuid_key" UNIQUE ("uuid"),
@@ -242,7 +273,6 @@ CREATE TABLE "volume_provider_rustic" (
 CREATE TABLE "volume_provider_storage_s3" (
   "id" bigint NOT NULL,
   "endpoint" text NOT NULL,
-  "region" text NULL,
   "bucket" text NOT NULL,
   "access_key_id" text NOT NULL,
   "secret_access_key" text NOT NULL,
@@ -314,10 +344,7 @@ CREATE TABLE "workspace" (
   "reconcile_status" text NOT NULL DEFAULT 'Initializing',
   "reconcile_status_details" text NOT NULL DEFAULT '',
   "name" text NOT NULL,
-  "nkey" text NOT NULL,
-  "nkey_seed" text NOT NULL,
-  PRIMARY KEY ("id"),
-  CONSTRAINT "workspace_nkey_key" UNIQUE ("nkey")
+  PRIMARY KEY ("id")
 );
 -- create "workspace_access" table
 CREATE TABLE "workspace_access" (
@@ -325,12 +352,24 @@ CREATE TABLE "workspace_access" (
   "user_id" text NOT NULL,
   PRIMARY KEY ("workspace_id", "user_id")
 );
+-- create "workspace_quotas" table
+CREATE TABLE "workspace_quotas" (
+  "workspace_id" bigint NOT NULL,
+  "max_log_bytes" integer NOT NULL DEFAULT 100,
+  PRIMARY KEY ("workspace_id")
+);
 -- modify "box" table
 ALTER TABLE "box" ADD CONSTRAINT "box_machine_id_fkey" FOREIGN KEY ("machine_id") REFERENCES "machine" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "box_network_id_fkey" FOREIGN KEY ("network_id") REFERENCES "network" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "box_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+-- modify "box_compose_project" table
+ALTER TABLE "box_compose_project" ADD CONSTRAINT "box_compose_project_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "box_netbird" table
 ALTER TABLE "box_netbird" ADD CONSTRAINT "box_netbird_id_fkey" FOREIGN KEY ("id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "box_volume_attachment" table
 ALTER TABLE "box_volume_attachment" ADD CONSTRAINT "box_volume_attachment_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "box_volume_attachment_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+-- modify "log_line" table
+ALTER TABLE "log_line" ADD CONSTRAINT "log_line_log_id_fkey" FOREIGN KEY ("log_id") REFERENCES "log_metadata" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "log_line_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "log_metadata" table
+ALTER TABLE "log_metadata" ADD CONSTRAINT "log_metadata_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "log_metadata_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "machine" table
 ALTER TABLE "machine" ADD CONSTRAINT "machine_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "machine_machine_provider_id_fkey" FOREIGN KEY ("machine_provider_id") REFERENCES "machine_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "machine_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "machine_aws" table
@@ -360,7 +399,7 @@ ALTER TABLE "network_netbird" ADD CONSTRAINT "network_netbird_id_fkey" FOREIGN K
 -- modify "token" table
 ALTER TABLE "token" ADD CONSTRAINT "token_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "token_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume" table
-ALTER TABLE "volume" ADD CONSTRAINT "volume_latest_snapshot_id_fkey" FOREIGN KEY ("latest_snapshot_id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+ALTER TABLE "volume" ADD CONSTRAINT "volume_latest_snapshot_id_fkey" FOREIGN KEY ("latest_snapshot_id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_lock_box_id_fkey" FOREIGN KEY ("lock_box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_provider" table
 ALTER TABLE "volume_provider" ADD CONSTRAINT "volume_provider_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_provider_rustic" table
@@ -377,8 +416,12 @@ ALTER TABLE "volume_snapshot" ADD CONSTRAINT "volume_snapshot_volume_id_fkey" FO
 ALTER TABLE "volume_snapshot_rustic" ADD CONSTRAINT "volume_snapshot_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "workspace_access" table
 ALTER TABLE "workspace_access" ADD CONSTRAINT "workspace_access_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "workspace_access_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "workspace_quotas" table
+ALTER TABLE "workspace_quotas" ADD CONSTRAINT "workspace_quotas_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 
 -- +goose Down
+-- reverse: modify "workspace_quotas" table
+ALTER TABLE "workspace_quotas" DROP CONSTRAINT "workspace_quotas_workspace_id_fkey";
 -- reverse: modify "workspace_access" table
 ALTER TABLE "workspace_access" DROP CONSTRAINT "workspace_access_workspace_id_fkey", DROP CONSTRAINT "workspace_access_user_id_fkey";
 -- reverse: modify "volume_snapshot_rustic" table
@@ -396,7 +439,7 @@ ALTER TABLE "volume_provider_rustic" DROP CONSTRAINT "volume_provider_rustic_id_
 -- reverse: modify "volume_provider" table
 ALTER TABLE "volume_provider" DROP CONSTRAINT "volume_provider_workspace_id_fkey";
 -- reverse: modify "volume" table
-ALTER TABLE "volume" DROP CONSTRAINT "volume_workspace_id_fkey", DROP CONSTRAINT "volume_volume_provider_id_fkey", DROP CONSTRAINT "volume_latest_snapshot_id_fkey";
+ALTER TABLE "volume" DROP CONSTRAINT "volume_workspace_id_fkey", DROP CONSTRAINT "volume_volume_provider_id_fkey", DROP CONSTRAINT "volume_lock_box_id_fkey", DROP CONSTRAINT "volume_latest_snapshot_id_fkey";
 -- reverse: modify "token" table
 ALTER TABLE "token" DROP CONSTRAINT "token_workspace_id_fkey", DROP CONSTRAINT "token_box_id_fkey";
 -- reverse: modify "network_netbird" table
@@ -425,12 +468,20 @@ ALTER TABLE "machine_aws_status" DROP CONSTRAINT "machine_aws_status_id_fkey";
 ALTER TABLE "machine_aws" DROP CONSTRAINT "machine_aws_id_fkey";
 -- reverse: modify "machine" table
 ALTER TABLE "machine" DROP CONSTRAINT "machine_workspace_id_fkey", DROP CONSTRAINT "machine_machine_provider_id_fkey", DROP CONSTRAINT "machine_box_id_fkey";
+-- reverse: modify "log_metadata" table
+ALTER TABLE "log_metadata" DROP CONSTRAINT "log_metadata_workspace_id_fkey", DROP CONSTRAINT "log_metadata_box_id_fkey";
+-- reverse: modify "log_line" table
+ALTER TABLE "log_line" DROP CONSTRAINT "log_line_workspace_id_fkey", DROP CONSTRAINT "log_line_log_id_fkey";
 -- reverse: modify "box_volume_attachment" table
 ALTER TABLE "box_volume_attachment" DROP CONSTRAINT "box_volume_attachment_volume_id_fkey", DROP CONSTRAINT "box_volume_attachment_box_id_fkey";
 -- reverse: modify "box_netbird" table
 ALTER TABLE "box_netbird" DROP CONSTRAINT "box_netbird_id_fkey";
+-- reverse: modify "box_compose_project" table
+ALTER TABLE "box_compose_project" DROP CONSTRAINT "box_compose_project_box_id_fkey";
 -- reverse: modify "box" table
 ALTER TABLE "box" DROP CONSTRAINT "box_workspace_id_fkey", DROP CONSTRAINT "box_network_id_fkey", DROP CONSTRAINT "box_machine_id_fkey";
+-- reverse: create "workspace_quotas" table
+DROP TABLE "workspace_quotas";
 -- reverse: create "workspace_access" table
 DROP TABLE "workspace_access";
 -- reverse: create "workspace" table
@@ -481,6 +532,14 @@ DROP TABLE "machine_aws_status";
 DROP TABLE "machine_aws";
 -- reverse: create "machine" table
 DROP TABLE "machine";
+-- reverse: create "log_metadata" table
+DROP TABLE "log_metadata";
+-- reverse: create index "log_line_time_index" to table: "log_line"
+DROP INDEX "log_line_time_index";
+-- reverse: create index "log_line_log_id_and_id" to table: "log_line"
+DROP INDEX "log_line_log_id_and_id";
+-- reverse: create "log_line" table
+DROP TABLE "log_line";
 -- reverse: create index "idx_table_and_id" to table: "change_tracking"
 DROP INDEX "idx_table_and_id";
 -- reverse: create "change_tracking" table
@@ -489,5 +548,7 @@ DROP TABLE "change_tracking";
 DROP TABLE "box_volume_attachment";
 -- reverse: create "box_netbird" table
 DROP TABLE "box_netbird";
+-- reverse: create "box_compose_project" table
+DROP TABLE "box_compose_project";
 -- reverse: create "box" table
 DROP TABLE "box";

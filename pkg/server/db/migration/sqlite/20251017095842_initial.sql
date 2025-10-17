@@ -25,12 +25,8 @@ CREATE TABLE `workspace` (
   `finalizers` text NOT NULL DEFAULT '{}',
   `reconcile_status` text NOT NULL DEFAULT 'Initializing',
   `reconcile_status_details` text NOT NULL DEFAULT '',
-  `name` text NOT NULL,
-  `nkey` text NOT NULL,
-  `nkey_seed` text NOT NULL
+  `name` text NOT NULL
 );
--- create index "workspace_nkey" to table: "workspace"
-CREATE UNIQUE INDEX `workspace_nkey` ON `workspace` (`nkey`);
 -- create "workspace_access" table
 CREATE TABLE `workspace_access` (
   `workspace_id` bigint NOT NULL,
@@ -38,6 +34,13 @@ CREATE TABLE `workspace_access` (
   PRIMARY KEY (`workspace_id`, `user_id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
   CONSTRAINT `1` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create "workspace_quotas" table
+CREATE TABLE `workspace_quotas` (
+  `workspace_id` bigint NOT NULL,
+  `max_log_bytes` int NOT NULL DEFAULT 100,
+  PRIMARY KEY (`workspace_id`),
+  CONSTRAINT `0` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 -- create "machine_provider" table
 CREATE TABLE `machine_provider` (
@@ -196,9 +199,6 @@ CREATE TABLE `box` (
   `network_id` bigint NULL,
   `network_type` text NULL,
   `dboxed_version` text NOT NULL,
-  `box_spec` bytea NOT NULL,
-  `nkey` text NOT NULL,
-  `nkey_seed` text NOT NULL,
   `machine_id` bigint NULL,
   CONSTRAINT `0` FOREIGN KEY (`machine_id`) REFERENCES `machine` (`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
   CONSTRAINT `1` FOREIGN KEY (`network_id`) REFERENCES `network` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
@@ -206,8 +206,6 @@ CREATE TABLE `box` (
 );
 -- create index "box_uuid" to table: "box"
 CREATE UNIQUE INDEX `box_uuid` ON `box` (`uuid`);
--- create index "box_nkey" to table: "box"
-CREATE UNIQUE INDEX `box_nkey` ON `box` (`nkey`);
 -- create index "box_workspace_id_name" to table: "box"
 CREATE UNIQUE INDEX `box_workspace_id_name` ON `box` (`workspace_id`, `name`);
 -- create "box_netbird" table
@@ -217,6 +215,14 @@ CREATE TABLE `box_netbird` (
   `setup_key` text NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`id`) REFERENCES `box` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create "box_compose_project" table
+CREATE TABLE `box_compose_project` (
+  `box_id` bigint NOT NULL,
+  `name` text NOT NULL,
+  `compose_project` text NOT NULL,
+  PRIMARY KEY (`box_id`, `name`),
+  CONSTRAINT `0` FOREIGN KEY (`box_id`) REFERENCES `box` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 -- create "volume_provider" table
 CREATE TABLE `volume_provider` (
@@ -245,7 +251,6 @@ CREATE TABLE `volume_provider_rustic` (
 CREATE TABLE `volume_provider_storage_s3` (
   `id` bigint NOT NULL,
   `endpoint` text NOT NULL,
-  `region` text NULL,
   `bucket` text NOT NULL,
   `access_key_id` text NOT NULL,
   `secret_access_key` text NOT NULL,
@@ -266,11 +271,12 @@ CREATE TABLE `volume` (
   `name` text NOT NULL,
   `lock_id` text NULL,
   `lock_time` datetime NULL,
-  `lock_box_uuid` text NULL,
+  `lock_box_id` bigint NULL,
   `latest_snapshot_id` bigint NULL,
   CONSTRAINT `0` FOREIGN KEY (`latest_snapshot_id`) REFERENCES `volume_snapshot` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
-  CONSTRAINT `1` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
-  CONSTRAINT `2` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+  CONSTRAINT `1` FOREIGN KEY (`lock_box_id`) REFERENCES `box` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `2` FOREIGN KEY (`volume_provider_id`) REFERENCES `volume_provider` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT `3` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
 );
 -- create index "volume_uuid" to table: "volume"
 CREATE UNIQUE INDEX `volume_uuid` ON `volume` (`uuid`);
@@ -367,8 +373,49 @@ CREATE TABLE `token` (
 CREATE UNIQUE INDEX `token_token` ON `token` (`token`);
 -- create index "token_workspace_id_name" to table: "token"
 CREATE UNIQUE INDEX `token_workspace_id_name` ON `token` (`workspace_id`, `name`);
+-- create "log_metadata" table
+CREATE TABLE `log_metadata` (
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  `workspace_id` bigint NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (current_timestamp),
+  `deleted_at` datetime NULL,
+  `finalizers` text NOT NULL DEFAULT '{}',
+  `box_id` bigint NULL,
+  `file_name` text NOT NULL,
+  `format` text NOT NULL,
+  `metadata` text NOT NULL,
+  `total_line_bytes` bigint NOT NULL DEFAULT 0,
+  CONSTRAINT `0` FOREIGN KEY (`box_id`) REFERENCES `box` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT `1` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create index "log_metadata_box_id_file_name" to table: "log_metadata"
+CREATE UNIQUE INDEX `log_metadata_box_id_file_name` ON `log_metadata` (`box_id`, `file_name`);
+-- create "log_line" table
+CREATE TABLE `log_line` (
+  `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+  `workspace_id` bigint NOT NULL,
+  `log_id` bigint NOT NULL,
+  `time` datetime NOT NULL,
+  `line` text NOT NULL,
+  CONSTRAINT `0` FOREIGN KEY (`log_id`) REFERENCES `log_metadata` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT `1` FOREIGN KEY (`workspace_id`) REFERENCES `workspace` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create index "log_line_log_id_and_id" to table: "log_line"
+CREATE INDEX `log_line_log_id_and_id` ON `log_line` (`log_id`, `id`);
+-- create index "log_line_time_index" to table: "log_line"
+CREATE INDEX `log_line_time_index` ON `log_line` (`log_id`, `time`);
 
 -- +goose Down
+-- reverse: create index "log_line_time_index" to table: "log_line"
+DROP INDEX `log_line_time_index`;
+-- reverse: create index "log_line_log_id_and_id" to table: "log_line"
+DROP INDEX `log_line_log_id_and_id`;
+-- reverse: create "log_line" table
+DROP TABLE `log_line`;
+-- reverse: create index "log_metadata_box_id_file_name" to table: "log_metadata"
+DROP INDEX `log_metadata_box_id_file_name`;
+-- reverse: create "log_metadata" table
+DROP TABLE `log_metadata`;
 -- reverse: create index "token_workspace_id_name" to table: "token"
 DROP INDEX `token_workspace_id_name`;
 -- reverse: create index "token_token" to table: "token"
@@ -403,12 +450,12 @@ DROP TABLE `volume_provider_rustic`;
 DROP INDEX `volume_provider_workspace_id_name`;
 -- reverse: create "volume_provider" table
 DROP TABLE `volume_provider`;
+-- reverse: create "box_compose_project" table
+DROP TABLE `box_compose_project`;
 -- reverse: create "box_netbird" table
 DROP TABLE `box_netbird`;
 -- reverse: create index "box_workspace_id_name" to table: "box"
 DROP INDEX `box_workspace_id_name`;
--- reverse: create index "box_nkey" to table: "box"
-DROP INDEX `box_nkey`;
 -- reverse: create index "box_uuid" to table: "box"
 DROP INDEX `box_uuid`;
 -- reverse: create "box" table
@@ -447,10 +494,10 @@ DROP TABLE `machine_provider_aws`;
 DROP INDEX `machine_provider_workspace_id_name`;
 -- reverse: create "machine_provider" table
 DROP TABLE `machine_provider`;
+-- reverse: create "workspace_quotas" table
+DROP TABLE `workspace_quotas`;
 -- reverse: create "workspace_access" table
 DROP TABLE `workspace_access`;
--- reverse: create index "workspace_nkey" to table: "workspace"
-DROP INDEX `workspace_nkey`;
 -- reverse: create "workspace" table
 DROP TABLE `workspace`;
 -- reverse: create "user" table
