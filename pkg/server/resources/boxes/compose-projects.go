@@ -3,6 +3,7 @@ package boxes
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -67,6 +68,9 @@ func (s *BoxesServer) restCreateComposeProject(c context.Context, i *restCreateC
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
 		return nil, err
+	}
+	if strings.HasPrefix(i.Body.Name, "dboxed-") {
+		return nil, huma.Error400BadRequest("'dboxed-' is a reserved internal prefix and can't be used")
 	}
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
