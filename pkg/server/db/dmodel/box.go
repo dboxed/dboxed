@@ -15,7 +15,6 @@ type Box struct {
 	NetworkType *string `db:"network_type"`
 
 	DboxedVersion string `db:"dboxed_version"`
-	BoxSpec       []byte `db:"box_spec"`
 
 	MachineID *int64 `db:"machine_id"`
 
@@ -27,6 +26,12 @@ type BoxNetbird struct {
 
 	SetupKey   *string `db:"setup_key"`
 	SetupKeyID *string `db:"setup_key_id"`
+}
+
+type BoxComposeProject struct {
+	BoxID          int64  `db:"box_id"`
+	Name           string `db:"name"`
+	ComposeProject string `db:"compose_project"`
 }
 
 func (v *Box) Create(q *querier2.Querier) error {
@@ -75,11 +80,6 @@ func ListBoxesForNetwork(q *querier2.Querier, networkId int64, skipDeleted bool)
 	}, nil)
 }
 
-func (v *Box) UpdateBoxSpec(q *querier2.Querier, b []byte) error {
-	v.BoxSpec = b
-	return querier2.UpdateOneFromStruct(q, v, "box_spec")
-}
-
 func (v *BoxNetbird) UpdateSetupKey(q *querier2.Querier, setupKey *string, setupKeyId *string) error {
 	v.SetupKey = setupKey
 	v.SetupKeyID = setupKeyId
@@ -87,4 +87,29 @@ func (v *BoxNetbird) UpdateSetupKey(q *querier2.Querier, setupKey *string, setup
 		"setup_key",
 		"setup_key_id",
 	)
+}
+
+func (v *BoxComposeProject) Create(q *querier2.Querier) error {
+	return querier2.Create(q, v)
+}
+
+func ListBoxComposeProjects(q *querier2.Querier, boxId int64) ([]BoxComposeProject, error) {
+	return querier2.GetMany[BoxComposeProject](q, map[string]any{
+		"box_id": boxId,
+	}, nil)
+}
+
+func GetBoxComposeProjectByName(q *querier2.Querier, boxId int64, name string) (*BoxComposeProject, error) {
+	return querier2.GetOne[BoxComposeProject](q, map[string]any{
+		"box_id": boxId,
+		"name":   name,
+	})
+}
+
+func (v *BoxComposeProject) UpdateComposeProject(q *querier2.Querier, composeProject string) error {
+	v.ComposeProject = composeProject
+	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
+		"box_id": v.BoxID,
+		"name":   v.Name,
+	}, v, "compose_project")
 }

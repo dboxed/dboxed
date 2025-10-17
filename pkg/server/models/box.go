@@ -2,10 +2,8 @@ package models
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -26,8 +24,6 @@ type Box struct {
 	NetworkType *global.NetworkType `json:"networkType"`
 
 	DboxedVersion string `json:"dboxedVersion"`
-
-	BoxSpec boxspec.BoxSpec `json:"boxSpec"`
 }
 
 type CreateBox struct {
@@ -37,7 +33,6 @@ type CreateBox struct {
 }
 
 type UpdateBox struct {
-	BoxSpec *boxspec.BoxSpec `json:"boxSpec"`
 }
 
 type BoxToken struct {
@@ -66,34 +61,5 @@ func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
 		DboxedVersion: s.DboxedVersion,
 	}
 
-	if len(s.BoxSpec) != 0 {
-		bs, err := UnmarshalBoxSpec(s.BoxSpec)
-		if err != nil {
-			return nil, err
-		}
-		ret.BoxSpec = *bs
-	}
-
 	return ret, nil
-}
-
-func MarshalBoxSpec(boxSpec *boxspec.BoxSpec) ([]byte, error) {
-	b, err := json.Marshal(boxSpec)
-	if err != nil {
-		return nil, err
-	}
-	return util.CompressGzipString(string(b))
-}
-
-func UnmarshalBoxSpec(b []byte) (*boxspec.BoxSpec, error) {
-	uncompressed, err := util.DecompressGzipString(b)
-	if err != nil {
-		return nil, err
-	}
-	var ret boxspec.BoxSpec
-	err = json.Unmarshal([]byte(uncompressed), &ret)
-	if err != nil {
-		return nil, err
-	}
-	return &ret, nil
 }

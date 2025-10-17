@@ -34,7 +34,7 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 }
 
 func (rn *BoxSpecRunner) Down(ctx context.Context, ignoreComposeErrors bool) error {
-	composeProjects, err := rn.loadComposeProjects()
+	composeProjects, err := rn.loadComposeProjects(ctx)
 	if err != nil {
 		return err
 	}

@@ -97,6 +97,11 @@ func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInp
 		return nil, err
 	}
 
+	err = s.validateBoxSpec(c, box)
+	if err != nil {
+		return nil, err
+	}
+
 	err = dmodel.AddChangeTracking(q, box)
 	if err != nil {
 		return nil, err
@@ -140,6 +145,11 @@ func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateA
 		return nil, err
 	}
 
+	err = s.validateBoxSpec(c, box)
+	if err != nil {
+		return nil, err
+	}
+
 	err = dmodel.AddChangeTracking(q, box)
 	if err != nil {
 		return nil, err
@@ -172,6 +182,11 @@ func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInp
 		"box_id":    box.ID,
 		"volume_id": volume.ID,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.validateBoxSpec(c, box)
 	if err != nil {
 		return nil, err
 	}

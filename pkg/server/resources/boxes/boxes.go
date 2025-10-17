@@ -41,6 +41,12 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}", s.restUpdateBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
 
+	// compose-projects
+	huma.Get(workspacesGroup, "/boxes/{id}/compose-projects", s.restListComposeProjects, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/boxes/{id}/compose-projects", s.restCreateComposeProject)
+	huma.Patch(workspacesGroup, "/boxes/{id}/compose-projects/{composeName}", s.restUpdateComposeProject)
+	huma.Delete(workspacesGroup, "/boxes/{id}/compose-projects/{composeName}", s.restDeleteComposeProject)
+
 	// volume attach/detach
 	huma.Get(workspacesGroup, "/boxes/{id}/volumes", s.restListAttachedVolumes, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/boxes/{id}/volumes", s.restAttachVolume)
@@ -111,12 +117,6 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		networkType = &network.Type
 	}
 
-	defaultBoxSpec := boxspec.BoxSpec{}
-	b, err := models.MarshalBoxSpec(&defaultBoxSpec)
-	if err != nil {
-		return nil, "", err
-	}
-
 	box := &dmodel.Box{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
@@ -125,7 +125,6 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		Name: body.Name,
 
 		DboxedVersion: "nightly",
-		BoxSpec:       b,
 
 		NetworkID:   networkId,
 		NetworkType: networkType,
@@ -287,24 +286,6 @@ func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*
 }
 
 func (s *BoxesServer) doUpdateBox(c context.Context, box *dmodel.Box, body models.UpdateBox) error {
-	q := querier2.GetQuerier(c)
-	if body.BoxSpec != nil {
-		b, err := models.MarshalBoxSpec(body.BoxSpec)
-		if err != nil {
-			return err
-		}
-		err = box.UpdateBoxSpec(q, b)
-		if err != nil {
-			return err
-		}
-
-		// check if the resulting box is valid
-		// (this will catch errors in regard to auto-added resources live volumes and networks)
-		_, err = s.buildBoxSpec(c, box)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

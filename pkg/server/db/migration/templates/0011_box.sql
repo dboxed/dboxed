@@ -15,7 +15,7 @@ create table box
     network_id               bigint references network (id) on delete restrict,
     network_type             text,
     dboxed_version           text           not null,
-    box_spec                 bytea          not null,
+
     machine_id               bigint         references machine (id) on delete set null,
 
     unique (workspace_id, name)
@@ -31,4 +31,14 @@ create table box_netbird
     id           bigint not null primary key references box (id) on delete cascade,
     setup_key_id text,
     setup_key    text
+);
+
+create table box_compose_project
+(
+    box_id bigint not null references box (id) on delete cascade,
+    name   text   not null,
+
+    compose_project text not null,
+
+    primary key (box_id, name)
 );

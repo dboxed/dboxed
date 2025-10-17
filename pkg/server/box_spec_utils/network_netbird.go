@@ -23,7 +23,6 @@ func addNetbirdComposeProject(ctx context.Context, box *dmodel.Box, network *dmo
 		return err
 	}
 
-	boxSpec.ComposeProjects = append([]string{string(b)}, boxSpec.ComposeProjects...)
-
+	boxSpec.ComposeProjects["dboxed-netbird"] = string(b)
 	return nil
 }

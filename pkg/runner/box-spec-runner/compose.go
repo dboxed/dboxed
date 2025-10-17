@@ -2,19 +2,17 @@ package box_spec_runner
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
-	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context) error {
-	composeProjects, err := rn.loadComposeProjects()
+	composeProjects, err := rn.loadComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,7 +37,7 @@ func (rn *BoxSpecRunner) writeComposeFiles(ctx context.Context) error {
 }
 
 func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
-	composeProjects, err := rn.loadComposeProjects()
+	composeProjects, err := rn.loadComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -61,7 +59,7 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 }
 
 func (rn *BoxSpecRunner) runComposeDown(ctx context.Context) error {
-	composeProjects, err := rn.loadComposeProjects()
+	composeProjects, err := rn.loadComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -75,22 +73,12 @@ func (rn *BoxSpecRunner) runComposeDown(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) loadComposeProjects() ([]*ctypes.Project, error) {
-	composeProjects, err := rn.BoxSpec.LoadComposeProjects()
-	if err != nil {
-		return nil, err
-	}
-	for i, composeProject := range composeProjects {
-		if composeProject.Name == "" {
-			composeProject.Name = fmt.Sprintf("tmp-%d", i)
-		}
-		err = rn.setupComposeFile(composeProject)
-		if err != nil {
-			return nil, err
-		}
+func (rn *BoxSpecRunner) loadComposeProjects(ctx context.Context) ([]*ctypes.Project, error) {
+	getMount := func(volumeUuid string) string {
+		return rn.getVolumeMountDir(volumeUuid)
 	}
 
-	return composeProjects, nil
+	return rn.BoxSpec.LoadComposeProjects(ctx, getMount)
 }
 
 func (rn *BoxSpecRunner) buildComposeDir(name string) string {
@@ -115,34 +103,6 @@ func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, projectName string, 
 	err := cmd.Run(ctx)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func (rn *BoxSpecRunner) setupComposeFile(compose *ctypes.Project) error {
-	if compose.Volumes == nil {
-		compose.Volumes = map[string]ctypes.VolumeConfig{}
-	}
-
-	volumesByName := map[string]*boxspec.DboxedVolume{}
-	for _, vol := range rn.BoxSpec.Volumes {
-		volumesByName[vol.Name] = &vol
-	}
-
-	for _, service := range compose.Services {
-		for i, _ := range service.Volumes {
-			volume := &service.Volumes[i]
-			if volume.Type == "dboxed" {
-				vol, ok := volumesByName[volume.Source]
-				if !ok {
-					return fmt.Errorf("volume with name %s not found", volume.Source)
-				}
-
-				mountDir := rn.getVolumeMountDir(vol.Uuid)
-				volume.Type = ctypes.VolumeTypeBind
-				volume.Source = mountDir
-			}
-		}
 	}
 	return nil
 }

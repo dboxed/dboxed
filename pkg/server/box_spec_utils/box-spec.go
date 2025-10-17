@@ -9,31 +9,33 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
-	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
 func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (*boxspec.BoxSpec, error) {
-	boxm, err := models.BoxFromDB(c, *box)
+	q := querier.GetQuerier(c)
+
+	boxSpec := &boxspec.BoxSpec{
+		Uuid:            box.Uuid,
+		ComposeProjects: map[string]string{},
+	}
+
+	err := buildAttachedVolumes(c, box, boxSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	volumeNames, err := validateBoxSpec(boxm.BoxSpec)
+	bcps, err := dmodel.ListBoxComposeProjects(q, box.ID)
 	if err != nil {
 		return nil, err
 	}
-
-	err = buildAttachedVolumes(c, box, &boxm.BoxSpec, volumeNames)
-	if err != nil {
-		return nil, err
+	for _, bcp := range bcps {
+		boxSpec.ComposeProjects[bcp.Name] = bcp.ComposeProject
 	}
-
-	boxm.BoxSpec.Uuid = box.Uuid
 
 	if network != nil && box.NetworkType != nil {
 		switch global.NetworkType(*box.NetworkType) {
 		case global.NetworkNetbird:
-			err = addNetbirdComposeProject(c, box, network, &boxm.BoxSpec)
+			err = addNetbirdComposeProject(c, box, network, boxSpec)
 			if err != nil {
 				return nil, err
 			}
@@ -42,10 +44,10 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 		}
 	}
 
-	return &boxm.BoxSpec, nil
+	return boxSpec, nil
 }
 
-func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec.BoxSpec, volumeNames map[string]struct{}) error {
+func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec.BoxSpec) error {
 	q := querier.GetQuerier(ctx)
 
 	ats, err := dmodel.ListBoxVolumeAttachments(q, box.ID)
@@ -54,10 +56,6 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 	}
 	volumeProviders := map[int64]*dmodel.VolumeProvider{}
 	for _, at := range ats {
-		if _, ok := volumeNames[at.Volume.Name]; ok {
-			return huma.Error400BadRequest(fmt.Sprintf("attached dboxed volume %s clashes with volume from box spec", at.Volume.Name))
-		}
-
 		vp, ok := volumeProviders[at.Volume.VolumeProviderID]
 		if !ok {
 			vp, err = dmodel.GetVolumeProviderById(q, nil, at.Volume.VolumeProviderID, true)
@@ -78,19 +76,4 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 		})
 	}
 	return nil
-}
-
-func validateBoxSpec(boxSpec boxspec.BoxSpec) (map[string]struct{}, error) {
-	if boxSpec.Uuid != "" {
-		return nil, huma.Error400BadRequest("uuid can not be set in box spec")
-	}
-
-	volumeNames := map[string]struct{}{}
-	for _, v := range boxSpec.Volumes {
-		if _, ok := volumeNames[v.Name]; ok {
-			return nil, huma.Error400BadRequest(fmt.Sprintf("volume name %s not unique", v.Name))
-		}
-		volumeNames[v.Name] = struct{}{}
-	}
-	return volumeNames, nil
 }
