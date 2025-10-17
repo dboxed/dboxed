@@ -2,6 +2,7 @@ package flags
 
 import (
 	"context"
+	"os"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/pkg/baseclient"
@@ -22,7 +23,10 @@ type GlobalFlags struct {
 func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, error) {
 	clientAuth, err := baseclient.ReadClientAuth(f.ClientAuthFile)
 	if err != nil {
-		return nil, err
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		clientAuth = &baseclient.ClientAuth{}
 	}
 
 	c, err := baseclient.New(f.ClientAuthFile, clientAuth, true)
