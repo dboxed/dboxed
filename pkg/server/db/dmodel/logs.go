@@ -53,9 +53,19 @@ func GetLogMetadataById(q *querier2.Querier, workspaceId *int64, logId int64, sk
 }
 
 func ListLogLinesSinceTime(q *querier2.Querier, logId int64, since time.Time, limit *int64) ([]LogLine, error) {
+	var timeExpr string
+	switch q.DB.DriverName() {
+	case "pgx":
+		timeExpr = fmt.Sprintf(">= timestamptz '%s'", since.UTC().Format(time.RFC3339))
+	case "sqlite3":
+		timeExpr = fmt.Sprintf(">= datetime('%s', 'utc')", since.UTC().Format(time.RFC3339))
+	default:
+		return nil, fmt.Errorf("unsupported db driver")
+	}
+
 	return querier2.GetManySorted[LogLine](q, map[string]any{
 		"log_id": logId,
-		"time":   querier2.RawSql(fmt.Sprintf(">= datetime('%s', 'utc')", since.UTC().Format(time.RFC3339))),
+		"time":   querier2.RawSql(timeExpr),
 	}, &querier2.SortAndPage{
 		Sort: []querier2.SortField{
 			{
