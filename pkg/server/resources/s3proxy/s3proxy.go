@@ -150,7 +150,6 @@ func (s *S3ProxyServer) restPresignPut(ctx context.Context, i *huma_utils.IdByPa
 	if err != nil {
 		return nil, err
 	}
-	slog.InfoContext(ctx, "restPresignPut: "+pr.String())
 
 	return huma_utils.NewJsonBody(models.S3ProxyPresignPutResult{
 		PresignedUrl: pr.String(),
