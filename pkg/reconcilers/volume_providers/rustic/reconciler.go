@@ -19,9 +19,29 @@ import (
 type Reconciler struct {
 }
 
-func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider) (*rustic.RusticConfig, error) {
+func (r *Reconciler) detectS3Region(ctx context.Context, vp *dmodel.VolumeProvider) (string, error) {
+	if vp.Rustic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
+		return "", fmt.Errorf("only S3 storage is supported ")
+	}
+
+	c, err := s3utils.BuildS3Client(vp, "")
+	if err != nil {
+		return "", err
+	}
+	region, err := c.GetBucketLocation(ctx, vp.Rustic.StorageS3.Bucket.V)
+	if err != nil {
+		return "", err
+	}
+	return region, nil
+}
+
+func (r *Reconciler) buildRusticConfig(ctx context.Context, vp *dmodel.VolumeProvider) (*rustic.RusticConfig, error) {
 	if vp.Rustic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
 		return nil, fmt.Errorf("only S3 storage is supported ")
+	}
+	region, err := r.detectS3Region(ctx, vp)
+	if err != nil {
+		return nil, err
 	}
 	config := &rustic.RusticConfig{
 		Repository: rustic.RusticConfigRepository{
@@ -29,6 +49,7 @@ func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider) (*rustic.Rusti
 			Password:   vp.Rustic.Password.V,
 			Options: rustic.RusticConfigRepositoryOptions{
 				Endpoint:        vp.Rustic.StorageS3.Endpoint.V,
+				Region:          &region,
 				Bucket:          vp.Rustic.StorageS3.Bucket.V,
 				AccessKeyId:     vp.Rustic.StorageS3.AccessKeyId.V,
 				SecretAccessKey: vp.Rustic.StorageS3.SecretAccessKey.V,
@@ -68,7 +89,7 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 }
 
 func (r *Reconciler) getFilteredRusticSnapshots(ctx context.Context, vp *dmodel.VolumeProvider, snapshotIds []string) (map[string]*rustic.Snapshot, error) {
-	config, err := r.buildRusticConfig(vp)
+	config, err := r.buildRusticConfig(ctx, vp)
 	if err != nil {
 		return nil, err
 	}
