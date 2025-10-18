@@ -44,9 +44,9 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 			log = slog.Default()
 		}
 		if c.isContainer() {
-			log.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
-		} else {
 			log.InfoContext(ctx, fmt.Sprintf("running command in container: %s", s))
+		} else {
+			log.InfoContext(ctx, fmt.Sprintf("running command: %s", s))
 		}
 	}
 
