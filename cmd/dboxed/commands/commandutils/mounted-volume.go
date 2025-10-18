@@ -19,7 +19,7 @@ func GetMountedVolume(baseDir string, volume string) (*volume_serve.VolumeState,
 	}
 
 	for _, mv := range mountedVolumes {
-		if mv.Volume.Name == volume || mv.Volume.ID == volumeId || mv.Volume.Uuid == volume {
+		if mv.Volume == nil || mv.Volume.Name == volume || mv.Volume.ID == volumeId || mv.Volume.Uuid == volume {
 			return mv, nil
 		}
 	}

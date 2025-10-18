@@ -96,10 +96,11 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 	return nil
 }
 
-func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string) error {
+func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string, delete bool) error {
 	err := vb.runWithWebdavProxy(ctx, func(config rustic.RusticConfig) error {
 		return rustic.RunRestore(ctx, config, snapshotId, vb.Mount, rustic.RestoreOpts{
 			NumericId: true,
+			Delete:    delete,
 		})
 	})
 	if err != nil {

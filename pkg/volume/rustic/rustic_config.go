@@ -13,9 +13,9 @@ type RusticConfigRepository struct {
 
 type RusticConfigRepositoryOptions struct {
 	Endpoint        string  `toml:"endpoint"`
-	Bucket          string  `toml:"bucket"`
+	Bucket          string  `toml:"bucket,omitempty"`
 	Region          *string `toml:"region,omitempty"`
-	AccessKeyId     string  `toml:"access_key_id"`
-	SecretAccessKey string  `toml:"secret_access_key"`
-	Root            string  `toml:"root"`
+	AccessKeyId     string  `toml:"access_key_id,omitempty"`
+	SecretAccessKey string  `toml:"secret_access_key,omitempty"`
+	Root            string  `toml:"root,omitempty"`
 }

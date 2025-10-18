@@ -18,10 +18,11 @@ type ListCmd struct {
 }
 
 type PrintVolumeMount struct {
-	MountName string `json:"mountName"`
-	Volume    string `json:"volume"`
-	Workspace string `json:"workspace"`
-	Box       string `json:"box"`
+	MountName   string `json:"mountName"`
+	Volume      string `json:"volume"`
+	Workspace   string `json:"workspace"`
+	Box         string `json:"box"`
+	RestoreDone bool   `json:"restoreDone"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -44,12 +45,13 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var printList []PrintVolumeMount
 	for _, v := range volumes {
 		p := PrintVolumeMount{
-			MountName: v.MountName,
-			Volume:    fmt.Sprintf("%s (id=%d)", v.Volume.Name, v.Volume.ID),
-			Workspace: ct.GetWorkspaceColumn(ctx, v.Volume.Workspace),
+			MountName:   v.MountName,
+			Volume:      fmt.Sprintf("%s (id=%d)", v.Volume.Name, v.Volume.ID),
+			Workspace:   ct.GetWorkspaceColumn(ctx, v.Volume.Workspace),
+			RestoreDone: v.RestoreDone,
 		}
-		if v.BoxId != nil {
-			p.Box = ct.GetBoxColumn(ctx, *v.BoxId)
+		if v.Volume != nil && v.Volume.LockBoxId != nil {
+			p.Box = ct.GetBoxColumn(ctx, *v.Volume.LockBoxId)
 		}
 
 		printList = append(printList, p)

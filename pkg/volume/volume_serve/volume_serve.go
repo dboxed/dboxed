@@ -83,22 +83,6 @@ func (vs *VolumeServe) buildClient(ctx context.Context, s *VolumeState) (*basecl
 	return c, nil
 }
 
-func (vs *VolumeServe) getVolume(ctx context.Context, s *VolumeState) error {
-	c, err := vs.buildClient(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	c2 := &clients.VolumesClient{Client: c}
-
-	vs.volume, err = c2.GetVolumeById(ctx, vs.opts.VolumeId)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (vs *VolumeServe) Create(ctx context.Context) error {
 	s, err := vs.loadVolumeState()
 	if err != nil && !os.IsNotExist(err) {
@@ -106,15 +90,6 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 	}
 	if s != nil {
 		return fmt.Errorf("%s already contains a potentially locked volume", vs.opts.Dir)
-	}
-
-	err = vs.getVolume(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	if vs.volume.Rustic == nil {
-		return fmt.Errorf("only rustic is supported for now")
 	}
 
 	err = os.MkdirAll(vs.GetMountDir(), 0700)
@@ -131,6 +106,10 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 		return err
 	}
 	vs.log = vs.log.With(slog.Any("lockId", *vs.volume.LockId))
+
+	if vs.volume.Rustic == nil {
+		return fmt.Errorf("only rustic is supported for now")
+	}
 
 	lvmTags := []string{
 		"dboxed-volume",
@@ -167,11 +146,11 @@ func (vs *VolumeServe) Open(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if s == nil || s.LockId == nil {
+	if s == nil || s.Volume == nil || s.Volume.LockId == nil {
 		return fmt.Errorf("%s does not contain a locked volume", vs.opts.Dir)
 	}
 
-	err = vs.getVolume(ctx, s)
+	_, err = vs.lockVolume(ctx)
 	if err != nil {
 		return err
 	}
@@ -271,7 +250,7 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 		return err
 	}
 
-	if s == nil || s.LockId == nil {
+	if s == nil || s.Volume == nil || s.Volume.LockId == nil {
 		return fmt.Errorf("volume is not locked")
 	}
 
@@ -283,7 +262,7 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 	c2 := &clients.VolumesClient{Client: c}
 
 	req := models.VolumeReleaseRequest{
-		LockId: *s.LockId,
+		LockId: *s.Volume.LockId,
 	}
 
 	newVolume, err := c2.VolumeRelease(ctx, vs.volume.ID, req)
@@ -295,8 +274,6 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 	defer vs.m.Unlock()
 	vs.volume = newVolume
 
-	s.LockId = nil
-	s.BoxId = nil
 	s.Volume = newVolume
 
 	err = vs.saveVolumeState(*s)
@@ -333,12 +310,13 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 		s = &VolumeState{
 			ClientAuth: vs.opts.Client.GetClientAuth(true),
 			MountName:  vs.opts.MountName,
-			Volume:     vs.volume,
-			BoxId:      vs.opts.BoxId,
 		}
 	}
 
-	prevLockId := s.LockId
+	var prevLockId *string
+	if s.Volume != nil {
+		prevLockId = s.Volume.LockId
+	}
 
 	if prevLockId == nil {
 		vs.log.Info("locking volume")
@@ -355,9 +333,9 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 
 	lockRequest := models.VolumeLockRequest{
 		PrevLockId: prevLockId,
-		BoxId:      s.BoxId,
+		BoxId:      vs.opts.BoxId,
 	}
-	newVolume, err := c2.VolumeLock(ctx, vs.volume.ID, lockRequest)
+	newVolume, err := c2.VolumeLock(ctx, vs.opts.VolumeId, lockRequest)
 	if err != nil {
 		return false, err
 	}
@@ -365,15 +343,16 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 	vs.m.Lock()
 	defer vs.m.Unlock()
 	vs.volume = newVolume
+	s.Volume = newVolume
+
+	err = vs.saveVolumeState(*s)
+	if err != nil {
+		return false, err
+	}
 
 	newLock := true
 	if prevLockId == nil || *prevLockId != *vs.volume.LockId {
 		newLock = false
-		s.LockId = vs.volume.LockId
-		err = vs.saveVolumeState(*s)
-		if err != nil {
-			return false, err
-		}
 	}
 	vs.log.Info("volume locked", slog.Any("lockId", *vs.volume.LockId))
 
@@ -425,7 +404,15 @@ func (vs *VolumeServe) BackupOnce(ctx context.Context) error {
 	return nil
 }
 
-func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId int64) error {
+func (vs *VolumeServe) IsRestoreDone() (bool, error) {
+	s, err := vs.loadVolumeState()
+	if err != nil {
+		return false, err
+	}
+	return s.RestoreDone, nil
+}
+
+func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId int64, delete bool) error {
 	s, err := vs.loadVolumeState()
 	if err != nil {
 		return err
@@ -447,7 +434,7 @@ func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId int64) er
 		return err
 	}
 
-	err = vb.RestoreSnapshot(ctx, snapshot.Rustic.SnapshotId)
+	err = vb.RestoreSnapshot(ctx, snapshot.Rustic.SnapshotId, delete)
 	if err != nil {
 		return err
 	}
@@ -461,7 +448,24 @@ func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
 		return nil
 	}
 
-	return vs.RestoreSnapshot(ctx, *vs.volume.LatestSnapshotId)
+	err := vs.RestoreSnapshot(ctx, *vs.volume.LatestSnapshotId, true)
+	if err != nil {
+		return err
+	}
+
+	s, err := vs.loadVolumeState()
+	if err != nil {
+		return err
+	}
+
+	s.RestoreDone = true
+
+	err = vs.saveVolumeState(*s)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (vs *VolumeServe) periodicBackup(ctx context.Context) {

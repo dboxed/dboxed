@@ -46,6 +46,7 @@ func RunBackup(ctx context.Context, config RusticConfig, dir string, opts Backup
 
 type RestoreOpts struct {
 	NumericId bool
+	Delete    bool
 }
 
 func RunRestore(ctx context.Context, config RusticConfig, snapshotId string, dir string, opts RestoreOpts) error {
@@ -54,6 +55,9 @@ func RunRestore(ctx context.Context, config RusticConfig, snapshotId string, dir
 	}
 	if opts.NumericId {
 		args = append(args, "--numeric-id")
+	}
+	if opts.Delete {
+		args = append(args, "--delete")
 	}
 
 	args = append(args, snapshotId)

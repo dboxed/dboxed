@@ -37,7 +37,7 @@ func lockAndMountVolume(ctx context.Context, workDir string, volume string, back
 	opts := volume_serve.VolumeServeOpts{
 		MountName: volumeState.MountName,
 		VolumeId:  volumeState.Volume.ID,
-		BoxId:     volumeState.BoxId,
+		BoxId:     volumeState.Volume.LockBoxId,
 		Dir:       filepath.Join(baseDir, volumeState.MountName),
 	}
 	if backupInterval != nil {
@@ -65,6 +65,17 @@ func lockAndMountVolume(ctx context.Context, workDir string, volume string, back
 	err = vs.Mount(ctx, false)
 	if err != nil {
 		return nil, err
+	}
+
+	restoreDone, err := vs.IsRestoreDone()
+	if err != nil {
+		return nil, err
+	}
+	if !restoreDone {
+		err = vs.RestoreFromLatestSnapshot(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return vs, nil
