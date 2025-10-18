@@ -4,8 +4,6 @@ package sandbox
 
 import (
 	"context"
-	"log/slog"
-	"time"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -15,19 +13,10 @@ import (
 
 type RunCmd struct {
 	flags.SandboxRunArgs
-
-	WaitBeforeExit *time.Duration `help:"Wait before finally exiting. This gives the process time to print stdout/stderr messages that might be lost. Especially useful in combination with --debug"`
 }
 
 func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) error {
 	ctx := context.Background()
-
-	defer func() {
-		if cmd.WaitBeforeExit != nil {
-			slog.Info("sleeping before exit")
-			time.Sleep(*cmd.WaitBeforeExit)
-		}
-	}()
 
 	c, err := g.BuildClient(ctx)
 	if err != nil {
