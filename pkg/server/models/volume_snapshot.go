@@ -50,13 +50,19 @@ type VolumeSnapshotRustic struct {
 	TotalDuration  float32   `json:"totalDuration"`
 }
 
+type CreateVolumeSnapshot struct {
+	LockID string `json:"lockId"`
+
+	Rustic *VolumeSnapshotRustic `json:"rustic,omitempty"`
+}
+
 func VolumeSnapshotFromDB(v dmodel.VolumeSnapshot) VolumeSnapshot {
 	ret := VolumeSnapshot{
 		ID:        v.ID,
 		Workspace: v.WorkspaceID,
 		CreatedAt: v.CreatedAt,
 		VolumeID:  v.VolumedID.V,
-		LockID:    v.LockID,
+		LockID:    v.LockID.V,
 	}
 
 	if v.Rustic != nil && v.Rustic.ID.Valid {

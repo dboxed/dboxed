@@ -9,9 +9,9 @@ import (
 type VolumeSnapshot struct {
 	OwnedByWorkspace
 
-	VolumeProviderID int64                      `db:"volume_provider_id"`
-	VolumedID        querier.NullForJoin[int64] `db:"volume_id"`
-	LockID           string                     `db:"lock_id"`
+	VolumeProviderID querier.NullForJoin[int64]  `db:"volume_provider_id"`
+	VolumedID        querier.NullForJoin[int64]  `db:"volume_id"`
+	LockID           querier.NullForJoin[string] `db:"lock_id"`
 
 	Rustic *VolumeSnapshotRustic `join:"true"`
 }

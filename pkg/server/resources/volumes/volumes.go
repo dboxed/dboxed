@@ -42,8 +42,9 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/release", s.restReleaseVolume, allowBoxTokenModifier)
 
-	huma.Get(workspacesGroup, "/volumes/{id}/snapshots", s.restListSnapshots)
-	huma.Get(workspacesGroup, "/volumes/{id}/snapshots/{snapshotId}", s.restGetSnapshot)
+	huma.Post(workspacesGroup, "/volumes/{id}/snapshots", s.restCreateSnapshot, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/volumes/{id}/snapshots", s.restListSnapshots, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/volumes/{id}/snapshots/{snapshotId}", s.restGetSnapshot, allowBoxTokenModifier)
 	huma.Delete(workspacesGroup, "/volumes/{id}/snapshots/{snapshotId}", s.restDeleteSnapshot)
 
 	return nil

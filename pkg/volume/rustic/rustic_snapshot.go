@@ -48,8 +48,8 @@ type SnapshotSummary struct {
 	TotalDuration         float64   `json:"total_duration"`
 }
 
-func (rs *Snapshot) ToApi() models.VolumeSnapshotRustic {
-	return models.VolumeSnapshotRustic{
+func (rs *Snapshot) ToApi() *models.VolumeSnapshotRustic {
+	return &models.VolumeSnapshotRustic{
 		SnapshotId:       rs.Id,
 		SnapshotTime:     rs.Time,
 		ParentSnapshotId: rs.Parent,

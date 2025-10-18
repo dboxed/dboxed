@@ -6,6 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/rustic"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
@@ -62,9 +64,10 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 
 	tags := BuildBackupTags(vb.VolumeProviderId, &vb.VolumeId, &vb.VolumeUuid, &vb.LockId)
 
+	var rsSnapshot *rustic.Snapshot
 	err = vb.runWithWebdavProxy(ctx, func(config rustic.RusticConfig) error {
 		var err error
-		_, err = rustic.RunBackup(ctx, config, vb.SnapshotMount, rustic.BackupOpts{
+		rsSnapshot, err = rustic.RunBackup(ctx, config, vb.SnapshotMount, rustic.BackupOpts{
 			Init:      true,
 			Host:      &rusticHost,
 			AsPath:    util.Ptr("/"),
@@ -77,6 +80,18 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	c2 := clients.VolumesClient{Client: vb.Client}
+	_, err = c2.CreateSnapshot(ctx, vb.VolumeId, models.CreateVolumeSnapshot{
+		LockID: vb.LockId,
+		Rustic: rsSnapshot.ToApi(),
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

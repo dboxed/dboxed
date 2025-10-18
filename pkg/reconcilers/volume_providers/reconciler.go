@@ -89,11 +89,6 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 		return err
 	}
 
-	err = r.updateLastSnapshotIds(ctx, log, vp, dbVolumes, dbSnapshots)
-	if err != nil {
-		return err
-	}
-
 	for _, s := range dbSnapshots {
 		if s.DeletedAt.Valid {
 			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Rustic.SnapshotId.V))
@@ -161,49 +156,6 @@ func (r *reconciler) forgetOldSnapshotsForVolume(ctx context.Context, log *slog.
 			return err
 		}
 	}
-	return nil
-}
-
-func (r *reconciler) updateLastSnapshotIds(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) error {
-	q := querier.GetQuerier(ctx)
-
-	latestSnapshotForVolumes := map[int64]*dmodel.VolumeSnapshot{}
-	for _, s := range dbSnapshots {
-		if s.DeletedAt.Valid {
-			continue
-		}
-		v, ok := dbVolumes[s.VolumedID.V]
-		if !ok || v.DeletedAt.Valid {
-			continue
-		}
-
-		ls, ok := latestSnapshotForVolumes[v.ID]
-		if !ok || s.CreatedAt.After(ls.CreatedAt) {
-			latestSnapshotForVolumes[v.ID] = s
-		}
-	}
-
-	for _, v := range dbVolumes {
-		ls, ok := latestSnapshotForVolumes[v.ID]
-		if !ok {
-			if v.LatestSnapshotId != nil {
-				log.InfoContext(ctx, "resetting latest snapshot id for volume", slog.Any("volumeId", v.ID))
-				err := v.UpdateLatestSnapshot(q, nil)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			if v.LatestSnapshotId == nil || *v.LatestSnapshotId != ls.ID {
-				log.InfoContext(ctx, "updating latest snapshot id for volume", slog.Any("volumeId", v.ID), slog.Any("snapshotId", ls.ID))
-				err := v.UpdateLatestSnapshot(q, &ls.ID)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
 	return nil
 }
 
