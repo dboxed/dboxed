@@ -2,6 +2,7 @@ package rustic
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path"
@@ -44,8 +45,8 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 	return ret, nil
 }
 
-func (r *Reconciler) deleteRusticSnapshots(ctx context.Context, vp *dmodel.VolumeProvider, snapshotIds []string) error {
-	slog.InfoContext(ctx, "deleting rustic snapshots", slog.Any("rsSnapshotIds", snapshotIds))
+func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) error {
+	log.InfoContext(ctx, "deleting rustic snapshot", slog.Any("rsSnapshotId", snapshotId))
 
 	c, err := s3utils.BuildS3Client(vp, "")
 	if err != nil {
@@ -54,12 +55,16 @@ func (r *Reconciler) deleteRusticSnapshots(ctx context.Context, vp *dmodel.Volum
 
 	prefix := path.Join(vp.Rustic.StorageS3.Prefix.V, "snapshots") + "/"
 
-	for _, id := range snapshotIds {
-		key := path.Join(prefix, id)
-		err = c.RemoveObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, minio.RemoveObjectOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to remove snapshot via S3 RemoveObject: %w", err)
+	key := path.Join(prefix, snapshotId)
+	err = c.RemoveObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, minio.RemoveObjectOptions{})
+	if err != nil {
+		var err2 *minio.ErrorResponse
+		if errors.As(err, &err2) {
+			if err2.Code == minio.NoSuchKey {
+				return nil
+			}
 		}
+		return fmt.Errorf("failed to remove snapshot via S3 RemoveObject: %w", err)
 	}
 	return nil
 }
@@ -95,21 +100,6 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		rsSnapshotIdSet[id] = struct{}{}
 	}
 
-	var rsSnapshotsToDelete []string
-	for _, id := range rsSnapshotIds {
-		dbSnapshot, ok := dbSnapshotsByRusticId[id]
-		if ok && dbSnapshot.DeletedAt.Valid {
-			rsSnapshotsToDelete = append(rsSnapshotsToDelete, id)
-		}
-	}
-
-	if len(rsSnapshotsToDelete) != 0 {
-		err = r.deleteRusticSnapshots(ctx, vp, rsSnapshotsToDelete)
-		if err != nil {
-			return fmt.Errorf("failed to delete snapshots: %w", err)
-		}
-	}
-
 	for _, s := range dbSnapshots {
 		if s.DeletedAt.Valid {
 			continue
@@ -134,5 +124,18 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 }
 
 func (r *Reconciler) ReconcileDeleteVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, volumes map[int64]*dmodel.VolumeWithAttachment, snapshots map[int64]*dmodel.VolumeSnapshot) error {
+	return nil
+}
+
+func (r *Reconciler) ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) error {
+	err := r.deleteRusticSnapshot(ctx, log, vp, dbSnapshot.Rustic.SnapshotId.V)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Reconciler) ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithAttachment) error {
+	// we assume that all snapshots have been deleted already
 	return nil
 }

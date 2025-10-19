@@ -141,7 +141,7 @@ func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.Workspac
 
 	err = dmodel.SoftDeleteWithConstraints[*dmodel.Workspace](q, map[string]any{
 		"id": w.ID,
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}

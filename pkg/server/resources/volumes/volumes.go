@@ -225,9 +225,43 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Volume](q, &w.ID, i.Id)
+	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
+	}
+	if v.Attachment != nil && v.Attachment.BoxId.Valid {
+		return nil, huma.Error400BadRequest("can not delete volume that is attached to a box")
+	}
+
+	// make sure we can delete all snapshots (we have a 'on delete restrict' constraint on it)
+	err = v.UpdateLatestSnapshot(q, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	extraDeleteVolume := func(q *querier.Querier) error {
+		// simulate deletion of all snapshots
+		_, err = querier.DeleteManyByFields[dmodel.VolumeSnapshot](q, map[string]any{
+			"volume_id": v.Volume.ID,
+		})
+		return err
+	}
+
+	err = dmodel.SoftDeleteWithConstraintsByIdsExtra[*dmodel.Volume](q, &w.ID, i.Id, extraDeleteVolume)
+	if err != nil {
+		return nil, err
+	}
+
+	snapshots, err := dmodel.ListVolumeSnapshotsForVolume(q, &w.ID, v.ID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range snapshots {
+		err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.VolumeSnapshot](q, &w.ID, s.ID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &huma_utils.Empty{}, nil

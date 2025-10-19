@@ -112,11 +112,20 @@ func SoftDeleteByStruct[T IsSoftDelete](q *querier2.Querier, v T) error {
 	return nil
 }
 
-func SoftDeleteWithConstraints[T IsSoftDelete](q *querier2.Querier, byFields map[string]any) error {
+type SoftDeleteWithConstraintsExtra func(q *querier2.Querier) error
+
+func SoftDeleteWithConstraints[T IsSoftDelete](q *querier2.Querier, byFields map[string]any, extra SoftDeleteWithConstraintsExtra) error {
 	savepoint := "s_" + strings.ReplaceAll(uuid.NewString(), "-", "_")
 	_, err := q.ExecNamed(fmt.Sprintf("savepoint %s", savepoint), nil)
 	if err != nil {
 		return err
+	}
+
+	if extra != nil {
+		err = extra(q)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = querier2.DeleteOneByFields[T](q, byFields)
@@ -136,11 +145,11 @@ func SoftDeleteWithConstraints[T IsSoftDelete](q *querier2.Querier, byFields map
 	return nil
 }
 
-func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64) error {
+func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64, extra SoftDeleteWithConstraintsExtra) error {
 	err := SoftDeleteWithConstraints[T](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
-	})
+	}, extra)
 	if err != nil {
 		return err
 	}
@@ -149,6 +158,10 @@ func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspa
 		return err
 	}
 	return nil
+}
+
+func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64) error {
+	return SoftDeleteWithConstraintsByIdsExtra[T](q, workspaceId, id, nil)
 }
 
 var querySetDBFinalizers = map[string]string{

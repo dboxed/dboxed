@@ -493,6 +493,27 @@ func DeleteOneWhere[T any](q *Querier, where string, args map[string]any) error 
 	return q.ExecOneNamed(query, args)
 }
 
+func DeleteManyByFields[T any](q *Querier, byFields map[string]any) (int, error) {
+	where, args, err := BuildWhere[T](byFields)
+	if err != nil {
+		return 0, err
+	}
+	return DeleteManyWhere[T](q, where, args)
+}
+
+func DeleteManyWhere[T any](q *Querier, where string, args map[string]any) (int, error) {
+	query := fmt.Sprintf("delete from \"%s\" where %s", GetTableName[T](), where)
+	qr, err := q.ExecNamed(query, args)
+	if err != nil {
+		return 0, err
+	}
+	cnt, err := qr.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return int(cnt), nil
+}
+
 func NewQuerier(ctx context.Context, db *ReadWriteDB, tx *sqlx.Tx) *Querier {
 	q := &Querier{
 		Ctx: ctx,

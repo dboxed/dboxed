@@ -91,6 +91,16 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 
 	for _, s := range dbSnapshots {
 		if s.DeletedAt.Valid {
+			v, ok := dbVolumes[s.VolumedID.V]
+			if !ok {
+				return fmt.Errorf("volume %d for snapshot %d not found", s.VolumedID.V, s.ID)
+			}
+
+			err = sr.ReconcileDeleteSnapshot(ctx, log, vp, &v.Volume, s)
+			if err != nil {
+				return err
+			}
+
 			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Rustic.SnapshotId.V))
 			err = querier.DeleteOneByStruct(q, s)
 			if err != nil {
@@ -101,6 +111,11 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 
 	for _, v := range dbVolumes {
 		if v.DeletedAt.Valid {
+			err = sr.ReconcileDeleteVolume(ctx, log, vp, v)
+			if err != nil {
+				return err
+			}
+
 			log.InfoContext(ctx, "finally deleting volume", slog.Any("volumeId", v.ID))
 			err = querier.DeleteOneByStruct(q, v)
 			if err != nil {
@@ -185,4 +200,6 @@ func (r *reconciler) ReconcileDelete(ctx context.Context, vp *dmodel.VolumeProvi
 type subReconciler interface {
 	ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) error
 	ReconcileDeleteVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) error
+	ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) error
+	ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithAttachment) error
 }
