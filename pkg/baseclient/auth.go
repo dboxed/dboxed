@@ -107,6 +107,7 @@ func (c *Client) buildOAuth2Config(ctx context.Context) (*oauth2.Config, error) 
 	cfg := &oauth2.Config{
 		ClientID: c.clientAuth.AuthInfo.OidcClientId,
 		Endpoint: provider.Endpoint(),
+		Scopes:   []string{"offline_access"},
 	}
 
 	return cfg, nil
