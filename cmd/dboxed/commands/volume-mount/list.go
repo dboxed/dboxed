@@ -4,7 +4,6 @@ package volume_mount
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,11 +17,11 @@ type ListCmd struct {
 }
 
 type PrintVolumeMount struct {
-	MountName   string `json:"mountName"`
-	Volume      string `json:"volume"`
-	Workspace   string `json:"workspace"`
-	Box         string `json:"box"`
-	RestoreDone bool   `json:"restoreDone"`
+	MountName   string `col:"Mount Name"`
+	Volume      string `col:"Volume"`
+	Workspace   string `col:"Workspace"`
+	Box         string `col:"Box"`
+	RestoreDone bool   `col:"Restore Done"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -32,9 +31,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
-	ct := commandutils.ClientTool{
-		Client: c,
-	}
+	ct := commandutils.NewClientTool(c)
 
 	baseDir := filepath.Join(g.WorkDir, "volumes")
 	volumes, err := volume_serve.ListVolumeState(baseDir)
@@ -42,27 +39,24 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	var printList []PrintVolumeMount
+	var table []PrintVolumeMount
 	for _, v := range volumes {
 		p := PrintVolumeMount{
 			MountName:   v.MountName,
 			Volume:      fmt.Sprintf("%s (id=%d)", v.Volume.Name, v.Volume.ID),
-			Workspace:   ct.GetWorkspaceColumn(ctx, v.Volume.Workspace),
+			Workspace:   ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
 			RestoreDone: v.RestoreDone,
 		}
 		if v.Volume != nil && v.Volume.LockBoxId != nil {
-			p.Box = ct.GetBoxColumn(ctx, *v.Volume.LockBoxId)
+			p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.LockBoxId)
 		}
 
-		printList = append(printList, p)
+		table = append(table, p)
 	}
 
-	for _, p := range printList {
-		j, err := json.Marshal(p)
-		if err != nil {
-			return err
-		}
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n", string(j))
+	err = commandutils.PrintTable(os.Stdout, table)
+	if err != nil {
+		return err
 	}
 
 	return nil

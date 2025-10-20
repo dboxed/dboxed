@@ -2,15 +2,22 @@ package compose
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
+	"os"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
+	"sigs.k8s.io/yaml"
 )
 
 type ListCmd struct {
 	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
+}
+
+type PrintCompose struct {
+	Name     string `col:"Name"`
+	Services string `col:"Services"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -33,8 +40,31 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	for _, p := range projects {
-		slog.Info("compose project", slog.Any("name", p.Name))
+	var table []PrintCompose
+	for _, cp := range projects {
+		services := "<unknown>"
+
+		var y map[string]any
+		err = yaml.Unmarshal([]byte(cp.ComposeProject), &y)
+		if err == nil {
+			x, ok := y["services"]
+			if ok {
+				x2, ok := x.([]map[string]any)
+				if ok {
+					services = fmt.Sprintf("%d", len(x2))
+				}
+			}
+		}
+
+		table = append(table, PrintCompose{
+			Name:     cp.Name,
+			Services: services,
+		})
+	}
+
+	err = commandutils.PrintTable(os.Stdout, table)
+	if err != nil {
+		return err
 	}
 
 	return nil

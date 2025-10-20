@@ -73,7 +73,7 @@ func (c *Client) GetApiToken() *string {
 	return c.clientAuth.StaticToken
 }
 
-func (c *Client) getWorkspaceId() *int64 {
+func (c *Client) GetWorkspaceId() *int64 {
 	if c.overrideWorkspaceId != nil {
 		return c.overrideWorkspaceId
 	}

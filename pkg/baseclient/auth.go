@@ -18,7 +18,7 @@ func (c *Client) GetClientAuth(withOverrides bool) *ClientAuth {
 	if withOverrides {
 		ret.ApiUrl = c.getApiUrl()
 		ret.StaticToken = c.GetApiToken()
-		ret.WorkspaceId = c.getWorkspaceId()
+		ret.WorkspaceId = c.GetWorkspaceId()
 	}
 	return ret
 }
@@ -162,7 +162,7 @@ func (c *Client) CheckAuth(ctx context.Context) error {
 			c.clientAuth.WorkspaceId = &t.Workspace
 		}
 	}
-	workspaceId := c.getWorkspaceId()
+	workspaceId := c.GetWorkspaceId()
 	if workspaceId != nil {
 		_, err := c.GetWorkspaceById(ctx, *workspaceId)
 		if err != nil {
@@ -212,7 +212,7 @@ func (c *Client) SwitchWorkspaceById(ctx context.Context, workspaceId int64) (*m
 }
 
 func (c *Client) WorkspaceApiPath() (string, error) {
-	workspaceId := c.getWorkspaceId()
+	workspaceId := c.GetWorkspaceId()
 	if workspaceId == nil {
 		return "", fmt.Errorf("no workspace selected")
 	}

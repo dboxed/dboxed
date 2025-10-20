@@ -11,14 +11,14 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type TokenCreateCmd struct {
+type CreateCmd struct {
 	Name string `help:"Specify the token name. Must be unique." required:"" arg:""`
 
 	ForWorkspace bool    `help:"If set, the token will be for the whole workspace" xor:"for"`
 	Box          *string `help:"Specify box for which to create the token" xor:"for"`
 }
 
-func (cmd *TokenCreateCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

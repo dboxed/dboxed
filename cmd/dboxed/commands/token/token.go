@@ -10,10 +10,10 @@ import (
 )
 
 type TokenCommands struct {
-	Create TokenCreateCmd `cmd:"" help:"Create a token"`
-	Get    TokenGetCmd    `cmd:"" help:"Get a token"`
-	List   TokenListCmd   `cmd:"" help:"List tokens" aliases:"ls"`
-	Delete TokenDeleteCmd `cmd:"" help:"Delete a token" aliases:"rm,delete"`
+	Create CreateCmd `cmd:"" help:"Create a token"`
+	Get    GetCmd    `cmd:"" help:"Get a token"`
+	List   ListCmd   `cmd:"" help:"List tokens" aliases:"ls"`
+	Delete DeleteCmd `cmd:"" help:"Delete a token" aliases:"rm,delete"`
 }
 
 func getToken(ctx context.Context, c *baseclient.Client, token string) (*models.Token, error) {

@@ -1,4 +1,4 @@
-package box
+package token
 
 import (
 	"context"
@@ -11,10 +11,11 @@ import (
 
 type ListCmd struct{}
 
-type PrintBox struct {
-	ID      int64  `col:"ID"`
-	Name    string `col:"Name"`
-	Network string `col:"Network"`
+type PrintToken struct {
+	ID           int64  `col:"Id"`
+	Name         string `col:"Name"`
+	ForWorkspace bool   `col:"For Workspace"`
+	Box          string `col:"Box"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -25,24 +26,25 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.BoxClient{Client: c}
+	c2 := &clients.TokenClient{Client: c}
 	ct := commandutils.NewClientTool(c)
 
-	boxes, err := c2.ListBoxes(ctx)
+	tokens, err := c2.ListTokens(ctx)
 	if err != nil {
 		return err
 	}
 
-	var table []PrintBox
-	for _, b := range boxes {
-		p := PrintBox{
-			ID:   b.ID,
-			Name: b.Name,
+	var table []PrintToken
+	for _, token := range tokens {
+		p := PrintToken{
+			ID:           token.ID,
+			Name:         token.Name,
+			ForWorkspace: token.ForWorkspace,
 		}
-		if b.Network != nil {
-			p.Network = ct.Networks.GetColumn(ctx, *b.Network)
+		if token.BoxID != nil {
+			p.Box = ct.Boxes.GetColumn(ctx, *token.BoxID)
 		}
-		table = append(table, p)
+		table = append(table)
 	}
 
 	err = commandutils.PrintTable(os.Stdout, table)

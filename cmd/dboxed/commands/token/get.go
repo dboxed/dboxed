@@ -7,11 +7,11 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 )
 
-type TokenGetCmd struct {
+type GetCmd struct {
 	Token string `help:"Specify the token" required:"" arg:""`
 }
 
-func (cmd *TokenGetCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *GetCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

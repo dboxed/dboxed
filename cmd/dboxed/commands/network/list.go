@@ -2,13 +2,21 @@ package network
 
 import (
 	"context"
-	"log/slog"
+	"os"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
 type ListCmd struct{}
+
+type PrintNetwork struct {
+	ID     int64  `col:"Id"`
+	Name   string `col:"Name"`
+	Type   string `col:"Type"`
+	Status string `col:"Status"`
+}
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
@@ -25,8 +33,19 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
+	var table []PrintNetwork
 	for _, n := range networks {
-		slog.Info("network", slog.Any("id", n.ID), slog.Any("name", n.Name), slog.Any("type", n.Type), slog.Any("status", n.Status))
+		table = append(table, PrintNetwork{
+			ID:     n.ID,
+			Name:   n.Name,
+			Status: n.Status,
+			Type:   string(n.Type),
+		})
+	}
+
+	err = commandutils.PrintTable(os.Stdout, table)
+	if err != nil {
+		return err
 	}
 
 	return nil

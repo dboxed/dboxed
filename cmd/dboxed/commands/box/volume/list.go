@@ -2,7 +2,7 @@ package volume
 
 import (
 	"context"
-	"log/slog"
+	"os"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -13,6 +13,13 @@ type ListCmd struct {
 	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
 }
 
+type PrintVolumeAttachment struct {
+	Volume   string `col:"Volume"`
+	RootUid  int64  `col:"Root UID"`
+	RootGid  int64  `col:"Root GID"`
+	RootMode string `col:"Root Mode"`
+}
+
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
@@ -20,6 +27,8 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
+
+	ct := commandutils.NewClientTool(c)
 
 	b, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
@@ -33,17 +42,19 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
+	var table []PrintVolumeAttachment
 	for _, a := range attachments {
-		volumeName := ""
-		if a.Volume != nil {
-			volumeName = a.Volume.Name
-		}
-		slog.Info("volume attachment",
-			slog.Any("volume_id", a.VolumeID),
-			slog.Any("volume_name", volumeName),
-			slog.Any("root_uid", a.RootUid),
-			slog.Any("root_gid", a.RootGid),
-			slog.Any("root_mode", a.RootMode))
+		table = append(table, PrintVolumeAttachment{
+			Volume:   ct.Boxes.GetColumn(ctx, a.VolumeID),
+			RootUid:  a.RootUid,
+			RootGid:  a.RootGid,
+			RootMode: a.RootMode,
+		})
+	}
+
+	err = commandutils.PrintTable(os.Stdout, table)
+	if err != nil {
+		return err
 	}
 
 	return nil

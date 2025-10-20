@@ -4,63 +4,81 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"reflect"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type ClientTool struct {
-	Client *baseclient.Client
+type clientTool struct {
+	client *baseclient.Client
 
-	workspaceCache map[int64]*models.Workspace
-	boxCache       map[int64]*models.Box
+	Workspaces      cache[models.Workspace]
+	Networks        cache[models.Network]
+	VolumeProviders cache[models.VolumeProvider]
+	Boxes           cache[models.Box]
 }
 
-func (ct *ClientTool) GetWorkspaceColumn(ctx context.Context, id int64) string {
-	if ct.workspaceCache == nil {
-		ct.workspaceCache = map[int64]*models.Workspace{}
+func NewClientTool(c *baseclient.Client) *clientTool {
+	ct := &clientTool{
+		client: c,
 	}
-	w, ok := ct.workspaceCache[id]
+
+	ct.Workspaces = cache[models.Workspace]{
+		getById: func(ctx context.Context, id int64) (*models.Workspace, error) {
+			return (&clients.WorkspacesClient{Client: c}).GetWorkspaceById(ctx, id)
+		},
+		entityName: "workspace",
+	}
+	ct.Networks = cache[models.Network]{
+		getById: func(ctx context.Context, id int64) (*models.Network, error) {
+			return (&clients.NetworkClient{Client: c}).GetNetworkById(ctx, id)
+		},
+		entityName: "network",
+	}
+	ct.VolumeProviders = cache[models.VolumeProvider]{
+		getById: func(ctx context.Context, id int64) (*models.VolumeProvider, error) {
+			return (&clients.VolumeProvidersClient{Client: c}).GetVolumeProviderById(ctx, id)
+		},
+		entityName: "volume provider",
+	}
+	ct.Boxes = cache[models.Box]{
+		getById: func(ctx context.Context, id int64) (*models.Box, error) {
+			return (&clients.BoxClient{Client: c}).GetBoxById(ctx, id)
+		},
+		entityName: "box",
+	}
+
+	return ct
+}
+
+type cache[T any] struct {
+	cache      map[int64]*T
+	entityName string
+	getById    func(ctx context.Context, id int64) (*T, error)
+}
+
+func (c *cache[T]) GetColumn(ctx context.Context, id int64) string {
+	if c.cache == nil {
+		c.cache = map[int64]*T{}
+	}
+	v, ok := (c.cache)[id]
 	if !ok {
 		var err error
-		w, err = ct.Client.GetWorkspaceById(ctx, id)
-		ct.workspaceCache[id] = w
+		v, err = c.getById(ctx, id)
+		c.cache[id] = v
 		if err != nil {
-			slog.WarnContext(ctx, "failed to retrieve workspace", slog.Any("error", err))
+			slog.WarnContext(ctx, fmt.Sprintf("failed to retrieve %s", c.entityName), slog.Any("error", err))
 		}
 	}
 
 	var ret string
-	if w != nil {
-		ret = fmt.Sprintf("%s (id=%d)", w.Name, w.ID)
-	} else {
-		ret = fmt.Sprintf("<unknown> (id=%d)", id)
-	}
-
-	return ret
-}
-
-func (ct *ClientTool) GetBoxColumn(ctx context.Context, id int64) string {
-	if ct.boxCache == nil {
-		ct.boxCache = map[int64]*models.Box{}
-	}
-
-	c := clients.BoxClient{Client: ct.Client}
-
-	w, ok := ct.boxCache[id]
-	if !ok {
-		var err error
-		w, err = c.GetBoxById(ctx, id)
-		ct.boxCache[id] = w
-		if err != nil {
-			slog.WarnContext(ctx, "failed to retrieve box", slog.Any("error", err))
-		}
-	}
-
-	var ret string
-	if w != nil {
-		ret = fmt.Sprintf("%s (id=%d)", w.Name, w.ID)
+	if v != nil {
+		vv := reflect.Indirect(reflect.ValueOf(v))
+		nameField := vv.FieldByName("Name")
+		name := nameField.String()
+		ret = fmt.Sprintf("%s (id=%d)", name, id)
 	} else {
 		ret = fmt.Sprintf("<unknown> (id=%d)", id)
 	}

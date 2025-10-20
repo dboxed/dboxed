@@ -4,12 +4,17 @@ import (
 	"context"
 	"os"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
-	"sigs.k8s.io/yaml"
 )
 
 type ListCmd struct {
+}
+
+type PrintWorkspace struct {
+	ID   int64  `col:"ID"`
+	Name string `col:"Name"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -27,12 +32,22 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	b, err := yaml.Marshal(l)
-	if err != nil {
-		return err
+	// Get the currently selected workspace ID
+	currentWorkspaceId := c.GetWorkspaceId()
+
+	var table []PrintWorkspace
+	for _, w := range l {
+		name := w.Name
+		if currentWorkspaceId != nil && *currentWorkspaceId == w.ID {
+			name += " (current)"
+		}
+		table = append(table, PrintWorkspace{
+			ID:   w.ID,
+			Name: name,
+		})
 	}
 
-	_, err = os.Stdout.Write(b)
+	err = commandutils.PrintTable(os.Stdout, table)
 	if err != nil {
 		return err
 	}

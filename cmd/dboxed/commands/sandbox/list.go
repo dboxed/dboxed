@@ -4,7 +4,6 @@ package sandbox
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,10 +18,10 @@ type ListCmd struct {
 }
 
 type PrintSandbox struct {
-	SandboxName string `json:"sandboxName"`
-	Workspace   string `json:"workspace"`
-	Box         string `json:"box"`
-	Status      string `json:"status"`
+	Name      string `col:"Name"`
+	Workspace string `col:"Workspace"`
+	Box       string `col:"Box"`
+	Status    string `col:"Status"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -32,9 +31,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
-	ct := commandutils.ClientTool{
-		Client: c,
-	}
+	ct := commandutils.NewClientTool(c)
 
 	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
 	sandboxInfos, err := sandbox.ListSandboxes(sandboxBaseDir)
@@ -42,7 +39,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	var printList []PrintSandbox
+	var table []PrintSandbox
 	for _, si := range sandboxInfos {
 		s := sandbox.Sandbox{
 			Debug:           g.Debug,
@@ -57,20 +54,17 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			statusStr = cs.String()
 		}
 
-		printList = append(printList, PrintSandbox{
-			SandboxName: si.SandboxName,
-			Box:         fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Box.ID),
-			Workspace:   ct.GetWorkspaceColumn(ctx, si.Box.Workspace),
-			Status:      statusStr,
+		table = append(table, PrintSandbox{
+			Name:      si.SandboxName,
+			Box:       fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Box.ID),
+			Workspace: ct.Workspaces.GetColumn(ctx, si.Box.Workspace),
+			Status:    statusStr,
 		})
 	}
 
-	for _, p := range printList {
-		j, err := json.Marshal(p)
-		if err != nil {
-			return err
-		}
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n", string(j))
+	err = commandutils.PrintTable(os.Stdout, table)
+	if err != nil {
+		return err
 	}
 
 	return nil
