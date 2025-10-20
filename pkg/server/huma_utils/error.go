@@ -1,6 +1,7 @@
 package huma_utils
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -16,6 +17,8 @@ func InitHumaErrorOverride() {
 					status = http.StatusNotFound
 				} else if querier.IsSqlConstraintViolationError(err) {
 					status = http.StatusConflict
+				} else {
+					slog.Error("internal server error", slog.Any("error", err))
 				}
 			}
 		}
