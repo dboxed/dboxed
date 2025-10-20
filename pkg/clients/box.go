@@ -143,6 +143,14 @@ func (c *BoxClient) AttachVolume(ctx context.Context, boxId int64, req models.At
 	return err
 }
 
+func (c *BoxClient) UpdateAttachedVolume(ctx context.Context, boxId int64, volumeId int64, req models.UpdateVolumeAttachmentRequest) (*models.VolumeAttachment, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes", volumeId)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.VolumeAttachment](ctx, c.Client, "PATCH", p, req)
+}
+
 func (c *BoxClient) DetachVolume(ctx context.Context, boxId int64, volumeId int64) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes", volumeId)
 	if err != nil {
