@@ -19,6 +19,12 @@ func (cmd *LoginCmd) Run(g *flags.GlobalFlags) error {
 
 	if g.ApiUrl != nil {
 		clientAuth.ApiUrl = *g.ApiUrl
+	} else {
+		// try to re-use the api url passed on last login
+		oldClientAuth, err := baseclient.ReadClientAuth(g.ClientAuthFile)
+		if err == nil {
+			clientAuth.ApiUrl = oldClientAuth.ApiUrl
+		}
 	}
 
 	c, err := baseclient.New(g.ClientAuthFile, clientAuth, false)
