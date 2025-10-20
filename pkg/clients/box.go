@@ -121,3 +121,33 @@ func (c *BoxClient) DeleteComposeProject(ctx context.Context, boxId int64, compo
 	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
 	return err
 }
+
+func (c *BoxClient) ListAttachedVolumes(ctx context.Context, boxId int64) ([]models.VolumeAttachment, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes")
+	if err != nil {
+		return nil, err
+	}
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.VolumeAttachment]](ctx, c.Client, "GET", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return l.Items, err
+}
+
+func (c *BoxClient) AttachVolume(ctx context.Context, boxId int64, req models.AttachVolumeRequest) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes")
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "POST", p, req)
+	return err
+}
+
+func (c *BoxClient) DetachVolume(ctx context.Context, boxId int64, volumeId int64) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes", volumeId)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
+	return err
+}
