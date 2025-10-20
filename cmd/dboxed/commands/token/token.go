@@ -1,4 +1,4 @@
-package auth
+package token
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type TokenCmd struct {
+type TokenCommands struct {
 	Create TokenCreateCmd `cmd:"" help:"Create a token"`
 	Get    TokenGetCmd    `cmd:"" help:"Get a token"`
 	List   TokenListCmd   `cmd:"" help:"List tokens"`

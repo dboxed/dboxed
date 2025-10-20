@@ -6,10 +6,11 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/auth"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/token"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/volume"
 	volume_mount "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-mount"
 	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
@@ -24,7 +25,8 @@ type Cli struct {
 
 	Server server.ServerCommands `cmd:"" help:"server commands"`
 
-	Auth      auth.AuthCommands           `cmd:"" help:"manage authentication"`
+	Login     login.LoginCmd              `cmd:"" help:"login to the dboxed api"`
+	Token     token.TokenCommands         `cmd:"" help:"manage api tokens"`
 	Workspace workspace.WorkspaceCommands `cmd:"" help:"manage workspaces"`
 
 	VolumeProvider volume_provider.VolumeProviderCommands `cmd:"" help:"manage volume providers"`
