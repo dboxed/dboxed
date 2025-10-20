@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
@@ -32,7 +33,9 @@ func requestApi2[ReplyBody any, RequestBody any](ctx context.Context, c *Client,
 	}
 	u.Path = path.Join(u.Path, p)
 
-	//fmt.Fprintf(os.Stderr, "request: %s\n", u.String())
+	if c.debug {
+		slog.Debug("API request", slog.String("method", method), slog.String("url", u.String()))
+	}
 
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -63,6 +66,10 @@ func requestApi2[ReplyBody any, RequestBody any](ctx context.Context, c *Client,
 	b, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.debug {
+		slog.Debug("API response", slog.String("method", method), slog.String("url", u.String()), slog.Int("status", resp.StatusCode))
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

@@ -34,6 +34,8 @@ func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, erro
 		return nil, err
 	}
 
+	c.SetDebug(f.Debug)
+
 	if f.ApiUrl != nil {
 		c.SetOverrideApiUrl(*f.ApiUrl)
 	}

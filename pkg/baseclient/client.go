@@ -18,6 +18,8 @@ type Client struct {
 	overrideApiToken    *string
 	overrideWorkspaceId *int64
 
+	debug bool
+
 	m        sync.Mutex
 	provider *oidc.Provider
 }
@@ -51,6 +53,10 @@ func (c *Client) SetOverrideApiToken(token string) {
 
 func (c *Client) SetOverrideWorkspaceId(id int64) {
 	c.overrideWorkspaceId = &id
+}
+
+func (c *Client) SetDebug(debug bool) {
+	c.debug = debug
 }
 
 func (c *Client) getApiUrl() string {
