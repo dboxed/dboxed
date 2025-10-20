@@ -2,6 +2,7 @@ package volumes
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"slices"
 	"time"
@@ -209,6 +210,9 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 
 	v, err := dmodel.GetVolumeByName(q, w.ID, i.VolumeName, true)
 	if err != nil {
+		if querier.IsSqlNotFoundError(err) {
+			return nil, huma.Error404NotFound(fmt.Sprintf("volume with name '%s' not found", i.VolumeName))
+		}
 		return nil, err
 	}
 
