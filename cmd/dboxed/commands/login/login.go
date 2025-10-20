@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/workspace"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/baseclient"
 )
@@ -51,6 +52,13 @@ func (cmd *LoginCmd) Run(g *flags.GlobalFlags) error {
 	err = c.CheckAuth(ctx)
 	if err != nil {
 		return err
+	}
+
+	if g.Workspace == nil {
+		err = workspace.TuiSelectWorkspace(ctx, c)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = c.WriteClientAuth()

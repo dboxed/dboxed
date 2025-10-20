@@ -9,7 +9,7 @@ import (
 )
 
 type SelectCmd struct {
-	Workspace string `help:"Specify the workspace." required:"" arg:""`
+	Workspace *string `help:"Specify the workspace." optional:"" arg:""`
 }
 
 func (cmd *SelectCmd) Run(g *flags.GlobalFlags) error {
@@ -20,7 +20,11 @@ func (cmd *SelectCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	w, err := commandutils.GetWorkspace(ctx, c, cmd.Workspace)
+	if cmd.Workspace == nil {
+		return TuiSelectWorkspace(ctx, c)
+	}
+
+	w, err := commandutils.GetWorkspace(ctx, c, *cmd.Workspace)
 	if err != nil {
 		return err
 	}
