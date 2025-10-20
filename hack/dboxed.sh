@@ -1,10 +1,8 @@
-#!/usr/bin/env bash
-set -e
+#!/usr/bin/env sh
 
 DEFAULT_BIN_DIR="/usr/local/bin"
 BIN_DIR=${1:-"${DEFAULT_BIN_DIR}"}
 GITHUB_REPO="dboxed/dboxed"
-DBOXED_VERSION=${DBOXED_VERSION:-latest}
 
 # Helper functions for logs
 info() {
@@ -22,7 +20,7 @@ fatal() {
 
 # Set os, fatal if operating system not supported
 setup_verify_os() {
-    if [[ -z "${OS}" ]]; then
+    if [ -z "${OS}" ]; then
         OS=$(uname)
     fi
     case ${OS} in
@@ -39,7 +37,7 @@ setup_verify_os() {
 
 # Set arch, fatal if architecture not supported
 setup_verify_arch() {
-    if [[ -z "${ARCH}" ]]; then
+    if [ -z "${ARCH}" ]; then
         ARCH=$(uname -m)
     fi
     case ${ARCH} in
@@ -60,7 +58,7 @@ setup_verify_arch() {
 # Verify existence of downloader executable
 verify_downloader() {
     # Return failure if it doesn't exist or is no executable
-    [[ -x "$(which "$1")" ]] || return 1
+    [ -x "$(which "$1")" ] || return 1
 
     # Set verified executable as our downloader program and return success
     DOWNLOADER=$1
@@ -83,16 +81,37 @@ setup_tmp() {
     trap cleanup INT EXIT
 }
 
+# Find version from Github metadata
+get_release_version() {
+    if [ -n "${VERSION_DBOXED}" ]; then
+      SUFFIX_URL="tags/v${VERSION_DBOXED}"
+    else
+      SUFFIX_URL="latest"
+    fi
+
+    METADATA_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/${SUFFIX_URL}"
+
+    info "Downloading metadata ${METADATA_URL}"
+    download "${TMP_METADATA}" "${METADATA_URL}"
+
+    VERSION_DBOXED=$(grep '"tag_name":' "${TMP_METADATA}" | sed -E 's/.*"([^"]+)".*/\1/' | cut -c 2-)
+    if [ -n "${VERSION_DBOXED}" ]; then
+        info "Using ${VERSION_DBOXED} as release"
+    else
+        fatal "Unable to determine release version"
+    fi
+}
+
 # Download from file from URL
 download() {
-    [[ $# -eq 2 ]] || fatal 'download needs exactly 2 arguments'
+    [ $# -eq 2 ] || fatal 'download needs exactly 2 arguments'
 
     case $DOWNLOADER in
         curl)
-            curl -o "$1" -sfL "$2"
+            curl -o "$1" -sfL "$2" || fatal 'Download failed'
             ;;
         wget)
-            wget -qO "$1" "$2"
+            wget -qO "$1" "$2" || fatal 'Download failed'
             ;;
         *)
             fatal "Incorrect executable '${DOWNLOADER}'"
@@ -100,12 +119,12 @@ download() {
     esac
 
     # Abort if download command failed
-    [[ $? -eq 0 ]] || fatal 'Download failed'
+    [ $? -eq 0 ] || fatal 'Download failed'
 }
 
 # Download hash from Github URL
 download_hash() {
-    HASH_URL="https://github.com/${GITHUB_REPO}/releases/download/${DBOXED_VERSION}/dboxed_checksums.txt"
+    HASH_URL="https://github.com/${GITHUB_REPO}/releases/download/v${VERSION_DBOXED}/dboxed_checksums.txt"
 
     info "Downloading hash ${HASH_URL}"
     download "${TMP_HASH}" "${HASH_URL}"
@@ -115,7 +134,7 @@ download_hash() {
 
 # Download binary from Github URL
 download_binary() {
-    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/${DBOXED_VERSION}/dboxed_${OS}_${ARCH}.tar.gz"
+    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/v${VERSION_DBOXED}/dboxed_${OS}_${ARCH}.tar.gz"
     info "Downloading binary ${BIN_URL}"
     download "${TMP_BIN}" "${BIN_URL}"
 }
@@ -140,7 +159,7 @@ verify_binary() {
     info "Verifying binary download"
     HASH_BIN=$(compute_sha256sum "${TMP_BIN}")
     HASH_BIN=${HASH_BIN%%[[:blank:]]*}
-    if [[ "${HASH_EXPECTED}" != "${HASH_BIN}" ]]; then
+    if [ "${HASH_EXPECTED}" != "${HASH_BIN}" ]; then
         fatal "Download sha256 does not match ${HASH_EXPECTED}, got ${HASH_BIN}"
     fi
 }
@@ -151,8 +170,8 @@ setup_binary() {
     info "Installing dboxed to ${BIN_DIR}/dboxed"
     tar -xzof "${TMP_BIN}" -C "${TMP_DIR}"
 
-    local CMD_MOVE="mv -f \"${TMP_DIR}/bin/dboxed\" \"${BIN_DIR}\""
-    if [[ -w "${BIN_DIR}" ]]; then
+    local CMD_MOVE="mv -f \"${TMP_DIR}/dboxed\" \"${BIN_DIR}\""
+    if [ -w "${BIN_DIR}" ]; then
         eval "${CMD_MOVE}"
     else
         eval "sudo ${CMD_MOVE}"
@@ -165,6 +184,7 @@ setup_binary() {
     setup_verify_arch
     verify_downloader wget || verify_downloader curl || fatal 'Can not find curl or wget for downloading files'
     setup_tmp
+    get_release_version
     download_hash
     download_binary
     verify_binary
