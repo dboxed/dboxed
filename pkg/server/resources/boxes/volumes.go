@@ -2,6 +2,7 @@ package boxes
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -74,30 +75,7 @@ func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInp
 		return nil, err
 	}
 
-	volume, err := dmodel.GetVolumeById(q, &w.ID, i.Body.VolumeId, true)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.checkVolumeAttachmentParams(&i.Body.RootUid, &i.Body.RootGid, &i.Body.RootMode)
-	if err != nil {
-		return nil, err
-	}
-
-	attachment := &dmodel.BoxVolumeAttachment{
-		BoxId:    querier2.N(box.ID),
-		VolumeId: querier2.N(volume.ID),
-		RootUid:  querier2.N(i.Body.RootUid),
-		RootGid:  querier2.N(i.Body.RootGid),
-		RootMode: querier2.N(i.Body.RootMode),
-	}
-
-	err = attachment.Create(q)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.validateBoxSpec(c, box)
+	err = s.attachVolume(c, box, i.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +86,50 @@ func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInp
 	}
 
 	return &huma_utils.Empty{}, nil
+}
+
+func (s *BoxesServer) attachVolume(c context.Context, box *dmodel.Box, req models.AttachVolumeRequest) error {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	volume, err := dmodel.GetVolumeById(q, &w.ID, req.VolumeId, true)
+	if err != nil {
+		return err
+	}
+
+	err = s.checkVolumeAttachmentParams(req.RootUid, req.RootGid, req.RootMode)
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(c, "attaching volume to box", slog.Any("boxId", box.ID), slog.Any("volumeId", req.VolumeId))
+
+	attachment := &dmodel.BoxVolumeAttachment{
+		BoxId:    querier2.N(box.ID),
+		VolumeId: querier2.N(volume.ID),
+	}
+
+	if req.RootUid != nil {
+		attachment.RootUid = querier2.N(*req.RootUid)
+	}
+	if req.RootGid != nil {
+		attachment.RootGid = querier2.N(*req.RootGid)
+	}
+	if req.RootMode != nil {
+		attachment.RootMode = querier2.N(*req.RootMode)
+	}
+
+	err = attachment.Create(q)
+	if err != nil {
+		return err
+	}
+
+	err = s.validateBoxSpec(c, box)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type restUpdateAttachedVolumeInput struct {

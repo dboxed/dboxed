@@ -11,11 +11,11 @@ import (
 )
 
 type AttachCmd struct {
-	Box      string `help:"Box ID, UUID, or name" required:"" arg:""`
-	Volume   string `help:"Volume ID, UUID, or name" required:"" arg:""`
-	RootUid  int64  `help:"Root UID for volume mount" default:"0"`
-	RootGid  int64  `help:"Root GID for volume mount" default:"0"`
-	RootMode string `help:"Root mode for volume mount (octal)" default:"755"`
+	Box      string  `help:"Box ID, UUID, or name" required:"" arg:""`
+	Volume   string  `help:"Volume ID, UUID, or name" required:"" arg:""`
+	RootUid  *int64  `help:"Root UID for volume mount"`
+	RootGid  *int64  `help:"Root GID for volume mount"`
+	RootMode *string `help:"Root mode for volume mount (octal)"`
 }
 
 func (cmd *AttachCmd) Run(g *flags.GlobalFlags) error {

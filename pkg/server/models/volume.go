@@ -66,9 +66,9 @@ type VolumeAttachment struct {
 type AttachVolumeRequest struct {
 	VolumeId int64 `json:"volumeId"`
 
-	RootUid  int64  `json:"rootUid"`
-	RootGid  int64  `json:"rootGid"`
-	RootMode string `json:"rootMode"`
+	RootUid  *int64  `json:"rootUid,omitempty"`
+	RootGid  *int64  `json:"rootGid,omitempty"`
+	RootMode *string `json:"rootMode,omitempty"`
 }
 
 type UpdateVolumeAttachmentRequest struct {

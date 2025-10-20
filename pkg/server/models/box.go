@@ -30,13 +30,12 @@ type CreateBox struct {
 	Name string `json:"name"`
 
 	Network *int64 `json:"network,omitempty"`
+
+	VolumeAttachments []AttachVolumeRequest     `json:"volumeAttachments,omitempty"`
+	ComposeProjects   []CreateBoxComposeProject `json:"composeProjects,omitempty"`
 }
 
 type UpdateBox struct {
-}
-
-type BoxToken struct {
-	Token string `json:"token"`
 }
 
 func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {

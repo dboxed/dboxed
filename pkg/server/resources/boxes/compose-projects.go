@@ -65,40 +65,12 @@ func (s *BoxesServer) restCreateComposeProject(c context.Context, i *restCreateC
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	err := util.CheckName(i.Body.Name)
-	if err != nil {
-		return nil, err
-	}
-	if strings.HasPrefix(i.Body.Name, "dboxed-") {
-		return nil, huma.Error400BadRequest("'dboxed-' is a reserved internal prefix and can't be used")
-	}
-
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
-	bcps, err := dmodel.ListBoxComposeProjects(q, box.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, bcp := range bcps {
-		if bcp.Name == i.Body.Name {
-			return nil, huma.Error400BadRequest(fmt.Sprintf("compose project with name %s already exists", i.Body.Name))
-		}
-	}
-
-	cp := dmodel.BoxComposeProject{
-		BoxID:          box.ID,
-		Name:           i.Body.Name,
-		ComposeProject: i.Body.ComposeProject,
-	}
-	err = cp.Create(q)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.validateBoxSpec(c, box)
+	err = s.createComposeProject(c, box, i.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +81,45 @@ func (s *BoxesServer) restCreateComposeProject(c context.Context, i *restCreateC
 	}
 
 	return &huma_utils.Empty{}, nil
+}
+
+func (s *BoxesServer) createComposeProject(c context.Context, box *dmodel.Box, req models.CreateBoxComposeProject) error {
+	q := querier2.GetQuerier(c)
+
+	err := util.CheckName(req.Name)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(req.Name, "dboxed-") {
+		return huma.Error400BadRequest("'dboxed-' is a reserved internal prefix and can't be used")
+	}
+
+	bcps, err := dmodel.ListBoxComposeProjects(q, box.ID)
+	if err != nil {
+		return err
+	}
+	for _, bcp := range bcps {
+		if bcp.Name == req.Name {
+			return huma.Error400BadRequest(fmt.Sprintf("compose project with name %s already exists", req.Name))
+		}
+	}
+
+	cp := dmodel.BoxComposeProject{
+		BoxID:          box.ID,
+		Name:           req.Name,
+		ComposeProject: req.ComposeProject,
+	}
+	err = cp.Create(q)
+	if err != nil {
+		return err
+	}
+
+	err = s.validateBoxSpec(c, box)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type restUpdateComposeProjectInput struct {

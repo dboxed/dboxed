@@ -150,6 +150,20 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		}
 	}
 
+	for _, va := range body.VolumeAttachments {
+		err = s.attachVolume(c, box, va)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	for _, cp := range body.ComposeProjects {
+		err = s.createComposeProject(c, box, cp)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	return box, "", nil
 }
 
