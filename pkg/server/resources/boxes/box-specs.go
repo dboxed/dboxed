@@ -25,22 +25,24 @@ func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) 
 		return nil, err
 	}
 
-	ret, err := s.buildBoxSpec(c, box)
+	ret, err := s.buildBoxSpec(c, box, true)
 	if err != nil {
 		return nil, err
 	}
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-func (s *BoxesServer) buildBoxSpec(c context.Context, box *dmodel.Box) (*boxspec.BoxSpec, error) {
+func (s *BoxesServer) buildBoxSpec(c context.Context, box *dmodel.Box, withNetwork bool) (*boxspec.BoxSpec, error) {
 	q := querier.GetQuerier(c)
 
 	var network *dmodel.Network
-	if box.NetworkID != nil {
-		var err error
-		network, err = dmodel.GetNetworkById(q, &box.OwnedByWorkspace.WorkspaceID, *box.NetworkID, true)
-		if err != nil {
-			return nil, err
+	if withNetwork {
+		if box.NetworkID != nil {
+			var err error
+			network, err = dmodel.GetNetworkById(q, &box.OwnedByWorkspace.WorkspaceID, *box.NetworkID, true)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

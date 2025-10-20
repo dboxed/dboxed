@@ -42,8 +42,8 @@ func (s *BoxesServer) restListComposeProjects(c context.Context, i *huma_utils.I
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) validateBoxSpec(ctx context.Context, box *dmodel.Box) error {
-	boxSpec, err := s.buildBoxSpec(ctx, box)
+func (s *BoxesServer) validateBoxSpec(ctx context.Context, box *dmodel.Box, withNetwork bool) error {
+	boxSpec, err := s.buildBoxSpec(ctx, box, withNetwork)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (s *BoxesServer) createComposeProject(c context.Context, box *dmodel.Box, r
 		return err
 	}
 
-	err = s.validateBoxSpec(c, box)
+	err = s.validateBoxSpec(c, box, false)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (s *BoxesServer) restUpdateComposeProject(c context.Context, i *restUpdateC
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box)
+	err = s.validateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (s *BoxesServer) restDeleteComposeProject(c context.Context, i *restDeleteC
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box)
+	err = s.validateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}

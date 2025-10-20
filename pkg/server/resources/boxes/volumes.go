@@ -107,6 +107,9 @@ func (s *BoxesServer) attachVolume(c context.Context, box *dmodel.Box, req model
 	attachment := &dmodel.BoxVolumeAttachment{
 		BoxId:    querier2.N(box.ID),
 		VolumeId: querier2.N(volume.ID),
+		RootUid:  querier2.N(int64(0)),
+		RootGid:  querier2.N(int64(0)),
+		RootMode: querier2.N("0777"),
 	}
 
 	if req.RootUid != nil {
@@ -124,7 +127,7 @@ func (s *BoxesServer) attachVolume(c context.Context, box *dmodel.Box, req model
 		return err
 	}
 
-	err = s.validateBoxSpec(c, box)
+	err = s.validateBoxSpec(c, box, false)
 	if err != nil {
 		return err
 	}
@@ -167,7 +170,7 @@ func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateA
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box)
+	err = s.validateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +211,7 @@ func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInp
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box)
+	err = s.validateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}
