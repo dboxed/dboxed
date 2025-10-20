@@ -49,7 +49,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		if err == nil {
 			x, ok := y["services"]
 			if ok {
-				x2, ok := x.([]map[string]any)
+				x2, ok := x.(map[string]any)
 				if ok {
 					services = fmt.Sprintf("%d", len(x2))
 				}
