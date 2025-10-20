@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	"golang.org/x/oauth2"
@@ -184,11 +185,11 @@ func (c *Client) GetWorkspaceById(ctx context.Context, workspaceId int64) (*mode
 }
 
 func (c *Client) ListWorkspaces(ctx context.Context) ([]models.Workspace, error) {
-	l, err := RequestApi[[]models.Workspace](ctx, c, "GET", "v1/workspaces", struct{}{})
+	l, err := RequestApi[huma_utils.ListBody[models.Workspace]](ctx, c, "GET", "v1/workspaces", struct{}{})
 	if err != nil {
 		return nil, err
 	}
-	return *l, nil
+	return l.Items, nil
 }
 
 func (c *Client) SwitchWorkspaceById(ctx context.Context, workspaceId int64) (*models.Workspace, error) {
