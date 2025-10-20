@@ -39,3 +39,28 @@ func (c *NetworkClient) GetNetworkByName(ctx context.Context, name string) (*mod
 	}
 	return baseclient.RequestApi[models.Network](ctx, c.Client, "GET", p, struct{}{})
 }
+
+func (c *NetworkClient) CreateNetwork(ctx context.Context, req models.CreateNetwork) (*models.Network, error) {
+	p, err := c.Client.BuildApiPath(true, "networks")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Network](ctx, c.Client, "POST", p, req)
+}
+
+func (c *NetworkClient) UpdateNetwork(ctx context.Context, id int64, req models.UpdateNetwork) (*models.Network, error) {
+	p, err := c.Client.BuildApiPath(true, "networks", id)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Network](ctx, c.Client, "PATCH", p, req)
+}
+
+func (c *NetworkClient) DeleteNetwork(ctx context.Context, id int64) error {
+	p, err := c.Client.BuildApiPath(true, "networks", id)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[any](ctx, c.Client, "DELETE", p, struct{}{})
+	return err
+}
