@@ -46,11 +46,13 @@ func Execute() {
 
 	ctx := kong.Parse(cli,
 		kong.Name("dboxed"),
-		kong.Description("A simple container orchestrator."),
+		kong.Description("Cloud experience without the cloud"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
-			Compact: true,
-			Summary: true,
+			Compact:             true,
+			Summary:             true,
+			NoExpandSubcommands: true,
+			FlagsLast:           true,
 		}),
 		kong.DefaultEnvars("DBOXED"),
 		kong.Vars{

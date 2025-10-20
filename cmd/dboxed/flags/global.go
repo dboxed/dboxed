@@ -9,15 +9,15 @@ import (
 )
 
 type GlobalFlags struct {
-	Debug bool `help:"Enable debugging mode"`
+	Debug bool `help:"Enable debugging mode" group:"Global:"`
 
-	ClientAuthFile *string `help:"Override client auth file. Defaults to ~/.dboxed/client-auth.yaml" type:"path"`
+	ClientAuthFile *string `help:"Override client auth file. Defaults to ~/.dboxed/client-auth.yaml" type:"path" group:"Global:"`
 
-	ApiUrl    *string `help:"Override API url"`
-	ApiToken  *string `help:"Override API token"`
-	Workspace *string `help:"Override workspace"`
+	ApiUrl    *string `help:"Override API url" group:"Global:"`
+	ApiToken  *string `help:"Override API token" group:"Global:"`
+	Workspace *string `help:"Override workspace" group:"Global:"`
 
-	WorkDir string `help:"dboxed work dir" default:"/var/lib/dboxed"`
+	WorkDir string `help:"dboxed work dir" default:"/var/lib/dboxed" group:"Global:"`
 }
 
 func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, error) {
