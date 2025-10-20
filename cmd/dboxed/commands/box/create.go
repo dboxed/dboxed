@@ -16,6 +16,7 @@ import (
 type CreateCmd struct {
 	Name string `help:"Specify the box name. Must be unique." required:""`
 
+	Network      *string  `help:"Attach box to specified network (ID or name)."`
 	AttachVolume []string `help:"Attach specified volume to new box."`
 	ComposeFile  []string `help:"Add specified docker-compose.yml file to new box. Example: --compose-file=name=path/to/docker-compose.yml"`
 }
@@ -30,6 +31,14 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 
 	req := models.CreateBox{
 		Name: cmd.Name,
+	}
+
+	if cmd.Network != nil {
+		n, err := commandutils.GetNetwork(ctx, c, *cmd.Network)
+		if err != nil {
+			return err
+		}
+		req.Network = &n.ID
 	}
 
 	for _, av := range cmd.AttachVolume {

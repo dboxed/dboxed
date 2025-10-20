@@ -110,3 +110,21 @@ func GetVolume(ctx context.Context, c *baseclient.Client, volume string) (*model
 		return v, nil
 	}
 }
+
+func GetNetwork(ctx context.Context, c *baseclient.Client, network string) (*models.Network, error) {
+	c2 := clients.NetworkClient{Client: c}
+	id, err := strconv.ParseInt(network, 10, 64)
+	if err == nil {
+		n, err := c2.GetNetworkById(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	} else {
+		n, err := c2.GetNetworkByName(ctx, network)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	}
+}

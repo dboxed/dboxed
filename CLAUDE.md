@@ -197,3 +197,7 @@ These helpers try multiple strategies automatically.
 - **PostgreSQL**: Production deployments
 - **Transactions**: Use `querier.GetQuerier(ctx)` to get DB handle with transaction support
 - **Soft deletes**: Resources are soft-deleted (marked as deleted, not removed)
+
+## Instruction for Claude
+
+- Never try to run dboxed commands, except running with --help

@@ -26,6 +26,14 @@ func GetNetworkById(q *querier2.Querier, workspaceId *int64, id int64, skipDelet
 	})
 }
 
+func GetNetworkByName(q *querier2.Querier, workspaceId int64, name string, skipDeleted bool) (*Network, error) {
+	return querier2.GetOne[Network](q, map[string]any{
+		"workspace_id": workspaceId,
+		"name":         name,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func ListNetworksForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]Network, error) {
 	return querier2.GetMany[Network](q, map[string]any{
 		"workspace_id": workspaceId,

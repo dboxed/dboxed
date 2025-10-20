@@ -25,6 +25,7 @@ func (s *NetworksServer) Init(rootGroup huma.API, workspacesGroup huma.API) erro
 	huma.Post(workspacesGroup, "/networks", s.restCreateNetwork)
 	huma.Get(workspacesGroup, "/networks", s.restListNetworks)
 	huma.Get(workspacesGroup, "/networks/{id}", s.restGetNetwork)
+	huma.Get(workspacesGroup, "/networks/by-name/{name}", s.restGetNetworkByName)
 	huma.Patch(workspacesGroup, "/networks/{id}", s.restUpdateNetwork)
 	huma.Delete(workspacesGroup, "/networks/{id}", s.restDeleteNetwork)
 
@@ -107,6 +108,26 @@ func (s *NetworksServer) restGetNetwork(c context.Context, i *huma_utils.IdByPat
 	w := global.GetWorkspace(c)
 
 	n, err := dmodel.GetNetworkById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	mcp, err := s.postprocessNetwork(c, *n)
+	if err != nil {
+		return nil, err
+	}
+	return huma_utils.NewJsonBody(*mcp), nil
+}
+
+type NetworkName struct {
+	NetworkName string `path:"name"`
+}
+
+func (s *NetworksServer) restGetNetworkByName(c context.Context, i *NetworkName) (*huma_utils.JsonBody[models.Network], error) {
+	q := querier.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	n, err := dmodel.GetNetworkByName(q, w.ID, i.NetworkName, true)
 	if err != nil {
 		return nil, err
 	}
