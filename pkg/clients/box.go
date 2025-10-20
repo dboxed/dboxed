@@ -82,3 +82,42 @@ func (c *BoxClient) PostLogLines(ctx context.Context, boxId int64, req models.Po
 	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "POST", p, req)
 	return err
 }
+
+func (c *BoxClient) ListComposeProjects(ctx context.Context, boxId int64) ([]models.BoxComposeProject, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects")
+	if err != nil {
+		return nil, err
+	}
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.BoxComposeProject]](ctx, c.Client, "GET", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return l.Items, err
+}
+
+func (c *BoxClient) CreateComposeProject(ctx context.Context, boxId int64, req models.CreateBoxComposeProject) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects")
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "POST", p, req)
+	return err
+}
+
+func (c *BoxClient) UpdateComposeProject(ctx context.Context, boxId int64, composeName string, req models.UpdateBoxComposeProject) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects", composeName)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "PATCH", p, req)
+	return err
+}
+
+func (c *BoxClient) DeleteComposeProject(ctx context.Context, boxId int64, composeName string) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects", composeName)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
+	return err
+}
