@@ -2,6 +2,7 @@ package flags
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
@@ -48,6 +49,13 @@ func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, erro
 		}
 		if f.Workspace == nil {
 			c.SetOverrideWorkspaceId(t.Workspace)
+		}
+	} else {
+		if clientAuth.Oauth2Token != nil {
+			err = c.RefreshToken(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("oauth2 token is invalid, you might need to re-login: %w", err)
+			}
 		}
 	}
 	if f.Workspace != nil {
