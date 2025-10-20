@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -56,9 +57,13 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 			return fmt.Errorf("invalid --compose-project, must be in format '--compose-file name=path/to/docker-compose.yml'")
 		}
 		p := kong.ExpandPath(s[1])
+		content, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
 		req.ComposeProjects = append(req.ComposeProjects, models.CreateBoxComposeProject{
 			Name:           s[0],
-			ComposeProject: p,
+			ComposeProject: string(content),
 		})
 	}
 
