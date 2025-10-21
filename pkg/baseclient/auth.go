@@ -28,7 +28,7 @@ func (c *Client) WriteClientAuth() error {
 }
 
 func (c *Client) LoginOAuth2(ctx context.Context) error {
-	authInfo, err := requestApi2[models.AuthInfo](ctx, c, "GET", "v1/auth/info", struct{}{}, false)
+	authInfo, err := requestApiJson[models.AuthInfo](ctx, c, "GET", "v1/auth/info", nil, struct{}{}, false, nil)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (c *Client) LoginOAuth2(ctx context.Context) error {
 }
 
 func (c *Client) LoginStaticToken(ctx context.Context, staticToken string) error {
-	authInfo, err := requestApi2[models.AuthInfo](ctx, c, "GET", "v1/auth/info", struct{}{}, false)
+	authInfo, err := requestApiJson[models.AuthInfo](ctx, c, "GET", "v1/auth/info", nil, struct{}{}, false, nil)
 	if err != nil {
 		return err
 	}
