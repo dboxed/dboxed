@@ -125,7 +125,7 @@ func (c *Client) RefreshToken(ctx context.Context) error {
 		return nil
 	}
 
-	slog.InfoContext(ctx, "refreshing token")
+	slog.DebugContext(ctx, "refreshing oauth2 token")
 
 	ocfg, err := c.buildOAuth2Config(ctx)
 	if err != nil {
