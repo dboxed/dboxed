@@ -29,7 +29,7 @@ const ShutdownSandboxMarkerFile = DboxedDataDir + "/" + "stop-sandbox"
 func GetDefaultInfraImage() string {
 	tag := "nightly"
 	if !version.IsDummyVersion() {
-		tag = version.Version
+		tag = "v" + version.Version
 	}
 	infraImage := fmt.Sprintf("%s:%s", dboxedInfraImage, tag)
 	return infraImage
