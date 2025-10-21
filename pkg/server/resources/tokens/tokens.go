@@ -2,6 +2,7 @@ package tokens
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -114,6 +115,16 @@ func CreateToken(ctx context.Context, ct models.CreateToken, returnSecret bool, 
 	if err != nil {
 		return nil, err
 	}
+
+	_, err = dmodel.GetTokenByName(q, w.ID, ct.Name)
+	if err != nil {
+		if !querier.IsSqlNotFoundError(err) {
+			return nil, err
+		}
+	} else {
+		return nil, huma.Error409Conflict(fmt.Sprintf("token with name '%s' already exists", ct.Name))
+	}
+
 	hasInternalPrefix := strings.HasPrefix(ct.Name, InternalTokenNamePrefix)
 	if !internal && hasInternalPrefix {
 		return nil, huma.Error400BadRequest("invalid token name")
