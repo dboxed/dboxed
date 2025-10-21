@@ -25,8 +25,8 @@ func (s *BoxSpec) LoadComposeProjects(ctx context.Context, getMount GetMountFunc
 }
 
 func (s *BoxSpec) ValidateComposeProjects(ctx context.Context) error {
-	for _, str := range s.ComposeProjects {
-		err := s.ValidateComposeProject(ctx, str)
+	for name, str := range s.ComposeProjects {
+		err := s.ValidateComposeProject(ctx, name, str)
 		if err != nil {
 			return err
 		}
@@ -48,11 +48,11 @@ func (s *BoxSpec) loadAndSetupComposeProject(ctx context.Context, name string, c
 	return cp, nil
 }
 
-func (s *BoxSpec) ValidateComposeProject(ctx context.Context, composeStr string) error {
+func (s *BoxSpec) ValidateComposeProject(ctx context.Context, name string, composeStr string) error {
 	getMount := func(volumeUuid string) string {
 		return "/dummy"
 	}
-	cp, err := s.loadAndSetupComposeProject(ctx, "dummy", composeStr, getMount)
+	cp, err := s.loadAndSetupComposeProject(ctx, name, composeStr, getMount)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (s *BoxSpec) ValidateComposeProject(ctx context.Context, composeStr string)
 	if err != nil {
 		return err
 	}
-	_, err = s.loadComposeProject(ctx, "dummy", string(str2), true)
+	_, err = s.loadComposeProject(ctx, name, string(str2), true)
 	if err != nil {
 		return err
 	}
@@ -107,6 +107,9 @@ func (s *BoxSpec) loadComposeProject(ctx context.Context, name string, str strin
 		return nil, err
 	}
 
+	if x.Name != "" && x.Name != name {
+		return nil, fmt.Errorf("name in compose project file does not match expected name")
+	}
 	x.Name = name
 
 	return x, nil
