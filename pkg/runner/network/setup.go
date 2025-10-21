@@ -113,6 +113,7 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 		slog.InfoContext(ctx, "creating veth-pair pair")
 		la := netlink.NewLinkAttrs()
 		la.Name = n.NamesAndIps.VethNameHost
+		la.MTU = 1384 // TODO auto detect best value
 		veth := &netlink.Veth{
 			LinkAttrs:     la,
 			PeerName:      n.NamesAndIps.VethNamePeer,

@@ -4,5 +4,11 @@
     "max-size": "100m",
     "max-file": "5",
     "compress": "false"
+  },
+  "mtu": 1384,
+  "default-network-opts": {
+    "bridge": {
+      "com.docker.network.driver.mtu": "1384"
+    }
   }
 }
