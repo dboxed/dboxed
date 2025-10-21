@@ -200,4 +200,4 @@ These helpers try multiple strategies automatically.
 
 ## Instruction for Claude
 
-- Never try to run dboxed commands, except running with --help
+- Never try to run dboxed commands
