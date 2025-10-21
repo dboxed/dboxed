@@ -2,12 +2,9 @@ package box
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"os"
-	"strings"
 
-	"github.com/alecthomas/kong"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/box/compose"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -52,17 +49,13 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		})
 	}
 	for _, cp := range cmd.ComposeFile {
-		s := strings.SplitN(cp, "=", 2)
-		if len(s) < 2 {
-			return fmt.Errorf("invalid --compose-project, must be in format '--compose-file name=path/to/docker-compose.yml'")
-		}
-		p := kong.ExpandPath(s[1])
-		content, err := os.ReadFile(p)
+		name, content, err := compose.LoadComposeFileForBox(cp)
 		if err != nil {
 			return err
 		}
+
 		req.ComposeProjects = append(req.ComposeProjects, models.CreateBoxComposeProject{
-			Name:           s[0],
+			Name:           name,
 			ComposeProject: string(content),
 		})
 	}

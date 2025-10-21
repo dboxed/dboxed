@@ -2,19 +2,20 @@ package compose
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"os"
+	"strings"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type CreateCmd struct {
-	Box  string `help:"Specify the box" required:"" arg:""`
-	Name string `help:"Compose project name" required:"" arg:""`
-	File string `help:"Path to docker-compose.yml file" required:"" short:"f"`
+	Box         string `help:"Specify the box" required:"" arg:""`
+	ComposeFile string `help:"Path to docker-compose.yml file" required:"" short:"f"`
 }
 
 func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
@@ -30,7 +31,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	content, err := os.ReadFile(cmd.File)
+	name, content, err := LoadComposeFileForBox(cmd.ComposeFile)
 	if err != nil {
 		return err
 	}
@@ -38,7 +39,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	c2 := &clients.BoxClient{Client: c}
 
 	req := models.CreateBoxComposeProject{
-		Name:           cmd.Name,
+		Name:           name,
 		ComposeProject: string(content),
 	}
 
@@ -47,7 +48,40 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	slog.Info("compose project created", slog.Any("box_id", b.ID), slog.Any("name", cmd.Name))
+	slog.Info("compose project created", slog.Any("box_id", b.ID), slog.Any("name", name))
 
 	return nil
+}
+
+func LoadComposeFileForBox(nameAndPath string) (string, []byte, error) {
+	s := strings.SplitN(nameAndPath, "=", 2)
+
+	var name, path string
+	if len(s) == 0 {
+		return "", nil, fmt.Errorf("invalid --compose-file flag")
+	}
+	if len(s) == 2 {
+		name = s[0]
+		path = s[1]
+	} else if len(s) == 1 {
+		path = s[0]
+	}
+
+	y, content, err := util.UnmarshalYamlFileWithBytes[map[string]any](path)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if name == "" {
+		x, ok := (*y)["name"]
+		if !ok {
+			return "", nil, fmt.Errorf("could not determine compose project name. Either specifiy it in the form of '--compose-file <name>=<path>' or put it into the compose file itself, via the top-level 'name' field")
+		}
+		name, ok = x.(string)
+		if !ok {
+			return "", nil, fmt.Errorf("name in compose file is not a string")
+		}
+	}
+
+	return name, content, nil
 }
