@@ -13,6 +13,7 @@ const DboxedDataDir = "/var/lib/dboxed"
 const SandboxEnvironmentFile = DboxedDataDir + "/sandbox.env"
 const NetworkConfFile = DboxedDataDir + "/network.yaml"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
+const HostResolvConfFile = DboxedDataDir + "/host-resolv.conf"
 
 const ContainersDir = DboxedDataDir + "/containers"
 const LogsDir = DboxedDataDir + "/logs"

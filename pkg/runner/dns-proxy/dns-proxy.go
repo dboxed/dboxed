@@ -1,12 +1,9 @@
 package dns_proxy
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"log/slog"
 	"net"
-	"os/exec"
 	"reflect"
 	"strings"
 	"sync"
@@ -20,7 +17,7 @@ import (
 type DnsProxy struct {
 	ListenIP net.IP
 
-	HostFsPath string
+	HostResolvConfFile string
 
 	staticHostsMapMutex sync.Mutex
 	staticHostsMap      map[string]string
@@ -91,17 +88,7 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 }
 
 func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
-	// we need to enter the hostfs with chroot as otherwise links won't resolve properly
-	// using chroot+cat is the simplest way here, but we might need to consider using unshare in some way
-	buf := bytes.NewBuffer(nil)
-	cmd := exec.CommandContext(ctx, "chroot", d.HostFsPath, "cat", "/etc/resolv.conf")
-	cmd.Stdout = buf
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to read host resolv.conf: %w", err)
-	}
-
-	c, err := dns.ClientConfigFromReader(buf)
+	c, err := dns.ClientConfigFromFile(d.HostResolvConfFile)
 	if err != nil {
 		return err
 	}
@@ -121,6 +108,11 @@ func (d *DnsProxy) runRequestsThread(ctx context.Context) {
 
 func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
 	resolveConf := d.resolveConf.Load()
+	if len(resolveConf.Servers) == 0 {
+		slog.ErrorContext(ctx, "nameservers missing in host resolv.conf")
+		return
+	}
+
 	dnsResolver := net.JoinHostPort(resolveConf.Servers[0], resolveConf.Port)
 
 	log := slog.With(slog.Any("id", r.request.Id), slog.Any("tcp", r.tcp), slog.Any("dnsResolver", dnsResolver))

@@ -382,5 +382,18 @@ func (rn *RunSandbox) writeDboxedConfFiles(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	hostResolvConf, err := os.ReadFile("/etc/resolv.conf")
+	if err != nil {
+		return err
+	}
+	err = util.AtomicWriteFile(
+		filepath.Join(rn.sandbox.GetSandboxRoot(), consts.HostResolvConfFile),
+		hostResolvConf,
+		0644,
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }

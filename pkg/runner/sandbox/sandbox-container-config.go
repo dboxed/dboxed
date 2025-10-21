@@ -64,20 +64,6 @@ func (rn *Sandbox) buildSandboxContainerMounts() []*configs.Mount {
 			Flags:       unix.MS_NOSUID | unix.MS_NOEXEC | unix.MS_NODEV,
 		},
 		{
-			Destination: "/hostfs",
-			Device:      "bind",
-			Source:      "/",
-			Flags:       unix.MS_BIND,
-		},
-		{
-			// we need this bind mount due to resolv.conf being a
-			// symlink to /run/resolvconf/resolv.conf
-			Destination: "/hostfs/run",
-			Device:      "bind",
-			Source:      "/run",
-			Flags:       unix.MS_BIND,
-		},
-		{
 			Destination: consts.ContainersDir,
 			Device:      "bind",
 			Source:      filepath.Join(rn.SandboxDir, "containers"),
