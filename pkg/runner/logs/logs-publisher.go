@@ -37,7 +37,7 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 	}
 
 	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
-		fileName := filepath.Base(path)
+		fileName := filepath.Join("dboxed", filepath.Base(path))
 		format := "slog-json"
 		if strings.HasSuffix(fileName, ".stdout.log") {
 			format = "raw"
@@ -71,7 +71,7 @@ func (lp *LogsPublisher) PublishS6Logs(dir string) error {
 			logFormat = "raw"
 		}
 		return boxspec.LogMetadata{
-			FileName: serviceName,
+			FileName: filepath.Join("dboxed", serviceName),
 			Format:   logFormat,
 			Metadata: map[string]any{
 				"service-name": serviceName,
@@ -94,8 +94,8 @@ func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
 	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
 		logDir := filepath.Dir(path)
 		volumeDir := filepath.Dir(logDir)
-		fileName := filepath.Base(volumeDir)
 
+		var fileName string
 		metadata := map[string]any{}
 		volumeState, err := volume_serve.LoadVolumeState(volumeDir)
 		if err == nil {
@@ -105,6 +105,9 @@ func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
 				"uuid":       volumeState.Volume.Uuid,
 				"mount-name": volumeState.MountName,
 			}
+			fileName = filepath.Join("volumes", volumeState.Volume.Name)
+		} else {
+			fileName = filepath.Join("volumes", filepath.Base(volumeDir))
 		}
 		return boxspec.LogMetadata{
 			FileName: fileName,
@@ -126,7 +129,7 @@ func (lp *LogsPublisher) PublishDockerContainerLogsDir(containersDir string) err
 	}
 
 	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
-		return lp.buildDockerContainerLogMetadata(containersDir, path)
+		return lp.buildDockerContainerLogMetadata(path)
 	}
 
 	if lp.mt != nil {
@@ -135,11 +138,7 @@ func (lp *LogsPublisher) PublishDockerContainerLogsDir(containersDir string) err
 	return nil
 }
 
-func (lp *LogsPublisher) buildDockerContainerLogMetadata(dockerDataDir string, logPath string) (boxspec.LogMetadata, error) {
-	relPath, err := filepath.Rel(dockerDataDir, logPath)
-	if err != nil {
-		return boxspec.LogMetadata{}, err
-	}
+func (lp *LogsPublisher) buildDockerContainerLogMetadata(logPath string) (boxspec.LogMetadata, error) {
 	configPath := filepath.Join(filepath.Dir(logPath), "config.v2.json")
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
@@ -153,7 +152,7 @@ func (lp *LogsPublisher) buildDockerContainerLogMetadata(dockerDataDir string, l
 	}
 
 	return boxspec.LogMetadata{
-		FileName: relPath,
+		FileName: filepath.Join("containers", config.Name, config.ID),
 		Format:   "docker-logs",
 		Metadata: map[string]any{
 			"container": config,
