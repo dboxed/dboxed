@@ -3,7 +3,7 @@ package token
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"os"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -49,7 +49,9 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	slog.Info("token created", slog.Any("id", token.ID), slog.Any("name", token.Name), slog.Any("token", *token.Token))
+	_, _ = fmt.Fprintf(os.Stdout, "Created token with name '%s' and id %d\n", token.Name, token.ID)
+	_, _ = fmt.Fprintf(os.Stdout, "The secret token value is: %s\n", *token.Token)
+	_, _ = fmt.Fprintf(os.Stdout, "\nThis value should be kept secret. You also won't be able to retrieve it again.\n")
 
 	return nil
 }

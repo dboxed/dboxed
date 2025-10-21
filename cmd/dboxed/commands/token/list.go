@@ -44,7 +44,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		if token.BoxID != nil {
 			p.Box = ct.Boxes.GetColumn(ctx, *token.BoxID)
 		}
-		table = append(table)
+		table = append(table, p)
 	}
 
 	err = commandutils.PrintTable(os.Stdout, table)
