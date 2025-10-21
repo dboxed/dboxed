@@ -13,6 +13,8 @@ type LogMetadataModel struct {
 	Workspace int64     `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
+	LastLogTime *time.Time `json:"lastLogTime"`
+
 	boxspec.LogMetadata
 }
 
@@ -32,9 +34,10 @@ func LogMetadataFromDB(s dmodel.LogMetadata) (*LogMetadataModel, error) {
 		return nil, err
 	}
 	return &LogMetadataModel{
-		ID:        s.ID,
-		Workspace: s.WorkspaceID,
-		CreatedAt: s.CreatedAt,
+		ID:          s.ID,
+		Workspace:   s.WorkspaceID,
+		CreatedAt:   s.CreatedAt,
+		LastLogTime: s.LastLogTime,
 		LogMetadata: boxspec.LogMetadata{
 			FileName: s.FileName,
 			Format:   s.Format,

@@ -13,6 +13,7 @@ create table log_metadata
     metadata         text           not null,
 
     total_line_bytes bigint         not null default 0,
+    last_log_time    TYPES_DATETIME,
 
     unique (box_id, file_name)
 );

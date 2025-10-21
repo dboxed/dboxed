@@ -93,6 +93,13 @@ func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJ
 		return &huma_utils.Empty{}, nil
 	}
 
+	if len(i.Body.Lines) != 0 {
+		err = lm.UpdateLastLogTime(q, i.Body.Lines[len(i.Body.Lines)-1].Time)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	tm := huma_utils.TimeMeasure(c, "timeCreateManyBatches")
 	err = querier.CreateManyBatches(q, lines, 100, false)
 	if err != nil {

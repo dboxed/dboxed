@@ -16,7 +16,8 @@ type LogMetadata struct {
 	Format   string `db:"format"`
 	Metadata string `db:"metadata"`
 
-	TotalLineBytes int64 `db:"total_line_bytes" omitOnConflictUpdate:"true"`
+	TotalLineBytes int64      `db:"total_line_bytes" omitOnConflictUpdate:"true"`
+	LastLogTime    *time.Time `db:"last_log_time" omitOnConflictUpdate:"true"`
 }
 
 type LogLine struct {
@@ -154,4 +155,9 @@ func AddLogMetadataTotalBytes(q *querier2.Querier, logId int64, add int64) error
 		"log_id": logId,
 		"add":    add,
 	})
+}
+
+func (v *LogMetadata) UpdateLastLogTime(q *querier2.Querier, lastLogTime time.Time) error {
+	v.LastLogTime = &lastLogTime
+	return querier2.UpdateOneFromStruct(q, v, "last_log_time")
 }
