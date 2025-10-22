@@ -46,6 +46,9 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 		signal.Stop(sigs)
 	}()
 
+	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
+	defer rn.logsPublisher.Stop(false)
+
 	shutdown, err := rn.doRun(ctx, sigs)
 	if err != nil {
 		return err
@@ -117,7 +120,6 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	if err != nil {
 		return false, err
 	}
-	defer rn.logsPublisher.Stop(false)
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
@@ -146,7 +148,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		if err != nil {
 			if baseclient.IsNotFound(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
-				// if the box got deleted, we won't be able to upload remaining logs
+				// if the box got deleted, we won't be able to upload remaining logs, so we cancel immediately to avoid spamming local logs
 				rn.logsPublisher.Stop(true)
 				return true, nil
 			}
@@ -221,6 +223,9 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		}
 	}
 
+	// final docker ps report
+	rn.updateBoxRunStatusDockerPs(ctx)
+
 	s6, err := rn.getS6Helper()
 	if err != nil {
 		return err
@@ -233,9 +238,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	}
 	rn.reconcileLogger.InfoContext(ctx, "dockerd has exited")
 
-	// if the box was deleted, this will be a no-op due to doRun already doing the Stop with cancel=true
-	rn.logsPublisher.Stop(false)
-
 	// ensure we don't restart the sandbox
 	rn.reconcileLogger.InfoContext(ctx, "running s6 halt")
 	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
@@ -244,7 +246,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	}
 
 	rn.updateBoxRunStatusSimple(ctx, "stopped")
-	rn.updateBoxRunStatusDockerPs(ctx)
 
 	rn.reconcileLogger.InfoContext(ctx, "shutdown finished")
 	return nil
