@@ -10,6 +10,8 @@ type BoxCommands struct {
 	Get      GetCmd             `cmd:"" help:"Get a box"`
 	List     ListCmd            `cmd:"" help:"List boxes" aliases:"ls"`
 	Delete   DeleteCmd          `cmd:"" help:"Delete a box" aliases:"rm,delete"`
+	Start    StartCmd           `cmd:"" help:"Start a box"`
+	Stop     StopCmd            `cmd:"" help:"Stop a box"`
 	Status   StatusCmd          `cmd:"" help:"Display box run status and containers"`
 	Logs     LogsCmd            `cmd:"" help:"Stream box logs"`
 	ListLogs ListLogsCmd        `cmd:"" help:"List available log files for a box"`

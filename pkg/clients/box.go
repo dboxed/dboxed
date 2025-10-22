@@ -76,6 +76,28 @@ func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {
 	return err
 }
 
+func (c *BoxClient) UpdateBox(ctx context.Context, id int64, req models.UpdateBox) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "PATCH", p, req)
+}
+
+func (c *BoxClient) StartBox(ctx context.Context, id int64) (*models.Box, error) {
+	desiredState := "up"
+	return c.UpdateBox(ctx, id, models.UpdateBox{
+		DesiredState: &desiredState,
+	})
+}
+
+func (c *BoxClient) StopBox(ctx context.Context, id int64) (*models.Box, error) {
+	desiredState := "down"
+	return c.UpdateBox(ctx, id, models.UpdateBox{
+		DesiredState: &desiredState,
+	})
+}
+
 func (c *BoxClient) GetBoxRunStatus(ctx context.Context, boxId int64) (*models.BoxRunStatus, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "run-status")
 	if err != nil {

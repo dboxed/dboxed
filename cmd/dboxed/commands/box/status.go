@@ -52,7 +52,7 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	// Display box status with styled output
-	renderBoxStatus(b.ID, b.Name, runStatus)
+	renderBoxStatus(b, runStatus)
 
 	// Display docker containers table
 	if runStatus.DockerPs != nil && len(runStatus.DockerPs) > 0 {
@@ -72,7 +72,7 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 	return nil
 }
 
-func renderBoxStatus(boxID int64, boxName string, runStatus *models.BoxRunStatus) {
+func renderBoxStatus(box *models.Box, runStatus *models.BoxRunStatus) {
 	// Define styles
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -81,7 +81,7 @@ func renderBoxStatus(boxID int64, boxName string, runStatus *models.BoxRunStatus
 
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
-		Width(14).
+		Width(16).
 		Align(lipgloss.Right)
 
 	valueStyle := lipgloss.NewStyle().
@@ -92,15 +92,28 @@ func renderBoxStatus(boxID int64, boxName string, runStatus *models.BoxRunStatus
 		"running": lipgloss.Color("10"),
 		"stopped": lipgloss.Color("9"),
 		"paused":  lipgloss.Color("11"),
+		"up":      lipgloss.Color("10"),
+		"down":    lipgloss.Color("9"),
 	}
 
 	// Title
-	fmt.Println(titleStyle.Render(fmt.Sprintf("Box Status: %s", boxName)))
+	fmt.Println(titleStyle.Render(fmt.Sprintf("Box Status: %s", box.Name)))
 
 	// Box ID
 	fmt.Printf("%s  %s\n",
 		labelStyle.Render("Box ID:"),
-		valueStyle.Render(fmt.Sprintf("%d", boxID)),
+		valueStyle.Render(fmt.Sprintf("%d", box.ID)),
+	)
+
+	// Desired State with color
+	desiredStateColor := lipgloss.Color("241") // default gray
+	if color, ok := statusColors[box.DesiredState]; ok {
+		desiredStateColor = color
+	}
+	desiredStateStyle := valueStyle.Copy().Foreground(desiredStateColor)
+	fmt.Printf("%s  %s\n",
+		labelStyle.Render("Desired State:"),
+		desiredStateStyle.Render(box.DesiredState),
 	)
 
 	// Run Status with color
