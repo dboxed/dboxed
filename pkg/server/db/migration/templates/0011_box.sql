@@ -21,6 +21,20 @@ create table box
     unique (workspace_id, name)
 );
 
+create table box_run_status
+(
+    id          bigint not null primary key references box (id) on delete cascade,
+
+    status_time TYPES_DATETIME,
+
+    run_status  text,
+    start_time  TYPES_DATETIME,
+    stop_time   TYPES_DATETIME,
+
+    -- gzip compressed json
+    docker_ps   TYPES_BYTES
+);
+
 --{{ if eq .DbType "postgres" }}
 alter table machine
     add foreign key (box_id) references box (id) on delete restrict;
@@ -35,10 +49,10 @@ create table box_netbird
 
 create table box_compose_project
 (
-    box_id bigint not null references box (id) on delete cascade,
-    name   text   not null,
+    box_id          bigint not null references box (id) on delete cascade,
+    name            text   not null,
 
-    compose_project text not null,
+    compose_project text   not null,
 
     primary key (box_id, name)
 );

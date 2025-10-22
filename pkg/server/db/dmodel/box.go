@@ -1,7 +1,10 @@
 package dmodel
 
 import (
+	"time"
+
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type Box struct {
@@ -19,6 +22,18 @@ type Box struct {
 	MachineID *int64 `db:"machine_id"`
 
 	Netbird *BoxNetbird `join:"true"`
+}
+
+type BoxRunStatus struct {
+	ID querier2.NullForJoin[int64] `db:"id"`
+
+	StatusTime *time.Time `db:"status_time"`
+
+	RunStatus *string    `db:"run_status"`
+	StartTime *time.Time `db:"start_time"`
+	StopTime  *time.Time `db:"stop_time"`
+
+	DockerPs []byte `db:"docker_ps"`
 }
 
 type BoxNetbird struct {
@@ -39,6 +54,10 @@ func (v *Box) Create(q *querier2.Querier) error {
 }
 
 func (v *BoxNetbird) Create(q *querier2.Querier) error {
+	return querier2.Create(q, v)
+}
+
+func (v *BoxRunStatus) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
@@ -78,6 +97,50 @@ func ListBoxesForNetwork(q *querier2.Querier, networkId int64, skipDeleted bool)
 		"network_id": networkId,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
+}
+
+func GetBoxRunStatus(q *querier2.Querier, boxId int64) (*BoxRunStatus, error) {
+	return querier2.GetOne[BoxRunStatus](q, map[string]any{
+		"id": boxId,
+	})
+}
+
+func (v *BoxRunStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) error {
+	v.StatusTime = util.Ptr(time.Now())
+	v.RunStatus = runStatus
+	return querier2.UpdateOneFromStruct(q, v,
+		"status_time",
+		"run_status",
+	)
+}
+
+func (v *BoxRunStatus) UpdateStartTime(q *querier2.Querier, startTime *time.Time) error {
+	v.StatusTime = util.Ptr(time.Now())
+	v.StartTime = startTime
+	v.StopTime = nil
+	return querier2.UpdateOneFromStruct(q, v,
+		"status_time",
+		"start_time",
+		"stop_time",
+	)
+}
+
+func (v *BoxRunStatus) UpdateStopTime(q *querier2.Querier, stopTime *time.Time) error {
+	v.StatusTime = util.Ptr(time.Now())
+	v.StopTime = stopTime
+	return querier2.UpdateOneFromStruct(q, v,
+		"status_time",
+		"stop_time",
+	)
+}
+
+func (v *BoxRunStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) error {
+	v.StatusTime = util.Ptr(time.Now())
+	v.DockerPs = dockerPs
+	return querier2.UpdateOneFromStruct(q, v,
+		"status_time",
+		"docker_ps",
+	)
 }
 
 func (v *BoxNetbird) UpdateSetupKey(q *querier2.Querier, setupKey *string, setupKeyId *string) error {

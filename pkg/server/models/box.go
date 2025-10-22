@@ -38,6 +38,39 @@ type CreateBox struct {
 type UpdateBox struct {
 }
 
+type BoxRunStatusInfo struct {
+	RunStatus *string    `json:"runStatus,omitempty"`
+	StartTime *time.Time `json:"startTime,omitempty"`
+	StopTime  *time.Time `json:"stopTime,omitempty"`
+}
+
+type UpdateBoxRunStatus struct {
+	RunStatus *BoxRunStatusInfo `json:"runStatus,omitempty"`
+
+	// compressed json
+	DockerPs []byte `json:"dockerPs,omitempty"`
+}
+
+type BoxRunStatus struct {
+	StatusTime *time.Time `json:"statusTime,omitempty"`
+	RunStatus  *string    `json:"runStatus,omitempty"`
+	StartTime  *time.Time `json:"startTime,omitempty"`
+	StopTime   *time.Time `json:"stopTime,omitempty"`
+
+	// compressed json
+	DockerPs []byte `json:"dockerPs,omitempty"`
+}
+
+func BoxRunStatusFromDB(s dmodel.BoxRunStatus) *BoxRunStatus {
+	return &BoxRunStatus{
+		StatusTime: s.StatusTime,
+		RunStatus:  s.RunStatus,
+		StartTime:  s.StartTime,
+		StopTime:   s.StopTime,
+		DockerPs:   s.DockerPs,
+	}
+}
+
 func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
 	var networkType *global.NetworkType
 	if s.NetworkType != nil {

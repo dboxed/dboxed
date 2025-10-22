@@ -53,6 +53,11 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restUpdateAttachedVolume)
 	huma.Delete(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restDetachVolume)
 
+	// run status
+	huma.Get(workspacesGroup, "/boxes/{id}/run-status", s.restGetBoxRunStatus, allowBoxTokenModifier)
+	huma.Patch(workspacesGroup, "/boxes/{id}/run-status", s.restUpdateBoxRunStatus, allowBoxTokenModifier)
+
+	// logs
 	huma.Post(workspacesGroup, "/boxes/{id}/logs", s.restPostLogs, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}/logs", s.restListLogs, allowBoxTokenModifier)
 	sse.Register(workspacesGroup, huma.Operation{
@@ -131,6 +136,14 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 	}
 
 	err = box.Create(q)
+	if err != nil {
+		return nil, "", err
+	}
+
+	boxRunStatus := dmodel.BoxRunStatus{
+		ID: querier2.N(box.ID),
+	}
+	err = boxRunStatus.Create(q)
 	if err != nil {
 		return nil, "", err
 	}

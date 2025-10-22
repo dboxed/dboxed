@@ -76,6 +76,23 @@ func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {
 	return err
 }
 
+func (c *BoxClient) GetBoxRunStatus(ctx context.Context, boxId int64) (*models.BoxRunStatus, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "run-status")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.BoxRunStatus](ctx, c.Client, "GET", p, struct{}{})
+}
+
+func (c *BoxClient) UpdateBoxRunStatus(ctx context.Context, boxId int64, req models.UpdateBoxRunStatus) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "run-status")
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "PATCH", p, req)
+	return err
+}
+
 func (c *BoxClient) PostLogLines(ctx context.Context, boxId int64, req models.PostLogs) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs")
 	if err != nil {
