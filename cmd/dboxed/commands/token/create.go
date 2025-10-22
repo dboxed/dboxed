@@ -3,8 +3,9 @@ package token
 import (
 	"context"
 	"fmt"
-	"os"
+	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -49,9 +50,92 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "Created token with name '%s' and id %d\n", token.Name, token.ID)
-	_, _ = fmt.Fprintf(os.Stdout, "The secret token value is: %s\n", *token.Token)
-	_, _ = fmt.Fprintf(os.Stdout, "\nThis value should be kept secret. You also won't be able to retrieve it again.\n")
+	renderTokenCreated(token)
 
 	return nil
+}
+
+func renderTokenCreated(token *models.Token) {
+	// Define styles
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("10")). // Green
+		MarginTop(1).
+		MarginBottom(1)
+
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("6")). // Cyan
+		Padding(1, 2).
+		MarginBottom(1)
+
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241")). // Gray
+		Width(12).
+		Align(lipgloss.Right)
+
+	valueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15")). // White
+		Bold(true)
+
+	tokenStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("11")). // Yellow
+		Bold(true).
+		Background(lipgloss.Color("235")). // Dark gray background
+		Padding(0, 1)
+
+	warningStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("9")). // Red
+		Bold(true).
+		MarginTop(1)
+
+	infoStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241")). // Gray
+		Italic(true)
+
+	// Build the content
+	var content strings.Builder
+
+	// Token details
+	content.WriteString(fmt.Sprintf("%s  %s\n",
+		labelStyle.Render("Name:"),
+		valueStyle.Render(token.Name),
+	))
+
+	content.WriteString(fmt.Sprintf("%s  %s\n",
+		labelStyle.Render("ID:"),
+		valueStyle.Render(fmt.Sprintf("%d", token.ID)),
+	))
+
+	content.WriteString(fmt.Sprintf("%s  %s\n",
+		labelStyle.Render("Workspace:"),
+		valueStyle.Render(fmt.Sprintf("%d", token.Workspace)),
+	))
+
+	scope := "Workspace"
+	if token.BoxID != nil {
+		scope = fmt.Sprintf("Box %d", *token.BoxID)
+	}
+	content.WriteString(fmt.Sprintf("%s  %s\n",
+		labelStyle.Render("Scope:"),
+		valueStyle.Render(scope),
+	))
+
+	content.WriteString(fmt.Sprintf("%s  %s\n",
+		labelStyle.Render("Created:"),
+		valueStyle.Render(token.CreatedAt.Format("2006-01-02 15:04:05")),
+	))
+
+	content.WriteString("\n")
+	content.WriteString(fmt.Sprintf("%s  %s",
+		labelStyle.Render("Token:"),
+		tokenStyle.Render(*token.Token),
+	))
+
+	// Print the output
+	fmt.Println(titleStyle.Render("✓ Token Created Successfully"))
+	fmt.Println(boxStyle.Render(content.String()))
+	fmt.Println(warningStyle.Render("⚠ IMPORTANT: Keep this token secret!"))
+	fmt.Println(infoStyle.Render("This token value cannot be retrieved again. Store it securely."))
+	fmt.Println()
 }
