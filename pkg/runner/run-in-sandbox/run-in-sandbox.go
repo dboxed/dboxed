@@ -71,6 +71,22 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, error) {
 	startTime := time.Now()
 
+	var err error
+	rn.sandboxInfo, err = sandbox.ReadSandboxInfo(consts.DboxedDataDir)
+	if err != nil {
+		return false, err
+	}
+	rn.networkConfig, err = util.UnmarshalYamlFile[boxspec.NetworkConfig](consts.NetworkConfFile)
+	if err != nil {
+		return false, err
+	}
+
+	// dns proxy must start as early as possible, as otherwise things will fail
+	err = rn.startDnsProxy(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	util2.LoadMod(ctx, "dm-mod")
 	util2.LoadMod(ctx, "dm-thin-pool")
 	util2.LoadMod(ctx, "dm-snapshot")
@@ -92,26 +108,10 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	rn.reconcileLogger, reconcileLogWriter = rn.buildReconcileLogger()
 	defer reconcileLogWriter.Close()
 
-	var err error
-	rn.sandboxInfo, err = sandbox.ReadSandboxInfo(consts.DboxedDataDir)
-	if err != nil {
-		return false, err
-	}
-
 	rn.updateBoxRunStatus(ctx, models.BoxRunStatusInfo{
 		RunStatus: util.Ptr("starting"),
 		StartTime: &startTime,
 	})
-
-	rn.networkConfig, err = util.UnmarshalYamlFile[boxspec.NetworkConfig](consts.NetworkConfFile)
-	if err != nil {
-		return false, err
-	}
-
-	err = rn.startDnsProxy(ctx)
-	if err != nil {
-		return false, err
-	}
 
 	err = rn.initLogsPublishing(ctx)
 	if err != nil {
