@@ -2,6 +2,7 @@ package run_in_sandbox
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"path/filepath"
 
@@ -45,4 +46,12 @@ func (rn *RunInSandbox) initLogsPublishing(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (rn *RunInSandbox) buildReconcileLogger() (*slog.Logger, io.WriteCloser) {
+	logFile := logs.BuildRotatingLogger(filepath.Join(consts.LogsDir, "reconcile.log"))
+	defer logFile.Close()
+	h := slog.NewJSONHandler(logFile, &slog.HandlerOptions{})
+	log := slog.New(h)
+	return log, logFile
 }

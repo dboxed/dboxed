@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 	"github.com/moby/sys/mountinfo"
 )
@@ -51,7 +50,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 	for _, oldVolume := range oldVolumesByName {
 		if _, ok := newVolumeByName[oldVolume.Volume.ID]; !ok {
 			if allowDownService {
-				slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Volume.Name))
+				rn.Log.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Volume.Name))
 			}
 			needDown = true
 			deleteVolumes = append(deleteVolumes, oldVolume)
@@ -123,7 +122,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 }
 
 func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
-	slog.InfoContext(ctx, "creating volume-mount",
+	rn.Log.InfoContext(ctx, "creating volume-mount",
 		slog.Any("name", vol.Name),
 	)
 
@@ -144,7 +143,7 @@ func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVo
 }
 
 func (rn *BoxSpecRunner) mountVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
-	slog.InfoContext(ctx, "mounting volume",
+	rn.Log.InfoContext(ctx, "mounting volume",
 		slog.Any("name", vol.Name),
 	)
 
@@ -164,7 +163,7 @@ func (rn *BoxSpecRunner) mountVolume(ctx context.Context, vol *boxspec.DboxedVol
 }
 
 func (rn *BoxSpecRunner) releaseVolume(ctx context.Context, vol *volume_serve.VolumeState) error {
-	slog.InfoContext(ctx, "releasing volume",
+	rn.Log.InfoContext(ctx, "releasing volume",
 		slog.Any("name", vol.Volume.Name),
 	)
 
@@ -182,7 +181,7 @@ func (rn *BoxSpecRunner) releaseVolume(ctx context.Context, vol *volume_serve.Vo
 	return nil
 }
 func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.DboxedVolume) error {
-	slog.InfoContext(ctx, "installing volume service",
+	rn.Log.InfoContext(ctx, "installing volume service",
 		slog.Any("name", vol.Name),
 	)
 
@@ -203,7 +202,7 @@ func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.
 }
 
 func (rn *BoxSpecRunner) uninstallVolumeService(ctx context.Context, vol *volume_serve.VolumeState) error {
-	slog.InfoContext(ctx, "uninstalling volume service",
+	rn.Log.InfoContext(ctx, "uninstalling volume service",
 		slog.Any("name", vol.Volume.Name),
 	)
 
@@ -263,11 +262,13 @@ func (rn *BoxSpecRunner) parseMode(s string) (os.FileMode, error) {
 }
 
 func (rn *BoxSpecRunner) runDboxedVolume(ctx context.Context, args []string) error {
-	cmd := exec.CommandContext(ctx, "dboxed", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	slog.Info("running dboxed volume command", slog.Any("args", strings.Join(args, " ")))
-	err := cmd.Run()
+	c := util.CommandHelper{
+		Command: "dboxed",
+		Args:    args,
+		Logger:  rn.Log,
+		LogCmd:  true,
+	}
+	err := c.Run(ctx)
 	if err != nil {
 		return err
 	}

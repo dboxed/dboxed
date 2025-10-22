@@ -2,6 +2,7 @@ package run_in_sandbox
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -32,6 +33,7 @@ type RunInSandbox struct {
 
 	logsPublisher logs.LogsPublisher
 
+	reconcileLogger *slog.Logger
 	lastBoxSpecHash string
 	lastBoxSpec     *boxspec.BoxSpec
 }
@@ -82,6 +84,10 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 			return true, nil
 		}
 	}
+
+	var reconcileLogWriter io.WriteCloser
+	rn.reconcileLogger, reconcileLogWriter = rn.buildReconcileLogger()
+	defer reconcileLogWriter.Close()
 
 	var err error
 	rn.sandboxInfo, err = sandbox.ReadSandboxInfo(consts.DboxedDataDir)
@@ -161,9 +167,12 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 }
 
 func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
+	rn.reconcileLogger.InfoContext(ctx, "starting reconcile of box spec")
+
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
 		WorkDir: rn.WorkDir,
 		BoxSpec: boxSpec,
+		Log:     rn.reconcileLogger,
 	}
 	err := boxSpecRunner.Reconcile(ctx)
 	if err != nil {
@@ -178,9 +187,10 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
 			WorkDir: rn.WorkDir,
 			BoxSpec: rn.lastBoxSpec,
+			Log:     rn.reconcileLogger,
 		}
 
-		slog.InfoContext(ctx, "shutting down compose projects")
+		rn.reconcileLogger.InfoContext(ctx, "shutting down compose projects")
 		err := boxSpecRunner.Down(ctx, false, true)
 		if err != nil {
 			return err
@@ -192,24 +202,24 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		return err
 	}
 
-	slog.InfoContext(ctx, "shutting down dockerd")
+	rn.reconcileLogger.InfoContext(ctx, "shutting down dockerd")
 	err = s6.S6SvcDown(ctx, "dockerd")
 	if err != nil {
 		return err
 	}
-	slog.InfoContext(ctx, "dockerd has exited")
+	rn.reconcileLogger.InfoContext(ctx, "dockerd has exited")
 
 	// if the box was deleted, this will be a no-op due to doRun already doing the Stop with cancel=true
 	rn.logsPublisher.Stop(false)
 
 	// ensure we don't restart the sandbox
-	slog.InfoContext(ctx, "running s6 halt")
+	rn.reconcileLogger.InfoContext(ctx, "running s6 halt")
 	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
 	if err != nil {
 		return err
 	}
 
-	slog.InfoContext(ctx, "shutdown finished")
+	rn.reconcileLogger.InfoContext(ctx, "shutdown finished")
 	return nil
 }
 

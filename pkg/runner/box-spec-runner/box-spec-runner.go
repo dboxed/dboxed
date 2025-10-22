@@ -14,6 +14,7 @@ import (
 type BoxSpecRunner struct {
 	WorkDir string
 	BoxSpec *boxspec.BoxSpec
+	Log     *slog.Logger
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
@@ -55,7 +56,7 @@ func (rn *BoxSpecRunner) downDeletedComposeProjects(ctx context.Context, compose
 		removedComposeProjectsNames = append(removedComposeProjectsNames, cp.Name)
 	}
 	if len(removedComposeProjectsNames) != 0 {
-		slog.InfoContext(ctx, "downing removed compose projects", slog.Any("composeProjects", removedComposeProjectsNames))
+		rn.Log.InfoContext(ctx, "downing removed compose projects", slog.Any("composeProjects", removedComposeProjectsNames))
 		err = rn.runComposeDownByNames(ctx, removedComposeProjectsNames, true, false)
 		if err != nil {
 			return err
@@ -76,7 +77,13 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		return err
 	}
 
-	containers, err := util.RunCommandJsonLines[dockercli.DockerPS](ctx, "docker", "ps", "-a", "--format=json")
+	c := util.CommandHelper{
+		Command: "docker",
+		Args:    []string{"ps", "-a", "--format=json"},
+		Logger:  rn.Log,
+	}
+	var containers []dockercli.DockerPS
+	err = c.RunStdoutJsonLines(ctx, &containers)
 	if err != nil {
 		return err
 	}
@@ -91,31 +98,43 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 	}
 
 	if len(stopIds) != 0 {
-		slog.InfoContext(ctx, "stopping containers", slog.Any("ids", stopIds))
+		rn.Log.InfoContext(ctx, "stopping containers", slog.Any("ids", stopIds))
 		args := []string{
 			"stop",
 			"--timeout=10",
 		}
 		args = append(args, stopIds...)
-		err = util.RunCommand(ctx, "docker", args...)
+		c := util.CommandHelper{
+			Command: "docker",
+			Args:    args,
+			Logger:  rn.Log,
+			LogCmd:  true,
+		}
+		err = c.Run(ctx)
 		if err != nil {
 			return err
 		}
 	}
 	if len(rmIds) != 0 {
-		slog.InfoContext(ctx, "removing containers", slog.Any("ids", stopIds))
+		rn.Log.InfoContext(ctx, "removing containers", slog.Any("ids", stopIds))
 		args := []string{
 			"rm",
 			"-fv",
 		}
 		args = append(args, rmIds...)
-		err = util.RunCommand(ctx, "docker", args...)
+		c := util.CommandHelper{
+			Command: "docker",
+			Args:    args,
+			Logger:  rn.Log,
+			LogCmd:  true,
+		}
+		err = c.Run(ctx)
 		if err != nil {
 			return err
 		}
 	}
 
-	slog.InfoContext(ctx, "releasing dboxed volumes")
+	rn.Log.InfoContext(ctx, "releasing dboxed volumes")
 	err = rn.reconcileVolumes(ctx, composeProjects, nil, false)
 	if err != nil {
 		return err

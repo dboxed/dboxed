@@ -36,8 +36,7 @@ func (rn *BoxSpecRunner) listRunningComposeProjects(ctx context.Context) ([]dock
 	cmd := util.CommandHelper{
 		Command: "docker",
 		Args:    []string{"compose", "ls", "--format", "json"},
-		Logger:  slog.Default(),
-		LogCmd:  true,
+		Logger:  rn.Log,
 	}
 	var l []dockercli.DockerComposeListEntry
 	err := cmd.RunStdoutJson(ctx, &l)
@@ -58,7 +57,7 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 	pullWg.SetLimit(2)
 	for name := range composeProjects {
 		pullWg.Go(func() error {
-			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "pull", "-q")
+			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "pull")
 		})
 	}
 	err = pullWg.Wait()
@@ -70,7 +69,7 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 	buildWg.SetLimit(2)
 	for name := range composeProjects {
 		buildWg.Go(func() error {
-			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "build", "-q")
+			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "build")
 		})
 	}
 	err = buildWg.Wait()
@@ -114,7 +113,7 @@ func (rn *BoxSpecRunner) runComposeDownByNames(ctx context.Context, names []stri
 			}
 			err := rn.runComposeCli(ctx, "", name, nil, args...)
 			if err != nil {
-				slog.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))
+				rn.Log.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))
 				if !ignoreComposeErrors {
 					return err
 				}
@@ -165,7 +164,7 @@ func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, composeBaseDir strin
 		Args:    args2,
 		Env:     cmdEnv,
 		Dir:     dir,
-		Logger:  slog.Default().With(slog.Any("composeProject", projectName)),
+		Logger:  rn.Log.With(slog.Any("composeProject", projectName)),
 		LogCmd:  true,
 	}
 	err := cmd.Run(ctx)
