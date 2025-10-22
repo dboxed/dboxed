@@ -24,6 +24,8 @@ type Box struct {
 	NetworkType *global.NetworkType `json:"networkType"`
 
 	DboxedVersion string `json:"dboxedVersion"`
+
+	DesiredState string `json:"desiredState"`
 }
 
 type CreateBox struct {
@@ -36,6 +38,7 @@ type CreateBox struct {
 }
 
 type UpdateBox struct {
+	DesiredState *string `json:"desiredState,omitempty"`
 }
 
 type BoxRunStatusInfo struct {
@@ -91,6 +94,8 @@ func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
 		NetworkType: networkType,
 
 		DboxedVersion: s.DboxedVersion,
+
+		DesiredState: s.DesiredState,
 	}
 
 	return ret, nil

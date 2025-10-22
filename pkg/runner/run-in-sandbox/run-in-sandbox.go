@@ -154,6 +154,11 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
 		} else {
+			if boxSpec.DesiredState != "up" {
+				rn.reconcileLogger.InfoContext(ctx, "desired state is not 'up', shutting down", "desiredState", boxSpec.DesiredState)
+				return true, nil
+			}
+
 			newHash, err := util.Sha256SumJson(boxSpec)
 			if err != nil {
 				return false, err

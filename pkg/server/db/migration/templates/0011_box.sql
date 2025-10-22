@@ -18,6 +18,8 @@ create table box
 
     machine_id               bigint         references machine (id) on delete set null,
 
+    desired_state            text           not null default 'stopped',
+
     unique (workspace_id, name)
 );
 

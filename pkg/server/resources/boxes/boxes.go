@@ -313,6 +313,22 @@ func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*
 }
 
 func (s *BoxesServer) doUpdateBox(c context.Context, box *dmodel.Box, body models.UpdateBox) error {
+	q := querier2.GetQuerier(c)
+
+	if body.DesiredState != nil {
+		// Validate desired state
+		desiredState := *body.DesiredState
+		if desiredState != "up" && desiredState != "down" {
+			return huma.Error400BadRequest("desiredState must be either 'up' or 'down'")
+		}
+
+		// Update the desired state
+		err := box.UpdateDesiredState(q, desiredState)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

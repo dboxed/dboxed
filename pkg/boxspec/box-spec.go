@@ -1,7 +1,8 @@
 package boxspec
 
 type BoxSpec struct {
-	Uuid string `json:"uuid"`
+	Uuid         string `json:"uuid"`
+	DesiredState string `json:"desiredState"`
 
 	Volumes []DboxedVolume `json:"volumes,omitempty"`
 

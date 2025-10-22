@@ -16,6 +16,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 
 	boxSpec := &boxspec.BoxSpec{
 		Uuid:            box.Uuid,
+		DesiredState:    box.DesiredState,
 		ComposeProjects: map[string]string{},
 	}
 
