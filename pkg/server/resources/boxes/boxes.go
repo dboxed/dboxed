@@ -130,6 +130,7 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		Name: body.Name,
 
 		DboxedVersion: "nightly",
+		DesiredState:  "up",
 
 		NetworkID:   networkId,
 		NetworkType: networkType,
