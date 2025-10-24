@@ -4,6 +4,7 @@ package sandbox
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -26,6 +27,10 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 	box, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
 		return err
+	}
+
+	if box.DesiredState != "up" {
+		return fmt.Errorf("the desired state of the box is '%s', refusing to start it", box.DesiredState)
 	}
 
 	sandboxName, err := cmd.GetSandboxName(box)
