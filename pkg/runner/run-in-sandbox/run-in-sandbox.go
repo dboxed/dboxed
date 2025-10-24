@@ -146,7 +146,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		boxesClient := clients.BoxClient{Client: rn.Client}
 		boxSpec, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
-			if baseclient.IsNotFound(err) {
+			if baseclient.IsNotFound(err) || baseclient.IsUnauthorized(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
 				// if the box got deleted, we won't be able to upload remaining logs, so we cancel immediately to avoid spamming local logs
 				rn.logsPublisher.Stop(true)

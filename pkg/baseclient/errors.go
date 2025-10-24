@@ -16,3 +16,13 @@ func IsNotFound(err error) bool {
 	}
 	return false
 }
+
+func IsUnauthorized(err error) bool {
+	var err2 *huma.ErrorModel
+	if errors.As(err, &err2) {
+		if err2.Status == http.StatusUnauthorized {
+			return true
+		}
+	}
+	return false
+}
