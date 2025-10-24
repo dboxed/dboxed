@@ -2,6 +2,7 @@ package box
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
@@ -10,7 +11,8 @@ import (
 )
 
 type DeleteCmd struct {
-	Box string `help:"Specify the box" required:"" arg:""`
+	Box   string `help:"Specify the box" required:"" arg:""`
+	Force bool   `help:"Skip confirmation prompt" short:"f"`
 }
 
 func (cmd *DeleteCmd) Run(g *flags.GlobalFlags) error {
@@ -26,6 +28,22 @@ func (cmd *DeleteCmd) Run(g *flags.GlobalFlags) error {
 	b, err := commandutils.GetBox(ctx, c, cmd.Box)
 	if err != nil {
 		return err
+	}
+
+	// Check if box has desired_state "up" and prompt for confirmation
+	if b.DesiredState == "up" && !cmd.Force {
+		warning := fmt.Sprintf("Box '%s' (ID: %d) has desired state 'up' and may be running!\nDeleting a running box may cause data loss or disruption.", b.Name, b.ID)
+		confirmed, err := commandutils.ConfirmDanger(
+			"Are you sure you want to delete this box?",
+			warning,
+		)
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			fmt.Println("Deletion cancelled.")
+			return nil
+		}
 	}
 
 	err = c2.DeleteBox(ctx, b.ID)
