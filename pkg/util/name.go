@@ -20,6 +20,9 @@ func CheckName(name string, extraAllowedChars ...rune) error {
 	if len(name) > nameMaxLen {
 		return huma.Error400BadRequest("name is too long")
 	}
+	if strings.ToLower(name) != name {
+		return huma.Error400BadRequest("names can only contain lowercase characters")
+	}
 	for _, c := range extraAllowedChars {
 		name = strings.ReplaceAll(name, string(c), "")
 	}
