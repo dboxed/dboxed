@@ -49,11 +49,10 @@ func Execute() {
 
 	ctx := kong.Parse(cli,
 		kong.Name("dboxed"),
-		kong.Description("Cloud experience without the cloud"),
+		kong.Description("Run your cloud workloads on any server you like"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact:             true,
-			Summary:             true,
 			NoExpandSubcommands: true,
 			FlagsLast:           true,
 		}),
