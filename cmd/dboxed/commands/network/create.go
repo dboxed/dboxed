@@ -17,7 +17,7 @@ type CreateCmd struct {
 	Type string `help:"Specify network type. Currently only netbird is supported" enum:"netbird" required:""`
 
 	// Netbird specific flags
-	NetbirdVersion     string  `help:"Netbird version" default:"0.59.7"`
+	NetbirdVersion     string  `help:"Netbird version" default:"latest"`
 	NetbirdApiUrl      *string `help:"Netbird API URL"`
 	NetbirdAccessToken string  `help:"Netbird API access token" required:""`
 }
