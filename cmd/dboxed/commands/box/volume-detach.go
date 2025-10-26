@@ -1,4 +1,4 @@
-package volume
+package box
 
 import (
 	"context"
@@ -9,12 +9,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type DetachCmd struct {
+type DetachVolumeCmd struct {
 	Box    string `help:"Box ID, UUID, or name" required:"" arg:""`
 	Volume string `help:"Volume ID, UUID, or name" required:"" arg:""`
 }
 
-func (cmd *DetachCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *DetachVolumeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

@@ -1,4 +1,4 @@
-package volume
+package box
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type UpdateCmd struct {
+type UpdateVolumeCmd struct {
 	Box      string  `help:"Box ID, UUID, or name" required:"" arg:""`
 	Volume   string  `help:"Volume ID, UUID, or name" required:"" arg:""`
 	RootUid  *int64  `help:"Root UID for volume mount"`
@@ -18,7 +18,7 @@ type UpdateCmd struct {
 	RootMode *string `help:"Root mode for volume mount (octal)"`
 }
 
-func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *UpdateVolumeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

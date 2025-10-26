@@ -1,4 +1,4 @@
-package volume
+package box
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type ListCmd struct {
+type ListVolumesCmd struct {
 	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
 }
 
@@ -20,7 +20,7 @@ type PrintVolumeAttachment struct {
 	RootMode string `col:"Root Mode"`
 }
 
-func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *ListVolumesCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
