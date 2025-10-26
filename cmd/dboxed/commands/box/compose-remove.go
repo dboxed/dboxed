@@ -1,4 +1,4 @@
-package compose
+package box
 
 import (
 	"context"
@@ -9,12 +9,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type RemoveCmd struct {
+type RemoveComposeCmd struct {
 	Box  string `help:"Box ID, UUID, or name" required:"" arg:""`
 	Name string `help:"Compose project name" required:"" arg:""`
 }
 
-func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *RemoveComposeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

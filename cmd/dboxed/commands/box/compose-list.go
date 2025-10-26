@@ -1,4 +1,4 @@
-package compose
+package box
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type ListCmd struct {
+type ListComposeCmd struct {
 	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
 }
 
@@ -20,7 +20,7 @@ type PrintCompose struct {
 	Services string `col:"Services"`
 }
 
-func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *ListComposeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

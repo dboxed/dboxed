@@ -1,4 +1,4 @@
-package compose
+package box
 
 import (
 	"context"
@@ -10,12 +10,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type UpdateCmd struct {
+type UpdateComposeCmd struct {
 	Box         string `help:"Box ID, UUID, or name" required:"" arg:""`
 	ComposeFile string `help:"Path to docker-compose.yml file" required:"" short:"f"`
 }
 
-func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *UpdateComposeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)

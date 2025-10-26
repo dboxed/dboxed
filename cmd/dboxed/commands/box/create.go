@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/box/compose"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -49,7 +48,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		})
 	}
 	for _, cp := range cmd.ComposeFile {
-		name, content, err := compose.LoadComposeFileForBox(cp)
+		name, content, err := LoadComposeFileForBox(cp)
 		if err != nil {
 			return err
 		}
