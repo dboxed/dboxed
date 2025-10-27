@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks"
+	"github.com/dboxed/dboxed/pkg/reconcilers/s3buckets"
 	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/workspaces"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
@@ -46,6 +47,7 @@ var reconcilerFuncs = []initRunFunc{
 	runReconcilerWorkspaces,
 	runReconcilerMachineProviders,
 	runReconcilerNetworks,
+	runReconcilerS3Buckets,
 	runReconcilerVolumeProviders,
 	runReconcilerBoxes,
 	runReconcilerMachines,
@@ -222,6 +224,11 @@ func runReconcilerMachineProviders(ctx context.Context, config config2.Config) (
 
 func runReconcilerNetworks(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := networks.NewNetworksReconciler(config)
+	return r.Run, nil
+}
+
+func runReconcilerS3Buckets(ctx context.Context, config config2.Config) (runFunc, error) {
+	r := s3buckets.NewS3BucketsReconciler(config)
 	return r.Run, nil
 }
 
