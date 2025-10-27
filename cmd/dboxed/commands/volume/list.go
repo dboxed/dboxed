@@ -7,19 +7,23 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dustin/go-humanize"
 )
 
 type ListCmd struct {
 }
 
 type PrintVolume struct {
-	ID         int64  `col:"Id"`
-	Name       string `col:"Name"`
-	Type       string `col:"Type"`
-	Provider   string `col:"Provider"`
-	LockTime   string `col:"Lock Time"`
-	LockBox    string `col:"Locked by Box"`
-	Attachment string `col:"Box attachment"`
+	ID                 int64  `col:"Id"`
+	Name               string `col:"Name"`
+	Type               string `col:"Type"`
+	Provider           string `col:"Provider"`
+	LockTime           string `col:"Lock Time"`
+	LockBox            string `col:"Locked by Box"`
+	Attachment         string `col:"Box attachment"`
+	LatestSnapshotId   int64  `col:"Snapshot ID"`
+	LatestSnapshotTime string `col:"Snapshot Time"`
+	LatestSnapshotSize string `col:"Snapshot Size"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -54,6 +58,16 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		}
 		if v.Attachment != nil {
 			p.Attachment = ct.Boxes.GetColumn(ctx, v.Attachment.BoxID)
+		}
+		if v.LatestSnapshotId != nil {
+			snapshot, err := c2.GetVolumeSnapshotById(ctx, v.ID, *v.LatestSnapshotId)
+			if err == nil && snapshot != nil {
+				if snapshot.Rustic != nil {
+					p.LatestSnapshotId = snapshot.ID
+					p.LatestSnapshotTime = snapshot.Rustic.SnapshotTime.String()
+					p.LatestSnapshotSize = humanize.Bytes(uint64(snapshot.Rustic.TotalBytesProcessed))
+				}
+			}
 		}
 
 		table = append(table, p)
