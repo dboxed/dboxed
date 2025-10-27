@@ -33,13 +33,13 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	c2 := &clients.VolumeProvidersClient{Client: c}
 	ct := commandutils.NewClientTool(c)
 
-	repos, err := c2.ListVolumeProviders(ctx)
+	vps, err := c2.ListVolumeProviders(ctx)
 	if err != nil {
 		return err
 	}
 
 	var table []PrintVolumeProvider
-	for _, r := range repos {
+	for _, r := range vps {
 		storage := ""
 		switch r.Type {
 		case dmodel.VolumeProviderTypeRustic:

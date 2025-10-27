@@ -11,7 +11,7 @@ import (
 )
 
 type UpdateCmd struct {
-	Repo string `help:"Specify the repository." required:""`
+	VolumeProvider string `help:"Specify the volume provider." required:""`
 
 	S3Bucket *string `name:"s3-bucket" help:"Specify the S3 bucket to use"`
 
@@ -29,7 +29,7 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 
 	c2 := &clients.VolumeProvidersClient{Client: c}
 
-	vp, err := commandutils.GetVolumeProvider(ctx, c, cmd.Repo)
+	vp, err := commandutils.GetVolumeProvider(ctx, c, cmd.VolumeProvider)
 	if err != nil {
 		return err
 	}

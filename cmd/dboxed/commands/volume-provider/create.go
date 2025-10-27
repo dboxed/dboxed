@@ -12,7 +12,7 @@ import (
 )
 
 type CreateCmd struct {
-	Name string `help:"Specify the repository name. Must be unique." required:"" arg:""`
+	Name string `help:"Specify the volume provider name. Must be unique." required:"" arg:""`
 
 	Type string `help:"Specify the provider type." required:"" enum:"rustic"`
 
