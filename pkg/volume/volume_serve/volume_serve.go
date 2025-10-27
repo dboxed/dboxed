@@ -321,7 +321,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 	if prevLockId == nil {
 		vs.log.Info("locking volume")
 	} else {
-		vs.log.Info("refreshing lock", slog.Any("prevLockId", *prevLockId))
+		vs.log.Debug("refreshing lock", slog.Any("prevLockId", *prevLockId))
 	}
 
 	c, err := vs.buildClient(ctx, s)
@@ -442,14 +442,11 @@ func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId int64, de
 }
 
 func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
-	if vs.volume.LatestSnapshotId == nil {
-		// nothing to do
-		return nil
-	}
-
-	err := vs.RestoreSnapshot(ctx, *vs.volume.LatestSnapshotId, true)
-	if err != nil {
-		return err
+	if vs.volume.LatestSnapshotId != nil {
+		err := vs.RestoreSnapshot(ctx, *vs.volume.LatestSnapshotId, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	s, err := vs.loadVolumeState()
