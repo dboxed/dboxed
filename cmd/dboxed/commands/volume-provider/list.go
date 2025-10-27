@@ -3,7 +3,6 @@ package volume_provider
 import (
 	"context"
 	"os"
-	"path"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -15,11 +14,12 @@ type ListCmd struct {
 }
 
 type PrintVolumeProvider struct {
-	ID      int64  `col:"Id"`
-	Name    string `col:"Name"`
-	Type    string `col:"Type"`
-	Status  string `col:"Status"`
-	Storage string `col:"Storage"`
+	ID            int64  `col:"Id"`
+	Name          string `col:"Name"`
+	Type          string `col:"Type"`
+	Status        string `col:"Status"`
+	Storage       string `col:"Storage"`
+	StoragePrefix string `col:"Storage Prefix"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -41,25 +41,27 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintVolumeProvider
 	for _, r := range vps {
 		storage := ""
+		storagePrefix := ""
 		switch r.Type {
 		case dmodel.VolumeProviderTypeRustic:
 			if r.Rustic != nil {
+				storagePrefix = r.Rustic.StoragePrefix
 				switch r.Rustic.StorageType {
 				case dmodel.VolumeProviderStorageTypeS3:
 					if r.Rustic.S3BucketId != nil {
-						s3BucketName := ct.S3Buckets.GetColumn(ctx, *r.Rustic.S3BucketId)
-						storage = path.Join(s3BucketName, r.Rustic.StoragePrefix)
+						storage = ct.S3Buckets.GetColumn(ctx, *r.Rustic.S3BucketId)
 					}
 				}
 			}
 		}
 
 		table = append(table, PrintVolumeProvider{
-			ID:      r.ID,
-			Name:    r.Name,
-			Type:    string(r.Type),
-			Status:  r.Status,
-			Storage: storage,
+			ID:            r.ID,
+			Name:          r.Name,
+			Type:          string(r.Type),
+			Status:        r.Status,
+			Storage:       storage,
+			StoragePrefix: storagePrefix,
 		})
 	}
 
