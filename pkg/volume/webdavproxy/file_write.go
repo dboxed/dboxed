@@ -71,8 +71,10 @@ func (f *fileWrite) upload() error {
 	req.ContentLength = st.Size()
 
 	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("upload request returned status %s", resp.Status)
 	}
