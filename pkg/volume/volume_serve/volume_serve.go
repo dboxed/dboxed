@@ -455,6 +455,7 @@ func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
 	}
 
 	s.RestoreDone = true
+	s.RestoreSnapshot = vs.volume.LatestSnapshotId
 
 	err = vs.saveVolumeState(*s)
 	if err != nil {

@@ -17,13 +17,13 @@ type ListCmd struct {
 }
 
 type PrintVolumeMount struct {
-	MountName   string `col:"Mount Name"`
-	Volume      string `col:"Volume"`
-	Workspace   string `col:"Workspace"`
-	Box         string `col:"Box"`
-	LockId      string `col:"Lock ID"`
-	LockTime    string `col:"Lock Time"`
-	RestoreDone bool   `col:"Restore Done"`
+	MountName string `col:"Mount Name"`
+	Volume    string `col:"Volume"`
+	Workspace string `col:"Workspace"`
+	Box       string `col:"Box"`
+	LockId    string `col:"Lock ID"`
+	LockTime  string `col:"Lock Time"`
+	Restored  string `col:"Restored"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -44,10 +44,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintVolumeMount
 	for _, v := range volumes {
 		p := PrintVolumeMount{
-			MountName:   v.MountName,
-			Volume:      fmt.Sprintf("%s (id=%d)", v.Volume.Name, v.Volume.ID),
-			Workspace:   ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
-			RestoreDone: v.RestoreDone,
+			MountName: v.MountName,
+			Volume:    fmt.Sprintf("%s (id=%d)", v.Volume.Name, v.Volume.ID),
+			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
 		}
 		if v.Volume != nil {
 			if v.Volume.LockBoxId != nil {
@@ -59,6 +58,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			if v.Volume.LockTime != nil {
 				p.LockTime = v.Volume.LockTime.String()
 			}
+		}
+		if v.RestoreSnapshot != nil {
+			p.Restored = fmt.Sprintf("from snapshot %d", *v.RestoreSnapshot)
 		}
 
 		table = append(table, p)

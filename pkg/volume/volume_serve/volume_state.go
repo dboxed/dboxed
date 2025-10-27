@@ -17,7 +17,8 @@ type VolumeState struct {
 
 	Volume *models.Volume `json:"volume"`
 
-	RestoreDone bool `json:"restoreDone"`
+	RestoreDone     bool   `json:"restoreDone"`
+	RestoreSnapshot *int64 `json:"restoreSnapshot"`
 }
 
 func (vs *VolumeServe) loadVolumeState() (*VolumeState, error) {
