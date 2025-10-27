@@ -123,7 +123,7 @@ func renderTokenCreated(token *models.Token) {
 
 	content.WriteString(fmt.Sprintf("%s  %s\n",
 		labelStyle.Render("Created:"),
-		valueStyle.Render(token.CreatedAt.Format("2006-01-02 15:04:05")),
+		valueStyle.Render(token.CreatedAt.String()),
 	))
 
 	content.WriteString("\n")

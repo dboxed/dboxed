@@ -77,7 +77,7 @@ func (cmd *LogsCmd) Run(g *flags.GlobalFlags) error {
 	var metadata models.LogMetadataModel
 	formatLine := func(line boxspec.LogsLine) string {
 		_ = metadata
-		return fmt.Sprintf("%s %s\n", line.Time.Format("2006-01-02 15:04:05"), line.Line)
+		return fmt.Sprintf("%s %s\n", line.Time.String(), line.Line)
 	}
 
 	err = c2.StreamLogs(ctx, box.ID, *cmd.LogId, cmd.Since, func(event interface{}) error {

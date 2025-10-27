@@ -57,7 +57,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 				p.LockId = *v.Volume.LockId
 			}
 			if v.Volume.LockTime != nil {
-				p.LockTime = v.Volume.LockTime.Format("2006-01-02 15:04:05")
+				p.LockTime = v.Volume.LockTime.String()
 			}
 		}
 
