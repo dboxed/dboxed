@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"golang.org/x/net/webdav"
@@ -37,8 +39,11 @@ func (f *fileWrite) Stat() (fs.FileInfo, error) {
 func (f *fileWrite) presignPutUrl() error {
 	slog.Debug("presignPutUrl", slog.Any("key", f.key))
 
-	rep, err := f.fs.client2.S3ProxyPresignPut(f.fs.ctx, f.fs.volumeProviderId, models.S3ProxyPresignPutRequest{
-		Key: f.key,
+	key := path.Join(f.fs.s3Prefix, f.key)
+	key = strings.TrimPrefix(key, "/")
+
+	rep, err := f.fs.client2.S3ProxyPresignPut(f.fs.ctx, f.fs.s3BucketId, models.S3ProxyPresignPutRequest{
+		Key: key,
 	})
 	if err != nil {
 		return err

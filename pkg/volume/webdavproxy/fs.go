@@ -17,22 +17,25 @@ import (
 )
 
 type FileSystem struct {
-	ctx              context.Context
-	client           *baseclient.Client
-	client2          *clients.S3ProxyClient
-	volumeProviderId int64
+	ctx     context.Context
+	client  *baseclient.Client
+	client2 *clients.S3ProxyClient
+
+	s3BucketId int64
+	s3Prefix   string
 
 	m            sync.Mutex
 	dirCache     map[string]*dir
 	contentCache map[string]*fileContent
 }
 
-func NewFileSystem(ctx context.Context, client *baseclient.Client, volumeProviderId int64) *FileSystem {
+func NewFileSystem(ctx context.Context, client *baseclient.Client, s3BucketId int64, prefix string) *FileSystem {
 	return &FileSystem{
-		ctx:              ctx,
-		client:           client,
-		client2:          &clients.S3ProxyClient{Client: client},
-		volumeProviderId: volumeProviderId,
+		ctx:        ctx,
+		client:     client,
+		client2:    &clients.S3ProxyClient{Client: client},
+		s3BucketId: s3BucketId,
+		s3Prefix:   prefix,
 
 		dirCache:     map[string]*dir{},
 		contentCache: map[string]*fileContent{},
@@ -152,9 +155,9 @@ func (fs *FileSystem) doOpenFile(ctx context.Context, name string, flag int, per
 func (fs *FileSystem) delete(ctx context.Context, key string) error {
 	fs.forgetCache(key, true)
 
-	slog.Debug("delete", slog.Any("key", key))
-	_, err := fs.client2.S3ProxyDeleteObject(ctx, fs.volumeProviderId, models.S3ProxyDeleteObjectRequest{
-		Key: key,
+	slog.Debug("delete", "key", key)
+	_, err := fs.client2.S3ProxyDeleteObject(ctx, fs.s3BucketId, models.S3ProxyDeleteObjectRequest{
+		Key: path.Join(fs.s3Prefix, key),
 	})
 	if err != nil {
 		return err
@@ -228,9 +231,9 @@ func (fs *FileSystem) Rename(ctx context.Context, oldName, newName string) error
 	trimmedNewName := strings.TrimPrefix(newName, "/")
 
 	slog.Debug("rename", slog.Any("oldName", oldName), slog.Any("newName", newName))
-	_, err = fs.client2.S3ProxyRenameObject(ctx, fs.volumeProviderId, models.S3ProxyRenameObjectRequest{
-		OldKey: trimmedOldName,
-		NewKey: trimmedNewName,
+	_, err = fs.client2.S3ProxyRenameObject(ctx, fs.s3BucketId, models.S3ProxyRenameObjectRequest{
+		OldKey: path.Join(fs.s3Prefix, trimmedOldName),
+		NewKey: path.Join(fs.s3Prefix, trimmedNewName),
 	})
 	fs.forgetCache(trimmedOldName, true)
 	fs.forgetCache(trimmedNewName, true)

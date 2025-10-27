@@ -1,22 +1,32 @@
 package s3utils
 
 import (
-	"fmt"
+	"context"
 	"net/url"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-func BuildS3Client(vp *dmodel.VolumeProvider, region string) (*minio.Client, error) {
-	if vp.Rustic == nil || vp.Rustic.StorageS3 == nil {
-		return nil, fmt.Errorf("not a S3 repository")
+func BuildS3ClientFromId(ctx context.Context, bucketId int64, region string) (*dmodel.S3Bucket, *minio.Client, error) {
+	q := querier.GetQuerier(ctx)
+	b, err := dmodel.GetS3BucketById(q, nil, bucketId, true)
+	if err != nil {
+		return nil, nil, err
 	}
+	c, err := BuildS3Client(b, region)
+	if err != nil {
+		return nil, nil, err
+	}
+	return b, c, nil
+}
 
-	creds := credentials.NewStaticV4(vp.Rustic.StorageS3.AccessKeyId.V, vp.Rustic.StorageS3.SecretAccessKey.V, "")
+func BuildS3Client(b *dmodel.S3Bucket, region string) (*minio.Client, error) {
+	creds := credentials.NewStaticV4(b.AccessKeyId, b.SecretAccessKey, "")
 
-	u, err := url.Parse(vp.Rustic.StorageS3.Endpoint.V)
+	u, err := url.Parse(b.Endpoint)
 	if err != nil {
 		return nil, err
 	}

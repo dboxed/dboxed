@@ -18,13 +18,13 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider) ([]string, error) {
-	c, err := s3utils.BuildS3Client(vp, "")
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
 	if err != nil {
 		return nil, err
 	}
 
-	prefix := path.Join(vp.Rustic.StorageS3.Prefix.V, "snapshots") + "/"
-	ch := c.ListObjects(ctx, vp.Rustic.StorageS3.Bucket.V, minio.ListObjectsOptions{
+	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
+	ch := c.ListObjects(ctx, b.Bucket, minio.ListObjectsOptions{
 		Prefix: prefix,
 	})
 	defer func() {
@@ -48,15 +48,15 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) error {
 	log.InfoContext(ctx, "deleting rustic snapshot", slog.Any("rsSnapshotId", snapshotId))
 
-	c, err := s3utils.BuildS3Client(vp, "")
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
 	if err != nil {
 		return err
 	}
 
-	prefix := path.Join(vp.Rustic.StorageS3.Prefix.V, "snapshots") + "/"
+	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
 
 	key := path.Join(prefix, snapshotId)
-	err = c.RemoveObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, minio.RemoveObjectOptions{})
+	err = c.RemoveObject(ctx, b.Bucket, key, minio.RemoveObjectOptions{})
 	if err != nil {
 		var err2 *minio.ErrorResponse
 		if errors.As(err, &err2) {
@@ -80,8 +80,6 @@ func (r *Reconciler) getTagValue(tags []string, tagPrefix string) string {
 }
 
 func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) error {
-	q := querier.GetQuerier(ctx)
-
 	dbSnapshotsByRusticId := map[string]*dmodel.VolumeSnapshot{}
 	for _, s := range dbSnapshots {
 		dbSnapshotsByRusticId[s.Rustic.SnapshotId.V] = s
@@ -113,7 +111,24 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		_, ok := rsSnapshotIdSet[s.Rustic.SnapshotId.V]
 		if !ok {
 			log.InfoContext(ctx, "snapshot vanished from rustic, marking for deletion in DB")
-			err = dmodel.SoftDeleteByStruct(q, s)
+			err = querier.Transaction(ctx, func(ctx context.Context) error {
+				q := querier.GetQuerier(ctx)
+				v, ok := dbVolumes[s.VolumedID.V]
+				if ok {
+					if v.LatestSnapshotId != nil && *v.LatestSnapshotId == s.ID {
+						log.InfoContext(ctx, "snapshot was the latest snapshot, resetting latest snapshot field")
+						err = v.UpdateLatestSnapshot(q, nil)
+						if err != nil {
+							return err
+						}
+					}
+				}
+				err := dmodel.SoftDeleteByStruct(q, s)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
 			if err != nil {
 				return err
 			}

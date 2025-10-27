@@ -2,6 +2,7 @@ package webdavproxy
 
 import (
 	"io/fs"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -48,12 +49,8 @@ func (d *dir) Readdir(count int) ([]fs.FileInfo, error) {
 		return d.fis, nil
 	}
 
-	prefix := d.prefix
-	if !strings.HasSuffix(prefix, "/") {
-		prefix += "/"
-	}
-	rep, err := d.fs.client2.S3ProxyListObjects(d.fs.ctx, d.fs.volumeProviderId, models.S3ProxyListObjectsRequest{
-		Prefix: prefix,
+	rep, err := d.fs.client2.S3ProxyListObjects(d.fs.ctx, d.fs.s3BucketId, models.S3ProxyListObjectsRequest{
+		Prefix: path.Join(d.fs.s3Prefix, d.prefix) + "/",
 	})
 	if err != nil {
 		return nil, err
@@ -61,9 +58,12 @@ func (d *dir) Readdir(count int) ([]fs.FileInfo, error) {
 
 	var ret []fs.FileInfo
 	for _, x := range rep.Objects {
-		if strings.HasSuffix(x.Key, "/") {
+		key := strings.TrimPrefix(x.Key, d.fs.s3Prefix)
+		key = strings.TrimPrefix(key, "/")
+
+		if strings.HasSuffix(key, "/") {
 			ret = append(ret, &dirInfo{
-				name: strings.TrimSuffix(x.Key, "/"),
+				name: strings.TrimSuffix(key, "/"),
 			})
 		} else {
 			ret = append(ret, &fileInfo{

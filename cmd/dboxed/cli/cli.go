@@ -9,6 +9,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/network"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/s3-bucket"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/token"
@@ -31,6 +32,8 @@ type Cli struct {
 	Workspace workspace.WorkspaceCommands `cmd:"" help:"manage workspaces"`
 
 	Network network.NetworkCommands `cmd:"" help:"manage networks"`
+
+	S3Bucket s3_bucket.S3BucketCommands `cmd:"" name:"s3-bucket" help:"manage S3 bucket configurations"`
 
 	VolumeProvider volume_provider.VolumeProviderCommands `cmd:"" help:"manage volume providers"`
 	Volume         volume.VolumeCommands                  `cmd:"" help:"manage volumes"`

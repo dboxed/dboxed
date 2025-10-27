@@ -7,6 +7,7 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/rustic"
@@ -18,10 +19,9 @@ type VolumeBackup struct {
 	Client *baseclient.Client
 	Volume *volume.Volume
 
-	VolumeProviderId int64
-	VolumeId         int64
-	VolumeUuid       string
-	LockId           string
+	VolumeId   int64
+	VolumeUuid string
+	LockId     string
 
 	RusticPassword        string
 	Mount                 string
@@ -35,7 +35,13 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 
 	_ = util.RunCommand(ctx, "sync")
 
-	err := vb.Volume.UnmountSnapshot(ctx, snapshotName)
+	c2 := clients.VolumesClient{Client: vb.Client}
+	v, err := c2.GetVolumeById(ctx, vb.VolumeId)
+	if err != nil {
+		return err
+	}
+
+	err = vb.Volume.UnmountSnapshot(ctx, snapshotName)
 	if err != nil {
 		return err
 	}
@@ -61,11 +67,10 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 			slog.Error("deferred unmounting failed", slog.Any("error", err))
 		}
 	}()
-
-	tags := BuildBackupTags(vb.VolumeProviderId, &vb.VolumeId, &vb.VolumeUuid, &vb.LockId)
+	tags := BuildBackupTags(v.VolumeProvider.ID, &vb.VolumeId, &vb.VolumeUuid, &vb.LockId)
 
 	var rsSnapshot *rustic.Snapshot
-	err = vb.runWithWebdavProxy(ctx, func(config rustic.RusticConfig) error {
+	err = vb.runWithWebdavProxy(ctx, v, func(config rustic.RusticConfig) error {
 		var err error
 		rsSnapshot, err = rustic.RunBackup(ctx, config, vb.SnapshotMount, rustic.BackupOpts{
 			Init:      true,
@@ -84,7 +89,6 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 		return err
 	}
 
-	c2 := clients.VolumesClient{Client: vb.Client}
 	_, err = c2.CreateSnapshot(ctx, vb.VolumeId, models.CreateVolumeSnapshot{
 		LockID: vb.LockId,
 		Rustic: rsSnapshot.ToApi(),
@@ -97,7 +101,13 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 }
 
 func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string, delete bool) error {
-	err := vb.runWithWebdavProxy(ctx, func(config rustic.RusticConfig) error {
+	c2 := clients.VolumesClient{Client: vb.Client}
+	v, err := c2.GetVolumeById(ctx, vb.VolumeId)
+	if err != nil {
+		return err
+	}
+
+	err = vb.runWithWebdavProxy(ctx, v, func(config rustic.RusticConfig) error {
 		return rustic.RunRestore(ctx, config, snapshotId, vb.Mount, rustic.RestoreOpts{
 			NumericId: true,
 			Delete:    delete,
@@ -109,8 +119,21 @@ func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string, 
 	return nil
 }
 
-func (vb *VolumeBackup) runWithWebdavProxy(ctx context.Context, fn func(config rustic.RusticConfig) error) error {
-	fs := webdavproxy.NewFileSystem(ctx, vb.Client, vb.VolumeProviderId)
+func (vb *VolumeBackup) runWithWebdavProxy(ctx context.Context, v *models.Volume, fn func(config rustic.RusticConfig) error) error {
+	if v.VolumeProvider.Type != dmodel.VolumeProviderTypeRustic {
+		return fmt.Errorf("not a rustic volume provider")
+	}
+	if v.VolumeProvider.Rustic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
+		return fmt.Errorf("not a S3 based rustic volume provider")
+	}
+
+	c3 := clients.S3BucketsClient{Client: vb.Client}
+	b, err := c3.GetS3BucketById(ctx, *v.VolumeProvider.Rustic.S3BucketId)
+	if err != nil {
+		return err
+	}
+
+	fs := webdavproxy.NewFileSystem(ctx, vb.Client, b.ID, v.VolumeProvider.Rustic.StoragePrefix)
 
 	webdavProxy, err := webdavproxy.NewProxy(fs, vb.WebdavProxyListenAddr)
 	if err != nil {

@@ -2,8 +2,8 @@ package volume_provider
 
 import (
 	"context"
-	"fmt"
 	"os"
+	"path"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -31,6 +31,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	c2 := &clients.VolumeProvidersClient{Client: c}
+	ct := commandutils.NewClientTool(c)
 
 	repos, err := c2.ListVolumeProviders(ctx)
 	if err != nil {
@@ -42,10 +43,14 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		storage := ""
 		switch r.Type {
 		case dmodel.VolumeProviderTypeRustic:
-			switch r.Rustic.StorageType {
-			case dmodel.VolumeProviderStorageTypeS3:
-				storage = fmt.Sprintf("%s/%s/%s", r.Rustic.StorageS3.Endpoint,
-					r.Rustic.StorageS3.Bucket, r.Rustic.StorageS3.Prefix)
+			if r.Rustic != nil {
+				switch r.Rustic.StorageType {
+				case dmodel.VolumeProviderStorageTypeS3:
+					if r.Rustic.S3BucketId != nil {
+						s3BucketName := ct.S3Buckets.GetColumn(ctx, *r.Rustic.S3BucketId)
+						storage = path.Join(s3BucketName, r.Rustic.StoragePrefix)
+					}
+				}
 			}
 		}
 

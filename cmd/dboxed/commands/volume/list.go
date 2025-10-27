@@ -44,7 +44,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			ID:       v.ID,
 			Name:     v.Name,
 			Type:     string(v.VolumeProviderType),
-			Provider: ct.VolumeProviders.GetColumn(ctx, v.VolumeProvider),
+			Provider: ct.VolumeProviders.GetColumn(ctx, v.VolumeProviderId),
 		}
 		if v.LockId != nil && v.LockTime != nil {
 			p.LockTime = v.LockTime.String()

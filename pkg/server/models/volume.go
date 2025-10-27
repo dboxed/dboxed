@@ -15,8 +15,9 @@ type Volume struct {
 	Uuid string `json:"uuid"`
 	Name string `json:"name"`
 
-	VolumeProvider     int64                     `json:"volumeProvider"`
+	VolumeProviderId   int64                     `json:"volumeProviderId"`
 	VolumeProviderType dmodel.VolumeProviderType `json:"volumeProviderType"`
+	VolumeProvider     *VolumeProvider           `json:"volumeProvider"`
 
 	LockId    *string    `json:"lockId,omitempty"`
 	LockTime  *time.Time `json:"lockTime,omitempty"`
@@ -95,7 +96,7 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volum
 		Uuid: s.Uuid,
 		Name: s.Name,
 
-		VolumeProvider:     s.VolumeProviderID,
+		VolumeProviderId:   s.VolumeProviderID,
 		VolumeProviderType: s.VolumeProviderType,
 
 		LockId:    s.LockId,
@@ -103,6 +104,10 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volum
 		LockBoxId: s.LockBoxId,
 
 		LatestSnapshotId: s.LatestSnapshotId,
+	}
+
+	if volumeProvider != nil {
+		ret.VolumeProvider = util.Ptr(VolumeProviderFromDB(*volumeProvider))
 	}
 
 	if attachment != nil && attachment.VolumeId.Valid {

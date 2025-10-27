@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"path"
-	"strings"
 	"sync"
 	"time"
 
@@ -38,46 +37,42 @@ func (s *S3ProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error
 	noTxModifier := huma_utils.MetadataModifier(huma_utils.NoTx, true)
 	allowBoxTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true)
 
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/list-objects", s.restListObjects, noTxModifier, allowBoxTokenModifier)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/presign-put", s.restPresignPut, noTxModifier, allowBoxTokenModifier)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/rename-object", s.restRenameObject, noTxModifier, allowBoxTokenModifier)
-	huma.Post(workspacesGroup, "/volume-providers/{id}/s3proxy/delete-object", s.restDeleteObject, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/s3-buckets/{id}/proxy/list-objects", s.restListObjects, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/s3-buckets/{id}/proxy/presign-put", s.restPresignPut, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/s3-buckets/{id}/proxy/rename-object", s.restRenameObject, noTxModifier, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/s3-buckets/{id}/proxy/delete-object", s.restDeleteObject, noTxModifier, allowBoxTokenModifier)
 
 	return nil
 }
 
-func (s *S3ProxyServer) handleBase(ctx context.Context, vpId int64) (*dmodel.VolumeProvider, *minio.Client, error) {
+func (s *S3ProxyServer) handleBase(ctx context.Context, bucketId int64) (*dmodel.S3Bucket, *minio.Client, error) {
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
 	token := auth.GetToken(ctx)
 
 	if token != nil {
 		if w.ID != token.Workspace {
-			return nil, nil, huma.Error403Forbidden("no access to volume provider")
+			return nil, nil, huma.Error403Forbidden("no access to s3 bucket")
 		}
 	}
 
-	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, vpId, true)
+	b, err := dmodel.GetS3BucketById(q, &w.ID, bucketId, true)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if vp.Rustic == nil || vp.Rustic.StorageS3 == nil {
-		return nil, nil, huma.Error500InternalServerError("missing S3 config")
-	}
-
 	key := bucketLocationCacheKey{
-		endpoint: vp.Rustic.StorageS3.Endpoint.V,
-		bucket:   vp.Rustic.StorageS3.Bucket.V,
+		endpoint: b.Endpoint,
+		bucket:   b.Bucket,
 	}
 
 	cachedRegion, ok := s.bucketLocationCache.Load(key)
 	if !ok {
-		c, err := s3utils.BuildS3Client(vp, "")
+		c, err := s3utils.BuildS3Client(b, "")
 		if err != nil {
 			return nil, nil, err
 		}
-		loc, err := c.GetBucketLocation(ctx, vp.Rustic.StorageS3.Bucket.V)
+		loc, err := c.GetBucketLocation(ctx, b.Bucket)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -86,28 +81,23 @@ func (s *S3ProxyServer) handleBase(ctx context.Context, vpId int64) (*dmodel.Vol
 	}
 	region := cachedRegion.(*string)
 
-	c, err := s3utils.BuildS3Client(vp, *region)
+	c, err := s3utils.BuildS3Client(b, *region)
 	if err != nil {
 		return nil, nil, err
 	}
-	return vp, c, nil
+	return b, c, nil
 }
 
 func (s *S3ProxyServer) restListObjects(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.S3ProxyListObjectsRequest]) (*huma_utils.JsonBody[models.S3ProxyListObjectsResult], error) {
-	vp, c, err := s.handleBase(ctx, i.Id)
+	b, c, err := s.handleBase(ctx, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	slog.InfoContext(ctx, "restListObjects", slog.Any("repoPrefix", vp.Rustic.StorageS3.Prefix.V), slog.Any("listPrefix", i.Body.Prefix))
+	slog.InfoContext(ctx, "restListObjects", slog.Any("listPrefix", i.Body.Prefix))
 
-	prefix := path.Join(vp.Rustic.StorageS3.Prefix.V, i.Body.Prefix)
-	if strings.HasSuffix(i.Body.Prefix, "/") {
-		prefix += "/"
-	}
-
-	ch := c.ListObjects(ctx, vp.Rustic.StorageS3.Bucket.V, minio.ListObjectsOptions{
-		Prefix: prefix,
+	ch := c.ListObjects(ctx, b.Bucket, minio.ListObjectsOptions{
+		Prefix: i.Body.Prefix,
 	})
 	defer func() {
 		// drain it
@@ -117,12 +107,12 @@ func (s *S3ProxyServer) restListObjects(ctx context.Context, i *huma_utils.IdByP
 
 	rep := models.S3ProxyListObjectsResult{}
 	for o := range ch {
-		presignedGetUrl, expires, err := s.presignGet(ctx, vp, c, o.Key)
+		presignedGetUrl, expires, err := s.presignGet(ctx, b, c, o.Key)
 		if err != nil {
 			return nil, err
 		}
 		oi := models.S3ObjectInfo{
-			Key:          strings.TrimPrefix(o.Key, vp.Rustic.StorageS3.Prefix.V+"/"),
+			Key:          o.Key,
 			Size:         o.Size,
 			LastModified: &o.LastModified,
 			Etag:         o.ETag,
@@ -136,10 +126,10 @@ func (s *S3ProxyServer) restListObjects(ctx context.Context, i *huma_utils.IdByP
 	return huma_utils.NewJsonBody(rep), nil
 }
 
-func (s *S3ProxyServer) presignGet(ctx context.Context, vp *dmodel.VolumeProvider, c *minio.Client, key string) (string, time.Time, error) {
+func (s *S3ProxyServer) presignGet(ctx context.Context, b *dmodel.S3Bucket, c *minio.Client, key string) (string, time.Time, error) {
 	expiry := time.Hour
 	expires := time.Now().Add(expiry).Add(time.Second * 15)
-	pr, err := c.PresignedGetObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, expiry, nil)
+	pr, err := c.PresignedGetObject(ctx, b.Bucket, key, expiry, nil)
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -148,16 +138,16 @@ func (s *S3ProxyServer) presignGet(ctx context.Context, vp *dmodel.VolumeProvide
 }
 
 func (s *S3ProxyServer) restPresignPut(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.S3ProxyPresignPutRequest]) (*huma_utils.JsonBody[models.S3ProxyPresignPutResult], error) {
-	vp, c, err := s.handleBase(ctx, i.Id)
+	b, c, err := s.handleBase(ctx, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	key := path.Join(vp.Rustic.StorageS3.Prefix.V, i.Body.Key)
+	key := path.Clean(i.Body.Key)
 
 	expiry := time.Hour
 	expires := time.Now().Add(expiry).Add(time.Second * 15)
-	pr, err := c.PresignedPutObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, expiry)
+	pr, err := c.PresignedPutObject(ctx, b.Bucket, key, expiry)
 	if err != nil {
 		return nil, err
 	}
@@ -169,25 +159,25 @@ func (s *S3ProxyServer) restPresignPut(ctx context.Context, i *huma_utils.IdByPa
 }
 
 func (s *S3ProxyServer) restRenameObject(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.S3ProxyRenameObjectRequest]) (*huma_utils.JsonBody[models.S3ProxyRenameObjectResult], error) {
-	vp, c, err := s.handleBase(ctx, i.Id)
+	b, c, err := s.handleBase(ctx, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	oldKey := path.Join(vp.Rustic.StorageS3.Prefix.V, i.Body.OldKey)
-	newKey := path.Join(vp.Rustic.StorageS3.Prefix.V, i.Body.NewKey)
+	oldKey := path.Clean(i.Body.OldKey)
+	newKey := path.Clean(i.Body.NewKey)
 
 	_, err = c.CopyObject(ctx, minio.CopyDestOptions{
-		Bucket: vp.Rustic.StorageS3.Bucket.V,
+		Bucket: b.Bucket,
 		Object: newKey,
 	}, minio.CopySrcOptions{
-		Bucket: vp.Rustic.StorageS3.Bucket.V,
+		Bucket: b.Bucket,
 		Object: oldKey,
 	})
 	if err != nil {
 		return nil, err
 	}
-	err = c.RemoveObject(ctx, vp.Rustic.StorageS3.Bucket.V, oldKey, minio.RemoveObjectOptions{})
+	err = c.RemoveObject(ctx, b.Bucket, oldKey, minio.RemoveObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -201,9 +191,9 @@ func (s *S3ProxyServer) restDeleteObject(ctx context.Context, i *huma_utils.IdBy
 		return nil, err
 	}
 
-	key := path.Join(vp.Rustic.StorageS3.Prefix.V, i.Body.Key)
+	key := path.Clean(i.Body.Key)
 
-	err = c.RemoveObject(ctx, vp.Rustic.StorageS3.Bucket.V, key, minio.RemoveObjectOptions{})
+	err = c.RemoveObject(ctx, vp.Bucket, key, minio.RemoveObjectOptions{})
 	if err != nil {
 		return nil, err
 	}

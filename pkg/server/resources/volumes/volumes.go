@@ -174,7 +174,12 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, v.VolumeProviderID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -196,7 +201,12 @@ func (s *VolumeServer) restGetVolumeByUuid(c context.Context, i *VolumeUuid) (*h
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, v.VolumeProviderID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -221,7 +231,12 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, v.VolumeProviderID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
 	return huma_utils.NewJsonBody(m), nil
 }
 

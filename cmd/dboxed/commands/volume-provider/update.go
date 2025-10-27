@@ -13,13 +13,9 @@ import (
 type UpdateCmd struct {
 	Repo string `help:"Specify the repository." required:""`
 
-	S3Endpoint        *string `name:"s3-endpoint" help:"Specify S3 endpoint"`
-	S3Region          *string `name:"s3-region" help:"Specify S3 region"`
-	S3Bucket          *string `name:"s3-bucket" help:"Specify S3 bucket"`
-	S3Prefix          *string `name:"s3-prefix" help:"Specify S3 prefix"`
-	S3AccessKeyId     *string `name:"s3-access-key-id" help:"Specify S3 access key id"`
-	S3SecretAccessKey *string `name:"s3-secret-access-key" help:"Specify S3 secret access key"`
+	S3Bucket *string `name:"s3-bucket" help:"Specify the S3 bucket to use"`
 
+	StoragePrefix  *string `help:"Specify the storage prefix"`
 	RusticPassword *string `help:"Specify the password used for encryption"`
 }
 
@@ -44,12 +40,18 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 		Password: cmd.RusticPassword,
 	}
 
+	var bucketId *int64
+	if cmd.S3Bucket != nil {
+		b, err := commandutils.GetS3Bucket(ctx, c, *cmd.S3Bucket)
+		if err != nil {
+			return err
+		}
+		bucketId = &b.ID
+	}
+
 	req.Rustic.StorageS3 = &models.UpdateRepositoryStorageS3{
-		Endpoint:        cmd.S3Endpoint,
-		Bucket:          cmd.S3Bucket,
-		Prefix:          cmd.S3Prefix,
-		AccessKeyId:     cmd.S3AccessKeyId,
-		SecretAccessKey: cmd.S3SecretAccessKey,
+		S3BucketId:    bucketId,
+		StoragePrefix: cmd.StoragePrefix,
 	}
 
 	rep, err := c2.UpdateVolumeProvider(ctx, vp.ID, req)
@@ -57,7 +59,7 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	slog.Info("repository updated", slog.Any("id", rep.ID))
+	slog.Info("volume provider updated", slog.Any("id", rep.ID))
 
 	return nil
 }

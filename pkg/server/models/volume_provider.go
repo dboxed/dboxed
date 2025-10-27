@@ -20,13 +20,9 @@ type VolumeProvider struct {
 
 type VolumeProviderRustic struct {
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
-	StorageS3   *VolumeStorageS3                 `json:"storageS3"`
-}
+	S3BucketId  *int64                           `json:"s3BucketId"`
 
-type VolumeStorageS3 struct {
-	Endpoint string `json:"endpoint"`
-	Bucket   string `json:"bucket"`
-	Prefix   string `json:"prefix"`
+	StoragePrefix string `json:"storagePrefix"`
 }
 
 type CreateVolumeProvider struct {
@@ -36,19 +32,13 @@ type CreateVolumeProvider struct {
 	Rustic *CreateVolumeProviderRustic `json:"rustic"`
 }
 
-type CreateVolumeProviderStorageS3 struct {
-	Endpoint        string `json:"endpoint"`
-	Bucket          string `json:"bucket"`
-	Prefix          string `json:"prefix"`
-	AccessKeyId     string `json:"accessKeyId"`
-	SecretAccessKey string `json:"secretAccessKey"`
-}
-
 type CreateVolumeProviderRustic struct {
 	Password string `json:"password"`
 
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
-	StorageS3   *CreateVolumeProviderStorageS3   `json:"storageS3"`
+	S3BucketId  *int64                           `json:"s3BucketId"`
+
+	StoragePrefix string `json:"storagePrefix"`
 }
 
 type UpdateVolumeProvider struct {
@@ -61,11 +51,8 @@ type UpdateVolumeProviderRustic struct {
 }
 
 type UpdateRepositoryStorageS3 struct {
-	Endpoint        *string `json:"endpoint,omitempty"`
-	Bucket          *string `json:"bucket,omitempty"`
-	Prefix          *string `json:"prefix,omitempty"`
-	AccessKeyId     *string `json:"accessKeyId,omitempty"`
-	SecretAccessKey *string `json:"secretAccessKey,omitempty"`
+	S3BucketId    *int64  `json:"s3BucketId"`
+	StoragePrefix *string `json:"storagePrefix"`
 }
 
 func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
@@ -79,14 +66,9 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 	}
 	if v.Rustic != nil && v.Rustic.ID.Valid {
 		ret.Rustic = &VolumeProviderRustic{
-			StorageType: v.Rustic.StorageType,
-		}
-		if v.Rustic.StorageS3 != nil && v.Rustic.StorageS3.ID.Valid {
-			ret.Rustic.StorageS3 = &VolumeStorageS3{
-				Endpoint: v.Rustic.StorageS3.Endpoint.V,
-				Bucket:   v.Rustic.StorageS3.Bucket.V,
-				Prefix:   v.Rustic.StorageS3.Prefix.V,
-			}
+			StorageType:   v.Rustic.StorageType.V,
+			S3BucketId:    v.Rustic.S3BucketID,
+			StoragePrefix: v.Rustic.StoragePrefix.V,
 		}
 	}
 	return ret

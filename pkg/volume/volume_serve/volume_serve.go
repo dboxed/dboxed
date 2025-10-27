@@ -373,7 +373,6 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 	vb := &volume_backup.VolumeBackup{
 		Client:                c,
 		Volume:                vs.LocalVolume,
-		VolumeProviderId:      vs.volume.VolumeProvider,
 		VolumeId:              vs.volume.ID,
 		VolumeUuid:            vs.volume.Uuid,
 		LockId:                *vs.volume.LockId,

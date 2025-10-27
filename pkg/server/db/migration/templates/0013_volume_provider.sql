@@ -20,17 +20,8 @@ create table volume_provider_rustic
     id           bigint not null primary key references volume_provider (id) on delete cascade,
 
     storage_type text   not null,
+    s3_bucket_id bigint references s3_bucket (id) on delete restrict,
 
+    storage_prefix text not null,
     password     text   not null
-);
-
-create table volume_provider_storage_s3
-(
-    id                bigint not null primary key references volume_provider (id) on delete cascade,
-
-    endpoint          text   not null,
-    bucket            text   not null,
-    access_key_id     text   not null,
-    secret_access_key text   not null,
-    prefix            text   not null
 );

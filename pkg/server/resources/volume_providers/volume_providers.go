@@ -3,7 +3,6 @@ package volume_providers
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"regexp"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -46,7 +45,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 	if i.Body.Rustic == nil {
 		return nil, huma.Error400BadRequest("currently only rustic is supported")
 	}
-	if i.Body.Rustic.StorageS3 == nil {
+	if i.Body.Rustic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
 		return nil, huma.Error400BadRequest("currently only S3 storage is supported")
 	}
 
@@ -69,51 +68,51 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		return nil, err
 	}
 
+	checkS3Bucket := func(bucketId int64) error {
+		_, err := dmodel.GetS3BucketById(q, &w.ID, bucketId, true)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	switch i.Body.Type {
 	case dmodel.VolumeProviderTypeRustic:
 		if i.Body.Rustic == nil {
 			return nil, fmt.Errorf("missing rustic config")
 		}
-		r.Rustic = &dmodel.VolumeProviderRustic{
-			ID:          querier.N(r.ID),
-			Password:    querier.N(i.Body.Rustic.Password),
-			StorageType: dmodel.VolumeProviderStorageTypeS3,
-		}
-		err = r.Rustic.Create(q)
+
+		err = s.checkPrefix(i.Body.Rustic.StoragePrefix)
 		if err != nil {
 			return nil, err
 		}
 
+		r.Rustic = &dmodel.VolumeProviderRustic{
+			ID:            querier.N(r.ID),
+			StorageType:   querier.N(i.Body.Rustic.StorageType),
+			Password:      querier.N(i.Body.Rustic.Password),
+			StoragePrefix: querier.N(i.Body.Rustic.StoragePrefix),
+		}
+
 		switch i.Body.Rustic.StorageType {
 		case dmodel.VolumeProviderStorageTypeS3:
-			if i.Body.Rustic.StorageS3 == nil {
-				return nil, fmt.Errorf("missing S3 storage config")
-			}
-			err = s.checkEndpoint(i.Body.Rustic.StorageS3.Endpoint)
-			if err != nil {
-				return nil, err
-			}
-			if i.Body.Rustic.StorageS3.Prefix != "" {
-				err = s.checkPrefix(i.Body.Rustic.StorageS3.Prefix)
-				if err != nil {
-					return nil, err
-				}
+			if i.Body.Rustic.S3BucketId == nil {
+				return nil, fmt.Errorf("missing S3 bucket id")
 			}
 
-			r.Rustic.StorageS3 = &dmodel.VolumeProviderStorageS3{
-				ID:              querier.N(r.ID),
-				Endpoint:        querier.N(i.Body.Rustic.StorageS3.Endpoint),
-				Bucket:          querier.N(i.Body.Rustic.StorageS3.Bucket),
-				AccessKeyId:     querier.N(i.Body.Rustic.StorageS3.AccessKeyId),
-				SecretAccessKey: querier.N(i.Body.Rustic.StorageS3.SecretAccessKey),
-				Prefix:          querier.N(i.Body.Rustic.StorageS3.Prefix),
-			}
-			err = r.Rustic.StorageS3.Create(q)
+			err = checkS3Bucket(*i.Body.Rustic.S3BucketId)
 			if err != nil {
 				return nil, err
 			}
+
+			r.Rustic.S3BucketID = i.Body.Rustic.S3BucketId
 		default:
 			return nil, fmt.Errorf("unsupported storage type %s", i.Body.Rustic.StorageType)
+		}
+
+		err = r.Rustic.Create(q)
+		if err != nil {
+			return nil, err
 		}
 	default:
 		return nil, fmt.Errorf("unsupported volume provider type %s", i.Body.Type)
@@ -210,41 +209,21 @@ func (s *VolumeProviderServer) doUpdateVolumeProvider(c context.Context, r *dmod
 		}
 
 		if body.Rustic.StorageS3 != nil {
-			if dmodel.VolumeProviderStorageType(r.Rustic.StorageType) != dmodel.VolumeProviderStorageTypeS3 {
+			if r.Rustic.StorageType.V != dmodel.VolumeProviderStorageTypeS3 {
 				return huma.Error400BadRequest("invalid update, not a S3 based volume provider")
 			}
-			if body.Rustic.StorageS3.Endpoint != nil {
-				err := s.checkEndpoint(*body.Rustic.StorageS3.Endpoint)
-				if err != nil {
-					return err
-				}
-				err = r.Rustic.StorageS3.UpdateEndpoint(q, *body.Rustic.StorageS3.Endpoint)
+			if body.Rustic.StorageS3.S3BucketId != nil {
+				err := r.Rustic.UpdateS3Bucket(q, *body.Rustic.StorageS3.S3BucketId)
 				if err != nil {
 					return err
 				}
 			}
-			if body.Rustic.StorageS3.Bucket != nil {
-				err := r.Rustic.StorageS3.UpdateBucket(q, *body.Rustic.StorageS3.Bucket)
+			if body.Rustic.StorageS3.StoragePrefix != nil {
+				err := s.checkPrefix(*body.Rustic.StorageS3.StoragePrefix)
 				if err != nil {
 					return err
 				}
-			}
-			if body.Rustic.StorageS3.Prefix != nil {
-				err := s.checkPrefix(*body.Rustic.StorageS3.Prefix)
-				if err != nil {
-					return err
-				}
-				err = r.Rustic.StorageS3.UpdatePrefix(q, *body.Rustic.StorageS3.Prefix)
-				if err != nil {
-					return err
-				}
-			}
-
-			if body.Rustic.StorageS3.AccessKeyId != nil || body.Rustic.StorageS3.SecretAccessKey != nil {
-				if body.Rustic.StorageS3.AccessKeyId == nil || body.Rustic.StorageS3.SecretAccessKey == nil {
-					return huma.Error400BadRequest("either all or none of accessKeyId and secretAccessKey must be set")
-				}
-				err := r.Rustic.StorageS3.UpdateKeys(q, *body.Rustic.StorageS3.AccessKeyId, *body.Rustic.StorageS3.SecretAccessKey)
+				err = r.Rustic.UpdateStoragePrefix(q, *body.Rustic.StorageS3.StoragePrefix)
 				if err != nil {
 					return err
 				}
@@ -264,17 +243,6 @@ func (s *VolumeProviderServer) restDeleteVolumeProvider(c context.Context, i *hu
 	}
 
 	return &huma_utils.Empty{}, nil
-}
-
-func (s *VolumeProviderServer) checkEndpoint(endpoint string) error {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return huma.Error400BadRequest("invalid endpoint", err)
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return huma.Error400BadRequest("invalid endpoint scheme")
-	}
-	return nil
 }
 
 var prefixRegex = regexp.MustCompile(`^([-a-zA-Z0-9]*)(/([-a-zA-Z0-9]+))*/?$`)

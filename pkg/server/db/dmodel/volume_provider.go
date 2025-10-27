@@ -19,19 +19,10 @@ type VolumeProviderRustic struct {
 
 	Password querier.NullForJoin[string] `db:"password"`
 
-	StorageType VolumeProviderStorageType `db:"storage_type"`
+	StorageType querier.NullForJoin[VolumeProviderStorageType] `db:"storage_type"`
 
-	StorageS3 *VolumeProviderStorageS3 `join:"true" db:"storage_s3"`
-}
-
-type VolumeProviderStorageS3 struct {
-	ID querier.NullForJoin[int64] `db:"id"`
-
-	Endpoint        querier.NullForJoin[string] `db:"endpoint"`
-	Bucket          querier.NullForJoin[string] `db:"bucket"`
-	Prefix          querier.NullForJoin[string] `db:"prefix"`
-	AccessKeyId     querier.NullForJoin[string] `db:"access_key_id"`
-	SecretAccessKey querier.NullForJoin[string] `db:"secret_access_key"`
+	S3BucketID    *int64                      `db:"s3_bucket_id"`
+	StoragePrefix querier.NullForJoin[string] `db:"storage_prefix"`
 }
 
 func postprocessVolumeProvider(q *querier.Querier, vr *VolumeProvider) error {
@@ -43,10 +34,6 @@ func (v *VolumeProvider) Create(q *querier.Querier) error {
 }
 
 func (v *VolumeProviderRustic) Create(q *querier.Querier) error {
-	return querier.Create(q, v)
-}
-
-func (v *VolumeProviderStorageS3) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
@@ -102,6 +89,13 @@ func GetVolumeProviderByName(q *querier.Querier, workspaceId int64, name string,
 	return vp, nil
 }
 
+func (v *VolumeProviderRustic) UpdateS3Bucket(q *querier.Querier, bucketId int64) error {
+	v.S3BucketID = &bucketId
+	return querier.UpdateOneFromStruct(q, v,
+		"s3_bucket_id",
+	)
+}
+
 func (v *VolumeProviderRustic) UpdatePassword(q *querier.Querier, password string) error {
 	v.Password = querier.N(password)
 	return querier.UpdateOneFromStruct(q, v,
@@ -109,32 +103,9 @@ func (v *VolumeProviderRustic) UpdatePassword(q *querier.Querier, password strin
 	)
 }
 
-func (v *VolumeProviderStorageS3) UpdateEndpoint(q *querier.Querier, endpoint string) error {
-	v.Endpoint = querier.N(endpoint)
+func (v *VolumeProviderRustic) UpdateStoragePrefix(q *querier.Querier, prefix string) error {
+	v.StoragePrefix = querier.N(prefix)
 	return querier.UpdateOneFromStruct(q, v,
-		"endpoint",
-	)
-}
-
-func (v *VolumeProviderStorageS3) UpdateBucket(q *querier.Querier, bucket string) error {
-	v.Bucket = querier.N(bucket)
-	return querier.UpdateOneFromStruct(q, v,
-		"bucket",
-	)
-}
-
-func (v *VolumeProviderStorageS3) UpdatePrefix(q *querier.Querier, prefix string) error {
-	v.Prefix = querier.N(prefix)
-	return querier.UpdateOneFromStruct(q, v,
-		"prefix",
-	)
-}
-
-func (v *VolumeProviderStorageS3) UpdateKeys(q *querier.Querier, accessKeyId string, secretAccessKey string) error {
-	v.AccessKeyId = querier.N(accessKeyId)
-	v.SecretAccessKey = querier.N(secretAccessKey)
-	return querier.UpdateOneFromStruct(q, v,
-		"access_key_id",
-		"secret_access_key",
+		"storage_prefix",
 	)
 }

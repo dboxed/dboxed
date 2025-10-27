@@ -15,6 +15,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/machine_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
+	"github.com/dboxed/dboxed/pkg/server/resources/s3buckets"
 	"github.com/dboxed/dboxed/pkg/server/resources/s3proxy"
 	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 	"github.com/dboxed/dboxed/pkg/server/resources/users"
@@ -40,6 +41,7 @@ type DboxedServer struct {
 	tokens           *tokens.TokenServer
 	workspaces       *workspaces.Workspaces
 	machineProviders *machine_providers.MachineProviderServer
+	s3BucketsServer  *s3buckets.S3BucketsServer
 	volumeProviders  *volume_providers.VolumeProviderServer
 	s3Proxy          *s3proxy.S3ProxyServer
 	networks         *networks.NetworksServer
@@ -122,6 +124,10 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 	}
 
 	err = s.machineProviders.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
+	err = s.s3BucketsServer.Init(s.api, workspacesGroup)
 	if err != nil {
 		return err
 	}

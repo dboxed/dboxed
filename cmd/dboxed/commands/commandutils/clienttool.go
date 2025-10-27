@@ -18,6 +18,7 @@ type clientTool struct {
 	Networks        cache[models.Network]
 	VolumeProviders cache[models.VolumeProvider]
 	Boxes           cache[models.Box]
+	S3Buckets       cache[models.S3Bucket]
 }
 
 func NewClientTool(c *baseclient.Client) *clientTool {
@@ -49,6 +50,13 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 		},
 		entityName: "box",
 	}
+	ct.S3Buckets = cache[models.S3Bucket]{
+		getById: func(ctx context.Context, id int64) (*models.S3Bucket, error) {
+			return (&clients.S3BucketsClient{Client: c}).GetS3BucketById(ctx, id)
+		},
+		entityName: "s3bucket",
+		nameField:  "Bucket",
+	}
 
 	return ct
 }
@@ -56,6 +64,7 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 type cache[T any] struct {
 	cache      map[int64]*T
 	entityName string
+	nameField  string
 	getById    func(ctx context.Context, id int64) (*T, error)
 }
 
@@ -76,7 +85,11 @@ func (c *cache[T]) GetColumn(ctx context.Context, id int64) string {
 	var ret string
 	if v != nil {
 		vv := reflect.Indirect(reflect.ValueOf(v))
-		nameField := vv.FieldByName("Name")
+		n := c.nameField
+		if n == "" {
+			n = "Name"
+		}
+		nameField := vv.FieldByName(n)
 		name := nameField.String()
 		ret = fmt.Sprintf("%s (id=%d)", name, id)
 	} else {

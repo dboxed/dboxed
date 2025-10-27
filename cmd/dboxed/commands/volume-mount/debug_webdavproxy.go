@@ -9,7 +9,8 @@ import (
 )
 
 type WebdavProxyCmd struct {
-	VolumeProvider string `help:"Specify the volume provider" required:""`
+	S3Bucket string `name:"s3-bucket" help:"Specify the bucket" required:""`
+	S3Prefix string `name:"s3-prefix" help:"Specify the path prefix"`
 
 	WebdavProxyListen string `help:"Specify Webdav/S3 proxy listen address" default:"127.0.0.1:10000"`
 }
@@ -22,12 +23,12 @@ func (cmd *WebdavProxyCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	vp, err := commandutils.GetVolumeProvider(ctx, c, cmd.VolumeProvider)
+	b, err := commandutils.GetS3Bucket(ctx, c, cmd.S3Bucket)
 	if err != nil {
 		return err
 	}
 
-	fs := webdavproxy.NewFileSystem(ctx, c, vp.ID)
+	fs := webdavproxy.NewFileSystem(ctx, c, b.ID, cmd.S3Prefix)
 
 	webdavProxy, err := webdavproxy.NewProxy(fs, cmd.WebdavProxyListen)
 	if err != nil {

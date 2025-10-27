@@ -128,3 +128,21 @@ func GetNetwork(ctx context.Context, c *baseclient.Client, network string) (*mod
 		return n, nil
 	}
 }
+
+func GetS3Bucket(ctx context.Context, c *baseclient.Client, s3Bucket string) (*models.S3Bucket, error) {
+	c2 := clients.S3BucketsClient{Client: c}
+	id, err := strconv.ParseInt(s3Bucket, 10, 64)
+	if err == nil {
+		s, err := c2.GetS3BucketById(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return s, nil
+	} else {
+		s, err := c2.GetS3BucketByBucketName(ctx, s3Bucket)
+		if err != nil {
+			return nil, err
+		}
+		return s, nil
+	}
+}
