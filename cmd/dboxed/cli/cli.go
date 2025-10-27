@@ -33,7 +33,7 @@ type Cli struct {
 
 	Network network.NetworkCommands `cmd:"" help:"manage networks"`
 
-	S3Bucket s3_bucket.S3BucketCommands `cmd:"" name:"s3-bucket" help:"manage S3 bucket configurations"`
+	S3Bucket s3_bucket.S3BucketCommands `cmd:"" name:"s3-bucket" aliases:"s3bucket,s3" help:"manage S3 bucket configurations"`
 
 	VolumeProvider volume_provider.VolumeProviderCommands `cmd:"" help:"manage volume providers"`
 	Volume         volume.VolumeCommands                  `cmd:"" help:"manage volumes"`

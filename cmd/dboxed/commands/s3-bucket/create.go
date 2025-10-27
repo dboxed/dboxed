@@ -9,14 +9,14 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type CreateCmd struct {
+type AddCmd struct {
 	Endpoint        string `help:"S3 endpoint URL (e.g., https://s3.amazonaws.com)" required:""`
 	Bucket          string `help:"S3 bucket name" required:""`
 	AccessKeyId     string `help:"S3 access key ID" required:""`
 	SecretAccessKey string `help:"S3 secret access key" required:""`
 }
 
-func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *AddCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
