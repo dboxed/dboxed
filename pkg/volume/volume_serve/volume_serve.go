@@ -336,8 +336,6 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) error {
 		return err
 	}
 
-	vs.log.Info("volume locked", slog.Any("lockId", *vs.volume.LockId))
-
 	return nil
 }
 
