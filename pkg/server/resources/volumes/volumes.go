@@ -42,6 +42,7 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 
 	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/release", s.restReleaseVolume, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/volumes/{id}/force-unlock", s.restForceUnlockVolume)
 
 	huma.Post(workspacesGroup, "/volumes/{id}/snapshots", s.restCreateSnapshot, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/volumes/{id}/snapshots", s.restListSnapshots, allowBoxTokenModifier)
@@ -373,6 +374,34 @@ func (s *VolumeServer) restReleaseVolume(ctx context.Context, i *restReleaseVolu
 	log.Info("releasing volume", slog.Any("lockId", i.Body.LockId))
 
 	err = v.UpdateLock(q, nil, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+	return huma_utils.NewJsonBody(m), nil
+}
+
+func (s *VolumeServer) restForceUnlockVolume(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Volume], error) {
+	q := querier.GetQuerier(ctx)
+	w := global.GetWorkspace(ctx)
+
+	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	log := slog.With(slog.Any("volId", v.ID))
+
+	if v.LockId == nil {
+		log.Info("volume is not locked, no action needed")
+		m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+		return huma_utils.NewJsonBody(m), nil
+	}
+
+	log.Warn("force unlocking volume", slog.Any("lockId", *v.LockId), slog.Any("lockBoxId", v.LockBoxId))
+
+	err = v.ForceUnlock(q)
 	if err != nil {
 		return nil, err
 	}

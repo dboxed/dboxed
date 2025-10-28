@@ -157,6 +157,17 @@ func (v *Volume) UpdateLock(q *querier.Querier, newLockId *string, newLockTime *
 	})
 }
 
+func (v *Volume) ForceUnlock(q *querier.Querier) error {
+	v.LockId = nil
+	v.LockTime = nil
+	v.LockBoxId = nil
+	return querier.UpdateOneFromStruct[Volume](q, v,
+		"lock_id",
+		"lock_time",
+		"lock_box_id",
+	)
+}
+
 func (v *Volume) UpdateLatestSnapshot(q *querier.Querier, snapshotId *int64) error {
 	oldSnapshotId := v.LatestSnapshotId
 	v.LatestSnapshotId = snapshotId

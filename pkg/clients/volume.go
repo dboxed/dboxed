@@ -81,6 +81,14 @@ func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId int64, req m
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
+func (c *VolumesClient) VolumeForceUnlock(ctx context.Context, volumeId int64) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "force-unlock")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, struct{}{})
+}
+
 func (c *VolumesClient) CreateSnapshot(ctx context.Context, volumeId int64, req models.CreateVolumeSnapshot) (*models.VolumeSnapshot, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "snapshots")
 	if err != nil {
