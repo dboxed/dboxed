@@ -10,7 +10,7 @@ import (
 )
 
 type ListVolumesCmd struct {
-	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
+	Box string `help:"Box ID, UUID, or name" required:""`
 }
 
 type PrintVolumeAttachment struct {

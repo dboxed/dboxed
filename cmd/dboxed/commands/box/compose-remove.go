@@ -10,8 +10,8 @@ import (
 )
 
 type RemoveComposeCmd struct {
-	Box  string `help:"Box ID, UUID, or name" required:"" arg:""`
-	Name string `help:"Compose project name" required:"" arg:""`
+	Box         string `help:"Box ID, UUID, or name" required:"" arg:""`
+	ComposeName string `help:"Compose project name" required:""`
 }
 
 func (cmd *RemoveComposeCmd) Run(g *flags.GlobalFlags) error {
@@ -29,12 +29,12 @@ func (cmd *RemoveComposeCmd) Run(g *flags.GlobalFlags) error {
 
 	c2 := &clients.BoxClient{Client: c}
 
-	err = c2.DeleteComposeProject(ctx, b.ID, cmd.Name)
+	err = c2.DeleteComposeProject(ctx, b.ID, cmd.ComposeName)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("compose project removed", slog.Any("box_id", b.ID), slog.Any("name", cmd.Name))
+	slog.Info("compose project removed", slog.Any("box_id", b.ID), slog.Any("name", cmd.ComposeName))
 
 	return nil
 }
