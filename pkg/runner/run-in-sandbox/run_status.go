@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -80,7 +79,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 		SandboxStatus: &rn.sandboxStatus,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to report run status", "error", err)
+		rn.reconcileLogger.ErrorContext(ctx, "failed to report run status", "error", err)
 	} else {
 		rn.sandboxStatusSent = rn.sandboxStatus
 	}
@@ -89,7 +88,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 func (rn *RunInSandbox) sendSandboxStatusDockerPs(ctx context.Context) {
 	b, err := rn.runDockerPS(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to run docker ps", "error", err)
+		rn.reconcileLogger.ErrorContext(ctx, "failed to run docker ps", "error", err)
 		return
 	}
 
@@ -102,7 +101,7 @@ func (rn *RunInSandbox) sendSandboxStatusDockerPs(ctx context.Context) {
 
 	err = rn.doSendSandboxStatusDockerPs(ctx, b)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to report docker ps result", "error", err)
+		rn.reconcileLogger.ErrorContext(ctx, "failed to report docker ps result", "error", err)
 	} else {
 		rn.dockerPSSent = b
 	}
