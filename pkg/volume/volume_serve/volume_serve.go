@@ -446,6 +446,7 @@ func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
 func (vs *VolumeServe) periodicBackup(ctx context.Context) error {
 	refreshLockInterval := time.Second * 15
 	nextRefreshLockTimer := time.NewTimer(refreshLockInterval)
+	nextBackupTimer := time.NewTimer(vs.opts.BackupInterval)
 
 	doLockVolume := func() error {
 		err := vs.lockVolume(ctx)
@@ -464,7 +465,7 @@ func (vs *VolumeServe) periodicBackup(ctx context.Context) error {
 		select {
 		case <-vs.stop:
 			return nil
-		case <-time.After(vs.opts.BackupInterval):
+		case <-nextBackupTimer.C:
 			err := doLockVolume()
 			if err != nil {
 				return err
@@ -473,6 +474,7 @@ func (vs *VolumeServe) periodicBackup(ctx context.Context) error {
 			if err != nil {
 				vs.log.Error("backup failed", slog.Any("error", err))
 			}
+			nextBackupTimer = time.NewTimer(vs.opts.BackupInterval)
 		case <-nextRefreshLockTimer.C:
 			err := doLockVolume()
 			if err != nil {
