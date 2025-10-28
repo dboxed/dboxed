@@ -12,11 +12,11 @@ import (
 type ListCmd struct{}
 
 type PrintBox struct {
-	ID           int64  `col:"ID"`
-	Name         string `col:"Name"`
-	Network      string `col:"Network"`
-	DesiredState string `col:"Desired State"`
-	RunStatus    string `col:"Run Status"`
+	ID            int64  `col:"ID"`
+	Name          string `col:"Name"`
+	Network       string `col:"Network"`
+	DesiredState  string `col:"Desired State"`
+	SandboxStatus string `col:"Sandbox Status"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -38,16 +38,16 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintBox
 	for _, b := range boxes {
 		p := PrintBox{
-			ID:           b.ID,
-			Name:         b.Name,
-			DesiredState: b.DesiredState,
-			RunStatus:    "-",
+			ID:            b.ID,
+			Name:          b.Name,
+			DesiredState:  b.DesiredState,
+			SandboxStatus: "-",
 		}
 
 		// Fetch run status for this box
-		runStatus, err := c2.GetBoxRunStatus(ctx, b.ID)
-		if err == nil && runStatus.RunStatus != nil {
-			p.RunStatus = *runStatus.RunStatus
+		sandboxStatus, err := c2.GetSandboxStatus(ctx, b.ID)
+		if err == nil && sandboxStatus.RunStatus != nil {
+			p.SandboxStatus = *sandboxStatus.RunStatus
 		}
 
 		if b.Network != nil {

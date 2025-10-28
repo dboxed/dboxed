@@ -40,21 +40,7 @@ type CreateBox struct {
 type UpdateBox struct {
 	DesiredState *string `json:"desiredState,omitempty"`
 }
-
-type BoxRunStatusInfo struct {
-	RunStatus *string    `json:"runStatus,omitempty"`
-	StartTime *time.Time `json:"startTime,omitempty"`
-	StopTime  *time.Time `json:"stopTime,omitempty"`
-}
-
-type UpdateBoxRunStatus struct {
-	RunStatus *BoxRunStatusInfo `json:"runStatus,omitempty"`
-
-	// compressed json
-	DockerPs []byte `json:"dockerPs,omitempty"`
-}
-
-type BoxRunStatus struct {
+type BoxSandboxStatus struct {
 	StatusTime *time.Time `json:"statusTime,omitempty"`
 	RunStatus  *string    `json:"runStatus,omitempty"`
 	StartTime  *time.Time `json:"startTime,omitempty"`
@@ -64,8 +50,21 @@ type BoxRunStatus struct {
 	DockerPs []byte `json:"dockerPs,omitempty"`
 }
 
-func BoxRunStatusFromDB(s dmodel.BoxRunStatus) *BoxRunStatus {
-	return &BoxRunStatus{
+type UpdateBoxSandboxStatus struct {
+	SandboxStatus *UpdateBoxSandboxStatus2 `json:"sandboxStatus,omitempty"`
+
+	// compressed json
+	DockerPs []byte `json:"dockerPs,omitempty"`
+}
+
+type UpdateBoxSandboxStatus2 struct {
+	RunStatus *string    `json:"runStatus,omitempty"`
+	StartTime *time.Time `json:"startTime,omitempty"`
+	StopTime  *time.Time `json:"stopTime,omitempty"`
+}
+
+func BoxSandboxStatusFromDB(s dmodel.BoxSandboxStatus) *BoxSandboxStatus {
+	return &BoxSandboxStatus{
 		StatusTime: s.StatusTime,
 		RunStatus:  s.RunStatus,
 		StartTime:  s.StartTime,

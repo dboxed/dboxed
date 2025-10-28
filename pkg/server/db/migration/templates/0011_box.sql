@@ -23,7 +23,7 @@ create table box
     unique (workspace_id, name)
 );
 
-create table box_run_status
+create table box_sandbox_status
 (
     id          bigint not null primary key references box (id) on delete cascade,
 

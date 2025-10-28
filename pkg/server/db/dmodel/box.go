@@ -26,7 +26,7 @@ type Box struct {
 	Netbird *BoxNetbird `join:"true"`
 }
 
-type BoxRunStatus struct {
+type BoxSandboxStatus struct {
 	ID querier2.NullForJoin[int64] `db:"id"`
 
 	StatusTime *time.Time `db:"status_time"`
@@ -64,7 +64,7 @@ func (v *BoxNetbird) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func (v *BoxRunStatus) Create(q *querier2.Querier) error {
+func (v *BoxSandboxStatus) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
@@ -106,13 +106,13 @@ func ListBoxesForNetwork(q *querier2.Querier, networkId int64, skipDeleted bool)
 	}, nil)
 }
 
-func GetBoxRunStatus(q *querier2.Querier, boxId int64) (*BoxRunStatus, error) {
-	return querier2.GetOne[BoxRunStatus](q, map[string]any{
+func GetSandboxStatus(q *querier2.Querier, boxId int64) (*BoxSandboxStatus, error) {
+	return querier2.GetOne[BoxSandboxStatus](q, map[string]any{
 		"id": boxId,
 	})
 }
 
-func (v *BoxRunStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) error {
+func (v *BoxSandboxStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) error {
 	v.StatusTime = util.Ptr(time.Now())
 	v.RunStatus = runStatus
 	return querier2.UpdateOneFromStruct(q, v,
@@ -121,7 +121,7 @@ func (v *BoxRunStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) e
 	)
 }
 
-func (v *BoxRunStatus) UpdateStartTime(q *querier2.Querier, startTime *time.Time) error {
+func (v *BoxSandboxStatus) UpdateStartTime(q *querier2.Querier, startTime *time.Time) error {
 	v.StatusTime = util.Ptr(time.Now())
 	v.StartTime = startTime
 	v.StopTime = nil
@@ -132,7 +132,7 @@ func (v *BoxRunStatus) UpdateStartTime(q *querier2.Querier, startTime *time.Time
 	)
 }
 
-func (v *BoxRunStatus) UpdateStopTime(q *querier2.Querier, stopTime *time.Time) error {
+func (v *BoxSandboxStatus) UpdateStopTime(q *querier2.Querier, stopTime *time.Time) error {
 	v.StatusTime = util.Ptr(time.Now())
 	v.StopTime = stopTime
 	return querier2.UpdateOneFromStruct(q, v,
@@ -141,7 +141,7 @@ func (v *BoxRunStatus) UpdateStopTime(q *querier2.Querier, stopTime *time.Time) 
 	)
 }
 
-func (v *BoxRunStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) error {
+func (v *BoxSandboxStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) error {
 	v.StatusTime = util.Ptr(time.Now())
 	v.DockerPs = dockerPs
 	return querier2.UpdateOneFromStruct(q, v,

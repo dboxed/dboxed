@@ -98,16 +98,16 @@ func (c *BoxClient) StopBox(ctx context.Context, id int64) (*models.Box, error) 
 	})
 }
 
-func (c *BoxClient) GetBoxRunStatus(ctx context.Context, boxId int64) (*models.BoxRunStatus, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "run-status")
+func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId int64) (*models.BoxSandboxStatus, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
 	if err != nil {
 		return nil, err
 	}
-	return baseclient.RequestApi[models.BoxRunStatus](ctx, c.Client, "GET", p, struct{}{})
+	return baseclient.RequestApi[models.BoxSandboxStatus](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *BoxClient) UpdateBoxRunStatus(ctx context.Context, boxId int64, req models.UpdateBoxRunStatus) error {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "run-status")
+func (c *BoxClient) UpdateSandboxStatus(ctx context.Context, boxId int64, req models.UpdateBoxSandboxStatus) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
 	if err != nil {
 		return err
 	}

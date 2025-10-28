@@ -46,17 +46,17 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	c2 := &clients.BoxClient{Client: c}
-	runStatus, err := c2.GetBoxRunStatus(ctx, b.ID)
+	sandboxStatus, err := c2.GetSandboxStatus(ctx, b.ID)
 	if err != nil {
 		return err
 	}
 
 	// Display box status with styled output
-	renderBoxStatus(b, runStatus)
+	renderSandboxStatus(b, sandboxStatus)
 
 	// Display docker containers table
-	if runStatus.DockerPs != nil && len(runStatus.DockerPs) > 0 {
-		containers, err := parseDockerPs(runStatus.DockerPs)
+	if sandboxStatus.DockerPs != nil && len(sandboxStatus.DockerPs) > 0 {
+		containers, err := parseDockerPs(sandboxStatus.DockerPs)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 	return nil
 }
 
-func renderBoxStatus(box *models.Box, runStatus *models.BoxRunStatus) {
+func renderSandboxStatus(box *models.Box, sandboxStatus *models.BoxSandboxStatus) {
 	// Define styles
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -117,7 +117,7 @@ func renderBoxStatus(box *models.Box, runStatus *models.BoxRunStatus) {
 	)
 
 	// Run Status with color
-	runStatusValue := formatOptionalString(runStatus.RunStatus)
+	runStatusValue := formatOptionalString(sandboxStatus.RunStatus)
 	statusColor := lipgloss.Color("241") // default gray
 	if color, ok := statusColors[runStatusValue]; ok {
 		statusColor = color
@@ -131,19 +131,19 @@ func renderBoxStatus(box *models.Box, runStatus *models.BoxRunStatus) {
 	// Start Time
 	fmt.Printf("%s  %s\n",
 		labelStyle.Render("Start Time:"),
-		valueStyle.Render(formatOptionalTime(runStatus.StartTime)),
+		valueStyle.Render(formatOptionalTime(sandboxStatus.StartTime)),
 	)
 
 	// Stop Time
 	fmt.Printf("%s  %s\n",
 		labelStyle.Render("Stop Time:"),
-		valueStyle.Render(formatOptionalTime(runStatus.StopTime)),
+		valueStyle.Render(formatOptionalTime(sandboxStatus.StopTime)),
 	)
 
 	// Status Time
 	fmt.Printf("%s  %s\n",
 		labelStyle.Render("Status Time:"),
-		valueStyle.Render(formatOptionalTime(runStatus.StatusTime)),
+		valueStyle.Render(formatOptionalTime(sandboxStatus.StatusTime)),
 	)
 
 	fmt.Println() // Empty line before containers table

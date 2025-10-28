@@ -54,8 +54,8 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Delete(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restDetachVolume)
 
 	// run status
-	huma.Get(workspacesGroup, "/boxes/{id}/run-status", s.restGetBoxRunStatus, allowBoxTokenModifier)
-	huma.Patch(workspacesGroup, "/boxes/{id}/run-status", s.restUpdateBoxRunStatus, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/{id}/sandbox-status", s.restGetSandboxStatus, allowBoxTokenModifier)
+	huma.Patch(workspacesGroup, "/boxes/{id}/sandbox-status", s.restUpdateSandboxStatus, allowBoxTokenModifier)
 
 	// logs
 	huma.Post(workspacesGroup, "/boxes/{id}/logs", s.restPostLogs, allowBoxTokenModifier)
@@ -141,10 +141,10 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		return nil, "", err
 	}
 
-	boxRunStatus := dmodel.BoxRunStatus{
+	sandboxStatus := dmodel.BoxSandboxStatus{
 		ID: querier2.N(box.ID),
 	}
-	err = boxRunStatus.Create(q)
+	err = sandboxStatus.Create(q)
 	if err != nil {
 		return nil, "", err
 	}
