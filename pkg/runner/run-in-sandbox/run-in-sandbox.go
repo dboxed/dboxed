@@ -44,6 +44,9 @@ type RunInSandbox struct {
 	sandboxStatusTime time.Time
 	dockerPSSent      []byte
 	statusMutex       sync.Mutex
+
+	sendStatusStopCh chan struct{}
+	sendStatusDoneCh chan struct{}
 }
 
 func (rn *RunInSandbox) Run(ctx context.Context) error {
@@ -55,6 +58,7 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 
 	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
 	defer rn.logsPublisher.Stop(false)
+	defer rn.stopUpdateSandboxStatusLoop()
 
 	shutdown, err := rn.doRun(ctx, sigs)
 	if err != nil {
@@ -123,8 +127,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		StartTime: &startTime,
 	}, false)
 
-	cancelUpdateStatus := rn.startUpdateSandboxStatusLoop(ctx)
-	defer cancelUpdateStatus()
+	rn.startUpdateSandboxStatusLoop(ctx)
 
 	err = rn.initLogsPublishing(ctx)
 	if err != nil {

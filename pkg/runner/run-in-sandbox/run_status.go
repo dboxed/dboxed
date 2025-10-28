@@ -34,7 +34,7 @@ func (rn *RunInSandbox) updateSandboxStatus(ctx context.Context, s models.Update
 	}
 }
 
-func (rn *RunInSandbox) startUpdateSandboxStatusLoop(ctx context.Context) func() {
+func (rn *RunInSandbox) startUpdateSandboxStatusLoop(ctx context.Context) {
 	rn.sandboxStatus = models.UpdateBoxSandboxStatus2{
 		RunStatus: util.Ptr("starting"),
 		StartTime: util.Ptr(time.Now()),
@@ -43,13 +43,13 @@ func (rn *RunInSandbox) startUpdateSandboxStatusLoop(ctx context.Context) func()
 	rn.sendSandboxStatusDockerPs(ctx)
 	rn.sendSandboxStatus(ctx, true)
 
-	stopCh := make(chan struct{})
-	doneCh := make(chan struct{})
+	rn.sendStatusStopCh = make(chan struct{})
+	rn.sendStatusDoneCh = make(chan struct{})
 	go func() {
-		defer close(doneCh)
+		defer close(rn.sendStatusDoneCh)
 		for {
 			select {
-			case <-stopCh:
+			case <-rn.sendStatusStopCh:
 				return
 			case <-ctx.Done():
 				return
@@ -59,9 +59,12 @@ func (rn *RunInSandbox) startUpdateSandboxStatusLoop(ctx context.Context) func()
 			}
 		}
 	}()
-	return func() {
-		close(stopCh)
-		<-doneCh
+}
+
+func (rn *RunInSandbox) stopUpdateSandboxStatusLoop() {
+	if rn.sendStatusStopCh != nil {
+		close(rn.sendStatusStopCh)
+		<-rn.sendStatusDoneCh
 	}
 }
 
@@ -73,6 +76,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 	if rn.sandboxStatusTime.Add(time.Second*30).Before(time.Now()) && util.EqualsViaJson(rn.sandboxStatus, rn.sandboxStatusSent) {
 		return
 	}
+	rn.sandboxStatusTime = time.Now()
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
 	err := boxesClient.UpdateSandboxStatus(ctx, rn.sandboxInfo.Box.ID, models.UpdateBoxSandboxStatus{
