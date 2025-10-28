@@ -402,8 +402,11 @@ func (s *VolumeServer) restReleaseVolume(ctx context.Context, i *restReleaseVolu
 
 	log := slog.With(slog.Any("volId", v.ID))
 
-	if v.LockId == nil || *v.LockId != i.Body.LockId {
-		return nil, huma.Error404NotFound("lock id does not match")
+	if v.LockId == nil {
+		return nil, huma.Error404NotFound("volume is not locked")
+	}
+	if *v.LockId != i.Body.LockId {
+		return nil, huma.Error409Conflict("volume is locked with another lock id")
 	}
 
 	log.Info("releasing volume", slog.Any("lockId", i.Body.LockId))

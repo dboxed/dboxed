@@ -72,7 +72,7 @@ func AttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer, err
 	return &loDev, f, nil
 }
 
-func GetOrAttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error) {
+func GetLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error) {
 	ref := BuildRef(lockId)
 
 	loInfos, err := ListLoopDevs()
@@ -92,8 +92,15 @@ func GetOrAttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer
 		}
 	}
 
-	d, handle, err := AttachLoopDev(image, lockId)
+	return nil, nil, os.ErrNotExist
+}
+
+func GetOrAttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error) {
+	d, handle, err := GetLoopDev(image, lockId)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return AttachLoopDev(image, lockId)
+		}
 		return nil, nil, err
 	}
 	return d, handle, nil

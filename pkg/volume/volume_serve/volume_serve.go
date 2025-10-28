@@ -8,16 +8,15 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/volume/mount"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
 	"github.com/dboxed/dboxed/pkg/volume/volume_backup"
 	"github.com/dustin/go-humanize"
-	"github.com/moby/sys/mountinfo"
 )
 
 type VolumeServeOpts struct {
@@ -112,6 +111,7 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 	lvmTags := []string{
 		"dboxed-volume",
 		fmt.Sprintf("dboxed-volume-%s", vs.volume.Uuid),
+		fmt.Sprintf("dboxed-volume-lock-%s", *vs.volume.LockId),
 	}
 
 	image := filepath.Join(vs.opts.Dir, "image")
@@ -191,17 +191,12 @@ func (vs *VolumeServe) GetMountDir() string {
 }
 
 func (vs *VolumeServe) Mount(ctx context.Context, readOnly bool) error {
-	mount := vs.GetMountDir()
+	mountDir := vs.GetMountDir()
 
-	mounts, err := mountinfo.GetMounts(nil)
+	mountInfo, err := mount.GetMountByMountpoint(mountDir)
 	if err != nil {
-		return err
-	}
-	var mountInfo *mountinfo.Info
-	for _, m := range mounts {
-		if m.Mountpoint == mount {
-			mountInfo = m
-			break
+		if !os.IsNotExist(err) {
+			return err
 		}
 	}
 
@@ -211,21 +206,17 @@ func (vs *VolumeServe) Mount(ctx context.Context, readOnly bool) error {
 	}
 
 	if mountInfo != nil {
-		source, err := filepath.EvalSymlinks(mountInfo.Source)
-		if err != nil {
-			return err
-		}
-		if source != devPath {
-			return fmt.Errorf("mount point %s is already mounted from source %s and type %s", mount, mountInfo.Source, mountInfo.FSType)
+		if mountInfo.Source != devPath {
+			return fmt.Errorf("mount point %s is already mounted from source %s and type %s", mountDir, mountInfo.Source, mountInfo.FSType)
 		}
 		opts := strings.Split(mountInfo.Options, ",")
 		if slices.Contains(opts, "ro") && !readOnly {
-			return fmt.Errorf("mount point %s is already mounted but it is read-only", mount)
+			return fmt.Errorf("mount point %s is already mounted but it is read-only", mountDir)
 		}
 	}
 
-	vs.log.Info("mounting volume", slog.Any("mountPath", mount))
-	err = vs.LocalVolume.Mount(ctx, mount, readOnly)
+	vs.log.Info("mounting volume", slog.Any("mountPath", mountDir))
+	err = vs.LocalVolume.Mount(ctx, mountDir, readOnly)
 	if err != nil {
 		return err
 	}
@@ -263,7 +254,7 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 		LockId: *s.Volume.LockId,
 	}
 
-	newVolume, err := c2.VolumeRelease(ctx, vs.volume.ID, req)
+	newVolume, err := c2.VolumeRelease(ctx, vs.opts.VolumeId, req)
 	if err != nil {
 		return err
 	}

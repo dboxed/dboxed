@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/dboxed/dboxed/pkg/util"
@@ -266,42 +268,7 @@ func LVActivateFullName(ctx context.Context, fullName string, activate bool) err
 	return nil
 }
 
-func FindPVLVs(ctx context.Context, pvName string) ([]LVEntry, error) {
-	pvs, err := ListPVs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var foundPv *PVEntry
-	for _, pv := range pvs {
-		if pv.PvName == pvName {
-			foundPv = &pv
-			break
-		}
-	}
-	if foundPv == nil {
-		return nil, fmt.Errorf("physical volume %s not found", pvName)
-	}
-	if foundPv.VgName == "" {
-		return nil, fmt.Errorf("physical volume %s seems to not have a volume group", pvName)
-	}
-
-	vgs, err := ListVGs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var foundVg *VGEntry
-	for _, vg := range vgs {
-		if vg.VgName == foundPv.VgName {
-			foundVg = &vg
-			break
-		}
-	}
-	if foundVg == nil {
-		return nil, fmt.Errorf("volume group %s not found in list of volume groups", foundPv.VgName)
-	}
-
+func FindLVsWithTag(ctx context.Context, tag string) ([]LVEntry, error) {
 	lvs, err := ListLVs(ctx)
 	if err != nil {
 		return nil, err
@@ -309,9 +276,21 @@ func FindPVLVs(ctx context.Context, pvName string) ([]LVEntry, error) {
 
 	var ret []LVEntry
 	for _, lv := range lvs {
-		if lv.VgName == foundVg.VgName {
+		if slices.Contains(lv.LvTags.L, tag) {
 			ret = append(ret, lv)
 		}
 	}
 	return ret, nil
+}
+
+func BuildDevPath(vgName string, lvName string, evalSymlinks bool) (string, error) {
+	p := filepath.Join("/dev", vgName, lvName)
+	if evalSymlinks {
+		var err error
+		p, err = filepath.EvalSymlinks(p)
+		if err != nil {
+			return "", err
+		}
+	}
+	return p, nil
 }

@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/lvm"
-	"github.com/moby/sys/mountinfo"
+	"github.com/dboxed/dboxed/pkg/volume/mount"
 )
 
 func (v *Volume) CreateSnapshot(ctx context.Context, snapshotName string, overwrite bool) error {
@@ -62,11 +61,11 @@ func (v *Volume) DeleteSnapshot(ctx context.Context, snapshotName string) error 
 }
 
 func (v *Volume) MountSnapshot(ctx context.Context, snapshotName string, mountTarget string) error {
-	lvDev, err := buildDevPath(v.filesystemLv.VgName, snapshotName, false)
+	lvDev, err := lvm.BuildDevPath(v.filesystemLv.VgName, snapshotName, false)
 	if err != nil {
 		return err
 	}
-	err = util.RunCommand(ctx, "mount", "-oro", lvDev, mountTarget)
+	err = mount.Mount(ctx, "", lvDev, mountTarget, true)
 	if err != nil {
 		return err
 	}
@@ -82,34 +81,20 @@ func (v *Volume) UnmountSnapshot(ctx context.Context, snapshotName string) error
 		return nil
 	}
 
-	lvDev, err := buildDevPath(v.filesystemLv.VgName, snapshotName, false)
+	lvDev, err := lvm.BuildDevPath(v.filesystemLv.VgName, snapshotName, false)
 	if err != nil {
 		return err
 	}
-	err = util.RunCommand(ctx, "umount", lvDev)
-	return err
+	return mount.Unmount(ctx, lvDev)
 }
 
 func (v *Volume) IsSnapshotMounted(snapshotName string) (bool, error) {
-	mounts, err := mountinfo.GetMounts(nil)
-	if err != nil {
-		return false, err
-	}
-	lvDev, err := buildDevPath(v.filesystemLv.VgName, snapshotName, true)
+	lvDev, err := lvm.BuildDevPath(v.filesystemLv.VgName, snapshotName, true)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-
-	for _, m := range mounts {
-		source, err := filepath.EvalSymlinks(m.Source)
-		if err == nil {
-			if source == lvDev {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
+	return mount.IsMountedSource(lvDev)
 }

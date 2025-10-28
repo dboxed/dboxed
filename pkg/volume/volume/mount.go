@@ -3,10 +3,10 @@ package volume
 import (
 	"context"
 	"log/slog"
-	"path/filepath"
+	"os"
 
 	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/moby/sys/mountinfo"
+	"github.com/dboxed/dboxed/pkg/volume/mount"
 )
 
 func (v *Volume) Mount(ctx context.Context, mountTarget string, readOnly bool) error {
@@ -15,29 +15,18 @@ func (v *Volume) Mount(ctx context.Context, mountTarget string, readOnly bool) e
 		return err
 	}
 
-	mounts, err := mountinfo.GetMounts(nil)
+	m, err := mount.GetMountBySource(lvDev)
 	if err != nil {
-		return err
-	}
-
-	for _, m := range mounts {
-		source, err := filepath.EvalSymlinks(m.Source)
-		if err == nil {
-			if m.Mountpoint == mountTarget && source == lvDev {
-				slog.Info("volume already mounted", slog.Any("mountPoint", m.Mountpoint), slog.Any("source", m.Source))
-				return nil
-			}
+		if !os.IsNotExist(err) {
+			return err
 		}
 	}
-
-	var args []string
-	if readOnly {
-		args = append(args, "-o", "ro")
+	if m != nil {
+		slog.Info("volume already mounted", slog.Any("mountPoint", m.Mountpoint), slog.Any("source", m.Source))
+		return nil
 	}
 
-	args = append(args, lvDev, mountTarget)
-
-	err = util.RunCommand(ctx, "mount", args...)
+	err = mount.Mount(ctx, "", lvDev, mountTarget, readOnly)
 	if err != nil {
 		return err
 	}
@@ -54,9 +43,17 @@ func (v *Volume) RemountReadOnly(ctx context.Context, mountTarget string) error 
 }
 
 func (v *Volume) Unmount(ctx context.Context, mountTarget string) error {
-	err := util.RunCommand(ctx, "umount", mountTarget)
+	return mount.Unmount(ctx, mountTarget)
+}
+
+func (v *Volume) IsMounted() (bool, error) {
+	lvDev, err := v.DevPath(true)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
-	return nil
+
+	return mount.IsMountedSource(lvDev)
 }

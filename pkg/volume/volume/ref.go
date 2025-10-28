@@ -8,8 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/moby/sys/mountinfo"
+	"github.com/dboxed/dboxed/pkg/volume/mount"
 )
 
 const refFile = ".dboxed-loop-ref"
@@ -26,25 +25,23 @@ func BuildRef(lockId string) string {
 }
 
 func WriteLoopRef(ctx context.Context, refMountDir string, lockId string) error {
-	mounts, err := mountinfo.GetMounts(nil)
+	m, err := mount.GetMountByMountpoint(refMountDir)
 	if err != nil {
-		return err
-	}
-
-	found := false
-	for _, m := range mounts {
-		if m.Mountpoint == refMountDir && m.FSType == "tmpfs" {
-			found = true
-			break
+		if !os.IsNotExist(err) {
+			return err
 		}
 	}
-	if !found {
+	if m != nil {
+		if m.FSType != "tmpfs" {
+			return fmt.Errorf("unexpected filesystem type %s for loop-ref", m.FSType)
+		}
+	} else {
 		err = os.MkdirAll(refMountDir, 0700)
 		if err != nil {
 			return err
 		}
 		slog.Info("mounting tmpfs to hold loop-ref")
-		err = util.RunCommand(ctx, "mount", "-t", "tmpfs", "none", refMountDir)
+		err = mount.Mount(ctx, "tmpfs", "none", refMountDir, false)
 		if err != nil {
 			return err
 		}
@@ -58,27 +55,19 @@ func WriteLoopRef(ctx context.Context, refMountDir string, lockId string) error 
 }
 
 func UnmountLoopRefs(ctx context.Context, refMountDir string) error {
-	mounts, err := mountinfo.GetMounts(nil)
+	m, err := mount.GetMountByMountpoint(refMountDir)
 	if err != nil {
-		return err
-	}
-
-	found := false
-	for _, m := range mounts {
-		if m.Mountpoint == refMountDir && m.FSType == "tmpfs" {
-			found = true
-			break
+		if !os.IsNotExist(err) {
+			return err
 		}
-	}
-	if !found {
 		return nil
 	}
 
-	err = util.RunCommand(ctx, "umount", refMountDir)
-	if err != nil {
-		return err
+	if m.FSType != "tmpfs" {
+		return fmt.Errorf("unexpected filesystem type %s for loop-ref", m.FSType)
 	}
-	return nil
+
+	return mount.Unmount(ctx, refMountDir)
 }
 
 func ReadLoopRef(refMountDir string) (string, error) {

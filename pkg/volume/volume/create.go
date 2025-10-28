@@ -86,7 +86,7 @@ func Create(ctx context.Context, opts CreateOptions) error {
 		return err
 	}
 
-	fsDev, err := buildDevPath(vgName, volName, false)
+	fsDev, err := lvm.BuildDevPath(vgName, volName, false)
 	if err != nil {
 		return err
 	}

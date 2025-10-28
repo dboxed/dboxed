@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"path/filepath"
 	"slices"
 
 	"github.com/dboxed/dboxed/pkg/volume/lvm"
@@ -21,18 +20,19 @@ var AllowedFsTypes = []string{
 type Volume struct {
 	image string
 
-	loopDev      string
 	filesystemLv *lvm.LVEntry
 }
 
 func Open(ctx context.Context, image string, lockId string) (*Volume, error) {
-	loDev, loHandle, err := GetOrAttachLoopDev(image, lockId)
+	_, loHandle, err := GetOrAttachLoopDev(image, lockId)
 	if err != nil {
 		return nil, err
 	}
 	defer loHandle.Close()
 
-	lvs, err := lvm.FindPVLVs(ctx, loDev.Path())
+	tag := fmt.Sprintf("dboxed-volume-lock-%s", lockId)
+
+	lvs, err := lvm.FindLVsWithTag(ctx, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,6 @@ func Open(ctx context.Context, image string, lockId string) (*Volume, error) {
 
 	v := &Volume{
 		image:        image,
-		loopDev:      loDev.Path(),
 		filesystemLv: filesystemLv,
 	}
 
@@ -63,11 +62,11 @@ func Open(ctx context.Context, image string, lockId string) (*Volume, error) {
 }
 
 func (v *Volume) DevPath(evalSymlinks bool) (string, error) {
-	return buildDevPath(v.filesystemLv.VgName, v.filesystemLv.LvName, evalSymlinks)
+	return lvm.BuildDevPath(v.filesystemLv.VgName, v.filesystemLv.LvName, evalSymlinks)
 }
 
 func (v *Volume) SnapshotDevPath(snapshotName string, evalSymlinks bool) (string, error) {
-	return buildDevPath(v.filesystemLv.VgName, snapshotName, evalSymlinks)
+	return lvm.BuildDevPath(v.filesystemLv.VgName, snapshotName, evalSymlinks)
 }
 
 func (v *Volume) Deactivate(ctx context.Context) error {
@@ -94,16 +93,4 @@ func DeactivateVolume(ctx context.Context, vgName string) error {
 	}
 
 	return nil
-}
-
-func buildDevPath(vgName string, lvName string, evalSymlinks bool) (string, error) {
-	p := filepath.Join("/dev", vgName, lvName)
-	if evalSymlinks {
-		var err error
-		p, err = filepath.EvalSymlinks(p)
-		if err != nil {
-			return "", err
-		}
-	}
-	return p, nil
 }
