@@ -26,3 +26,23 @@ func IsUnauthorized(err error) bool {
 	}
 	return false
 }
+
+func IsConflict(err error) bool {
+	var err2 *huma.ErrorModel
+	if errors.As(err, &err2) {
+		if err2.Status == http.StatusConflict {
+			return true
+		}
+	}
+	return false
+}
+
+func IsBadRequest(err error) bool {
+	var err2 *huma.ErrorModel
+	if errors.As(err, &err2) {
+		if err2.Status >= 400 && err2.Status < 500 {
+			return true
+		}
+	}
+	return false
+}

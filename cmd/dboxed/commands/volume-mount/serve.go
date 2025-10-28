@@ -42,13 +42,17 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
+	go func() {
+		s := <-sigs
+		slog.Info(fmt.Sprintf("received %s, stopping periodic backup", s.String()))
+		vs.Stop()
+	}()
+
 	slog.Info("starting periodic backup", slog.Any("interval", cmd.BackupInterval))
-	vs.Start(ctx)
-
-	s := <-sigs
-
-	slog.Info(fmt.Sprintf("received %s, stopping periodic backup", s.String()))
-	vs.Stop()
+	err = vs.Run(ctx)
+	if err != nil {
+		return err
+	}
 
 	slog.Info("periodic backup stopped")
 

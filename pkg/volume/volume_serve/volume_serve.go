@@ -43,8 +43,6 @@ type VolumeServe struct {
 	LocalVolume *volume.Volume
 
 	stop chan struct{}
-	wg   sync.WaitGroup
-	m    sync.Mutex
 }
 
 func New(opts VolumeServeOpts) (*VolumeServe, error) {
@@ -101,7 +99,7 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 		return err
 	}
 
-	_, err = vs.lockVolume(ctx)
+	err = vs.lockVolume(ctx)
 	if err != nil {
 		return err
 	}
@@ -150,7 +148,7 @@ func (vs *VolumeServe) Open(ctx context.Context) error {
 		return fmt.Errorf("%s does not contain a locked volume", vs.opts.Dir)
 	}
 
-	_, err = vs.lockVolume(ctx)
+	err = vs.lockVolume(ctx)
 	if err != nil {
 		return err
 	}
@@ -236,7 +234,7 @@ func (vs *VolumeServe) Mount(ctx context.Context, readOnly bool) error {
 }
 
 func (vs *VolumeServe) Lock(ctx context.Context) error {
-	_, err := vs.lockVolume(ctx)
+	err := vs.lockVolume(ctx)
 	if err != nil {
 		return err
 	}
@@ -270,8 +268,6 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 		return err
 	}
 
-	vs.m.Lock()
-	defer vs.m.Unlock()
 	vs.volume = newVolume
 
 	s.Volume = newVolume
@@ -284,27 +280,22 @@ func (vs *VolumeServe) Unlock(ctx context.Context) error {
 	return nil
 }
 
-func (vs *VolumeServe) Start(ctx context.Context) {
-	vs.wg.Add(1)
-	go vs.periodicRefreshLock(ctx)
-
-	vs.wg.Add(1)
-	go vs.periodicBackup(ctx)
+func (vs *VolumeServe) Run(ctx context.Context) error {
+	return vs.periodicBackup(ctx)
 }
 
 func (vs *VolumeServe) Stop() {
 	close(vs.stop)
-	vs.wg.Wait()
 }
 
-func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
+func (vs *VolumeServe) lockVolume(ctx context.Context) error {
 	s, err := vs.loadVolumeState()
 	if err != nil && !os.IsNotExist(err) {
-		return false, err
+		return err
 	}
 	if s == nil {
 		if vs.opts.Client == nil {
-			return false, fmt.Errorf("no volume state loaded and missing client")
+			return fmt.Errorf("no volume state loaded and missing client")
 		}
 
 		s = &VolumeState{
@@ -320,7 +311,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 
 	c, err := vs.buildClient(ctx, s)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	c2 := clients.VolumesClient{Client: c}
@@ -333,7 +324,7 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 		}
 		newVolume, err = c2.VolumeLock(ctx, vs.opts.VolumeId, lockRequest)
 		if err != nil {
-			return false, err
+			return err
 		}
 	} else {
 		vs.log.Debug("refreshing lock", slog.Any("prevLockId", *prevLockId))
@@ -342,27 +333,21 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 		}
 		newVolume, err = c2.VolumeRefreshLock(ctx, vs.opts.VolumeId, refreshLockRequest)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
 
-	vs.m.Lock()
-	defer vs.m.Unlock()
 	vs.volume = newVolume
 	s.Volume = newVolume
 
 	err = vs.saveVolumeState(*s)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	newLock := true
-	if prevLockId == nil || *prevLockId != *vs.volume.LockId {
-		newLock = false
-	}
 	vs.log.Info("volume locked", slog.Any("lockId", *vs.volume.LockId))
 
-	return newLock, nil
+	return nil
 }
 
 func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*volume_backup.VolumeBackup, error) {
@@ -374,8 +359,6 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 	mount := filepath.Join(vs.opts.Dir, "mount")
 	snapshotMount := filepath.Join(vs.opts.Dir, "snapshot")
 
-	vs.m.Lock()
-	defer vs.m.Unlock()
 	vb := &volume_backup.VolumeBackup{
 		Client:                c,
 		Volume:                vs.LocalVolume,
@@ -471,38 +454,43 @@ func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
 	return nil
 }
 
-func (vs *VolumeServe) periodicBackup(ctx context.Context) {
-	defer vs.wg.Done()
+func (vs *VolumeServe) periodicBackup(ctx context.Context) error {
+	refreshLockInterval := time.Second * 15
+	nextRefreshLockTimer := time.NewTimer(refreshLockInterval)
+
+	doLockVolume := func() error {
+		err := vs.lockVolume(ctx)
+		if err != nil {
+			vs.log.Error("refreshing volume lock", slog.Any("error", err))
+			if baseclient.IsBadRequest(err) {
+				// volume most likely got force-unlocked
+				return err
+			}
+		}
+		nextRefreshLockTimer = time.NewTimer(refreshLockInterval)
+		return nil
+	}
 
 	for {
 		select {
 		case <-vs.stop:
-			return
+			return nil
 		case <-time.After(vs.opts.BackupInterval):
-			err := vs.BackupOnce(ctx)
+			err := doLockVolume()
+			if err != nil {
+				return err
+			}
+			err = vs.BackupOnce(ctx)
 			if err != nil {
 				vs.log.Error("backup failed", slog.Any("error", err))
 			}
+		case <-nextRefreshLockTimer.C:
+			err := doLockVolume()
+			if err != nil {
+				return err
+			}
 		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (vs *VolumeServe) periodicRefreshLock(ctx context.Context) {
-	defer vs.wg.Done()
-	for {
-		_, err := vs.lockVolume(ctx)
-		if err != nil {
-			vs.log.Error("error in VolumeLock", slog.Any("error", err))
-		}
-
-		select {
-		case <-vs.stop:
-			return
-		case <-time.After(15 * time.Second):
-		case <-ctx.Done():
-			return
+			return ctx.Err()
 		}
 	}
 }
