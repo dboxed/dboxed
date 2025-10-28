@@ -318,12 +318,6 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 		prevLockId = s.Volume.LockId
 	}
 
-	if prevLockId == nil {
-		vs.log.Info("locking volume")
-	} else {
-		vs.log.Debug("refreshing lock", slog.Any("prevLockId", *prevLockId))
-	}
-
 	c, err := vs.buildClient(ctx, s)
 	if err != nil {
 		return false, err
@@ -331,13 +325,25 @@ func (vs *VolumeServe) lockVolume(ctx context.Context) (bool, error) {
 
 	c2 := clients.VolumesClient{Client: c}
 
-	lockRequest := models.VolumeLockRequest{
-		PrevLockId: prevLockId,
-		BoxId:      vs.opts.BoxId,
-	}
-	newVolume, err := c2.VolumeLock(ctx, vs.opts.VolumeId, lockRequest)
-	if err != nil {
-		return false, err
+	var newVolume *models.Volume
+	if prevLockId == nil {
+		vs.log.Info("locking volume")
+		lockRequest := models.VolumeLockRequest{
+			BoxId: vs.opts.BoxId,
+		}
+		newVolume, err = c2.VolumeLock(ctx, vs.opts.VolumeId, lockRequest)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		vs.log.Debug("refreshing lock", slog.Any("prevLockId", *prevLockId))
+		refreshLockRequest := models.VolumeRefreshLockRequest{
+			PrevLockId: *prevLockId,
+		}
+		newVolume, err = c2.VolumeRefreshLock(ctx, vs.opts.VolumeId, refreshLockRequest)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	vs.m.Lock()

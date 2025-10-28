@@ -73,6 +73,14 @@ func (c *VolumesClient) VolumeLock(ctx context.Context, volumeId int64, req mode
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
+func (c *VolumesClient) VolumeRefreshLock(ctx context.Context, volumeId int64, req models.VolumeRefreshLockRequest) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "refresh-lock")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
+}
+
 func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId int64, req models.VolumeReleaseRequest) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "release")
 	if err != nil {

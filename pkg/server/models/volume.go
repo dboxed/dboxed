@@ -79,8 +79,11 @@ type UpdateVolumeAttachmentRequest struct {
 }
 
 type VolumeLockRequest struct {
-	PrevLockId *string `json:"prevLockId,omitempty"`
-	BoxId      *int64  `json:"boxId,omitempty"`
+	BoxId *int64 `json:"boxId,omitempty"`
+}
+
+type VolumeRefreshLockRequest struct {
+	PrevLockId string `json:"prevLockId"`
 }
 
 type VolumeReleaseRequest struct {

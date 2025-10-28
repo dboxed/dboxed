@@ -41,6 +41,7 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 	huma.Delete(workspacesGroup, "/volumes/{id}", s.restDeleteVolume)
 
 	huma.Post(workspacesGroup, "/volumes/{id}/lock", s.restLockVolume, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/volumes/{id}/refresh-lock", s.restRefreshLock, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/release", s.restReleaseVolume, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/force-unlock", s.restForceUnlockVolume)
 
@@ -287,14 +288,10 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 	return &huma_utils.Empty{}, nil
 }
 
-type restLockVolume struct {
-	huma_utils.IdByPath
-	Body models.VolumeLockRequest
-}
-
-func (s *VolumeServer) restLockVolume(ctx context.Context, i *restLockVolume) (*huma_utils.JsonBody[models.Volume], error) {
+func (s *VolumeServer) restLockVolume(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.VolumeLockRequest]) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
+	token := auth.GetToken(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -308,31 +305,69 @@ func (s *VolumeServer) restLockVolume(ctx context.Context, i *restLockVolume) (*
 
 	log := slog.With(slog.Any("volId", v.ID))
 
-	lockTimeout := time.Minute * 5
-	allow := false
-	lockId := ""
-	if v.LockId == nil {
-		allow = true
-		lockId = uuid.NewString()
-		log = log.With(slog.Any("newLockId", lockId))
-		log.Info("locking volume")
-	} else {
-		if i.Body.PrevLockId == nil && v.LockTime.Add(lockTimeout).Before(time.Now()) {
-			allow = true
-			lockId = uuid.NewString()
-			log = log.With(slog.Any("newLockId", lockId))
-			log.Info("old lock expired, re-locking")
-		} else if i.Body.PrevLockId != nil && *v.LockId == *i.Body.PrevLockId {
-			allow = true
-			lockId = *v.LockId
-			log.Info("refreshing lock")
-		}
-	}
-	if !allow {
+	if v.LockId != nil {
 		return nil, huma.Error409Conflict("volume is already locked")
 	}
 
-	err = v.UpdateLock(q, &lockId, util.Ptr(time.Now()), i.Body.BoxId)
+	if i.Body.BoxId != nil {
+		if v.Attachment == nil || !v.Attachment.BoxId.Valid {
+			return nil, huma.Error400BadRequest("can't lock volume with boxId being set, while the volume is not attached to a box")
+		} else if v.Attachment.BoxId.V != *i.Body.BoxId {
+			return nil, huma.Error400BadRequest("can't lock volume with boxId not matching the box volume attachment")
+		}
+		if token != nil && token.BoxID != nil {
+			if *i.Body.BoxId != *token.BoxID {
+				return nil, huma.Error403Forbidden("can't lock volume with boxId for a box you'd have access to")
+			}
+		}
+		// check if the box exists
+		_, err := dmodel.GetBoxById(q, &w.ID, *i.Body.BoxId, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	log.Info("locking volume")
+
+	lockId := uuid.NewString()
+	lockTime := time.Now()
+
+	err = v.UpdateLock(q, &lockId, &lockTime, i.Body.BoxId)
+	if err != nil {
+		return nil, err
+	}
+
+	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, v.VolumeProviderID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
+	return huma_utils.NewJsonBody(m), nil
+}
+
+func (s *VolumeServer) restRefreshLock(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.VolumeRefreshLockRequest]) (*huma_utils.JsonBody[models.Volume], error) {
+	q := querier.GetQuerier(ctx)
+	w := global.GetWorkspace(ctx)
+
+	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkBoxToken(ctx, &v.Volume, v.Attachment)
+	if err != nil {
+		return nil, err
+	}
+
+	if v.LockId == nil {
+		return nil, huma.Error409Conflict("volume is not locked")
+	}
+	if *v.LockId != i.Body.PrevLockId {
+		return nil, huma.Error409Conflict("volume is locked with another lock id")
+	}
+
+	err = v.UpdateLock(q, v.LockId, util.Ptr(time.Now()), v.LockBoxId)
 	if err != nil {
 		return nil, err
 	}
