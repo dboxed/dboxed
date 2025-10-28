@@ -48,8 +48,10 @@ func (p *Proxy) Start(ctx context.Context) (net.Addr, error) {
 		if err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
 				slog.Error("webdav proxy server serve exited with error", slog.Any("error", err))
+				return
 			}
 		}
+		slog.Info("webdav proxy stopped")
 	}()
 	return l.Addr(), nil
 }
