@@ -73,10 +73,9 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 		rn.statusMutex.Lock()
 		defer rn.statusMutex.Unlock()
 	}
-	if rn.sandboxStatusTime.Add(time.Second*30).Before(time.Now()) && util.EqualsViaJson(rn.sandboxStatus, rn.sandboxStatusSent) {
+	if !time.Now().After(rn.sandboxStatusTime.Add(time.Second*30)) && util.EqualsViaJson(rn.sandboxStatus, rn.sandboxStatusSent) {
 		return
 	}
-	rn.sandboxStatusTime = time.Now()
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
 	err := boxesClient.UpdateSandboxStatus(ctx, rn.sandboxInfo.Box.ID, models.UpdateBoxSandboxStatus{
@@ -86,6 +85,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 		rn.reconcileLogger.ErrorContext(ctx, "failed to report run status", "error", err)
 	} else {
 		rn.sandboxStatusSent = rn.sandboxStatus
+		rn.sandboxStatusTime = time.Now()
 	}
 }
 
@@ -97,11 +97,10 @@ func (rn *RunInSandbox) sendSandboxStatusDockerPs(ctx context.Context) {
 	}
 
 	rn.statusMutex.Lock()
+	defer rn.statusMutex.Unlock()
 	if bytes.Equal(b, rn.dockerPSSent) {
-		rn.statusMutex.Unlock()
 		return
 	}
-	defer rn.statusMutex.Unlock()
 
 	err = rn.doSendSandboxStatusDockerPs(ctx, b)
 	if err != nil {
