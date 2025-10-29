@@ -118,6 +118,10 @@ type WorkspaceLogBytesUsage struct {
 	SumLineBytes int64 `db:"sum_line_bytes"`
 }
 
+func (v *WorkspaceLogBytesUsage) GetTableName() string {
+	return "log_metadata"
+}
+
 func QueryWorkspaceLogBytesUsage(q *querier2.Querier, workspaceId int64) (*WorkspaceLogBytesUsage, error) {
 	query := fmt.Sprintf("select workspace_id, coalesce(sum(total_line_bytes), 0) as sum_line_bytes from log_metadata where workspace_id = :workspace_id group by workspace_id")
 

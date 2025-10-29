@@ -91,7 +91,21 @@ func (q *Querier) GetNamed(dest interface{}, query any, arg interface{}) error {
 	if err != nil {
 		return err
 	}
-	return sqlx.GetContext(q.Ctx, q.getSqlxQueryer(), dest, query2, args...)
+	err = sqlx.GetContext(q.Ctx, q.getSqlxQueryer(), dest, query2, args...)
+	if err != nil {
+		if IsSqlNotFoundError(err) {
+			t := reflect.TypeOf(dest)
+			tableName := GetTableName2(t)
+			return &SqlNotFoundError{
+				TableName: tableName,
+				Err:       err,
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (q *Querier) SelectNamed(dest interface{}, query any, arg interface{}) error {

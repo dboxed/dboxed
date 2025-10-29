@@ -15,8 +15,10 @@ func InitHumaErrorOverride() {
 			for _, err := range errs {
 				if querier.IsSqlNotFoundError(err) {
 					status = http.StatusNotFound
+					msg = err.Error()
 				} else if querier.IsSqlConstraintViolationError(err) {
 					status = http.StatusConflict
+					msg = err.Error()
 				} else {
 					slog.Error("internal server error", slog.Any("error", err))
 				}
