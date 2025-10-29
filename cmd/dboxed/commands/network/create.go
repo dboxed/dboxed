@@ -12,7 +12,7 @@ import (
 )
 
 type CreateCmd struct {
-	Name string `help:"Specify the network name. Must be unique." required:"" arg:""`
+	Name string `help:"Specify the network name. Must be unique." required:""`
 
 	Type string `help:"Specify network type. Currently only netbird is supported" enum:"netbird" required:""`
 

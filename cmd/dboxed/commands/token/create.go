@@ -13,7 +13,7 @@ import (
 )
 
 type CreateCmd struct {
-	Name string `help:"Specify the token name. Must be unique." required:"" arg:""`
+	Name string `help:"Specify the token name. Must be unique." required:""`
 
 	ForWorkspace bool    `help:"If set, the token will be for the whole workspace" xor:"for"`
 	Box          *string `help:"Specify box for which to create the token" xor:"for"`

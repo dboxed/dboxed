@@ -13,7 +13,7 @@ import (
 )
 
 type CreateCmd struct {
-	Volume string  `help:"Specify volume" required:"" arg:""`
+	Volume string  `help:"Specify volume" required:""`
 	Box    *string `help:"Specify the box that wants to lock this volume"`
 
 	MountName *string `help:"Override the local mount name. Defaults to the volume UUID"`
