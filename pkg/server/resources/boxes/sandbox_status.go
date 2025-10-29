@@ -19,7 +19,7 @@ func (s *BoxesServer) restGetSandboxStatus(c context.Context, i *huma_utils.IdBy
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -29,12 +29,7 @@ func (s *BoxesServer) restGetSandboxStatus(c context.Context, i *huma_utils.IdBy
 		return nil, err
 	}
 
-	sandboxStatus, err := dmodel.GetSandboxStatus(q, box.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := models.BoxSandboxStatusFromDB(*sandboxStatus)
+	ret := models.BoxSandboxStatusFromDB(*box.SandboxStatus)
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
@@ -42,7 +37,7 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -52,27 +47,22 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 		return nil, err
 	}
 
-	sandboxStatus, err := dmodel.GetSandboxStatus(q, box.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	if i.Body.SandboxStatus != nil {
 		if i.Body.SandboxStatus.RunStatus != nil {
-			err = sandboxStatus.UpdateRunStatus(q, i.Body.SandboxStatus.RunStatus)
+			err = box.SandboxStatus.UpdateRunStatus(q, i.Body.SandboxStatus.RunStatus)
 			if err != nil {
 				return nil, err
 			}
 		}
 		if i.Body.SandboxStatus.StartTime != nil {
-			err = sandboxStatus.UpdateStartTime(q, i.Body.SandboxStatus.StartTime)
+			err = box.SandboxStatus.UpdateStartTime(q, i.Body.SandboxStatus.StartTime)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if i.Body.SandboxStatus.StopTime != nil {
-			err = sandboxStatus.UpdateStopTime(q, i.Body.SandboxStatus.StopTime)
+			err = box.SandboxStatus.UpdateStopTime(q, i.Body.SandboxStatus.StopTime)
 			if err != nil {
 				return nil, err
 			}
@@ -96,7 +86,7 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 			return nil, huma.Error400BadRequest("extracted dockerPs is too large")
 		}
 
-		err = sandboxStatus.UpdateDockerPs(q, i.Body.DockerPs)
+		err = box.SandboxStatus.UpdateDockerPs(q, i.Body.DockerPs)
 		if err != nil {
 			return nil, err
 		}

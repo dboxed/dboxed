@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -26,6 +25,8 @@ type Box struct {
 	DboxedVersion string `json:"dboxedVersion"`
 
 	DesiredState string `json:"desiredState"`
+
+	SandboxStatus *BoxSandboxStatus `json:"sandboxStatus,omitempty"`
 }
 
 type CreateBox struct {
@@ -73,7 +74,7 @@ func BoxSandboxStatusFromDB(s dmodel.BoxSandboxStatus) *BoxSandboxStatus {
 	}
 }
 
-func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
+func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, error) {
 	var networkType *global.NetworkType
 	if s.NetworkType != nil {
 		networkType = util.Ptr(global.NetworkType(*s.NetworkType))
@@ -95,6 +96,10 @@ func BoxFromDB(ctx context.Context, s dmodel.Box) (*Box, error) {
 		DboxedVersion: s.DboxedVersion,
 
 		DesiredState: s.DesiredState,
+	}
+
+	if sandboxStatus != nil {
+		ret.SandboxStatus = BoxSandboxStatusFromDB(*sandboxStatus)
 	}
 
 	return ret, nil

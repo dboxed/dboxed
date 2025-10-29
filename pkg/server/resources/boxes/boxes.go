@@ -88,7 +88,7 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 		return nil, huma.Error400BadRequest(inputErr)
 	}
 
-	ret, err := models.BoxFromDB(c, *box)
+	ret, err := models.BoxFromDB(*box, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -186,16 +186,16 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	w := global.GetWorkspace(c)
 	token := auth.GetToken(c)
 
-	var l []dmodel.Box
+	var l []dmodel.BoxWithSandboxStatus
 	if token != nil && token.BoxID != nil {
-		b, err := dmodel.GetBoxById(q, &w.ID, *token.BoxID, true)
+		b, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, *token.BoxID, true)
 		if err != nil {
 			return nil, err
 		}
 		l = append(l, *b)
 	} else {
 		var err error
-		l, err = dmodel.ListBoxesForWorkspace(q, w.ID, true)
+		l, err = dmodel.ListBoxesWithSandboxStatusForWorkspace(q, w.ID, true)
 		if err != nil {
 			return nil, err
 		}
@@ -203,7 +203,7 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 
 	var ret []models.Box
 	for _, box := range l {
-		mm, err := s.postprocessBox(c, box)
+		mm, err := s.postprocessBox(box.Box, box.SandboxStatus)
 		if err != nil {
 			return nil, err
 		}
@@ -224,13 +224,13 @@ func (s *BoxesServer) checkBoxToken(c context.Context, boxId int64) error {
 	return nil
 }
 
-func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.Box) (*huma_utils.JsonBody[models.Box], error) {
+func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.BoxWithSandboxStatus) (*huma_utils.JsonBody[models.Box], error) {
 	err := s.checkBoxToken(c, box.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	boxm, err := s.postprocessBox(c, *box)
+	boxm, err := s.postprocessBox(box.Box, box.SandboxStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*hu
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxByName(q, w.ID, i.BoxName, true)
+	box, err := dmodel.GetBoxWithSandboxStatusByName(q, w.ID, i.BoxName, true)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (s *BoxesServer) restGetBoxByUuid(c context.Context, i *BoxUuid) (*huma_uti
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxByUuid(q, w.ID, i.BoxUuid, true)
+	box, err := dmodel.GetBoxWithSandboxStatusByUuid(q, w.ID, i.BoxUuid, true)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*
 		return nil, err
 	}
 
-	m, err := s.postprocessBox(c, *box)
+	m, err := s.postprocessBox(*box, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -357,8 +357,8 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *BoxesServer) postprocessBox(c context.Context, box dmodel.Box) (*models.Box, error) {
-	ret, err := models.BoxFromDB(c, box)
+func (s *BoxesServer) postprocessBox(box dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*models.Box, error) {
+	ret, err := models.BoxFromDB(box, sandboxStatus)
 	if err != nil {
 		return nil, err
 	}

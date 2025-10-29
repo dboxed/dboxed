@@ -38,6 +38,16 @@ type BoxSandboxStatus struct {
 	DockerPs []byte `db:"docker_ps"`
 }
 
+type BoxWithSandboxStatus struct {
+	Box
+
+	SandboxStatus *BoxSandboxStatus `db:"sandbox_status" join:"true" join_left_field:"id" join_right_table:"box_sandbox_status" join_right_field:"id"`
+}
+
+func (x *BoxWithSandboxStatus) GetTableName() string {
+	return "box"
+}
+
 type BoxNetbird struct {
 	ID querier2.NullForJoin[int64] `db:"id"`
 
@@ -76,24 +86,32 @@ func GetBoxById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted b
 	})
 }
 
-func GetBoxByName(q *querier2.Querier, workspaceId int64, name string, skipDeleted bool) (*Box, error) {
-	return querier2.GetOne[Box](q, map[string]any{
+func GetBoxWithSandboxStatusById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted bool) (*BoxWithSandboxStatus, error) {
+	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"id":           id,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
+func GetBoxWithSandboxStatusByName(q *querier2.Querier, workspaceId int64, name string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
+	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": workspaceId,
 		"name":         name,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func GetBoxByUuid(q *querier2.Querier, workspaceId int64, uuid string, skipDeleted bool) (*Box, error) {
-	return querier2.GetOne[Box](q, map[string]any{
+func GetBoxWithSandboxStatusByUuid(q *querier2.Querier, workspaceId int64, uuid string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
+	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": workspaceId,
 		"uuid":         uuid,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListBoxesForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]Box, error) {
-	return querier2.GetMany[Box](q, map[string]any{
+func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
+	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
