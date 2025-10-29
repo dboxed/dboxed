@@ -10,7 +10,9 @@ type S3Bucket struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	Workspace int64     `json:"workspace"`
-	Status    string    `json:"status"`
+
+	Status        string `json:"status"`
+	StatusDetails string `json:"statusDetails"`
 
 	Endpoint string `json:"endpoint"`
 	Bucket   string `json:"bucket"`
@@ -32,10 +34,11 @@ type UpdateS3Bucket struct {
 
 func S3BucketFromDB(v dmodel.S3Bucket) S3Bucket {
 	ret := S3Bucket{
-		ID:        v.ID,
-		CreatedAt: v.CreatedAt,
-		Workspace: v.WorkspaceID,
-		Status:    v.ReconcileStatus.ReconcileStatus,
+		ID:            v.ID,
+		CreatedAt:     v.CreatedAt,
+		Workspace:     v.WorkspaceID,
+		Status:        v.ReconcileStatus.ReconcileStatus,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
 
 		Endpoint: v.Endpoint,
 		Bucket:   v.Bucket,

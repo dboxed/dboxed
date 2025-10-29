@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
@@ -13,23 +14,23 @@ import (
 	"github.com/netbirdio/netbird/shared/management/http/api"
 )
 
-func (r *Reconciler) queryNetbirdPeers(ctx context.Context) error {
+func (r *Reconciler) queryNetbirdPeers(ctx context.Context) base.ReconcileResult {
 	l, err := r.netbirdClient.SetupKeys.List(ctx)
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to list Netbird setup keys: %s", err.Error())
 	}
 	r.setupKeysById = map[string]*api.SetupKey{}
 	for _, sk := range l {
 		r.setupKeysById[sk.Id] = &sk
 	}
 	r.usedSetupKeys = map[string]struct{}{}
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) Cleanup(ctx context.Context) error {
-	groups, err := r.groupIds(r.desiredGroups(ctx), true)
-	if err != nil {
-		return err
+func (r *Reconciler) Cleanup(ctx context.Context) base.ReconcileResult {
+	groups, result := r.groupIds(r.desiredGroups(ctx), true)
+	if result.Error != nil {
+		return result
 	}
 	for _, sk := range r.setupKeysById {
 		allFound := true
@@ -44,17 +45,22 @@ func (r *Reconciler) Cleanup(ctx context.Context) error {
 		}
 		if _, ok := r.usedSetupKeys[sk.Id]; !ok {
 			r.log.InfoContext(ctx, "deleting unused netbird setup key", slog.Any("setupKeyId", sk.Id))
-			err = r.netbirdClient.SetupKeys.Delete(ctx, sk.Id)
+			err := r.netbirdClient.SetupKeys.Delete(ctx, sk.Id)
 			if err != nil {
-				return err
+				return base.ErrorWithMessage(err, "failed to delete Netbird setup key %s: %s", sk.Id, err.Error())
 			}
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) ReconcileBox(ctx context.Context, box *dmodel.Box) error {
+func (r *Reconciler) ReconcileBox(ctx context.Context, log *slog.Logger, box *dmodel.Box) {
+	result := r.doReconcileBox(ctx, box)
+	base.SetReconcileResult(ctx, log, box.Netbird, result)
+}
+
+func (r *Reconciler) doReconcileBox(ctx context.Context, box *dmodel.Box) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	config := config.GetConfig(ctx)
 
@@ -73,32 +79,33 @@ func (r *Reconciler) ReconcileBox(ctx context.Context, box *dmodel.Box) error {
 			log.InfoContext(ctx, "netbird setup key vanished, setting to null to force re-creation")
 			err := box.Netbird.UpdateSetupKey(q, nil, nil)
 			if err != nil {
-				return err
+				return base.InternalError(err)
 			}
 		}
 	}
 
 	if box.Netbird.SetupKeyID == nil {
-		autoGroups, err := r.groupIds(r.desiredGroups(ctx), true)
-		if err != nil {
-			return err
+		autoGroups, result := r.groupIds(r.desiredGroups(ctx), true)
+		if result.Error != nil {
+			return result
 		}
 
-		log.InfoContext(ctx, "creating netbird setup key")
+		name := fmt.Sprintf("%s-%s-%s", config.InstanceName, r.n.Name, box.Name)
+		log.InfoContext(ctx, "creating netbird setup key", "name", name)
 		sk, err := r.netbirdClient.SetupKeys.Create(ctx, api.CreateSetupKeyRequest{
 			Ephemeral:  util.Ptr(true),
-			Name:       fmt.Sprintf("%s-%s-%s", config.InstanceName, r.n.Name, box.Name),
+			Name:       name,
 			Type:       "reusable",
 			AutoGroups: autoGroups,
 		})
 		if err != nil {
-			return err
+			return base.ErrorWithMessage(err, "failed to create Netbird setup key %s: %s", name, err.Error())
 		}
 		err = box.Netbird.UpdateSetupKey(q, &sk.Key, &sk.Id)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }

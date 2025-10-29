@@ -5,32 +5,33 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-func (r *Reconciler) reconcileHetznerNetwork(ctx context.Context) error {
+func (r *Reconciler) reconcileHetznerNetwork(ctx context.Context) base.ReconcileResult {
 	q := querier2.GetQuerier(ctx)
 	if r.mp.Hetzner.HetznerNetworkName.V == "" {
-		return fmt.Errorf("unexpected missing hetzner network name")
+		return base.InternalError(fmt.Errorf("unexpected missing hetzner network name"))
 	}
 
 	var err error
 	var hetznerNetwork *hcloud.Network
 	hetznerNetwork, _, err = r.hcloudClient.Network.GetByName(ctx, r.mp.Hetzner.HetznerNetworkName.V)
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to get Hetzner network: %s", err.Error())
 	}
 	if hetznerNetwork == nil {
-		return fmt.Errorf("network '%s' not found", r.mp.Hetzner.HetznerNetworkName.V)
+		return base.ErrorFromMessage("network '%s' not found", r.mp.Hetzner.HetznerNetworkName.V)
 	}
 
 	log := r.log
 
 	if len(hetznerNetwork.Subnets) == 0 {
-		return fmt.Errorf("network '%s' has no subnets", r.mp.Hetzner.HetznerNetworkName.V)
+		return base.ErrorFromMessage("network '%s' has no subnets", r.mp.Hetzner.HetznerNetworkName.V)
 	}
 
 	networkZone := string(hetznerNetwork.Subnets[0].NetworkZone)
@@ -59,9 +60,9 @@ func (r *Reconciler) reconcileHetznerNetwork(ctx context.Context) error {
 		r.mp.Hetzner.Status = &status
 		err = r.mp.Hetzner.Status.UpdateStatus(q)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }

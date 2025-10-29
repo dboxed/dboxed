@@ -50,9 +50,14 @@ func (x *BoxWithSandboxStatus) GetTableName() string {
 
 type BoxNetbird struct {
 	ID querier2.NullForJoin[int64] `db:"id"`
+	ReconcileStatus
 
 	SetupKey   *string `db:"setup_key"`
 	SetupKeyID *string `db:"setup_key_id"`
+}
+
+func (v *BoxNetbird) GetId() int64 {
+	return v.ID.V
 }
 
 type BoxComposeProject struct {

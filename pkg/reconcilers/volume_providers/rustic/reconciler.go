@@ -3,11 +3,11 @@ package rustic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"path"
 	"strings"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/s3utils"
@@ -17,10 +17,10 @@ import (
 type Reconciler struct {
 }
 
-func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider) ([]string, error) {
+func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider) ([]string, base.ReconcileResult) {
 	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
 	if err != nil {
-		return nil, err
+		return nil, base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
 	}
 
 	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
@@ -36,21 +36,21 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 	var ret []string
 	for oi := range ch {
 		if oi.Err != nil {
-			return nil, oi.Err
+			return nil, base.ErrorWithMessage(oi.Err, "failed to list S3 objects for %s: %s", prefix, oi.Err.Error())
 		}
 		id := path.Base(oi.Key)
 		ret = append(ret, id)
 	}
 
-	return ret, nil
+	return ret, base.ReconcileResult{}
 }
 
-func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) error {
+func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) base.ReconcileResult {
 	log.InfoContext(ctx, "deleting rustic snapshot", slog.Any("rsSnapshotId", snapshotId))
 
 	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
 	}
 
 	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
@@ -61,12 +61,12 @@ func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger,
 		var err2 *minio.ErrorResponse
 		if errors.As(err, &err2) {
 			if err2.Code == minio.NoSuchKey {
-				return nil
+				return base.ReconcileResult{}
 			}
 		}
-		return fmt.Errorf("failed to remove snapshot via S3 RemoveObject: %w", err)
+		return base.ErrorWithMessage(err, "failed to remove snapshot via S3 RemoveObject: %s", err.Error())
 	}
-	return nil
+	return base.ReconcileResult{}
 }
 
 func (r *Reconciler) getTagValue(tags []string, tagPrefix string) string {
@@ -79,7 +79,7 @@ func (r *Reconciler) getTagValue(tags []string, tagPrefix string) string {
 	return ""
 }
 
-func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) error {
+func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) base.ReconcileResult {
 	dbSnapshotsByRusticId := map[string]*dmodel.VolumeSnapshot{}
 	for _, s := range dbSnapshots {
 		dbSnapshotsByRusticId[s.Rustic.SnapshotId.V] = s
@@ -89,9 +89,9 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		dbVolumesByUuuid[v.Uuid] = v
 	}
 
-	rsSnapshotIds, err := r.listRusticSnapshotIds(ctx, vp)
-	if err != nil {
-		return fmt.Errorf("failed to list rustic snapshot ids: %w", err)
+	rsSnapshotIds, result := r.listRusticSnapshotIds(ctx, vp)
+	if result.Error != nil {
+		return result
 	}
 	rsSnapshotIdSet := map[string]struct{}{}
 	for _, id := range rsSnapshotIds {
@@ -111,13 +111,13 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		_, ok := rsSnapshotIdSet[s.Rustic.SnapshotId.V]
 		if !ok {
 			log.InfoContext(ctx, "snapshot vanished from rustic, marking for deletion in DB")
-			err = querier.Transaction(ctx, func(ctx context.Context) error {
+			err := querier.Transaction(ctx, func(ctx context.Context) error {
 				q := querier.GetQuerier(ctx)
 				v, ok := dbVolumes[s.VolumedID.V]
 				if ok {
 					if v.LatestSnapshotId != nil && *v.LatestSnapshotId == s.ID {
 						log.InfoContext(ctx, "snapshot was the latest snapshot, resetting latest snapshot field")
-						err = v.UpdateLatestSnapshot(q, nil)
+						err := v.UpdateLatestSnapshot(q, nil)
 						if err != nil {
 							return err
 						}
@@ -130,27 +130,23 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 				return nil
 			})
 			if err != nil {
-				return err
+				return base.InternalError(err)
 			}
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) ReconcileDeleteVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, volumes map[int64]*dmodel.VolumeWithAttachment, snapshots map[int64]*dmodel.VolumeSnapshot) error {
-	return nil
-}
-
-func (r *Reconciler) ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) error {
-	err := r.deleteRusticSnapshot(ctx, log, vp, dbSnapshot.Rustic.SnapshotId.V)
-	if err != nil {
-		return err
+func (r *Reconciler) ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) base.ReconcileResult {
+	result := r.deleteRusticSnapshot(ctx, log, vp, dbSnapshot.Rustic.SnapshotId.V)
+	if result.Error != nil {
+		return result
 	}
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithAttachment) error {
+func (r *Reconciler) ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithAttachment) base.ReconcileResult {
 	// we assume that all snapshots have been deleted already
-	return nil
+	return base.ReconcileResult{}
 }

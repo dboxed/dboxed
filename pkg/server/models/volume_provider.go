@@ -10,7 +10,9 @@ type VolumeProvider struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	Workspace int64     `json:"workspace"`
-	Status    string    `json:"status"`
+
+	Status        string `json:"status"`
+	StatusDetails string `json:"statusDetails"`
 
 	Type dmodel.VolumeProviderType `json:"type"`
 	Name string                    `json:"name"`
@@ -57,12 +59,14 @@ type UpdateRepositoryStorageS3 struct {
 
 func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 	ret := VolumeProvider{
-		ID:        v.ID,
-		CreatedAt: v.CreatedAt,
-		Workspace: v.WorkspaceID,
-		Type:      dmodel.VolumeProviderType(v.Type),
-		Name:      v.Name,
-		Status:    v.ReconcileStatus.ReconcileStatus,
+		ID:            v.ID,
+		CreatedAt:     v.CreatedAt,
+		Workspace:     v.WorkspaceID,
+		Status:        v.ReconcileStatus.ReconcileStatus,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+
+		Type: v.Type,
+		Name: v.Name,
 	}
 	if v.Rustic != nil && v.Rustic.ID.Valid {
 		ret.Rustic = &VolumeProviderRustic{

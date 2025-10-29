@@ -9,27 +9,28 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/cloud_utils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"golang.org/x/crypto/ssh"
 )
 
-func (r *Reconciler) reconcileSshKey(ctx context.Context) error {
+func (r *Reconciler) reconcileSshKey(ctx context.Context) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	if r.mp.SshKeyPublic == nil {
 		if r.mp.HasFinalizer("aws-ssh-key") {
 			return r.deleteSshKeyPair(ctx)
 		}
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	keyName := cloud_utils.BuildAwsSshKeyName(ctx, r.mp.Name, r.mp.ID)
 
 	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(*r.mp.SshKeyPublic))
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to parse SSH public key: %s", err.Error())
 	}
 	fingerprint := ssh.FingerprintSHA256(pk)
 
@@ -41,28 +42,32 @@ func (r *Reconciler) reconcileSshKey(ctx context.Context) error {
 		if errors.As(err, &err2) && err2.Code == "InvalidKeyPair.NotFound" {
 			return r.createSshKeyPair(ctx)
 		} else {
-			return err
+			return base.ErrorFromMessage("failed to get SSH key from AWS: %s", err.Error())
 		}
 	}
 
 	// AWS is using standard encoding while ssh.FingerprintSHA256 uses raw encoding
 	fingerprint2, err := base64.StdEncoding.DecodeString(*resp.KeyPairs[0].KeyFingerprint)
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to decode SSH fingerprint: %s", err.Error())
 	}
 	fingerprint3 := "SHA256:" + base64.RawStdEncoding.EncodeToString(fingerprint2)
 	if fingerprint == fingerprint3 {
-		return dmodel.AddFinalizer(q, r.mp, "aws-ssh-key")
+		err = dmodel.AddFinalizer(q, r.mp, "aws-ssh-key")
+		if err != nil {
+			return base.InternalError(err)
+		}
+		return base.ReconcileResult{}
 	}
 
-	err = r.deleteSshKeyPair(ctx)
-	if err != nil {
-		return err
+	result := r.deleteSshKeyPair(ctx)
+	if result.Error != nil {
+		return result
 	}
 	return r.createSshKeyPair(ctx)
 }
 
-func (r *Reconciler) createSshKeyPair(ctx context.Context) error {
+func (r *Reconciler) createSshKeyPair(ctx context.Context) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	keyName := cloud_utils.BuildAwsSshKeyName(ctx, r.mp.Name, r.mp.ID)
 
@@ -80,13 +85,17 @@ func (r *Reconciler) createSshKeyPair(ctx context.Context) error {
 		},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to import SSH key into AWS: %s", err.Error())
 	}
 
-	return dmodel.AddFinalizer(q, r.mp, "aws-ssh-key")
+	err = dmodel.AddFinalizer(q, r.mp, "aws-ssh-key")
+	if err != nil {
+		return base.InternalError(err)
+	}
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) deleteSshKeyPair(ctx context.Context) error {
+func (r *Reconciler) deleteSshKeyPair(ctx context.Context) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	keyName := cloud_utils.BuildAwsSshKeyName(ctx, r.mp.Name, r.mp.ID)
 
@@ -97,9 +106,13 @@ func (r *Reconciler) deleteSshKeyPair(ctx context.Context) error {
 	if err != nil {
 		var err2 *smithy.GenericAPIError
 		if !errors.As(err, &err2) || err2.Code != "InvalidKeyPair.NotFound" {
-			return err
+			return base.ErrorWithMessage(err, "failed to delete key pair from AWS: %s", err.Error())
 		}
 	}
 
-	return dmodel.RemoveFinalizer(q, r.mp, "aws-ssh-key")
+	err = dmodel.RemoveFinalizer(q, r.mp, "aws-ssh-key")
+	if err != nil {
+		return base.InternalError(err)
+	}
+	return base.ReconcileResult{}
 }

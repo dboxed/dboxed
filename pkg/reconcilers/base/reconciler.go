@@ -2,7 +2,6 @@ package base
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -13,16 +12,13 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-var ErrRetry = errors.New("retry reconciliation")
-
-type ReconcileImpl[T dmodel.HasReconcileStatus] interface {
+type ReconcileImpl[T dmodel.HasReconcileStatusAndSoftDelete] interface {
 	GetItem(ctx context.Context, id int64) (T, error)
 
-	Reconcile(ctx context.Context, v T, log *slog.Logger) error
-	ReconcileDelete(ctx context.Context, v T, log *slog.Logger) error
+	Reconcile(ctx context.Context, v T, log *slog.Logger) ReconcileResult
 }
 
-type Config[T dmodel.HasReconcileStatus] struct {
+type Config[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 	ServerConfig config.Config
 
 	ReconcilerName string
@@ -34,7 +30,7 @@ type Config[T dmodel.HasReconcileStatus] struct {
 	Impl ReconcileImpl[T]
 }
 
-type Reconciler[T dmodel.HasReconcileStatus] struct {
+type Reconciler[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 	config Config[T]
 
 	tableName  string
@@ -50,7 +46,7 @@ type workQueueItem struct {
 	id int64
 }
 
-func NewReconciler[T dmodel.HasReconcileStatus](config Config[T]) *Reconciler[T] {
+func NewReconciler[T dmodel.HasReconcileStatusAndSoftDelete](config Config[T]) *Reconciler[T] {
 	if config.ChangeCheckInterval == 0 {
 		config.ChangeCheckInterval = time.Second * 1
 	}
@@ -166,54 +162,22 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 		return true
 	}
 
-	if v.GetDeletedAt() == nil {
-		err = r.config.Impl.Reconcile(ctx, v, log)
-		if errors.Is(err, ErrRetry) {
-			r.workQueue.Add(item)
-			return true
-		}
-		r.setReconcileStatusErr(ctx, v, err)
+	result := r.config.Impl.Reconcile(ctx, v, log)
+	if result.Retry {
+		r.workQueue.Add(item)
 		return true
-	} else {
-		log = log.With(slog.Any("deletedAt", v.GetDeletedAt()))
-		_ = r.setReconcileStatus(ctx, v, "Deleting", "")
-		err = r.config.Impl.ReconcileDelete(ctx, v, log)
-		if errors.Is(err, ErrRetry) {
-			r.workQueue.Add(item)
-			return true
-		}
-		if err != nil {
-			r.setReconcileStatusErr(ctx, v, err)
-			return true
-		}
+	}
+	SetReconcileResult(ctx, log, v, result)
+
+	if result.Error == nil && v.GetDeletedAt() != nil {
 		if len(v.GetFinalizers()) == 0 {
 			log.InfoContext(ctx, fmt.Sprintf("finally deleting %s", r.tableName))
 			err = querier2.DeleteOneByStruct(q, v)
 			if err != nil {
-				r.setReconcileStatusErr(ctx, v, err)
+				SetReconcileResult(ctx, log, v, InternalError(err))
 			}
 		}
-		return true
 	}
-}
 
-func (r *Reconciler[T]) setReconcileStatusErr(ctx context.Context, v T, err error) {
-	if err != nil {
-		r.log.ErrorContext(ctx, "error in reconcile", slog.Any("error", err))
-
-		err = r.setReconcileStatus(ctx, v, "Error", "Error while reconciling")
-		if err != nil && !querier2.IsSqlNotFoundError(err) {
-			r.log.ErrorContext(ctx, "error in setReconcileStatus", slog.Any("error", err))
-		}
-	} else {
-		err = r.setReconcileStatus(ctx, v, "Ok", "")
-		if err != nil && !querier2.IsSqlNotFoundError(err) {
-			r.log.ErrorContext(ctx, "error in setReconcileStatus", slog.Any("error", err))
-		}
-	}
-}
-
-func (r *Reconciler[T]) setReconcileStatus(ctx context.Context, v T, status string, statusDetails string) error {
-	v.SetReconcileStatus(status, statusDetails)
-	return dmodel.UpdateReconcileStatus(querier2.GetQuerier(ctx), v)
+	return true
 }

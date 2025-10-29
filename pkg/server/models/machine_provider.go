@@ -11,7 +11,9 @@ type MachineProvider struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	Workspace int64     `json:"workspace"`
-	Status    string    `json:"status"`
+
+	Status        string `json:"status"`
+	StatusDetails string `json:"statusDetails"`
 
 	Type string `json:"type"`
 	Name string `json:"name"`
@@ -96,12 +98,14 @@ type UpdateMachineProviderHetzner struct {
 
 func MachineProviderFromDB(v dmodel.MachineProvider) *MachineProvider {
 	return &MachineProvider{
-		ID:        v.ID,
-		Workspace: v.WorkspaceID,
-		CreatedAt: v.CreatedAt,
-		Status:    v.ReconcileStatus.ReconcileStatus,
-		Type:      v.Type,
-		Name:      v.Name,
+		ID:            v.ID,
+		Workspace:     v.WorkspaceID,
+		CreatedAt:     v.CreatedAt,
+		Status:        v.ReconcileStatus.ReconcileStatus,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+
+		Type: v.Type,
+		Name: v.Name,
 	}
 }
 

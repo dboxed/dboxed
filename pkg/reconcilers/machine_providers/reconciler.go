@@ -10,7 +10,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/aws"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/hetzner"
 	"github.com/dboxed/dboxed/pkg/server/config"
-	"github.com/dboxed/dboxed/pkg/server/db/dbutils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -43,7 +42,7 @@ func (r *reconciler) getSubReconciler(mp *dmodel.MachineProvider) (subReconciler
 	}
 }
 
-func (r *reconciler) Reconcile(ctx context.Context, mp *dmodel.MachineProvider, log *slog.Logger) error {
+func (r *reconciler) Reconcile(ctx context.Context, mp *dmodel.MachineProvider, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	log = log.With(
@@ -53,46 +52,27 @@ func (r *reconciler) Reconcile(ctx context.Context, mp *dmodel.MachineProvider, 
 
 	sr, err := r.getSubReconciler(mp)
 	if err != nil {
-		return err
+		return base.ReconcileResult{Error: err}
 	}
 
-	err = sr.ReconcileMachineProvider(ctx, log, mp)
+	result := sr.ReconcileMachineProvider(ctx, log, mp)
+	if result.Error != nil {
+		return result
+	}
+
+	machines, err := dmodel.ListMachinesForMachineProvider(q, mp.ID, false)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	err = dbutils.DoAndFindChanged(ctx, func() ([]dmodel.Machine, error) {
-		return dmodel.ListMachinesForMachineProvider(q, mp.ID, false)
-	}, func(v dmodel.Machine) error {
-		return sr.ReconcileMachine(ctx, &v)
-	})
-	if err != nil {
-		return err
+	for _, m := range machines {
+		sr.ReconcileMachine(ctx, log, &m)
 	}
 
-	return nil
-}
-
-func (r *reconciler) ReconcileDelete(ctx context.Context, mp *dmodel.MachineProvider, log *slog.Logger) error {
-	log = log.With(
-		slog.Any("name", mp.Name),
-		slog.Any("machineProviderType", mp.Type),
-	)
-
-	sr, err := r.getSubReconciler(mp)
-	if err != nil {
-		return err
-	}
-
-	err = sr.ReconcileDeleteMachineProvider(ctx, log, mp)
-	if err != nil {
-		return err
-	}
-	return nil
+	return base.ReconcileResult{}
 }
 
 type subReconciler interface {
-	ReconcileMachineProvider(ctx context.Context, log *slog.Logger, mp *dmodel.MachineProvider) error
-	ReconcileDeleteMachineProvider(ctx context.Context, log *slog.Logger, mp *dmodel.MachineProvider) error
-	ReconcileMachine(ctx context.Context, m *dmodel.Machine) error
+	ReconcileMachineProvider(ctx context.Context, log *slog.Logger, mp *dmodel.MachineProvider) base.ReconcileResult
+	ReconcileMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine)
 }

@@ -25,14 +25,10 @@ func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.Machine, er
 	return dmodel.GetMachineById(querier.GetQuerier(ctx), nil, id, false)
 }
 
-func (r *reconciler) Reconcile(ctx context.Context, m *dmodel.Machine, log *slog.Logger) error {
+func (r *reconciler) Reconcile(ctx context.Context, m *dmodel.Machine, log *slog.Logger) base.ReconcileResult {
 	log = slog.With(
 		slog.Any("name", m.Name),
 	)
 
-	return nil
-}
-
-func (r *reconciler) ReconcileDelete(ctx context.Context, m *dmodel.Machine, log *slog.Logger) error {
-	return nil
+	return base.ReconcileResult{}
 }

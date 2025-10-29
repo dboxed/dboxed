@@ -9,7 +9,11 @@ import (
 type Workspace struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
-	Name      string    `json:"name"`
+
+	Status        string `json:"status"`
+	StatusDetails string `json:"statusDetails"`
+
+	Name string `json:"name"`
 
 	Access []WorkspaceAccess `json:"access"`
 }
@@ -34,9 +38,12 @@ func WorkspaceFromDB(v dmodel.Workspace) Workspace {
 		})
 	}
 	return Workspace{
-		ID:        v.ID,
-		CreatedAt: v.CreatedAt,
-		Name:      v.Name,
-		Access:    access,
+		ID:            v.ID,
+		CreatedAt:     v.CreatedAt,
+		Status:        v.ReconcileStatus.ReconcileStatus,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+
+		Name:   v.Name,
+		Access: access,
 	}
 }

@@ -6,12 +6,17 @@ import (
 
 type MachineAws struct {
 	ID querier2.NullForJoin[int64] `db:"id"`
+	ReconcileStatus
 
 	InstanceType   querier2.NullForJoin[string] `db:"instance_type"`
 	SubnetID       querier2.NullForJoin[string] `db:"subnet_id"`
 	RootVolumeSize querier2.NullForJoin[int64]  `db:"root_volume_size"`
 
 	Status *MachineAwsStatus `join:"true"`
+}
+
+func (v *MachineAws) GetId() int64 {
+	return v.ID.V
 }
 
 type MachineAwsStatus struct {

@@ -9,9 +9,13 @@ import (
 
 type HasReconcileStatus interface {
 	querier2.HasId
-	IsSoftDelete
 	SetReconcileStatus(status string, statusDetails string)
 	GetReconcileStatus() (string, string)
+}
+
+type HasReconcileStatusAndSoftDelete interface {
+	HasReconcileStatus
+	IsSoftDelete
 }
 
 type Times struct {

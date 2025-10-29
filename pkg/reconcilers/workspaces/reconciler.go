@@ -27,19 +27,15 @@ func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.Workspace, 
 	return dmodel.GetWorkspaceById(querier.GetQuerier(ctx), id, false)
 }
 
-func (r *reconciler) Reconcile(ctx context.Context, w *dmodel.Workspace, log *slog.Logger) error {
+func (r *reconciler) Reconcile(ctx context.Context, w *dmodel.Workspace, log *slog.Logger) base.ReconcileResult {
 	log = slog.With(
 		slog.Any("name", w.Name),
 	)
 
-	err := r.reconcileLogQuotas(ctx, w, log)
-	if err != nil {
-		return err
+	result := r.reconcileLogQuotas(ctx, w, log)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
-}
-
-func (r *reconciler) ReconcileDelete(ctx context.Context, w *dmodel.Workspace, log *slog.Logger) error {
-	return nil
+	return base.ReconcileResult{}
 }

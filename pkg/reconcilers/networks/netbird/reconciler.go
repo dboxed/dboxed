@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/netbirdio/netbird/shared/management/client/rest"
 	"github.com/netbirdio/netbird/shared/management/http/api"
 )
@@ -25,67 +27,81 @@ type Reconciler struct {
 	netbirdClient *rest.Client
 }
 
-func (r *Reconciler) reconcileCommon(ctx context.Context, log *slog.Logger, n *dmodel.Network) error {
+func (r *Reconciler) queryNetbirdResources(ctx context.Context) base.ReconcileResult {
+	result := r.queryNetbirdGroups(ctx)
+	if result.Error != nil {
+		return result
+	}
+	result = r.queryNetbirdPolicies(ctx)
+	if result.Error != nil {
+		return result
+	}
+	result = r.queryNetbirdPeers(ctx)
+	if result.Error != nil {
+		return result
+	}
+
+	return base.ReconcileResult{}
+}
+
+func (r *Reconciler) ReconcileNetwork(ctx context.Context, log *slog.Logger, n *dmodel.Network) base.ReconcileResult {
+	q := querier.GetQuerier(ctx)
+
 	r.log = log
 	r.n = n
 
-	err := r.buildNetbirdApiClient()
-	if err != nil {
-		return err
+	r.buildNetbirdApiClient()
+
+	if n.GetDeletedAt() != nil {
+		return r.reconcileDeleteNetwork(ctx)
 	}
 
-	err = r.queryNetbirdGroups(ctx)
-	if err != nil {
-		return err
-	}
-	err = r.queryNetbirdPolicies(ctx)
-	if err != nil {
-		return err
-	}
-	err = r.queryNetbirdPeers(ctx)
-	if err != nil {
-		return err
+	result := r.queryNetbirdResources(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
+	err := dmodel.AddFinalizer(q, n, "netbird-cleanup")
+	if err != nil {
+		return base.InternalError(err)
+	}
+
+	result = r.reconcileNetbirdGroups(ctx)
+	if result.Error != nil {
+		return result
+	}
+
+	result = r.reconcileNetbirdPolicies(ctx, false)
+	if result.Error != nil {
+		return result
+	}
+
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, log *slog.Logger, n *dmodel.Network) error {
-	err := r.reconcileCommon(ctx, log, n)
-	if err != nil {
-		return err
+func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileResult {
+	q := querier.GetQuerier(ctx)
+
+	if !r.n.HasFinalizer("netbird-cleanup") {
+		return base.ReconcileResult{}
 	}
 
-	err = r.reconcileNetbirdGroups(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = r.reconcileNetbirdPolicies(ctx, false)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *Reconciler) ReconcileDelete(ctx context.Context, log *slog.Logger, n *dmodel.Network) error {
-	err := r.reconcileCommon(ctx, log, n)
-	if err != nil {
-		return err
+	result := r.queryNetbirdResources(ctx)
+	if result.Error != nil {
+		return result
 	}
 
 	config := config.GetConfig(ctx)
-	groupIds, err := r.groupIds(r.groupsToDelete(ctx), false)
-	if err != nil {
-		return err
+	groupIds, result := r.groupIds(r.groupsToDelete(ctx), false)
+	if result.Error != nil {
+		return result
 	}
 
 	networkGroupId, ok := r.nbGroupsByName[fmt.Sprintf("%s-network-%d", config.InstanceName, r.n.ID)]
 	if ok {
 		peers, err := r.netbirdClient.Peers.List(ctx)
 		if err != nil {
-			return err
+			return base.ErrorFromMessage("failed to list Netbird peers: %s", err.Error())
 		}
 		for _, p := range peers {
 			if !slices.ContainsFunc(p.Groups, func(g api.GroupMinimum) bool {
@@ -99,13 +115,13 @@ func (r *Reconciler) ReconcileDelete(ctx context.Context, log *slog.Logger, n *d
 			)
 			err = r.netbirdClient.Peers.Delete(ctx, p.Id)
 			if err != nil {
-				return err
+				return base.ErrorFromMessage("failed to delete Netbird peer %s: %s", p.Id, err.Error())
 			}
 		}
 
 		setupKeys, err := r.netbirdClient.SetupKeys.List(ctx)
 		if err != nil {
-			return err
+			return base.ErrorFromMessage("failed to list Netbird setup keys: %s", err.Error())
 		}
 		for _, sk := range setupKeys {
 			if !slices.Contains(sk.AutoGroups, networkGroupId.Id) {
@@ -117,27 +133,31 @@ func (r *Reconciler) ReconcileDelete(ctx context.Context, log *slog.Logger, n *d
 			)
 			err = r.netbirdClient.SetupKeys.Delete(ctx, sk.Id)
 			if err != nil {
-				return err
+				return base.ErrorFromMessage("failed to delete Netbird setup key %s: %s", sk.Id, err.Error())
 			}
 		}
 	}
 
-	err = r.reconcileNetbirdPolicies(ctx, true)
-	if err != nil {
-		return err
+	result = r.reconcileNetbirdPolicies(ctx, true)
+	if result.Error != nil {
+		return result
 	}
 
 	for _, id := range groupIds {
-		err = r.netbirdClient.Groups.Delete(ctx, id)
+		err := r.netbirdClient.Groups.Delete(ctx, id)
 		if err != nil {
-			return err
+			return base.ErrorFromMessage("failed to delete Netbird group %s: %s", id, err.Error())
 		}
 	}
 
-	return nil
+	err := dmodel.RemoveFinalizer(q, r.n, "netbird-cleanup")
+	if err != nil {
+		return base.InternalError(err)
+	}
+
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) buildNetbirdApiClient() error {
+func (r *Reconciler) buildNetbirdApiClient() {
 	r.netbirdClient = rest.NewWithBearerToken(r.n.Netbird.ApiUrl.V, r.n.Netbird.ApiAccessToken.V)
-	return nil
 }

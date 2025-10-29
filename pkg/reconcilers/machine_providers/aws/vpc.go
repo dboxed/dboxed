@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/cloud_utils"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -17,21 +18,21 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (r *Reconciler) reconcileVpc(ctx context.Context) error {
+func (r *Reconciler) reconcileVpc(ctx context.Context) base.ReconcileResult {
 	q := querier2.GetQuerier(ctx)
 
 	if r.mp.Aws.VpcID == nil {
-		return fmt.Errorf("unexpected missing aws vpc id")
+		return base.ErrorFromMessage("unexpected missing aws vpc id")
 	}
 
 	vpcs, err := r.ec2Client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
 		VpcIds: []string{*r.mp.Aws.VpcID},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to descript AWS VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
 	}
 	if len(vpcs.Vpcs) == 0 {
-		return fmt.Errorf("vpc not found")
+		return base.ErrorFromMessage("vpc %s not found", *r.mp.Aws.VpcID)
 	}
 	vpc := vpcs.Vpcs[0]
 
@@ -44,29 +45,29 @@ func (r *Reconciler) reconcileVpc(ctx context.Context) error {
 
 	err = r.mp.Aws.Status.UpdateVpcInfo(q, vpcName, vpc.CidrBlock)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	err = r.reconcileSubnets(ctx)
-	if err != nil {
-		return err
+	result := r.reconcileSubnets(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	err = r.reconcileSecurityGroups(ctx)
-	if err != nil {
-		return err
+	result = r.reconcileSecurityGroups(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) reconcileSubnets(ctx context.Context) error {
+func (r *Reconciler) reconcileSubnets(ctx context.Context) base.ReconcileResult {
 	q := querier2.GetQuerier(ctx)
 	subnets, err := r.ec2Client.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
 		Filters: []types.Filter{{Name: util.Ptr("vpc-id"), Values: []string{*r.mp.Aws.VpcID}}},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to descript AWS subnets for VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
 	}
 	found := map[string]struct{}{}
 	for _, subnet := range subnets.Subnets {
@@ -101,7 +102,7 @@ func (r *Reconciler) reconcileSubnets(ctx context.Context) error {
 
 		err = newDboxedSubnet.CreateOrUpdate(q)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 		r.subnets[*subnet.SubnetId] = newDboxedSubnet
 		found[*subnet.SubnetId] = struct{}{}
@@ -116,16 +117,16 @@ func (r *Reconciler) reconcileSubnets(ctx context.Context) error {
 
 		err = dmodel.DeleteMachineProviderAwsSubnet(q, r.mp.ID, dboxedSubnet.SubnetID.V)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 	}
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) error {
+func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) base.ReconcileResult {
 	q := querier2.GetQuerier(ctx)
 	config := config.GetConfig(ctx)
-	groupName := fmt.Sprintf("%s-nodes-%d", config.InstanceName, r.mp.Aws.ID.V)
+	groupName := fmt.Sprintf("%s-machines-%d", config.InstanceName, r.mp.Aws.ID.V)
 
 	log := r.log.With(slog.Any("securityGroupName", groupName))
 
@@ -136,14 +137,15 @@ func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) error {
 		},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to descript AWS security groups for VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
 	}
 
 	var sg *types.SecurityGroup
 	if resp == nil || len(resp.SecurityGroups) == 0 {
-		sg, err = r.createSecurityGroup(ctx, log, groupName)
-		if err != nil {
-			return err
+		var result base.ReconcileResult
+		sg, result = r.createSecurityGroup(ctx, log, groupName)
+		if result.Error != nil {
+			return result
 		}
 	} else {
 		sg = &resp.SecurityGroups[0]
@@ -154,19 +156,19 @@ func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) error {
 		log.InfoContext(ctx, "updating security group id")
 		err = r.mp.Aws.Status.UpdateSecurityGroupID(q, sg.GroupId)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 	}
 
-	err = r.reconcileSecurityGroupRules(ctx, log, sg)
-	if err != nil {
-		return err
+	result := r.reconcileSecurityGroupRules(ctx, log, sg)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) createSecurityGroup(ctx context.Context, log *slog.Logger, groupName string) (*types.SecurityGroup, error) {
+func (r *Reconciler) createSecurityGroup(ctx context.Context, log *slog.Logger, groupName string) (*types.SecurityGroup, base.ReconcileResult) {
 	var tags []types.Tag
 	for k, v := range cloud_utils.BuildCloudBaseTags(r.mp.Aws.ID.V, r.mp.WorkspaceID) {
 		tags = append(tags, types.Tag{Key: &k, Value: &v})
@@ -182,23 +184,23 @@ func (r *Reconciler) createSecurityGroup(ctx context.Context, log *slog.Logger, 
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, base.ErrorWithMessage(err, "failed to create AWS security group %s: %s", groupName, err.Error())
 	}
 
 	resp2, err := r.ec2Client.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []string{*resp.GroupId},
 	})
 	if err != nil {
-		return nil, err
+		return nil, base.ErrorWithMessage(err, "failed to descript AWS security group %s: %s", groupName, err.Error())
 	}
 	if len(resp2.SecurityGroups) == 0 {
-		return nil, fmt.Errorf("failed to find security group even after creating it")
+		return nil, base.ErrorFromMessage("failed to find security group even after creating it")
 	}
 
-	return &resp2.SecurityGroups[0], nil
+	return &resp2.SecurityGroups[0], base.ReconcileResult{}
 }
 
-func (r *Reconciler) reconcileSecurityGroupRules(ctx context.Context, log *slog.Logger, sg *types.SecurityGroup) error {
+func (r *Reconciler) reconcileSecurityGroupRules(ctx context.Context, log *slog.Logger, sg *types.SecurityGroup) base.ReconcileResult {
 	outPermissions := []types.IpPermission{
 		{
 			IpProtocol:       util.Ptr("-1"),
@@ -236,7 +238,7 @@ func (r *Reconciler) reconcileSecurityGroupRules(ctx context.Context, log *slog.
 	b := reflect.DeepEqual(outPermissions, sg.IpPermissionsEgress)
 
 	if a && b {
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	log.InfoContext(ctx, "updating security group rules")
@@ -247,7 +249,7 @@ func (r *Reconciler) reconcileSecurityGroupRules(ctx context.Context, log *slog.
 			IpPermissions: sg.IpPermissionsEgress,
 		})
 		if err != nil {
-			return err
+			return base.ErrorWithMessage(err, "failed to revoke security group egress: %s", err.Error())
 		}
 	}
 	if len(sg.IpPermissions) != 0 {
@@ -256,7 +258,7 @@ func (r *Reconciler) reconcileSecurityGroupRules(ctx context.Context, log *slog.
 			IpPermissions: sg.IpPermissions,
 		})
 		if err != nil {
-			return err
+			return base.ErrorWithMessage(err, "failed to revoke security group ingress: %s", err.Error())
 		}
 	}
 
@@ -265,22 +267,22 @@ func (r *Reconciler) reconcileSecurityGroupRules(ctx context.Context, log *slog.
 		IpPermissions: outPermissions,
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to authorize security group egress: %s", err.Error())
 	}
 	_, err = r.ec2Client.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId:       sg.GroupId,
 		IpPermissions: inPermissions,
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to authorize security group ingress: %s", err.Error())
 	}
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) deleteSecurityGroup(ctx context.Context) error {
+func (r *Reconciler) deleteSecurityGroup(ctx context.Context) base.ReconcileResult {
 	q := querier2.GetQuerier(ctx)
 	if r.mp.Aws.Status.SecurityGroupID == nil {
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	r.log.InfoContext(ctx, "deleting aws security group", slog.Any("securityGroupId", *r.mp.Aws.Status.SecurityGroupID))
@@ -290,13 +292,13 @@ func (r *Reconciler) deleteSecurityGroup(ctx context.Context) error {
 	if err != nil {
 		var err2 *smithy.GenericAPIError
 		if !errors.As(err, &err2) || err2.Code != "InvalidGroup.NotFound" {
-			return err
+			return base.ErrorWithMessage(err, "failed to delete security group %s: %s", *r.mp.Aws.Status.SecurityGroupID, err.Error())
 		}
 	}
 
 	err = r.mp.Aws.Status.UpdateSecurityGroupID(q, nil)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
-	return nil
+	return base.ReconcileResult{}
 }

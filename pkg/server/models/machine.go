@@ -11,7 +11,9 @@ type Machine struct {
 	ID        int64     `json:"id"`
 	Workspace int64     `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
-	Status    string    `json:"status"`
+
+	Status        string `json:"status"`
+	StatusDetails string `json:"statusDetails"`
 
 	Name string `json:"name"`
 
@@ -48,10 +50,11 @@ type UpdateMachine struct {
 
 func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 	ret := &Machine{
-		ID:        s.ID,
-		Workspace: s.WorkspaceID,
-		CreatedAt: s.CreatedAt,
-		Status:    s.ReconcileStatus.ReconcileStatus,
+		ID:            s.ID,
+		Workspace:     s.WorkspaceID,
+		CreatedAt:     s.CreatedAt,
+		Status:        s.ReconcileStatus.ReconcileStatus,
+		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails,
 
 		Name: s.Name,
 

@@ -44,9 +44,13 @@ alter table machine
 
 create table box_netbird
 (
-    id           bigint not null primary key references box (id) on delete cascade,
-    setup_key_id text,
-    setup_key    text
+    id                       bigint not null primary key references box (id) on delete cascade,
+
+    reconcile_status         text   not null default 'Initializing',
+    reconcile_status_details text   not null default '',
+
+    setup_key_id             text,
+    setup_key                text
 );
 
 create table box_compose_project

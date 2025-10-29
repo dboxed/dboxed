@@ -6,11 +6,16 @@ import (
 
 type MachineHetzner struct {
 	ID querier2.NullForJoin[int64] `db:"id"`
+	ReconcileStatus
 
 	ServerType     querier2.NullForJoin[string] `db:"server_type"`
 	ServerLocation querier2.NullForJoin[string] `db:"server_location"`
 
 	Status *MachineHetznerStatus `join:"true"`
+}
+
+func (v *MachineHetzner) GetId() int64 {
+	return v.ID.V
 }
 
 type MachineHetznerStatus struct {

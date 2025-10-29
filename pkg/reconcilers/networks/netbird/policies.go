@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/util"
 	api2 "github.com/netbirdio/netbird/shared/management/http/api"
@@ -15,7 +16,7 @@ func (r *Reconciler) policyName(ctx context.Context) string {
 	return fmt.Sprintf("%s-network-%d", config.InstanceName, r.n.ID)
 }
 
-func (r *Reconciler) reconcileNetbirdPolicies(ctx context.Context, delete bool) error {
+func (r *Reconciler) reconcileNetbirdPolicies(ctx context.Context, delete bool) base.ReconcileResult {
 	groupName := r.networkGroup(ctx)
 	policyName := r.policyName(ctx)
 
@@ -25,19 +26,19 @@ func (r *Reconciler) reconcileNetbirdPolicies(ctx context.Context, delete bool) 
 			r.log.InfoContext(ctx, "deleting netbird policy", slog.Any("policyName", policyName))
 			err := r.netbirdClient.Policies.Delete(ctx, *ep.Id)
 			if err != nil {
-				return err
+				return base.ErrorFromMessage("failed to delete Netbird policy %s: %s", *ep.Id, err.Error())
 			}
 		}
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	if delete {
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	g, ok := r.nbGroupsByName[groupName]
 	if !ok {
-		return fmt.Errorf("group %s not found", groupName)
+		return base.ErrorFromMessage("group %s not found", groupName)
 	}
 	groupIds := []string{g.Id}
 
@@ -58,9 +59,9 @@ func (r *Reconciler) reconcileNetbirdPolicies(ctx context.Context, delete bool) 
 		},
 	})
 	if err != nil {
-		return err
+		return base.ErrorFromMessage("failed to create Netbird poolicy %s: %s", policyName, err.Error())
 	}
 	r.nbPoliciesByName[policyName] = ep
 
-	return nil
+	return base.ReconcileResult{}
 }

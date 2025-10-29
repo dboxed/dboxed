@@ -25,18 +25,10 @@ func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.Box, error)
 	return dmodel.GetBoxById(querier.GetQuerier(ctx), nil, id, false)
 }
 
-func (r *reconciler) Reconcile(ctx context.Context, box *dmodel.Box, log *slog.Logger) error {
+func (r *reconciler) Reconcile(ctx context.Context, box *dmodel.Box, log *slog.Logger) base.ReconcileResult {
 	log = log.With(
 		slog.Any("name", box.Name),
 	)
 
-	return nil
-}
-
-func (r *reconciler) ReconcileDelete(ctx context.Context, box *dmodel.Box, log *slog.Logger) error {
-	log = log.With(
-		slog.Any("name", box.Name),
-	)
-
-	return nil
+	return base.ReconcileResult{}
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks/netbird"
 	"github.com/dboxed/dboxed/pkg/server/config"
-	"github.com/dboxed/dboxed/pkg/server/db/dbutils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -40,7 +39,7 @@ func (r *networkReconciler) getSubReconciler(ctx context.Context, n *dmodel.Netw
 	}
 }
 
-func (r *networkReconciler) Reconcile(ctx context.Context, n *dmodel.Network, log *slog.Logger) error {
+func (r *networkReconciler) Reconcile(ctx context.Context, n *dmodel.Network, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	log = log.With(
@@ -50,52 +49,37 @@ func (r *networkReconciler) Reconcile(ctx context.Context, n *dmodel.Network, lo
 
 	sr, err := r.getSubReconciler(ctx, n)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	err = sr.Reconcile(ctx, log, n)
+	result := sr.ReconcileNetwork(ctx, log, n)
+	if result.Error != nil {
+		return result
+	}
+
+	if n.GetDeletedAt() != nil {
+		return base.ReconcileResult{}
+	}
+
+	boxes, err := dmodel.ListBoxesForNetwork(q, n.ID, false)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	err = dbutils.DoAndFindChanged(ctx, func() ([]dmodel.Box, error) {
-		return dmodel.ListBoxesForNetwork(q, n.ID, false)
-	}, func(v dmodel.Box) error {
-		return sr.ReconcileBox(ctx, &v)
-	})
-	if err != nil {
-		return err
+	for _, box := range boxes {
+		sr.ReconcileBox(ctx, log, &box)
 	}
 
-	err = sr.Cleanup(ctx)
-	if err != nil {
-		return err
+	result = sr.Cleanup(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
-}
-
-func (r *networkReconciler) ReconcileDelete(ctx context.Context, n *dmodel.Network, log *slog.Logger) error {
-	log = log.With(
-		slog.Any("networkName", n.Name),
-		slog.Any("networkType", n.Type),
-	)
-
-	sr, err := r.getSubReconciler(ctx, n)
-	if err != nil {
-		return err
-	}
-
-	err = sr.ReconcileDelete(ctx, log, n)
-	if err != nil {
-		return err
-	}
-	return nil
+	return result
 }
 
 type subReconciler interface {
-	Reconcile(ctx context.Context, log *slog.Logger, n *dmodel.Network) error
-	ReconcileDelete(ctx context.Context, log *slog.Logger, n *dmodel.Network) error
-	Cleanup(ctx context.Context) error
-	ReconcileBox(ctx context.Context, box *dmodel.Box) error
+	ReconcileNetwork(ctx context.Context, log *slog.Logger, n *dmodel.Network) base.ReconcileResult
+	Cleanup(ctx context.Context) base.ReconcileResult
+	ReconcileBox(ctx context.Context, log *slog.Logger, box *dmodel.Box)
 }

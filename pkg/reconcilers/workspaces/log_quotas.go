@@ -4,26 +4,27 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/jmoiron/sqlx"
 )
 
-func (r *reconciler) reconcileLogQuotas(ctx context.Context, w *dmodel.Workspace, log *slog.Logger) error {
+func (r *reconciler) reconcileLogQuotas(ctx context.Context, w *dmodel.Workspace, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	db := querier.GetDB(ctx)
 
 	wq, err := dmodel.GetWorkspaceQuotaById(q, w.ID)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
 	wu, err := dmodel.QueryWorkspaceLogBytesUsage(q, w.ID)
 	if err != nil {
 		if querier.IsSqlNotFoundError(err) {
-			return nil
+			return base.ReconcileResult{}
 		}
-		return err
+		return base.InternalError(err)
 	}
 
 	querySize := int64(100)
@@ -37,7 +38,7 @@ func (r *reconciler) reconcileLogQuotas(ctx context.Context, w *dmodel.Workspace
 		deleteLineBytes := int64(0)
 		llbs, err := dmodel.QueryLogLineBytes(q, w.ID, querySize)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 		querySize = min(querySize*2, maxQuerySize)
 		for _, llb := range llbs {
@@ -69,7 +70,7 @@ func (r *reconciler) reconcileLogQuotas(ctx context.Context, w *dmodel.Workspace
 				return true, nil
 			})
 			if err != nil {
-				return err
+				return base.InternalError(err)
 			}
 
 			log.InfoContext(ctx, "deleted log lines",
@@ -82,5 +83,5 @@ func (r *reconciler) reconcileLogQuotas(ctx context.Context, w *dmodel.Workspace
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }

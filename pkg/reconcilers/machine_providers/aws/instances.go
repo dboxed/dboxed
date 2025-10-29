@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/userdata"
 	"github.com/dboxed/dboxed/pkg/server/cloud_utils"
 	"github.com/dboxed/dboxed/pkg/server/config"
@@ -16,7 +17,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (r *Reconciler) queryAwsInstances(ctx context.Context) error {
+func (r *Reconciler) queryAwsInstances(ctx context.Context) base.ReconcileResult {
 	r.awsInstancesByID = map[string]*types.Instance{}
 	r.awsInstancesByName = map[string]*types.Instance{}
 	l, err := cloud_utils.AwsAllHelper(&ec2.DescribeInstancesInput{
@@ -35,7 +36,7 @@ func (r *Reconciler) queryAwsInstances(ctx context.Context) error {
 		return o.Reservations, o.NextToken, nil
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to describe AWS instances: %s", err.Error())
 	}
 	for _, reservation := range l {
 		for _, instance := range reservation.Instances {
@@ -47,53 +48,58 @@ func (r *Reconciler) queryAwsInstances(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) ReconcileMachine(ctx context.Context, m *dmodel.Machine) error {
+func (r *Reconciler) ReconcileMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine) {
+	result := r.doReconcileMachine(ctx, m)
+	base.SetReconcileResult(ctx, log, m.Aws, result)
+}
+
+func (r *Reconciler) doReconcileMachine(ctx context.Context, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	log := r.log.With(slog.Any("awsInstanceType", m.Aws.InstanceType))
 	if m.Aws.Status.InstanceID != nil {
 		log = log.With(slog.Any("awsInstanceId", m.Aws.Status.InstanceID))
 	}
 
-	if m.DeletedAt.Valid {
+	if m.GetDeletedAt() != nil {
 		return r.reconcileDeleteAwsInstance(ctx, log, m)
 	}
 
 	if r.mp.Aws.Status.SecurityGroupID == nil {
-		return fmt.Errorf("aws machine provider has no security group")
+		return base.ErrorFromMessage("aws machine provider has no security group")
 	}
 
 	err := dmodel.AddFinalizer(q, m, "aws-machine")
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
 	if m.Aws.Status.InstanceID == nil {
-		err := r.createAwsInstance(ctx, log, m)
-		if err != nil {
-			return err
+		result := r.createAwsInstance(ctx, log, m)
+		if result.Error != nil {
+			return result
 		}
 	}
 
-	err = r.updateAwsInstance(ctx, log, m)
-	if err != nil {
-		return err
+	result := r.updateAwsInstance(ctx, log, m)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) reconcileDeleteAwsInstance(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+func (r *Reconciler) reconcileDeleteAwsInstance(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	if m.Aws.Status.InstanceID == nil {
 		err := dmodel.RemoveFinalizer(q, m, "aws-machine")
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	instance, ok := r.awsInstancesByID[*m.Aws.Status.InstanceID]
@@ -101,9 +107,9 @@ func (r *Reconciler) reconcileDeleteAwsInstance(ctx context.Context, log *slog.L
 		log.InfoContext(ctx, "aws instance vanished")
 		err := dmodel.RemoveFinalizer(q, m, "aws-machine")
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
-		return nil
+		return base.ReconcileResult{}
 	}
 
 	log.InfoContext(ctx, "deleting aws instance")
@@ -111,12 +117,12 @@ func (r *Reconciler) reconcileDeleteAwsInstance(ctx context.Context, log *slog.L
 		InstanceIds: []string{*m.Aws.Status.InstanceID},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to terminate AWS instance %s: %s", *m.Aws.Status.InstanceID, err.Error())
 	}
 
 	err = m.Aws.Status.UpdateInstanceID(q, nil)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
 	name := cloud_utils.AwsGetNameFromTags(instance.Tags)
@@ -127,13 +133,13 @@ func (r *Reconciler) reconcileDeleteAwsInstance(ctx context.Context, log *slog.L
 
 	err = dmodel.RemoveFinalizer(q, m, "aws-machine")
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	config := config.GetConfig(ctx)
 
@@ -144,21 +150,21 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 
 	box, err := dmodel.GetBoxById(q, nil, m.BoxID, true)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 	ud := userdata.GetUserdata(
 		box.DboxedVersion,
 		"dummy",
 	)
 
-	image, err := r.selectAwsImage(ctx, *m)
-	if err != nil {
-		return err
+	image, result := r.selectAwsImage(ctx, *m)
+	if result.Error != nil {
+		return result
 	}
 
 	bdm, err := util.CopyViaJson(image.BlockDeviceMappings)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 	bdm[0].Ebs.VolumeSize = util.Ptr(int32(m.Aws.RootVolumeSize.V))
 
@@ -201,7 +207,7 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 		},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to run AWS instance: %s", err.Error())
 	}
 	instance := resp.Instances[0]
 
@@ -213,13 +219,13 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 
 	err = m.Aws.Status.UpdateInstanceID(q, instance.InstanceId)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) updateAwsInstance(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+func (r *Reconciler) updateAwsInstance(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	removeInstanceId := false
 	instance, ok := r.awsInstancesByID[*m.Aws.Status.InstanceID]
@@ -234,9 +240,9 @@ func (r *Reconciler) updateAwsInstance(ctx context.Context, log *slog.Logger, m 
 	if removeInstanceId {
 		err := m.Aws.Status.UpdateInstanceID(q, nil)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }

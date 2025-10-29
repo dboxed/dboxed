@@ -11,7 +11,9 @@ type Network struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	Workspace int64     `json:"workspace"`
-	Status    string    `json:"status"`
+
+	Status        string `json:"status"`
+	StatusDetails string `json:"statusDetails"`
 
 	Type global.NetworkType `json:"type"`
 	Name string             `json:"name"`
@@ -48,12 +50,14 @@ type UpdateNetworkNetbird struct {
 
 func NetworkFromDB(v dmodel.Network) *Network {
 	return &Network{
-		ID:        v.ID,
-		CreatedAt: v.CreatedAt,
-		Workspace: v.WorkspaceID,
-		Type:      global.NetworkType(v.Type),
-		Name:      v.Name,
-		Status:    v.ReconcileStatus.ReconcileStatus,
+		ID:            v.ID,
+		CreatedAt:     v.CreatedAt,
+		Workspace:     v.WorkspaceID,
+		Status:        v.ReconcileStatus.ReconcileStatus,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+
+		Type: global.NetworkType(v.Type),
+		Name: v.Name,
 	}
 }
 

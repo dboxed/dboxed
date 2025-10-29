@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/userdata"
 	"github.com/dboxed/dboxed/pkg/server/cloud_utils"
 	"github.com/dboxed/dboxed/pkg/server/config"
@@ -14,14 +15,14 @@ import (
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
-func (r *Reconciler) queryHetznerMachines(ctx context.Context) error {
+func (r *Reconciler) queryHetznerServers(ctx context.Context) base.ReconcileResult {
 	hetznerServers, err := r.hcloudClient.Server.AllWithOpts(ctx, hcloud.ServerListOpts{
 		ListOpts: hcloud.ListOpts{
 			LabelSelector: fmt.Sprintf("%s=%d", cloud_utils.MachineProviderIdTagName, r.mp.ID),
 		},
 	})
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to query Hetzner servers: %s", err.Error())
 	}
 	r.hetznerServersById = map[int64]*hcloud.Server{}
 	r.hetznerServersByName = map[string]*hcloud.Server{}
@@ -30,10 +31,15 @@ func (r *Reconciler) queryHetznerMachines(ctx context.Context) error {
 		r.hetznerServersByName[s.Name] = s
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) ReconcileMachine(ctx context.Context, m *dmodel.Machine) error {
+func (r *Reconciler) ReconcileMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine) {
+	result := r.doReconcileMachine(ctx, m)
+	base.SetReconcileResult(ctx, log, m.Hetzner, result)
+}
+
+func (r *Reconciler) doReconcileMachine(ctx context.Context, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	log := r.log.With(slog.Any("machined", m.ID))
 	if m.Hetzner.Status.ServerID != nil {
@@ -46,7 +52,7 @@ func (r *Reconciler) ReconcileMachine(ctx context.Context, m *dmodel.Machine) er
 
 	err := dmodel.AddFinalizer(q, m, "hetzner-machine")
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
 	if m.Hetzner.Status.ServerID == nil {
@@ -55,39 +61,34 @@ func (r *Reconciler) ReconcileMachine(ctx context.Context, m *dmodel.Machine) er
 		if ok {
 			err = m.Hetzner.Status.UpdateServerID(q, &server.ID)
 			if err != nil {
-				return err
+				return base.InternalError(err)
 			}
 		} else {
-			err := r.createHetznerServer(ctx, log, m)
-			if err != nil {
-				return err
+			result := r.createHetznerServer(ctx, log, m)
+			if result.Error != nil {
+				return result
 			}
 		}
 	}
 
-	err = r.updateHetznerServer(ctx, log, m)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.updateHetznerServer(ctx, log, m)
 }
 
-func (r *Reconciler) reconcileDeleteHetznerMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+func (r *Reconciler) reconcileDeleteHetznerMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	if m.Hetzner.Status.ServerID == nil {
 		err := dmodel.RemoveFinalizer(q, m, "hetzner-machine")
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
-		return nil
+		return base.ReconcileResult{}
 	}
 	server, ok := r.hetznerServersById[*m.Hetzner.Status.ServerID]
 	if !ok {
 		log.InfoContext(ctx, "hetzner server already vanished")
 		err := dmodel.RemoveFinalizer(q, m, "hetzner-machine")
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
 	} else {
 		log.InfoContext(ctx, "deleting hetzner server")
@@ -95,7 +96,7 @@ func (r *Reconciler) reconcileDeleteHetznerMachine(ctx context.Context, log *slo
 			ID: *m.Hetzner.Status.ServerID,
 		})
 		if err != nil && !hcloud.IsError(err, hcloud.ErrorCodeNotFound) {
-			return err
+			return base.ErrorWithMessage(err, "failed to delete Hetzner server: %s", err.Error())
 		}
 
 		delete(r.hetznerServersById, server.ID)
@@ -105,15 +106,15 @@ func (r *Reconciler) reconcileDeleteHetznerMachine(ctx context.Context, log *slo
 	var err error
 	err = m.Hetzner.Status.UpdateServerID(q, nil)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
 	err = dmodel.RemoveFinalizer(q, m, "hetzner-machine")
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
 func (r *Reconciler) buildHetznerServerName(ctx context.Context, m *dmodel.Machine) string {
@@ -121,7 +122,7 @@ func (r *Reconciler) buildHetznerServerName(ctx context.Context, m *dmodel.Machi
 	return fmt.Sprintf("%s-%s-%d", config.InstanceName, m.Name, m.ID)
 }
 
-func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	image := "ubuntu-24.04"
@@ -158,7 +159,7 @@ func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, 
 	}
 	createResult, _, err := r.hcloudClient.Server.Create(ctx, createOpts)
 	if err != nil {
-		return err
+		return base.ErrorWithMessage(err, "failed to create Hetzner server: %s", err.Error())
 	}
 
 	r.hetznerServersById[createResult.Server.ID] = createResult.Server
@@ -166,13 +167,13 @@ func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, 
 
 	err = m.Hetzner.Status.UpdateServerID(q, &createResult.Server.ID)
 	if err != nil {
-		return err
+		return base.InternalError(err)
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) updateHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) error {
+func (r *Reconciler) updateHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	_, ok := r.hetznerServersById[*m.Hetzner.Status.ServerID]
 	if !ok {
@@ -180,10 +181,10 @@ func (r *Reconciler) updateHetznerServer(ctx context.Context, log *slog.Logger, 
 		var err error
 		err = m.Hetzner.Status.UpdateServerID(q, nil)
 		if err != nil {
-			return err
+			return base.InternalError(err)
 		}
-		return nil
+		return base.ReconcileResult{}
 	}
 
-	return nil
+	return base.ReconcileResult{}
 }

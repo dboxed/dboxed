@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -35,35 +36,26 @@ func (r *Reconciler) reconcileCommon(ctx context.Context, log *slog.Logger, mp *
 
 	return nil
 }
-func (r *Reconciler) ReconcileMachineProvider(ctx context.Context, log *slog.Logger, mp *dmodel.MachineProvider) error {
+func (r *Reconciler) ReconcileMachineProvider(ctx context.Context, log *slog.Logger, mp *dmodel.MachineProvider) base.ReconcileResult {
 	err := r.reconcileCommon(ctx, log, mp)
 	if err != nil {
-		return err
+		return base.ReconcileResult{Error: err}
 	}
 
-	err = r.reconcileSshKey(ctx)
-	if err != nil {
-		return err
+	result := r.reconcileSshKey(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	err = r.reconcileHetznerNetwork(ctx)
-	if err != nil {
-		return err
+	result = r.reconcileHetznerNetwork(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	err = r.queryHetznerMachines(ctx)
-	if err != nil {
-		return err
+	result = r.queryHetznerServers(ctx)
+	if result.Error != nil {
+		return result
 	}
 
-	return nil
-}
-
-func (r *Reconciler) ReconcileDeleteMachineProvider(ctx context.Context, log *slog.Logger, mp *dmodel.MachineProvider) error {
-	err := r.reconcileCommon(ctx, log, mp)
-	if err != nil {
-		return err
-	}
-	// nothing to do for now
-	return nil
+	return base.ReconcileResult{}
 }

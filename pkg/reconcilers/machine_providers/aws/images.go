@@ -2,20 +2,20 @@ package aws
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sort"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/util"
-	"golang.org/x/sync/errgroup"
 )
 
-func (r *Reconciler) describeAwsInstanceTypes(ctx context.Context) ([]types.InstanceTypeInfo, error) {
+func (r *Reconciler) describeAwsInstanceTypes(ctx context.Context) ([]types.InstanceTypeInfo, base.ReconcileResult) {
 	if r.awsInstanceTypes != nil {
-		return r.awsInstanceTypes, nil
+		return r.awsInstanceTypes, base.ReconcileResult{}
 	}
 
 	var nextToken *string
@@ -24,7 +24,7 @@ func (r *Reconciler) describeAwsInstanceTypes(ctx context.Context) ([]types.Inst
 			NextToken: nextToken,
 		})
 		if err != nil {
-			return nil, err
+			return nil, base.ErrorWithMessage(err, "failed to describe instance types: %s", err.Error())
 		}
 		r.awsInstanceTypes = append(r.awsInstanceTypes, resp.InstanceTypes...)
 		nextToken = resp.NextToken
@@ -32,12 +32,12 @@ func (r *Reconciler) describeAwsInstanceTypes(ctx context.Context) ([]types.Inst
 			break
 		}
 	}
-	return r.awsInstanceTypes, nil
+	return r.awsInstanceTypes, base.ReconcileResult{}
 }
 
-func (r *Reconciler) describeAwsImages(ctx context.Context) ([]types.Image, error) {
+func (r *Reconciler) describeAwsImages(ctx context.Context) ([]types.Image, base.ReconcileResult) {
 	if r.awsImages != nil {
-		return r.awsImages, nil
+		return r.awsImages, base.ReconcileResult{}
 	}
 
 	var nextToken *string
@@ -56,7 +56,7 @@ func (r *Reconciler) describeAwsImages(ctx context.Context) ([]types.Image, erro
 			NextToken: nextToken,
 		})
 		if err != nil {
-			return nil, err
+			return nil, base.ErrorWithMessage(err, "failed to describe images: %s", err.Error())
 		}
 		r.awsImages = append(r.awsImages, resp.Images...)
 		nextToken = resp.NextToken
@@ -64,28 +64,32 @@ func (r *Reconciler) describeAwsImages(ctx context.Context) ([]types.Image, erro
 			break
 		}
 	}
-	return r.awsImages, nil
+	return r.awsImages, base.ReconcileResult{}
 }
 
-func (r *Reconciler) selectAwsImage(ctx context.Context, m dmodel.Machine) (*types.Image, error) {
-	var errGrp errgroup.Group
+func (r *Reconciler) selectAwsImage(ctx context.Context, m dmodel.Machine) (*types.Image, base.ReconcileResult) {
+	var wg sync.WaitGroup
 
 	var instanceTypes []types.InstanceTypeInfo
 	var images []types.Image
 
-	errGrp.Go(func() error {
-		var err error
-		instanceTypes, err = r.describeAwsInstanceTypes(ctx)
-		return err
-	})
-	errGrp.Go(func() error {
-		var err error
-		images, err = r.describeAwsImages(ctx)
-		return err
-	})
-	err := errGrp.Wait()
-	if err != nil {
-		return nil, err
+	var result1, result2 base.ReconcileResult
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		instanceTypes, result1 = r.describeAwsInstanceTypes(ctx)
+	}()
+	go func() {
+		defer wg.Done()
+		images, result2 = r.describeAwsImages(ctx)
+	}()
+	wg.Wait()
+
+	if result1.Error != nil {
+		return nil, result1
+	} else if result2.Error != nil {
+		return nil, result2
 	}
 
 	var instanceType *types.InstanceTypeInfo
@@ -96,7 +100,7 @@ func (r *Reconciler) selectAwsImage(ctx context.Context, m dmodel.Machine) (*typ
 		}
 	}
 	if instanceType == nil {
-		return nil, fmt.Errorf("instance type %s not found", m.Aws.InstanceType.V)
+		return nil, base.ErrorFromMessage("instance type %s not found", m.Aws.InstanceType.V)
 	}
 
 	var filteredImages []types.Image
@@ -113,5 +117,5 @@ func (r *Reconciler) selectAwsImage(ctx context.Context, m dmodel.Machine) (*typ
 		return *i1.Name < *i2.Name
 	})
 
-	return &filteredImages[len(filteredImages)-1], nil
+	return &filteredImages[len(filteredImages)-1], base.ReconcileResult{}
 }
