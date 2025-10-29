@@ -13,10 +13,11 @@ type ListCmd struct {
 }
 
 type PrintS3Bucket struct {
-	ID       int64  `col:"Id"`
-	Endpoint string `col:"Endpoint"`
-	Bucket   string `col:"Bucket"`
-	Status   string `col:"Status"`
+	ID            int64  `col:"Id"`
+	Endpoint      string `col:"Endpoint"`
+	Bucket        string `col:"Bucket"`
+	Status        string `col:"Status"`
+	StatusDetails string `col:"Status Detail"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -37,10 +38,11 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintS3Bucket
 	for _, s := range s3Buckets {
 		p := PrintS3Bucket{
-			ID:       s.ID,
-			Endpoint: s.Endpoint,
-			Bucket:   s.Bucket,
-			Status:   s.Status,
+			ID:            s.ID,
+			Endpoint:      s.Endpoint,
+			Bucket:        s.Bucket,
+			Status:        s.Status,
+			StatusDetails: s.StatusDetails,
 		}
 
 		table = append(table, p)

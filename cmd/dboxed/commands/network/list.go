@@ -12,10 +12,11 @@ import (
 type ListCmd struct{}
 
 type PrintNetwork struct {
-	ID     int64  `col:"Id"`
-	Name   string `col:"Name"`
-	Type   string `col:"Type"`
-	Status string `col:"Status"`
+	ID            int64  `col:"Id"`
+	Name          string `col:"Name"`
+	Type          string `col:"Type"`
+	Status        string `col:"Status"`
+	StatusDetails string `col:"Status Detail"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -36,10 +37,11 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintNetwork
 	for _, n := range networks {
 		table = append(table, PrintNetwork{
-			ID:     n.ID,
-			Name:   n.Name,
-			Status: n.Status,
-			Type:   string(n.Type),
+			ID:            n.ID,
+			Name:          n.Name,
+			Status:        n.Status,
+			StatusDetails: n.StatusDetails,
+			Type:          string(n.Type),
 		})
 	}
 

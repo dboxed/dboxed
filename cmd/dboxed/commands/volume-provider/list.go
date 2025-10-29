@@ -18,6 +18,7 @@ type PrintVolumeProvider struct {
 	Name          string `col:"Name"`
 	Type          string `col:"Type"`
 	Status        string `col:"Status"`
+	StatusDetails string `col:"Status Detail"`
 	Storage       string `col:"Storage"`
 	StoragePrefix string `col:"Storage Prefix"`
 }
@@ -60,6 +61,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			Name:          r.Name,
 			Type:          string(r.Type),
 			Status:        r.Status,
+			StatusDetails: r.StatusDetails,
 			Storage:       storage,
 			StoragePrefix: storagePrefix,
 		})

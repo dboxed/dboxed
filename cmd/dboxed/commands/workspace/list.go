@@ -13,8 +13,10 @@ type ListCmd struct {
 }
 
 type PrintWorkspace struct {
-	ID   int64  `col:"ID"`
-	Name string `col:"Name"`
+	ID            int64  `col:"ID"`
+	Name          string `col:"Name"`
+	Status        string `col:"Status"`
+	StatusDetails string `col:"Status Detail"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -42,8 +44,10 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			name += " (current)"
 		}
 		table = append(table, PrintWorkspace{
-			ID:   w.ID,
-			Name: name,
+			ID:            w.ID,
+			Name:          name,
+			Status:        w.Status,
+			StatusDetails: w.StatusDetails,
 		})
 	}
 
