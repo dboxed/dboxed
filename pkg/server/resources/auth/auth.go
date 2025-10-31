@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
-	"slices"
 	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -144,19 +143,16 @@ func (s *AuthHandler) buildUserFromIDToken(ctx context.Context, idToken *oidc.ID
 		return nil, err
 	}
 
-	isAdmin := false
-	if slices.Contains(cfg.Auth.AdminUsers, sub) {
-		isAdmin = true
-	}
-
-	return &models.User{
+	u := &models.User{
 		ID:       sub,
 		Username: *username,
 		EMail:    email,
 		FullName: name,
 		Avatar:   avatar,
-		IsAdmin:  isAdmin,
-	}, nil
+	}
+	u.IsAdmin = IsAdminUser(ctx, u)
+
+	return u, nil
 }
 
 func (s *AuthHandler) AuthMiddleware(ctx huma.Context, next func(huma.Context)) {
@@ -258,7 +254,9 @@ func (s *AuthHandler) updateDBUser(ctx huma.Context, user *models.User) error {
 		}
 		needUpdate = true
 	} else {
-		needUpdate = !reflect.DeepEqual(models.UserFromDB(*dbUser, user.IsAdmin), *user)
+		um := models.UserFromDB(*dbUser)
+		um.IsAdmin = IsAdminUser(ctx.Context(), &um)
+		needUpdate = !reflect.DeepEqual(um, *user)
 	}
 	if !needUpdate {
 		return nil

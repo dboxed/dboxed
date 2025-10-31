@@ -34,7 +34,7 @@ func WorkspaceFromDB(v dmodel.Workspace) Workspace {
 	var access []WorkspaceAccess
 	for _, a := range v.Access {
 		access = append(access, WorkspaceAccess{
-			User: UserFromDB(a.User, false),
+			User: UserFromDB(a.User),
 		})
 	}
 	return Workspace{

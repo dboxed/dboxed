@@ -20,8 +20,11 @@ type Config struct {
 
 type AuthConfig struct {
 	Oidc *AuthOidcConfig `json:"oidc"`
+}
 
-	AdminUsers []string `json:"adminUsers"`
+type AdminUser struct {
+	ID       *string `json:"id,omitempty"`
+	Username *string `json:"username,omitempty"`
 }
 
 type AuthOidcConfig struct {
@@ -31,6 +34,8 @@ type AuthOidcConfig struct {
 	UsernameClaim string `json:"usernameClaim"`
 	EMailClaim    string `json:"emailClaim"`
 	FullNameClaim string `json:"fullNameClaim"`
+
+	AdminUsers []AdminUser `json:"adminUsers"`
 }
 
 type DbConfig struct {

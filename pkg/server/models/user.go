@@ -14,13 +14,12 @@ type User struct {
 	IsAdmin bool `json:"isAdmin,omitempty"`
 }
 
-func UserFromDB(v dmodel.User, isAdmin bool) User {
+func UserFromDB(v dmodel.User) User {
 	return User{
 		ID:       v.ID,
 		Username: v.Username,
 		EMail:    v.EMail,
 		FullName: v.FullName,
 		Avatar:   v.Avatar,
-		IsAdmin:  isAdmin,
 	}
 }
