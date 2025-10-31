@@ -73,7 +73,7 @@ func (s *DboxedServer) InitHuma() error {
 	huma_utils.SetupTxMiddlewares(s.ginEngine, s.api)
 	huma_utils.InitHumaErrorOverride()
 
-	err := huma_utils.InitHumaDocs(s.ginEngine, s.config.Auth.OidcClientId)
+	err := huma_utils.InitHumaDocs(s.ginEngine, s.authInfo.OidcClientId)
 	if err != nil {
 		return err
 	}

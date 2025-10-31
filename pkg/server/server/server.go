@@ -8,6 +8,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
+	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes"
 	"github.com/dboxed/dboxed/pkg/server/resources/healthz"
@@ -29,6 +30,7 @@ import (
 type DboxedServer struct {
 	config config.Config
 
+	authInfo     *models.AuthInfo
 	oidcProvider *oidc.Provider
 
 	ginEngine  *gin.Engine
@@ -55,16 +57,15 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 		config: config,
 	}
 
-	var err error
-	if config.Auth.OidcIssuerUrl != "" {
-		s.oidcProvider, err = oidc.NewProvider(ctx, config.Auth.OidcIssuerUrl)
-		if err != nil {
-			return nil, err
-		}
+	authInfo, oidcProvider, err := auth.BuildAuthProvider(ctx, config)
+	if err != nil {
+		return nil, err
 	}
+	s.authInfo = authInfo
+	s.oidcProvider = oidcProvider
 
 	s.healthz = healthz.New(config)
-	s.auth = auth.NewAuthHandler(config)
+	s.auth = auth.NewAuthHandler(*authInfo, oidcProvider)
 	s.users = users.New()
 	s.tokens = tokens.New()
 	s.workspaces = workspaces.New()

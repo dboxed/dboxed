@@ -24,16 +24,16 @@ import (
 const TokenPrefix = "dt_"
 
 type AuthHandler struct {
-	config config.Config
-	api    huma.API
+	api huma.API
 
-	oidcProvider       *oidc.Provider
-	oidcProviderClaims map[string]any
+	authInfo     models.AuthInfo
+	oidcProvider *oidc.Provider
 }
 
-func NewAuthHandler(config config.Config) *AuthHandler {
+func NewAuthHandler(authInfo models.AuthInfo, oidcProvider *oidc.Provider) *AuthHandler {
 	h := &AuthHandler{
-		config: config,
+		authInfo:     authInfo,
+		oidcProvider: oidcProvider,
 	}
 
 	return h
@@ -41,21 +41,6 @@ func NewAuthHandler(config config.Config) *AuthHandler {
 
 func (s *AuthHandler) Init(ctx context.Context, api huma.API) error {
 	s.api = api
-
-	if s.config.Auth.OidcIssuerUrl == "" {
-		return fmt.Errorf("missing oidc issuer url")
-	}
-
-	provider, err := oidc.NewProvider(ctx, s.config.Auth.OidcIssuerUrl)
-	if err != nil {
-		return err
-	}
-	s.oidcProvider = provider
-
-	err = provider.Claims(&s.oidcProviderClaims)
-	if err != nil {
-		return err
-	}
 
 	huma.Get(s.api, "/v1/auth/current-user", s.restCurrentUser)
 	huma.Get(s.api, "/v1/auth/current-token", s.restCurrentToken,
@@ -68,11 +53,7 @@ func (s *AuthHandler) Init(ctx context.Context, api huma.API) error {
 }
 
 func (s *AuthHandler) restInfo(ctx context.Context, input *struct{}) (*huma_utils.JsonBody[models.AuthInfo], error) {
-	ret := models.AuthInfo{
-		OidcIssuerUrl: s.config.Auth.OidcIssuerUrl,
-		OidcClientId:  s.config.Auth.OidcClientId,
-	}
-	return huma_utils.NewJsonBody(ret), nil
+	return huma_utils.NewJsonBody(s.authInfo), nil
 }
 
 func (s *AuthHandler) restCurrentUser(ctx context.Context, input *struct{}) (*huma_utils.JsonBody[models.User], error) {
@@ -96,7 +77,7 @@ func (s *AuthHandler) restCurrentToken(ctx context.Context, input *struct{}) (*h
 // verifyIDToken verifies that an *oauth2.Token is a valid *oidc.IDToken.
 func (s *AuthHandler) verifyIDToken(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
 	oidcConfig := &oidc.Config{
-		ClientID: s.config.Auth.OidcClientId,
+		ClientID: s.authInfo.OidcClientId,
 	}
 
 	return s.oidcProvider.Verifier(oidcConfig).Verify(ctx, rawIDToken)
@@ -118,7 +99,9 @@ func getClaimValue[T any](m jwt.MapClaims, n string, missingOk bool) (T, error) 
 	return v, nil
 }
 
-func (s *AuthHandler) buildUserFromIDToken(idToken *oidc.IDToken) (*models.User, error) {
+func (s *AuthHandler) buildUserFromIDToken(ctx context.Context, idToken *oidc.IDToken) (*models.User, error) {
+	cfg := config.GetConfig(ctx)
+
 	var claims jwt.MapClaims
 	err := idToken.Claims(&claims)
 	if err != nil {
@@ -144,7 +127,7 @@ func (s *AuthHandler) buildUserFromIDToken(idToken *oidc.IDToken) (*models.User,
 	}
 
 	isAdmin := false
-	if slices.Contains(s.config.Auth.AdminUsers, sub) {
+	if slices.Contains(cfg.Auth.AdminUsers, sub) {
 		isAdmin = true
 	}
 
@@ -230,7 +213,7 @@ func (s *AuthHandler) checkIdToken(ctx huma.Context, authz string) (*models.User
 	if err != nil {
 		return nil, err
 	}
-	user, err := s.buildUserFromIDToken(idToken)
+	user, err := s.buildUserFromIDToken(ctx.Context(), idToken)
 	if err != nil {
 		return nil, err
 	}

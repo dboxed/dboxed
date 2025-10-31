@@ -19,10 +19,14 @@ type Config struct {
 }
 
 type AuthConfig struct {
-	OidcIssuerUrl string `json:"oidcIssuerUrl"`
-	OidcClientId  string `json:"oidcClientId"`
+	Oidc *AuthOidcConfig `json:"oidc"`
 
 	AdminUsers []string `json:"adminUsers"`
+}
+
+type AuthOidcConfig struct {
+	IssuerUrl string `json:"issuerUrl"`
+	ClientId  string `json:"clientId"`
 }
 
 type DbConfig struct {
