@@ -5,20 +5,22 @@ import (
 )
 
 type User struct {
-	ID     string `json:"id"`
-	EMail  string `json:"email"`
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
+	ID       string  `json:"id"`
+	Username string  `json:"username"`
+	EMail    *string `json:"email"`
+	FullName *string `json:"fullName"`
+	Avatar   *string `json:"avatar"`
 
 	IsAdmin bool `json:"isAdmin,omitempty"`
 }
 
 func UserFromDB(v dmodel.User, isAdmin bool) User {
 	return User{
-		ID:      v.ID,
-		EMail:   v.Email,
-		Name:    v.Name,
-		Avatar:  v.Avatar,
-		IsAdmin: isAdmin,
+		ID:       v.ID,
+		Username: v.Username,
+		EMail:    v.EMail,
+		FullName: v.FullName,
+		Avatar:   v.Avatar,
+		IsAdmin:  isAdmin,
 	}
 }

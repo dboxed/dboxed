@@ -1,4 +1,4 @@
-h1:poXob3QhfP+riEMVxnuRZC8nZXV/yfKyjd4xfU5Nd7Q=
+h1:JXaKcWodQqMbIvB+xAGoHIH1w8QVAw0UOi+nGT/KgEs=
 20251017095842_initial.sql h1:OVr+g8182IsEMJ+LOOHXHfeSjQ4vkaNnpoIIQAU4QyY=
 20251019101013_snapshot_delete_restrict.sql h1:jKBoqHFPwgp5olOPYEAx+PXixaZIUfbJBF+VLTl/bEI=
 20251021141211_last_log_time.sql h1:OgX6ef4mV23R88slUyuMSnKrxRkIYbGwqkG5mhY8E9s=
@@ -8,3 +8,7 @@ h1:poXob3QhfP+riEMVxnuRZC8nZXV/yfKyjd4xfU5Nd7Q=
 20251027080654_s3buckets.sql h1:Jp7iKH4Eofm1bG4DTdpKrKganGBZOxrVxnKs7bmJl4A=
 20251028155706_sandbox_status.sql h1:r4CkqOYeyNIezHds9JqHTRyl2tZkYG+u0jZmA0FDaCU=
 20251029153922_reconcile_status.sql h1:oCu08+de6rwCmKPCqjhne6iCGlRbLh4IN7Lf8S5CKww=
+20251031124733_username.sql h1:2blG5oKHUUBmRsIZuq+6g/fe6EJXko6sXjpwZvttlsk=
+20251031124734_username_from_email.sql h1:FIrwlHDUBndYArCXmTtMhg2pqa2ZQBO94KxNsCMd82s=
+20251031125902_full_name.sql h1:U32TvZ/qFfOi92uK/4TTP9mLKCoJOPF5fgV27T0GpRk=
+20251031125955_full_name_null.sql h1:7GJYSdg+vcWOgK/eIUdZG/Oxwqc3VnYPlkpIKtHOYPc=

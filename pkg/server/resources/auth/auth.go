@@ -83,20 +83,19 @@ func (s *AuthHandler) verifyIDToken(ctx context.Context, rawIDToken string) (*oi
 	return s.oidcProvider.Verifier(oidcConfig).Verify(ctx, rawIDToken)
 }
 
-func getClaimValue[T any](m jwt.MapClaims, n string, missingOk bool) (T, error) {
-	var z T
+func getClaimValue[T any](m jwt.MapClaims, n string, missingOk bool) (*T, error) {
 	i, ok := m[n]
 	if !ok {
 		if missingOk {
-			return z, nil
+			return nil, nil
 		}
-		return z, fmt.Errorf("missing %s claim", n)
+		return nil, fmt.Errorf("missing %s claim", n)
 	}
 	v, ok := i.(T)
 	if !ok {
-		return z, fmt.Errorf("invalid %s claim", n)
+		return nil, fmt.Errorf("invalid %s claim", n)
 	}
-	return v, nil
+	return &v, nil
 }
 
 func (s *AuthHandler) buildUserFromIDToken(ctx context.Context, idToken *oidc.IDToken) (*models.User, error) {
@@ -112,11 +111,30 @@ func (s *AuthHandler) buildUserFromIDToken(ctx context.Context, idToken *oidc.ID
 	if err != nil {
 		return nil, err
 	}
-	email, err := getClaimValue[string](claims, "email", false)
+
+	usernameClaim := cfg.Auth.Oidc.UsernameClaim
+	emailClaim := cfg.Auth.Oidc.EMailClaim
+	fullNameClaim := cfg.Auth.Oidc.FullNameClaim
+
+	if usernameClaim == "" {
+		usernameClaim = "email"
+	}
+	if emailClaim == "" {
+		emailClaim = "email"
+	}
+	if fullNameClaim == "" {
+		fullNameClaim = "name"
+	}
+
+	username, err := getClaimValue[string](claims, usernameClaim, false)
 	if err != nil {
 		return nil, err
 	}
-	name, err := getClaimValue[string](claims, "name", false)
+	email, err := getClaimValue[string](claims, emailClaim, true)
+	if err != nil {
+		return nil, err
+	}
+	name, err := getClaimValue[string](claims, fullNameClaim, true)
 	if err != nil {
 		return nil, err
 	}
@@ -132,11 +150,12 @@ func (s *AuthHandler) buildUserFromIDToken(ctx context.Context, idToken *oidc.ID
 	}
 
 	return &models.User{
-		ID:      sub,
-		EMail:   email,
-		Name:    name,
-		Avatar:  avatar,
-		IsAdmin: isAdmin,
+		ID:       sub,
+		Username: *username,
+		EMail:    email,
+		FullName: name,
+		Avatar:   avatar,
+		IsAdmin:  isAdmin,
 	}, nil
 }
 
@@ -224,10 +243,11 @@ func (s *AuthHandler) updateDBUser(ctx huma.Context, user *models.User) error {
 	q := querier2.GetQuerier(ctx.Context())
 
 	newDbUser := dmodel.User{
-		ID:     user.ID,
-		Name:   user.Name,
-		Email:  user.EMail,
-		Avatar: user.Avatar,
+		ID:       user.ID,
+		Username: user.Username,
+		EMail:    user.EMail,
+		FullName: user.FullName,
+		Avatar:   user.Avatar,
 	}
 
 	needUpdate := false

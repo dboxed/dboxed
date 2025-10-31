@@ -27,6 +27,10 @@ type AuthConfig struct {
 type AuthOidcConfig struct {
 	IssuerUrl string `json:"issuerUrl"`
 	ClientId  string `json:"clientId"`
+
+	UsernameClaim string `json:"usernameClaim"`
+	EMailClaim    string `json:"emailClaim"`
+	FullNameClaim string `json:"fullNameClaim"`
 }
 
 type DbConfig struct {

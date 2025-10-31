@@ -8,9 +8,10 @@ type User struct {
 	ID string `db:"id"`
 	Times
 
-	Name   string `db:"name"`
-	Email  string `db:"email"`
-	Avatar string `db:"avatar"`
+	Username string  `db:"username"`
+	FullName *string `db:"full_name"`
+	EMail    *string `db:"email"`
+	Avatar   *string `db:"avatar"`
 }
 
 func ListAllUsers(q *querier.Querier) ([]User, error) {
