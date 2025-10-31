@@ -84,19 +84,19 @@ setup_tmp() {
 # Find version from Github metadata
 get_release_version() {
     if [ -n "${VERSION_DBOXED}" ]; then
-      SUFFIX_URL="tags/v${VERSION_DBOXED}"
-    else
-      SUFFIX_URL="latest"
+      RELEASE_NAME=${VERSION_DBOXED}
+      return
     fi
 
+    SUFFIX_URL="latest"
     METADATA_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/${SUFFIX_URL}"
 
     info "Downloading metadata ${METADATA_URL}"
     download "${TMP_METADATA}" "${METADATA_URL}"
 
-    VERSION_DBOXED=$(grep '"tag_name":' "${TMP_METADATA}" | sed -E 's/.*"([^"]+)".*/\1/' | cut -c 2-)
-    if [ -n "${VERSION_DBOXED}" ]; then
-        info "Using ${VERSION_DBOXED} as release"
+    RELEASE_NAME=$(grep '"tag_name":' "${TMP_METADATA}" | sed -E 's/.*"([^"]+)".*/\1/')
+    if [ -n "${RELEASE_NAME}" ]; then
+        info "Using ${RELEASE_NAME} as release"
     else
         fatal "Unable to determine release version"
     fi
@@ -124,7 +124,7 @@ download() {
 
 # Download hash from Github URL
 download_hash() {
-    HASH_URL="https://github.com/${GITHUB_REPO}/releases/download/v${VERSION_DBOXED}/dboxed_checksums.txt"
+    HASH_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_NAME}/dboxed_checksums.txt"
 
     info "Downloading hash ${HASH_URL}"
     download "${TMP_HASH}" "${HASH_URL}"
@@ -134,7 +134,7 @@ download_hash() {
 
 # Download binary from Github URL
 download_binary() {
-    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/v${VERSION_DBOXED}/dboxed_${OS}_${ARCH}.tar.gz"
+    BIN_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_NAME}/dboxed_${OS}_${ARCH}.tar.gz"
     info "Downloading binary ${BIN_URL}"
     download "${TMP_BIN}" "${BIN_URL}"
 }

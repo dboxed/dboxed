@@ -85,7 +85,7 @@ release:
     name: dboxed
   make_latest: "{{ not .IsNightly }}"
   extra_files:
-    - glob: hack/dboxed.sh
+    - glob: hack/install.sh
   footer: >-
 
     ---
