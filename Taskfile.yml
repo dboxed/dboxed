@@ -18,6 +18,11 @@ tasks:
       - go run ./pkg/server/db/migration/templates ./build/migrations/postgres-schema postgres
       - atlas migrate diff "--dir=file://pkg/server/db/migration/postgres?format=goose" --to=file://./build/migrations/postgres-schema --dev-url "docker://postgres/17/dev?search_path=public" {{ .MIGRATION_NAME }}
 
+  generate-migrations-hashes:
+    cmds:
+      - atlas migrate hash --dir="file://pkg/server/db/migration/postgres?format=goose"
+      - atlas migrate hash --dir="file://pkg/server/db/migration/sqlite?format=goose"
+
   check-migration-name:
     run: once
     cmds:
