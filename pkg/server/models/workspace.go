@@ -40,8 +40,8 @@ func WorkspaceFromDB(v dmodel.Workspace) Workspace {
 	return Workspace{
 		ID:            v.ID,
 		CreatedAt:     v.CreatedAt,
-		Status:        v.ReconcileStatus.ReconcileStatus,
-		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+		Status:        v.ReconcileStatus.ReconcileStatus.V,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Name:   v.Name,
 		Access: access,

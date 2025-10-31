@@ -85,8 +85,8 @@ func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, erro
 		ID:            s.ID,
 		Workspace:     s.WorkspaceID,
 		CreatedAt:     s.CreatedAt,
-		Status:        s.ReconcileStatus.ReconcileStatus,
-		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails,
+		Status:        s.ReconcileStatus.ReconcileStatus.V,
+		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Uuid: s.Uuid,
 		Name: s.Name,

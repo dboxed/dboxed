@@ -32,8 +32,8 @@ type OwnedByWorkspace struct {
 }
 
 type ReconcileStatus struct {
-	ReconcileStatus        string `db:"reconcile_status" omitCreate:"true"`
-	ReconcileStatusDetails string `db:"reconcile_status_details" omitCreate:"true"`
+	ReconcileStatus        querier2.NullForJoin[string] `db:"reconcile_status" omitCreate:"true"`
+	ReconcileStatusDetails querier2.NullForJoin[string] `db:"reconcile_status_details" omitCreate:"true"`
 }
 
 func (v *OwnedByWorkspace) SetId(id int64) {
@@ -45,12 +45,12 @@ func (v OwnedByWorkspace) GetId() int64 {
 }
 
 func (v *ReconcileStatus) SetReconcileStatus(status string, statusDetails string) {
-	v.ReconcileStatus = status
-	v.ReconcileStatusDetails = statusDetails
+	v.ReconcileStatus = querier2.N(status)
+	v.ReconcileStatusDetails = querier2.N(statusDetails)
 }
 
 func (v *ReconcileStatus) GetReconcileStatus() (string, string) {
-	return v.ReconcileStatus, v.ReconcileStatusDetails
+	return v.ReconcileStatus.V, v.ReconcileStatusDetails.V
 }
 
 func UpdateReconcileStatus[T HasReconcileStatus](q *querier2.Querier, v T) error {

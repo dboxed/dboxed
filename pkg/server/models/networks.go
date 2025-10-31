@@ -53,8 +53,8 @@ func NetworkFromDB(v dmodel.Network) *Network {
 		ID:            v.ID,
 		CreatedAt:     v.CreatedAt,
 		Workspace:     v.WorkspaceID,
-		Status:        v.ReconcileStatus.ReconcileStatus,
-		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+		Status:        v.ReconcileStatus.ReconcileStatus.V,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Type: global.NetworkType(v.Type),
 		Name: v.Name,

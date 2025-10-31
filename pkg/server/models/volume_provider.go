@@ -62,8 +62,8 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 		ID:            v.ID,
 		CreatedAt:     v.CreatedAt,
 		Workspace:     v.WorkspaceID,
-		Status:        v.ReconcileStatus.ReconcileStatus,
-		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+		Status:        v.ReconcileStatus.ReconcileStatus.V,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Type: v.Type,
 		Name: v.Name,

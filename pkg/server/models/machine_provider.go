@@ -101,8 +101,8 @@ func MachineProviderFromDB(v dmodel.MachineProvider) *MachineProvider {
 		ID:            v.ID,
 		Workspace:     v.WorkspaceID,
 		CreatedAt:     v.CreatedAt,
-		Status:        v.ReconcileStatus.ReconcileStatus,
-		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+		Status:        v.ReconcileStatus.ReconcileStatus.V,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Type: v.Type,
 		Name: v.Name,

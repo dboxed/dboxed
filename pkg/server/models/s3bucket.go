@@ -37,8 +37,8 @@ func S3BucketFromDB(v dmodel.S3Bucket) S3Bucket {
 		ID:            v.ID,
 		CreatedAt:     v.CreatedAt,
 		Workspace:     v.WorkspaceID,
-		Status:        v.ReconcileStatus.ReconcileStatus,
-		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails,
+		Status:        v.ReconcileStatus.ReconcileStatus.V,
+		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Endpoint: v.Endpoint,
 		Bucket:   v.Bucket,
