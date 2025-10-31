@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dustin/go-humanize"
 	"sigs.k8s.io/yaml"
 )
 
@@ -71,6 +72,9 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	if config.InstanceName == "" {
 		config.InstanceName = "dboxed"
+	}
+	if config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes == 0 {
+		config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes = humanize.MiByte * 100
 	}
 
 	return &config, nil
