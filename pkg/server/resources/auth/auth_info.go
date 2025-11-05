@@ -20,7 +20,7 @@ func BuildAuthProvider(ctx context.Context, c config.Config) (*models.AuthInfo, 
 		var err error
 		oidcProvider, err = oidc.NewProvider(ctx, c.Auth.Oidc.IssuerUrl)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("creating oidc provider failed: %w", err)
 		}
 	}
 	if ret.OidcIssuerUrl == "" {
