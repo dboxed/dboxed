@@ -130,7 +130,7 @@ func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVo
 		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"create",
-		vol.Uuid,
+		"--volume", vol.Uuid,
 		"--box", rn.BoxSpec.Uuid,
 	}
 
