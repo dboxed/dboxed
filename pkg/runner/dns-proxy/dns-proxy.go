@@ -2,6 +2,7 @@ package dns_proxy
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"reflect"
@@ -45,6 +46,10 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 
 	err := d.readHostResolvConf(ctx)
 	if err != nil {
+		return err
+	}
+
+	if _, err = d.getResolver(); err != nil {
 		return err
 	}
 
@@ -106,14 +111,45 @@ func (d *DnsProxy) runRequestsThread(ctx context.Context) {
 	}
 }
 
-func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
+func (d *DnsProxy) getResolver() (string, error) {
 	resolveConf := d.resolveConf.Load()
 	if len(resolveConf.Servers) == 0 {
-		slog.ErrorContext(ctx, "nameservers missing in host resolv.conf")
-		return
+		return "", fmt.Errorf("nameservers missing in host resolv.conf")
 	}
 
-	dnsResolver := net.JoinHostPort(resolveConf.Servers[0], resolveConf.Port)
+	var dnsResolver string
+	foundIpv6 := false
+
+	// find first ipv6 server
+	for _, s := range resolveConf.Servers {
+		ip := net.ParseIP(s)
+		if ip == nil {
+			continue
+		}
+		ip4 := ip.To4()
+		if ip4 != nil {
+			dnsResolver = net.JoinHostPort(ip4.String(), resolveConf.Port)
+			break
+		} else if ip.To16() != nil {
+			foundIpv6 = true
+		}
+	}
+	if dnsResolver == "" {
+		if foundIpv6 {
+			return "", fmt.Errorf("only found ipv6 nameservers in host resolv.conf, but only ipv4 nameservers are supported at the moment")
+		} else {
+			return "", fmt.Errorf("no ipv4 nameserver found in host resolv.conf")
+		}
+	}
+	return dnsResolver, nil
+}
+
+func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
+	dnsResolver, err := d.getResolver()
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		return
+	}
 
 	log := slog.With(slog.Any("id", r.request.Id), slog.Any("tcp", r.tcp), slog.Any("dnsResolver", dnsResolver))
 	log.DebugContext(ctx, "handling request"+r.request.String())
