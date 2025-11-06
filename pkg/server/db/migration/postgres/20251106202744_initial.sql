@@ -1,41 +1,52 @@
 -- +goose Up
 -- create "box" table
 CREATE TABLE "box" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
   "reconcile_status" text NOT NULL DEFAULT 'Initializing',
   "reconcile_status_details" text NOT NULL DEFAULT '',
-  "uuid" text NOT NULL DEFAULT '',
   "name" text NOT NULL,
-  "network_id" bigint NULL,
+  "network_id" text NULL,
   "network_type" text NULL,
   "dboxed_version" text NOT NULL,
-  "machine_id" bigint NULL,
+  "machine_id" text NULL,
+  "desired_state" text NOT NULL DEFAULT 'up',
   PRIMARY KEY ("id"),
-  CONSTRAINT "box_uuid_key" UNIQUE ("uuid"),
   CONSTRAINT "box_workspace_id_name_key" UNIQUE ("workspace_id", "name")
 );
 -- create "box_compose_project" table
 CREATE TABLE "box_compose_project" (
-  "box_id" bigint NOT NULL,
+  "box_id" text NOT NULL,
   "name" text NOT NULL,
   "compose_project" text NOT NULL,
   PRIMARY KEY ("box_id", "name")
 );
 -- create "box_netbird" table
 CREATE TABLE "box_netbird" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "reconcile_status" text NOT NULL DEFAULT 'Initializing',
+  "reconcile_status_details" text NOT NULL DEFAULT '',
   "setup_key_id" text NULL,
   "setup_key" text NULL,
   PRIMARY KEY ("id")
 );
+-- create "box_sandbox_status" table
+CREATE TABLE "box_sandbox_status" (
+  "id" text NOT NULL,
+  "status_time" timestamptz NULL,
+  "run_status" text NULL,
+  "start_time" timestamptz NULL,
+  "stop_time" timestamptz NULL,
+  "docker_ps" bytea NULL,
+  PRIMARY KEY ("id")
+);
 -- create "box_volume_attachment" table
 CREATE TABLE "box_volume_attachment" (
-  "box_id" bigint NOT NULL,
-  "volume_id" bigint NOT NULL,
+  "box_id" text NOT NULL,
+  "volume_id" text NOT NULL,
   "root_uid" bigint NOT NULL,
   "root_gid" bigint NOT NULL,
   "root_mode" text NOT NULL,
@@ -46,7 +57,7 @@ CREATE TABLE "box_volume_attachment" (
 CREATE TABLE "change_tracking" (
   "id" bigserial NOT NULL,
   "table_name" text NOT NULL,
-  "entity_id" bigint NOT NULL,
+  "entity_id" text NOT NULL,
   "time" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
@@ -55,8 +66,8 @@ CREATE INDEX "idx_table_and_id" ON "change_tracking" ("table_name", "id");
 -- create "log_line" table
 CREATE TABLE "log_line" (
   "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
-  "log_id" bigint NOT NULL,
+  "workspace_id" text NOT NULL,
+  "log_id" text NOT NULL,
   "time" timestamptz NOT NULL,
   "line" text NOT NULL,
   PRIMARY KEY ("id")
@@ -67,38 +78,41 @@ CREATE INDEX "log_line_log_id_and_id" ON "log_line" ("log_id", "id");
 CREATE INDEX "log_line_time_index" ON "log_line" ("log_id", "time");
 -- create "log_metadata" table
 CREATE TABLE "log_metadata" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
-  "box_id" bigint NULL,
+  "box_id" text NULL,
   "file_name" text NOT NULL,
   "format" text NOT NULL,
   "metadata" text NOT NULL,
   "total_line_bytes" bigint NOT NULL DEFAULT 0,
+  "last_log_time" timestamptz NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "log_metadata_box_id_file_name_key" UNIQUE ("box_id", "file_name")
 );
 -- create "machine" table
 CREATE TABLE "machine" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
   "reconcile_status" text NOT NULL DEFAULT 'Initializing',
   "reconcile_status_details" text NOT NULL DEFAULT '',
   "name" text NOT NULL,
-  "machine_provider_id" bigint NOT NULL,
+  "machine_provider_id" text NOT NULL,
   "machine_provider_type" text NOT NULL,
-  "box_id" bigint NOT NULL,
+  "box_id" text NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "machine_workspace_id_name_key" UNIQUE ("workspace_id", "name")
 );
 -- create "machine_aws" table
 CREATE TABLE "machine_aws" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "reconcile_status" text NOT NULL DEFAULT 'Initializing',
+  "reconcile_status_details" text NOT NULL DEFAULT '',
   "instance_type" text NOT NULL,
   "subnet_id" text NOT NULL,
   "root_volume_size" bigint NOT NULL,
@@ -106,28 +120,30 @@ CREATE TABLE "machine_aws" (
 );
 -- create "machine_aws_status" table
 CREATE TABLE "machine_aws_status" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "instance_id" text NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "machine_aws_status_instance_id_key" UNIQUE ("instance_id")
 );
 -- create "machine_hetzner" table
 CREATE TABLE "machine_hetzner" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "reconcile_status" text NOT NULL DEFAULT 'Initializing',
+  "reconcile_status_details" text NOT NULL DEFAULT '',
   "server_type" text NOT NULL,
   "server_location" text NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create "machine_hetzner_status" table
 CREATE TABLE "machine_hetzner_status" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "server_id" bigint NULL,
   PRIMARY KEY ("id")
 );
 -- create "machine_provider" table
 CREATE TABLE "machine_provider" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
@@ -141,7 +157,7 @@ CREATE TABLE "machine_provider" (
 );
 -- create "machine_provider_aws" table
 CREATE TABLE "machine_provider_aws" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "region" text NOT NULL,
   "aws_access_key_id" text NULL,
   "aws_secret_access_key" text NULL,
@@ -150,7 +166,7 @@ CREATE TABLE "machine_provider_aws" (
 );
 -- create "machine_provider_aws_status" table
 CREATE TABLE "machine_provider_aws_status" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "vpc_name" text NULL,
   "vpc_cidr" text NULL,
   "security_group_id" text NULL,
@@ -158,7 +174,7 @@ CREATE TABLE "machine_provider_aws_status" (
 );
 -- create "machine_provider_aws_subnet" table
 CREATE TABLE "machine_provider_aws_subnet" (
-  "machine_provider_id" bigint NOT NULL,
+  "machine_provider_id" text NOT NULL,
   "subnet_id" text NOT NULL,
   "subnet_name" text NULL,
   "availability_zone" text NOT NULL,
@@ -167,7 +183,7 @@ CREATE TABLE "machine_provider_aws_subnet" (
 );
 -- create "machine_provider_hetzner" table
 CREATE TABLE "machine_provider_hetzner" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "hcloud_token" text NOT NULL,
   "hetzner_network_name" text NOT NULL,
   "robot_user" text NULL,
@@ -176,7 +192,7 @@ CREATE TABLE "machine_provider_hetzner" (
 );
 -- create "machine_provider_hetzner_status" table
 CREATE TABLE "machine_provider_hetzner_status" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "hetzner_network_id" bigint NULL,
   "hetzner_network_zone" text NULL,
   "hetzner_network_cidr" text NULL,
@@ -187,8 +203,8 @@ CREATE TABLE "machine_provider_hetzner_status" (
 );
 -- create "network" table
 CREATE TABLE "network" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
@@ -201,21 +217,38 @@ CREATE TABLE "network" (
 );
 -- create "network_netbird" table
 CREATE TABLE "network_netbird" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "netbird_version" text NOT NULL,
   "api_url" text NOT NULL,
   "api_access_token" text NOT NULL,
   PRIMARY KEY ("id")
 );
+-- create "s3_bucket" table
+CREATE TABLE "s3_bucket" (
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "deleted_at" timestamptz NULL,
+  "finalizers" text NOT NULL DEFAULT '{}',
+  "reconcile_status" text NOT NULL DEFAULT 'Ok',
+  "reconcile_status_details" text NOT NULL DEFAULT '',
+  "endpoint" text NOT NULL,
+  "bucket" text NOT NULL,
+  "access_key_id" text NOT NULL,
+  "secret_access_key" text NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "s3_bucket_workspace_bucket" to table: "s3_bucket"
+CREATE INDEX "s3_bucket_workspace_bucket" ON "s3_bucket" ("workspace_id", "bucket");
 -- create "token" table
 CREATE TABLE "token" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "name" text NOT NULL,
   "token" text NOT NULL,
   "for_workspace" boolean NOT NULL,
-  "box_id" bigint NULL,
+  "box_id" text NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "token_token_key" UNIQUE ("token"),
   CONSTRAINT "token_workspace_id_name_key" UNIQUE ("workspace_id", "name")
@@ -224,34 +257,43 @@ CREATE TABLE "token" (
 CREATE TABLE "user" (
   "id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "name" text NOT NULL,
+  "username" text NULL,
   "email" text NULL,
+  "full_name" text NULL,
   "avatar" text NULL,
   PRIMARY KEY ("id")
 );
 -- create "volume" table
 CREATE TABLE "volume" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
-  "volume_provider_id" bigint NOT NULL,
+  "volume_provider_id" text NOT NULL,
   "volume_provider_type" text NOT NULL,
-  "uuid" text NOT NULL,
   "name" text NOT NULL,
   "lock_id" text NULL,
   "lock_time" timestamptz NULL,
-  "lock_box_id" bigint NULL,
-  "latest_snapshot_id" bigint NULL,
+  "lock_box_id" text NULL,
+  "latest_snapshot_id" text NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "volume_uuid_key" UNIQUE ("uuid"),
   CONSTRAINT "volume_workspace_id_name_key" UNIQUE ("workspace_id", "name")
+);
+-- create "volume_mount_status" table
+CREATE TABLE "volume_mount_status" (
+  "id" text NOT NULL,
+  "status_time" timestamptz NULL,
+  "run_status" text NULL,
+  "start_time" timestamptz NULL,
+  "stop_time" timestamptz NULL,
+  "docker_ps" bytea NULL,
+  PRIMARY KEY ("id")
 );
 -- create "volume_provider" table
 CREATE TABLE "volume_provider" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
@@ -264,48 +306,40 @@ CREATE TABLE "volume_provider" (
 );
 -- create "volume_provider_rustic" table
 CREATE TABLE "volume_provider_rustic" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "storage_type" text NOT NULL,
+  "s3_bucket_id" text NULL,
+  "storage_prefix" text NOT NULL,
   "password" text NOT NULL,
-  PRIMARY KEY ("id")
-);
--- create "volume_provider_storage_s3" table
-CREATE TABLE "volume_provider_storage_s3" (
-  "id" bigint NOT NULL,
-  "endpoint" text NOT NULL,
-  "bucket" text NOT NULL,
-  "access_key_id" text NOT NULL,
-  "secret_access_key" text NOT NULL,
-  "prefix" text NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create "volume_rustic" table
 CREATE TABLE "volume_rustic" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "fs_size" bigint NOT NULL,
   "fs_type" text NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create "volume_rustic_status" table
 CREATE TABLE "volume_rustic_status" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create "volume_snapshot" table
 CREATE TABLE "volume_snapshot" (
-  "id" bigserial NOT NULL,
-  "workspace_id" bigint NOT NULL,
+  "id" text NOT NULL,
+  "workspace_id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
-  "volume_provider_id" bigint NOT NULL,
-  "volume_id" bigint NULL,
+  "volume_provider_id" text NOT NULL,
+  "volume_id" text NULL,
   "lock_id" text NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create "volume_snapshot_rustic" table
 CREATE TABLE "volume_snapshot_rustic" (
-  "id" bigint NOT NULL,
+  "id" text NOT NULL,
   "snapshot_id" text NOT NULL,
   "snapshot_time" timestamptz NOT NULL,
   "parent_snapshot_id" text NULL,
@@ -337,7 +371,7 @@ CREATE TABLE "volume_snapshot_rustic" (
 );
 -- create "workspace" table
 CREATE TABLE "workspace" (
-  "id" bigserial NOT NULL,
+  "id" text NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamptz NULL,
   "finalizers" text NOT NULL DEFAULT '{}',
@@ -348,13 +382,13 @@ CREATE TABLE "workspace" (
 );
 -- create "workspace_access" table
 CREATE TABLE "workspace_access" (
-  "workspace_id" bigint NOT NULL,
+  "workspace_id" text NOT NULL,
   "user_id" text NOT NULL,
   PRIMARY KEY ("workspace_id", "user_id")
 );
 -- create "workspace_quotas" table
 CREATE TABLE "workspace_quotas" (
-  "workspace_id" bigint NOT NULL,
+  "workspace_id" text NOT NULL,
   "max_log_bytes" integer NOT NULL DEFAULT 100,
   PRIMARY KEY ("workspace_id")
 );
@@ -364,6 +398,8 @@ ALTER TABLE "box" ADD CONSTRAINT "box_machine_id_fkey" FOREIGN KEY ("machine_id"
 ALTER TABLE "box_compose_project" ADD CONSTRAINT "box_compose_project_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "box_netbird" table
 ALTER TABLE "box_netbird" ADD CONSTRAINT "box_netbird_id_fkey" FOREIGN KEY ("id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "box_sandbox_status" table
+ALTER TABLE "box_sandbox_status" ADD CONSTRAINT "box_sandbox_status_id_fkey" FOREIGN KEY ("id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "box_volume_attachment" table
 ALTER TABLE "box_volume_attachment" ADD CONSTRAINT "box_volume_attachment_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "box_volume_attachment_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "log_line" table
@@ -396,22 +432,24 @@ ALTER TABLE "machine_provider_hetzner_status" ADD CONSTRAINT "machine_provider_h
 ALTER TABLE "network" ADD CONSTRAINT "network_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "network_netbird" table
 ALTER TABLE "network_netbird" ADD CONSTRAINT "network_netbird_id_fkey" FOREIGN KEY ("id") REFERENCES "network" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "s3_bucket" table
+ALTER TABLE "s3_bucket" ADD CONSTRAINT "s3_bucket_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "token" table
 ALTER TABLE "token" ADD CONSTRAINT "token_box_id_fkey" FOREIGN KEY ("box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "token_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume" table
 ALTER TABLE "volume" ADD CONSTRAINT "volume_latest_snapshot_id_fkey" FOREIGN KEY ("latest_snapshot_id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_lock_box_id_fkey" FOREIGN KEY ("lock_box_id") REFERENCES "box" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+-- modify "volume_mount_status" table
+ALTER TABLE "volume_mount_status" ADD CONSTRAINT "volume_mount_status_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume_provider" table
 ALTER TABLE "volume_provider" ADD CONSTRAINT "volume_provider_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_provider_rustic" table
-ALTER TABLE "volume_provider_rustic" ADD CONSTRAINT "volume_provider_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
--- modify "volume_provider_storage_s3" table
-ALTER TABLE "volume_provider_storage_s3" ADD CONSTRAINT "volume_provider_storage_s3_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+ALTER TABLE "volume_provider_rustic" ADD CONSTRAINT "volume_provider_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE CASCADE, ADD CONSTRAINT "volume_provider_rustic_s3_bucket_id_fkey" FOREIGN KEY ("s3_bucket_id") REFERENCES "s3_bucket" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_rustic" table
 ALTER TABLE "volume_rustic" ADD CONSTRAINT "volume_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume_rustic_status" table
 ALTER TABLE "volume_rustic_status" ADD CONSTRAINT "volume_rustic_status_id_fkey" FOREIGN KEY ("id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "volume_snapshot" table
-ALTER TABLE "volume_snapshot" ADD CONSTRAINT "volume_snapshot_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "volume_snapshot_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
+ALTER TABLE "volume_snapshot" ADD CONSTRAINT "volume_snapshot_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_volume_provider_id_fkey" FOREIGN KEY ("volume_provider_id") REFERENCES "volume_provider" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT, ADD CONSTRAINT "volume_snapshot_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT;
 -- modify "volume_snapshot_rustic" table
 ALTER TABLE "volume_snapshot_rustic" ADD CONSTRAINT "volume_snapshot_rustic_id_fkey" FOREIGN KEY ("id") REFERENCES "volume_snapshot" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "workspace_access" table
@@ -432,16 +470,18 @@ ALTER TABLE "volume_snapshot" DROP CONSTRAINT "volume_snapshot_workspace_id_fkey
 ALTER TABLE "volume_rustic_status" DROP CONSTRAINT "volume_rustic_status_id_fkey";
 -- reverse: modify "volume_rustic" table
 ALTER TABLE "volume_rustic" DROP CONSTRAINT "volume_rustic_id_fkey";
--- reverse: modify "volume_provider_storage_s3" table
-ALTER TABLE "volume_provider_storage_s3" DROP CONSTRAINT "volume_provider_storage_s3_id_fkey";
 -- reverse: modify "volume_provider_rustic" table
-ALTER TABLE "volume_provider_rustic" DROP CONSTRAINT "volume_provider_rustic_id_fkey";
+ALTER TABLE "volume_provider_rustic" DROP CONSTRAINT "volume_provider_rustic_s3_bucket_id_fkey", DROP CONSTRAINT "volume_provider_rustic_id_fkey";
 -- reverse: modify "volume_provider" table
 ALTER TABLE "volume_provider" DROP CONSTRAINT "volume_provider_workspace_id_fkey";
+-- reverse: modify "volume_mount_status" table
+ALTER TABLE "volume_mount_status" DROP CONSTRAINT "volume_mount_status_id_fkey";
 -- reverse: modify "volume" table
 ALTER TABLE "volume" DROP CONSTRAINT "volume_workspace_id_fkey", DROP CONSTRAINT "volume_volume_provider_id_fkey", DROP CONSTRAINT "volume_lock_box_id_fkey", DROP CONSTRAINT "volume_latest_snapshot_id_fkey";
 -- reverse: modify "token" table
 ALTER TABLE "token" DROP CONSTRAINT "token_workspace_id_fkey", DROP CONSTRAINT "token_box_id_fkey";
+-- reverse: modify "s3_bucket" table
+ALTER TABLE "s3_bucket" DROP CONSTRAINT "s3_bucket_workspace_id_fkey";
 -- reverse: modify "network_netbird" table
 ALTER TABLE "network_netbird" DROP CONSTRAINT "network_netbird_id_fkey";
 -- reverse: modify "network" table
@@ -474,6 +514,8 @@ ALTER TABLE "log_metadata" DROP CONSTRAINT "log_metadata_workspace_id_fkey", DRO
 ALTER TABLE "log_line" DROP CONSTRAINT "log_line_workspace_id_fkey", DROP CONSTRAINT "log_line_log_id_fkey";
 -- reverse: modify "box_volume_attachment" table
 ALTER TABLE "box_volume_attachment" DROP CONSTRAINT "box_volume_attachment_volume_id_fkey", DROP CONSTRAINT "box_volume_attachment_box_id_fkey";
+-- reverse: modify "box_sandbox_status" table
+ALTER TABLE "box_sandbox_status" DROP CONSTRAINT "box_sandbox_status_id_fkey";
 -- reverse: modify "box_netbird" table
 ALTER TABLE "box_netbird" DROP CONSTRAINT "box_netbird_id_fkey";
 -- reverse: modify "box_compose_project" table
@@ -494,18 +536,22 @@ DROP TABLE "volume_snapshot";
 DROP TABLE "volume_rustic_status";
 -- reverse: create "volume_rustic" table
 DROP TABLE "volume_rustic";
--- reverse: create "volume_provider_storage_s3" table
-DROP TABLE "volume_provider_storage_s3";
 -- reverse: create "volume_provider_rustic" table
 DROP TABLE "volume_provider_rustic";
 -- reverse: create "volume_provider" table
 DROP TABLE "volume_provider";
+-- reverse: create "volume_mount_status" table
+DROP TABLE "volume_mount_status";
 -- reverse: create "volume" table
 DROP TABLE "volume";
 -- reverse: create "user" table
 DROP TABLE "user";
 -- reverse: create "token" table
 DROP TABLE "token";
+-- reverse: create index "s3_bucket_workspace_bucket" to table: "s3_bucket"
+DROP INDEX "s3_bucket_workspace_bucket";
+-- reverse: create "s3_bucket" table
+DROP TABLE "s3_bucket";
 -- reverse: create "network_netbird" table
 DROP TABLE "network_netbird";
 -- reverse: create "network" table
@@ -546,6 +592,8 @@ DROP INDEX "idx_table_and_id";
 DROP TABLE "change_tracking";
 -- reverse: create "box_volume_attachment" table
 DROP TABLE "box_volume_attachment";
+-- reverse: create "box_sandbox_status" table
+DROP TABLE "box_sandbox_status";
 -- reverse: create "box_netbird" table
 DROP TABLE "box_netbird";
 -- reverse: create "box_compose_project" table
