@@ -24,7 +24,7 @@ func (r *Reconciler) queryAwsInstances(ctx context.Context) base.ReconcileResult
 		Filters: []types.Filter{
 			{
 				Name:   util.Ptr("tag:" + cloud_utils.MachineProviderIdTagName),
-				Values: []string{fmt.Sprintf("%d", r.mp.ID)},
+				Values: []string{r.mp.ID},
 			},
 		},
 		MaxResults: util.Ptr(int32(5)),
@@ -172,7 +172,7 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 		{
 			AssociatePublicIpAddress: util.Ptr(true),
 			DeleteOnTermination:      util.Ptr(true),
-			Description:              util.Ptr(fmt.Sprintf("network interface for dboxed machine %s (id %d)", m.Name, m.ID)),
+			Description:              util.Ptr(fmt.Sprintf("network interface for dboxed machine %s (id %s)", m.Name, m.ID)),
 			DeviceIndex:              util.Ptr(int32(0)),
 			SubnetId:                 &m.Aws.SubnetID.V,
 			Groups:                   []string{*r.mp.Aws.Status.SecurityGroupID},

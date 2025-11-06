@@ -28,7 +28,7 @@ type RunSandbox struct {
 	Debug bool
 
 	Client *baseclient.Client
-	BoxId  int64
+	BoxId  string
 
 	InfraImage      string
 	SandboxName     string
@@ -107,8 +107,8 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 			return err
 		}
 	}
-	if localSandboxInfo != nil && localSandboxInfo.Box.Uuid != box.Uuid {
-		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%d, uuid=%s)", rn.SandboxName, rn.BoxId, box.Uuid)
+	if localSandboxInfo != nil && localSandboxInfo.Box.ID != box.ID {
+		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%s)", rn.SandboxName, rn.BoxId)
 	}
 
 	container, err := rn.sandbox.GetSandboxContainer()

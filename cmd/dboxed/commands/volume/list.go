@@ -14,14 +14,14 @@ type ListCmd struct {
 }
 
 type PrintVolume struct {
-	ID                 int64  `col:"Id"`
+	ID                 string `col:"Id"`
 	Name               string `col:"Name"`
 	Type               string `col:"Type"`
 	Provider           string `col:"Provider"`
 	LockTime           string `col:"Lock Time"`
 	LockBox            string `col:"Locked by Box"`
 	Attachment         string `col:"Box attachment"`
-	LatestSnapshotId   int64  `col:"Snapshot ID"`
+	LatestSnapshotId   string `col:"Snapshot ID"`
 	LatestSnapshotTime string `col:"Snapshot Time"`
 	LatestSnapshotSize string `col:"Snapshot Size"`
 }

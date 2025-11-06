@@ -12,7 +12,7 @@ var f embed.FS
 
 var templates, _ = template.New("").ParseFS(f, "*")
 
-func GetDboxedUnit(workspaceId int64, boxId int64, sandboxName string, clientAuthFile string, extraArgs string) string {
+func GetDboxedUnit(workspaceId string, boxId string, sandboxName string, clientAuthFile string, extraArgs string) string {
 	exe, err := os.Executable()
 	if err != nil {
 		panic(err)

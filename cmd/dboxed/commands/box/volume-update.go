@@ -11,8 +11,8 @@ import (
 )
 
 type UpdateVolumeCmd struct {
-	Box      string  `help:"Box ID, UUID, or name" required:"" arg:""`
-	Volume   string  `help:"Volume ID, UUID, or name" required:""`
+	Box      string  `help:"Box ID or name" required:"" arg:""`
+	Volume   string  `help:"Volume ID or name" required:""`
 	RootUid  *int64  `help:"Root UID for volume mount"`
 	RootGid  *int64  `help:"Root GID for volume mount"`
 	RootMode *string `help:"Root mode for volume mount (octal)"`

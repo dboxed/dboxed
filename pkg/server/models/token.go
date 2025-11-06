@@ -7,22 +7,22 @@ import (
 )
 
 type Token struct {
-	ID        int64     `json:"id"`
-	Workspace int64     `json:"workspace"`
+	ID        string    `json:"id"`
+	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
 	Name  string  `json:"name"`
 	Token *string `json:"token,omitempty"`
 
-	ForWorkspace bool   `json:"forWorkspace"`
-	BoxID        *int64 `json:"boxId,omitempty"`
+	ForWorkspace bool    `json:"forWorkspace"`
+	BoxID        *string `json:"boxId,omitempty"`
 }
 
 type CreateToken struct {
 	Name string `json:"name"`
 
-	ForWorkspace bool   `json:"forWorkspace,omitempty"`
-	BoxID        *int64 `json:"boxId,omitempty"`
+	ForWorkspace bool    `json:"forWorkspace,omitempty"`
+	BoxID        *string `json:"boxId,omitempty"`
 }
 
 func TokenFromDB(v dmodel.Token, withSecret bool) Token {

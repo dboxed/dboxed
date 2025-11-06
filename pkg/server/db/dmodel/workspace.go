@@ -8,7 +8,7 @@ import (
 )
 
 type Workspace struct {
-	ID int64 `db:"id" omitCreate:"true"`
+	ID string `db:"id" uuid:"true"`
 	SoftDeleteFields
 	Times
 
@@ -20,23 +20,23 @@ type Workspace struct {
 }
 
 type WorkspaceAccess struct {
-	WorkspaceId int64  `db:"workspace_id"`
+	WorkspaceId string `db:"workspace_id"`
 	UserId      string `db:"user_id"`
 
 	User User `join:"true" join_left_field:"user_id"`
 }
 
 type WorkspaceQuotas struct {
-	WorkspaceId int64 `db:"workspace_id"`
+	WorkspaceId string `db:"workspace_id"`
 
 	MaxLogBytes int64 `db:"max_log_bytes"`
 }
 
-func (v *Workspace) SetId(id int64) {
+func (v *Workspace) SetId(id string) {
 	v.ID = id
 }
 
-func (v *Workspace) GetId() int64 {
+func (v *Workspace) GetId() string {
 	return v.ID
 }
 
@@ -65,7 +65,7 @@ func (v *WorkspaceQuotas) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func GetWorkspaceAccessesById(q *querier2.Querier, id int64) ([]WorkspaceAccess, error) {
+func GetWorkspaceAccessesById(q *querier2.Querier, id string) ([]WorkspaceAccess, error) {
 	l, err := querier2.GetMany[WorkspaceAccess](q, map[string]any{
 		"workspace_id": id,
 	}, nil)
@@ -97,7 +97,7 @@ func ListWorkspaces(q *querier2.Querier, userId *string, skipDeleted bool) ([]Wo
 	if err != nil {
 		return nil, err
 	}
-	wasMap := map[int64][]WorkspaceAccess{}
+	wasMap := map[string][]WorkspaceAccess{}
 	for _, wa := range was {
 		wasMap[wa.WorkspaceId] = append(wasMap[wa.WorkspaceId], wa)
 	}
@@ -122,7 +122,7 @@ func ListWorkspaces(q *querier2.Querier, userId *string, skipDeleted bool) ([]Wo
 	return l, nil
 }
 
-func GetWorkspaceById(q *querier2.Querier, id int64, skipDeleted bool) (*Workspace, error) {
+func GetWorkspaceById(q *querier2.Querier, id string, skipDeleted bool) (*Workspace, error) {
 	w, err := querier2.GetOne[Workspace](q, map[string]any{
 		"id":         id,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
@@ -133,7 +133,7 @@ func GetWorkspaceById(q *querier2.Querier, id int64, skipDeleted bool) (*Workspa
 	return postprocessWorkspace(q, w)
 }
 
-func GetWorkspaceQuotaById(q *querier2.Querier, id int64) (*WorkspaceQuotas, error) {
+func GetWorkspaceQuotaById(q *querier2.Querier, id string) (*WorkspaceQuotas, error) {
 	return querier2.GetOne[WorkspaceQuotas](q, map[string]any{
 		"workspace_id": id,
 	})

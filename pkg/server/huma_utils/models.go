@@ -9,10 +9,6 @@ func NewJsonBody[T any](v T) *JsonBody[T] {
 }
 
 type IdByPath struct {
-	Id int64 `path:"id"`
-}
-
-type StringIdByPath struct {
 	Id string `path:"id"`
 }
 

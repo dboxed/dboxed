@@ -10,7 +10,7 @@ type ChangeTracking struct {
 	ID int64 `db:"id" omitCreate:"true"`
 
 	TableName string    `db:"table_name"`
-	EntityID  int64     `db:"entity_id"`
+	EntityID  string    `db:"entity_id"`
 	Time      time.Time `db:"time" omitCreate:"true"`
 }
 
@@ -18,7 +18,7 @@ func AddChangeTracking[T querier2.HasId](q *querier2.Querier, v T) error {
 	return AddChangeTrackingForId[T](q, v.GetId())
 }
 
-func AddChangeTrackingForId[T querier2.HasId](q *querier2.Querier, id int64) error {
+func AddChangeTrackingForId[T querier2.HasId](q *querier2.Querier, id string) error {
 	return querier2.Create(q, &ChangeTracking{
 		TableName: querier2.GetTableName[T](),
 		EntityID:  id,

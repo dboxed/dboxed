@@ -30,7 +30,7 @@ func (r *reconciler) reconcileLogQuotas(ctx context.Context, w *dmodel.Workspace
 	querySize := int64(100)
 	maxQuerySize := int64(10000)
 
-	logMetadataSubs := map[int64]int64{}
+	logMetadataSubs := map[string]int64{}
 	for wu.SumLineBytes > wq.MaxLogBytes {
 		clear(logMetadataSubs)
 		deleteUntilId := int64(-1)

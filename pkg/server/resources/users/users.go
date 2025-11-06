@@ -48,7 +48,7 @@ func (s *Users) restListUsers(ctx context.Context, i *struct{}) (*huma_utils.Lis
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *Users) restGetUser(ctx context.Context, i *huma_utils.StringIdByPath) (*huma_utils.JsonBody[models.User], error) {
+func (s *Users) restGetUser(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.User], error) {
 	q := querier.GetQuerier(ctx)
 
 	v, err := dmodel.GetUserById(q, i.Id)

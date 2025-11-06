@@ -34,9 +34,9 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	slog.Info("box stopping",
-		slog.Int64("id", updatedBox.ID),
-		slog.String("name", updatedBox.Name),
-		slog.String("desired_state", updatedBox.DesiredState),
+		slog.Any("id", updatedBox.ID),
+		slog.Any("name", updatedBox.Name),
+		slog.Any("desired_state", updatedBox.DesiredState),
 	)
 
 	return nil

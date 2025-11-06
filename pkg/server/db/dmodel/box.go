@@ -11,15 +11,14 @@ type Box struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Uuid string `db:"uuid"`
 	Name string `db:"name"`
 
-	NetworkID   *int64  `db:"network_id"`
+	NetworkID   *string `db:"network_id"`
 	NetworkType *string `db:"network_type"`
 
 	DboxedVersion string `db:"dboxed_version"`
 
-	MachineID *int64 `db:"machine_id"`
+	MachineID *string `db:"machine_id"`
 
 	DesiredState string `db:"desired_state"`
 
@@ -27,7 +26,7 @@ type Box struct {
 }
 
 type BoxSandboxStatus struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	StatusTime *time.Time `db:"status_time"`
 
@@ -49,19 +48,19 @@ func (x *BoxWithSandboxStatus) GetTableName() string {
 }
 
 type BoxNetbird struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 	ReconcileStatus
 
 	SetupKey   *string `db:"setup_key"`
 	SetupKeyID *string `db:"setup_key_id"`
 }
 
-func (v *BoxNetbird) GetId() int64 {
+func (v *BoxNetbird) GetId() string {
 	return v.ID.V
 }
 
 type BoxComposeProject struct {
-	BoxID          int64  `db:"box_id"`
+	BoxID          string `db:"box_id"`
 	Name           string `db:"name"`
 	ComposeProject string `db:"compose_project"`
 }
@@ -83,7 +82,7 @@ func (v *BoxSandboxStatus) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func GetBoxById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted bool) (*Box, error) {
+func GetBoxById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*Box, error) {
 	return querier2.GetOne[Box](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -91,7 +90,7 @@ func GetBoxById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted b
 	})
 }
 
-func GetBoxWithSandboxStatusById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted bool) (*BoxWithSandboxStatus, error) {
+func GetBoxWithSandboxStatusById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
 	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -99,7 +98,7 @@ func GetBoxWithSandboxStatusById(q *querier2.Querier, workspaceId *int64, id int
 	})
 }
 
-func GetBoxWithSandboxStatusByName(q *querier2.Querier, workspaceId int64, name string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
+func GetBoxWithSandboxStatusByName(q *querier2.Querier, workspaceId string, name string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
 	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": workspaceId,
 		"name":         name,
@@ -107,29 +106,21 @@ func GetBoxWithSandboxStatusByName(q *querier2.Querier, workspaceId int64, name 
 	})
 }
 
-func GetBoxWithSandboxStatusByUuid(q *querier2.Querier, workspaceId int64, uuid string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
-	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
-		"workspace_id": workspaceId,
-		"uuid":         uuid,
-		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
-	})
-}
-
-func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
+func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
 	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func ListBoxesForNetwork(q *querier2.Querier, networkId int64, skipDeleted bool) ([]Box, error) {
+func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool) ([]Box, error) {
 	return querier2.GetMany[Box](q, map[string]any{
 		"network_id": networkId,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func GetSandboxStatus(q *querier2.Querier, boxId int64) (*BoxSandboxStatus, error) {
+func GetSandboxStatus(q *querier2.Querier, boxId string) (*BoxSandboxStatus, error) {
 	return querier2.GetOne[BoxSandboxStatus](q, map[string]any{
 		"id": boxId,
 	})
@@ -186,13 +177,13 @@ func (v *BoxComposeProject) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListBoxComposeProjects(q *querier2.Querier, boxId int64) ([]BoxComposeProject, error) {
+func ListBoxComposeProjects(q *querier2.Querier, boxId string) ([]BoxComposeProject, error) {
 	return querier2.GetMany[BoxComposeProject](q, map[string]any{
 		"box_id": boxId,
 	}, nil)
 }
 
-func GetBoxComposeProjectByName(q *querier2.Querier, boxId int64, name string) (*BoxComposeProject, error) {
+func GetBoxComposeProjectByName(q *querier2.Querier, boxId string, name string) (*BoxComposeProject, error) {
 	return querier2.GetOne[BoxComposeProject](q, map[string]any{
 		"box_id": boxId,
 		"name":   name,

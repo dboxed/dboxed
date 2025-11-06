@@ -14,9 +14,9 @@ import (
 )
 
 type LogsCmd struct {
-	Box   string `help:"Box ID, UUID, or name" required:"" arg:""`
-	LogId *int64 `help:"Log ID to stream"`
-	Since string `help:"Start streaming from this time (duration like '5m' or RFC3339 timestamp)" default:"1h"`
+	Box   string  `help:"Box ID or name" required:"" arg:""`
+	LogId *string `help:"Log ID to stream"`
+	Since string  `help:"Start streaming from this time (duration like '5m' or RFC3339 timestamp)" default:"1h"`
 }
 
 func (cmd *LogsCmd) Run(g *flags.GlobalFlags) error {
@@ -45,17 +45,17 @@ func (cmd *LogsCmd) Run(g *flags.GlobalFlags) error {
 			return nil
 		}
 
-		options := make([]huh.Option[int64], len(logs))
+		options := make([]huh.Option[string], len(logs))
 		for i, l := range logs {
-			label := fmt.Sprintf("%s (ID: %d, T: %s)", l.FileName, l.ID, l.LastLogTime)
+			label := fmt.Sprintf("%s (ID: %s, T: %s)", l.FileName, l.ID, l.LastLogTime)
 			options[i] = huh.NewOption(label, l.ID)
 		}
 
-		var selectedLogID int64
+		var selectedLogID string
 
 		form := huh.NewForm(
 			huh.NewGroup(
-				huh.NewSelect[int64]().
+				huh.NewSelect[string]().
 					Title(fmt.Sprintf("Select a log file for box '%s'", box.Name)).
 					Options(options...).
 					Value(&selectedLogID),

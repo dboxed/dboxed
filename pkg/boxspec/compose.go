@@ -10,7 +10,7 @@ import (
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 )
 
-type GetMountFunc func(volumeUuid string) string
+type GetMountFunc func(volumeId string) string
 
 func (s *BoxSpec) LoadComposeProjects(ctx context.Context, getMount GetMountFunc) (map[string]*ctypes.Project, error) {
 	ret := map[string]*ctypes.Project{}
@@ -49,7 +49,7 @@ func (s *BoxSpec) loadAndSetupComposeProject(ctx context.Context, name string, c
 }
 
 func (s *BoxSpec) ValidateComposeProject(ctx context.Context, name string, composeStr string) error {
-	getMount := func(volumeUuid string) string {
+	getMount := func(volumeId string) string {
 		return "/dummy"
 	}
 	cp, err := s.loadAndSetupComposeProject(ctx, name, composeStr, getMount)
@@ -132,7 +132,7 @@ func (s *BoxSpec) setupVolumes(compose *ctypes.Project, getMount GetMountFunc) e
 
 				volume.Type = ctypes.VolumeTypeBind
 				if getMount != nil {
-					volume.Source = getMount(vol.Uuid)
+					volume.Source = getMount(vol.ID)
 				} else {
 					volume.Source = "/dummy"
 				}

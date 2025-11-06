@@ -30,7 +30,7 @@ func postprocessMachineProvider(q *querier2.Querier, mp *MachineProvider) error 
 	return nil
 }
 
-func GetMachineProviderById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted bool) (*MachineProvider, error) {
+func GetMachineProviderById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*MachineProvider, error) {
 	v, err := querier2.GetOne[MachineProvider](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -46,7 +46,7 @@ func GetMachineProviderById(q *querier2.Querier, workspaceId *int64, id int64, s
 	return v, nil
 }
 
-func ListMachineProviders(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]MachineProvider, error) {
+func ListMachineProviders(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]MachineProvider, error) {
 	l, err := querier2.GetMany[MachineProvider](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
@@ -66,7 +66,7 @@ func ListMachineProviders(q *querier2.Querier, workspaceId int64, skipDeleted bo
 	return ret, nil
 }
 
-func getMachineProviderAwsSubnets(q *querier2.Querier, machineProviderId int64) ([]MachineProviderAwsSubnet, error) {
+func getMachineProviderAwsSubnets(q *querier2.Querier, machineProviderId string) ([]MachineProviderAwsSubnet, error) {
 	return querier2.GetMany[MachineProviderAwsSubnet](q, map[string]any{
 		"machine_provider_id": machineProviderId,
 	}, nil)

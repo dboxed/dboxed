@@ -21,7 +21,7 @@ type FileSystem struct {
 	client  *baseclient.Client
 	client2 *clients.S3ProxyClient
 
-	s3BucketId int64
+	s3BucketId string
 	s3Prefix   string
 
 	m            sync.Mutex
@@ -29,7 +29,7 @@ type FileSystem struct {
 	contentCache map[string]*fileContent
 }
 
-func NewFileSystem(ctx context.Context, client *baseclient.Client, s3BucketId int64, prefix string) *FileSystem {
+func NewFileSystem(ctx context.Context, client *baseclient.Client, s3BucketId string, prefix string) *FileSystem {
 	return &FileSystem{
 		ctx:        ctx,
 		client:     client,

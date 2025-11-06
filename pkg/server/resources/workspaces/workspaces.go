@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strconv"
 
 	"github.com/danielgtaylor/huma/v2"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
@@ -153,7 +152,7 @@ func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.Workspac
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id int64, onlyWorkspaceToken bool) (*dmodel.Workspace, error) {
+func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id string, onlyWorkspaceToken bool) (*dmodel.Workspace, error) {
 	q := querier2.GetQuerier(ctx)
 	user := auth.GetUser(ctx)
 	token := auth.GetToken(ctx)
@@ -195,15 +194,9 @@ func (s *Workspaces) WorkspaceMiddleware(ctx huma.Context, next func(huma.Contex
 		return
 	}
 
-	workspaceIdStr := ctx.Param("workspaceId")
-	if workspaceIdStr == "" {
+	workspaceId := ctx.Param("workspaceId")
+	if workspaceId == "" {
 		huma.WriteErr(s.api, ctx, http.StatusBadRequest, "missing workspace id")
-		return
-	}
-
-	workspaceId, err := strconv.ParseInt(workspaceIdStr, 10, 64)
-	if err != nil {
-		huma.WriteErr(s.api, ctx, http.StatusBadRequest, "invalid workspace id", err)
 		return
 	}
 

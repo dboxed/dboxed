@@ -1,7 +1,7 @@
 create table box
 (
-    id                       TYPES_INT_PRIMARY_KEY,
-    workspace_id             bigint         not null references workspace (id) on delete restrict,
+    id                       TYPES_UUID_PRIMARY_KEY,
+    workspace_id             text           not null references workspace (id) on delete restrict,
     created_at               TYPES_DATETIME not null default current_timestamp,
     deleted_at               TYPES_DATETIME,
     finalizers               text           not null default '{}',
@@ -9,14 +9,13 @@ create table box
     reconcile_status         text           not null default 'Initializing',
     reconcile_status_details text           not null default '',
 
-    uuid                     text           not null default '' unique,
     name                     text           not null,
 
-    network_id               bigint references network (id) on delete restrict,
+    network_id               text references network (id) on delete restrict,
     network_type             text,
     dboxed_version           text           not null,
 
-    machine_id               bigint         references machine (id) on delete set null,
+    machine_id               text           references machine (id) on delete set null,
 
     desired_state            text           not null default 'up',
 
@@ -25,7 +24,7 @@ create table box
 
 create table box_sandbox_status
 (
-    id          bigint not null primary key references box (id) on delete cascade,
+    id          text not null primary key references box (id) on delete cascade,
 
     status_time TYPES_DATETIME,
 
@@ -44,10 +43,10 @@ alter table machine
 
 create table box_netbird
 (
-    id                       bigint not null primary key references box (id) on delete cascade,
+    id                       text not null primary key references box (id) on delete cascade,
 
-    reconcile_status         text   not null default 'Initializing',
-    reconcile_status_details text   not null default '',
+    reconcile_status         text not null default 'Initializing',
+    reconcile_status_details text not null default '',
 
     setup_key_id             text,
     setup_key                text
@@ -55,10 +54,10 @@ create table box_netbird
 
 create table box_compose_project
 (
-    box_id          bigint not null references box (id) on delete cascade,
-    name            text   not null,
+    box_id          text not null references box (id) on delete cascade,
+    name            text not null,
 
-    compose_project text   not null,
+    compose_project text not null,
 
     primary key (box_id, name)
 );

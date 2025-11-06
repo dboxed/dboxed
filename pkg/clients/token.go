@@ -32,7 +32,7 @@ func (c *TokenClient) ListTokens(ctx context.Context) ([]models.Token, error) {
 	return l.Items, err
 }
 
-func (c *TokenClient) GetTokenById(ctx context.Context, tokenId int64) (*models.Token, error) {
+func (c *TokenClient) GetTokenById(ctx context.Context, tokenId string) (*models.Token, error) {
 	p, err := c.Client.BuildApiPath(true, "tokens", tokenId)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (c *TokenClient) GetTokenByName(ctx context.Context, name string) (*models.
 	return baseclient.RequestApi[models.Token](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *TokenClient) DeleteToken(ctx context.Context, tokenId int64) error {
+func (c *TokenClient) DeleteToken(ctx context.Context, tokenId string) error {
 	p, err := c.Client.BuildApiPath(true, "tokens", tokenId)
 	if err != nil {
 		return err

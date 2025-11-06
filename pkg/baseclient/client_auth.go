@@ -15,7 +15,7 @@ import (
 type ClientAuth struct {
 	ApiUrl      string           `json:"apiUrl"`
 	AuthInfo    *models.AuthInfo `json:"authInfo"`
-	WorkspaceId *int64           `json:"workspaceId"`
+	WorkspaceId *string          `json:"workspaceId"`
 
 	Oauth2Token *oauth2.Token `json:"oauth2Token"`
 	StaticToken *string       `json:"staticToken"`
@@ -25,7 +25,7 @@ func GetDefaultClientAuthFile() (string, error) {
 	if os.Getenv("DBOXED_SANDBOX") == "1" {
 		return consts.BoxClientAuthFile, nil
 	}
-	
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", nil

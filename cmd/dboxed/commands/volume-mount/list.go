@@ -45,7 +45,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	for _, v := range volumes {
 		p := PrintVolumeMount{
 			MountName: v.MountName,
-			Volume:    fmt.Sprintf("%s (id=%d)", v.Volume.Name, v.Volume.ID),
+			Volume:    fmt.Sprintf("%s (id=%s)", v.Volume.Name, v.Volume.ID),
 			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
 		}
 		if v.Volume != nil {
@@ -60,7 +60,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			}
 		}
 		if v.RestoreSnapshot != nil {
-			p.Restored = fmt.Sprintf("from snapshot %d", *v.RestoreSnapshot)
+			p.Restored = fmt.Sprintf("from snapshot %s", *v.RestoreSnapshot)
 		}
 
 		table = append(table, p)

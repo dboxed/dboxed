@@ -18,16 +18,16 @@ func TuiSelectWorkspace(ctx context.Context, c *baseclient.Client) error {
 		return fmt.Errorf("no workspaces available")
 	}
 
-	options := make([]huh.Option[int64], len(workspaces))
+	options := make([]huh.Option[string], len(workspaces))
 	for i, w := range workspaces {
 		options[i] = huh.NewOption(w.Name, w.ID)
 	}
 
-	var selectedWorkspaceID int64
+	var selectedWorkspaceID string
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewSelect[int64]().
+			huh.NewSelect[string]().
 				Title("Select a workspace").
 				Options(options...).
 				Value(&selectedWorkspaceID),

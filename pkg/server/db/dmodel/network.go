@@ -18,7 +18,7 @@ func (v *Network) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func GetNetworkById(q *querier2.Querier, workspaceId *int64, id int64, skipDeleted bool) (*Network, error) {
+func GetNetworkById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*Network, error) {
 	return querier2.GetOne[Network](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -26,7 +26,7 @@ func GetNetworkById(q *querier2.Querier, workspaceId *int64, id int64, skipDelet
 	})
 }
 
-func GetNetworkByName(q *querier2.Querier, workspaceId int64, name string, skipDeleted bool) (*Network, error) {
+func GetNetworkByName(q *querier2.Querier, workspaceId string, name string, skipDeleted bool) (*Network, error) {
 	return querier2.GetOne[Network](q, map[string]any{
 		"workspace_id": workspaceId,
 		"name":         name,
@@ -34,7 +34,7 @@ func GetNetworkByName(q *querier2.Querier, workspaceId int64, name string, skipD
 	})
 }
 
-func ListNetworksForWorkspace(q *querier2.Querier, workspaceId int64, skipDeleted bool) ([]Network, error) {
+func ListNetworksForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]Network, error) {
 	return querier2.GetMany[Network](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),

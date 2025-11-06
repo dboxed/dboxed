@@ -24,8 +24,8 @@ type VolumeServeOpts struct {
 
 	MountName string
 
-	VolumeId int64
-	BoxId    *int64
+	VolumeId string
+	BoxId    *string
 
 	Dir            string
 	BackupInterval time.Duration
@@ -110,7 +110,7 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 
 	lvmTags := []string{
 		"dboxed-volume",
-		fmt.Sprintf("dboxed-volume-%s", vs.volume.Uuid),
+		fmt.Sprintf("dboxed-volume-%s", vs.volume.ID),
 		fmt.Sprintf("dboxed-volume-lock-%s", *vs.volume.LockId),
 	}
 
@@ -352,7 +352,6 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 		Client:                c,
 		Volume:                vs.LocalVolume,
 		VolumeId:              vs.volume.ID,
-		VolumeUuid:            vs.volume.Uuid,
 		LockId:                *vs.volume.LockId,
 		RusticPassword:        vs.volume.Rustic.Password,
 		Mount:                 mount,
@@ -389,7 +388,7 @@ func (vs *VolumeServe) IsRestoreDone() (bool, error) {
 	return s.RestoreDone, nil
 }
 
-func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId int64, delete bool) error {
+func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId string, delete bool) error {
 	s, err := vs.loadVolumeState()
 	if err != nil {
 		return err

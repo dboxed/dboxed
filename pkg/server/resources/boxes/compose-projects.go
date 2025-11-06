@@ -161,7 +161,7 @@ func (s *BoxesServer) restUpdateComposeProject(c context.Context, i *restUpdateC
 }
 
 type restDeleteComposeProjectInput struct {
-	Id          int64  `path:"id"`
+	Id          string `path:"id"`
 	ComposeName string `path:"composeName"`
 }
 

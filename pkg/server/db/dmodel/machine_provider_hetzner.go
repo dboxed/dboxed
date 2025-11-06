@@ -5,7 +5,7 @@ import (
 )
 
 type MachineProviderHetzner struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	HcloudToken        querier2.NullForJoin[string] `db:"hcloud_token"`
 	RobotUser          *string                      `db:"robot_user"`
@@ -16,7 +16,7 @@ type MachineProviderHetzner struct {
 }
 
 type MachineProviderHetznerStatus struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	HetznerNetworkID   *int64  `db:"hetzner_network_id"`
 	HetznerNetworkZone *string `db:"hetzner_network_zone"`

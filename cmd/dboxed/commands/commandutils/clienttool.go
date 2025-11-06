@@ -27,31 +27,31 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 	}
 
 	ct.Workspaces = cache[models.Workspace]{
-		getById: func(ctx context.Context, id int64) (*models.Workspace, error) {
+		getById: func(ctx context.Context, id string) (*models.Workspace, error) {
 			return (&clients.WorkspacesClient{Client: c}).GetWorkspaceById(ctx, id)
 		},
 		entityName: "workspace",
 	}
 	ct.Networks = cache[models.Network]{
-		getById: func(ctx context.Context, id int64) (*models.Network, error) {
+		getById: func(ctx context.Context, id string) (*models.Network, error) {
 			return (&clients.NetworkClient{Client: c}).GetNetworkById(ctx, id)
 		},
 		entityName: "network",
 	}
 	ct.VolumeProviders = cache[models.VolumeProvider]{
-		getById: func(ctx context.Context, id int64) (*models.VolumeProvider, error) {
+		getById: func(ctx context.Context, id string) (*models.VolumeProvider, error) {
 			return (&clients.VolumeProvidersClient{Client: c}).GetVolumeProviderById(ctx, id)
 		},
 		entityName: "volume provider",
 	}
 	ct.Boxes = cache[models.Box]{
-		getById: func(ctx context.Context, id int64) (*models.Box, error) {
+		getById: func(ctx context.Context, id string) (*models.Box, error) {
 			return (&clients.BoxClient{Client: c}).GetBoxById(ctx, id)
 		},
 		entityName: "box",
 	}
 	ct.S3Buckets = cache[models.S3Bucket]{
-		getById: func(ctx context.Context, id int64) (*models.S3Bucket, error) {
+		getById: func(ctx context.Context, id string) (*models.S3Bucket, error) {
 			return (&clients.S3BucketsClient{Client: c}).GetS3BucketById(ctx, id)
 		},
 		entityName: "s3bucket",
@@ -62,15 +62,15 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 }
 
 type cache[T any] struct {
-	cache      map[int64]*T
+	cache      map[string]*T
 	entityName string
 	nameField  string
-	getById    func(ctx context.Context, id int64) (*T, error)
+	getById    func(ctx context.Context, id string) (*T, error)
 }
 
-func (c *cache[T]) GetColumn(ctx context.Context, id int64) string {
+func (c *cache[T]) GetColumn(ctx context.Context, id string) string {
 	if c.cache == nil {
-		c.cache = map[int64]*T{}
+		c.cache = map[string]*T{}
 	}
 	v, ok := (c.cache)[id]
 	if !ok {
@@ -91,9 +91,9 @@ func (c *cache[T]) GetColumn(ctx context.Context, id int64) string {
 		}
 		nameField := vv.FieldByName(n)
 		name := nameField.String()
-		ret = fmt.Sprintf("%s (id=%d)", name, id)
+		ret = fmt.Sprintf("%s (id=%s)", name, id)
 	} else {
-		ret = fmt.Sprintf("<unknown> (id=%d)", id)
+		ret = fmt.Sprintf("<unknown> (id=%s)", id)
 	}
 
 	return ret

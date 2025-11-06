@@ -3,7 +3,6 @@ package commandutils
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -13,9 +12,8 @@ import (
 
 func GetWorkspace(ctx context.Context, c *baseclient.Client, workspace string) (*models.Workspace, error) {
 	c2 := clients.WorkspacesClient{Client: c}
-	id, err := strconv.ParseInt(workspace, 10, 64)
-	if err == nil {
-		v, err := c2.GetWorkspaceById(ctx, id)
+	if uuid.Validate(workspace) == nil {
+		v, err := c2.GetWorkspaceById(ctx, workspace)
 		if err != nil {
 			return nil, err
 		}
@@ -36,25 +34,13 @@ func GetWorkspace(ctx context.Context, c *baseclient.Client, workspace string) (
 
 func GetBox(ctx context.Context, c *baseclient.Client, box string) (*models.Box, error) {
 	c2 := clients.BoxClient{Client: c}
-	id, err := strconv.ParseInt(box, 10, 64)
-	if err == nil {
-		v, err := c2.GetBoxById(ctx, id)
+	if uuid.Validate(box) == nil {
+		v, err := c2.GetBoxById(ctx, box)
 		if err != nil {
 			return nil, err
 		}
 		return v, nil
 	} else {
-		err = uuid.Validate(box)
-		if err == nil {
-			v, err := c2.GetBoxByUuid(ctx, box)
-			if err != nil {
-				if !baseclient.IsNotFound(err) {
-					return nil, err
-				}
-			} else {
-				return v, nil
-			}
-		}
 		v, err := c2.GetBoxByName(ctx, box)
 		if err != nil {
 			return nil, err
@@ -65,9 +51,8 @@ func GetBox(ctx context.Context, c *baseclient.Client, box string) (*models.Box,
 
 func GetVolumeProvider(ctx context.Context, c *baseclient.Client, volumeProvider string) (*models.VolumeProvider, error) {
 	c2 := clients.VolumeProvidersClient{Client: c}
-	id, err := strconv.ParseInt(volumeProvider, 10, 64)
-	if err == nil {
-		v, err := c2.GetVolumeProviderById(ctx, id)
+	if uuid.Validate(volumeProvider) == nil {
+		v, err := c2.GetVolumeProviderById(ctx, volumeProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -83,26 +68,13 @@ func GetVolumeProvider(ctx context.Context, c *baseclient.Client, volumeProvider
 
 func GetVolume(ctx context.Context, c *baseclient.Client, volume string) (*models.Volume, error) {
 	c2 := clients.VolumesClient{Client: c}
-	id, err := strconv.ParseInt(volume, 10, 64)
-	if err == nil {
-		v, err := c2.GetVolumeById(ctx, id)
+	if uuid.Validate(volume) == nil {
+		v, err := c2.GetVolumeById(ctx, volume)
 		if err != nil {
 			return nil, err
 		}
 		return v, nil
 	} else {
-		err = uuid.Validate(volume)
-		if err == nil {
-			v, err := c2.GetVolumeByUuid(ctx, volume)
-			if err != nil {
-				if !baseclient.IsNotFound(err) {
-					return nil, err
-				}
-			} else {
-				return v, nil
-			}
-		}
-
 		v, err := c2.GetVolumeByName(ctx, volume)
 		if err != nil {
 			return nil, err
@@ -113,9 +85,8 @@ func GetVolume(ctx context.Context, c *baseclient.Client, volume string) (*model
 
 func GetNetwork(ctx context.Context, c *baseclient.Client, network string) (*models.Network, error) {
 	c2 := clients.NetworkClient{Client: c}
-	id, err := strconv.ParseInt(network, 10, 64)
-	if err == nil {
-		n, err := c2.GetNetworkById(ctx, id)
+	if uuid.Validate(network) == nil {
+		n, err := c2.GetNetworkById(ctx, network)
 		if err != nil {
 			return nil, err
 		}
@@ -131,9 +102,8 @@ func GetNetwork(ctx context.Context, c *baseclient.Client, network string) (*mod
 
 func GetS3Bucket(ctx context.Context, c *baseclient.Client, s3Bucket string) (*models.S3Bucket, error) {
 	c2 := clients.S3BucketsClient{Client: c}
-	id, err := strconv.ParseInt(s3Bucket, 10, 64)
-	if err == nil {
-		s, err := c2.GetS3BucketById(ctx, id)
+	if uuid.Validate(s3Bucket) == nil {
+		s, err := c2.GetS3BucketById(ctx, s3Bucket)
 		if err != nil {
 			return nil, err
 		}

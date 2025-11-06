@@ -15,7 +15,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 	q := querier.GetQuerier(c)
 
 	boxSpec := &boxspec.BoxSpec{
-		Uuid:            box.Uuid,
+		ID:              box.ID,
 		DesiredState:    box.DesiredState,
 		ComposeProjects: map[string]string{},
 	}
@@ -55,7 +55,7 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 	if err != nil {
 		return err
 	}
-	volumeProviders := map[int64]*dmodel.VolumeProvider{}
+	volumeProviders := map[string]*dmodel.VolumeProvider{}
 	for _, at := range ats {
 		vp, ok := volumeProviders[at.Volume.VolumeProviderID]
 		if !ok {
@@ -67,9 +67,8 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 		}
 
 		boxSpec.Volumes = append(boxSpec.Volumes, boxspec.DboxedVolume{
-			Uuid:           at.Volume.Uuid,
+			ID:             at.Volume.ID,
 			Name:           at.Volume.Name,
-			Id:             at.Volume.ID,
 			RootUid:        uint32(at.RootUid.V),
 			RootGid:        uint32(at.RootGid.V),
 			RootMode:       at.RootMode.V,

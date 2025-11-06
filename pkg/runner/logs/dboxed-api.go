@@ -16,12 +16,12 @@ type TailToApi struct {
 	ctx context.Context
 
 	client *baseclient.Client
-	boxId  int64
+	boxId  string
 
 	MultiTail *multitail2.MultiTail
 }
 
-func NewTailToApi(ctx context.Context, c *baseclient.Client, tailDbFile string, boxId int64) (*TailToApi, error) {
+func NewTailToApi(ctx context.Context, c *baseclient.Client, tailDbFile string, boxId string) (*TailToApi, error) {
 	ttn := &TailToApi{
 		ctx:    ctx,
 		client: c,

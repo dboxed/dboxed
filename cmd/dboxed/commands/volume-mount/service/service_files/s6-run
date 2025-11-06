@@ -4,6 +4,6 @@ if [ -f /var/lib/dboxed/sandbox.env ]; then
 fi
 exec dboxed volume-mount \
   --work-dir={{ .DboxedWorkdir }} \
-  serve {{ .VolumeUuid }} \
+  serve {{ .VolumeId }} \
   --backup-interval={{ .BackupInterval }} \
   2>&1

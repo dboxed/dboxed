@@ -102,7 +102,7 @@ func renderSandboxStatus(box *models.Box, sandboxStatus *models.BoxSandboxStatus
 	// Box ID
 	fmt.Printf("%s  %s\n",
 		labelStyle.Render("Box ID:"),
-		valueStyle.Render(fmt.Sprintf("%d", box.ID)),
+		valueStyle.Render(box.ID),
 	)
 
 	// Desired State with color

@@ -62,7 +62,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	slog.Info("volume created", slog.Any("id", rep.ID), slog.Any("uuid", rep.Uuid))
+	slog.Info("volume created", slog.Any("id", rep.ID))
 
 	return nil
 }

@@ -32,7 +32,7 @@ func (cmd *DeleteCmd) Run(g *flags.GlobalFlags) error {
 
 	// Check if box has desired_state "up" and prompt for confirmation
 	if b.DesiredState == "up" && !cmd.Force {
-		warning := fmt.Sprintf("Box '%s' (ID: %d) has desired state 'up' and may be running!\nDeleting a running box may cause data loss or disruption.", b.Name, b.ID)
+		warning := fmt.Sprintf("Box '%s' (ID: %s) has desired state 'up' and may be running!\nDeleting a running box may cause data loss or disruption.", b.Name, b.ID)
 		confirmed, err := commandutils.ConfirmDanger(
 			"Are you sure you want to delete this box?",
 			warning,

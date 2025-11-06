@@ -10,8 +10,8 @@ import (
 )
 
 type DetachVolumeCmd struct {
-	Box    string `help:"Box ID, UUID, or name" required:"" arg:""`
-	Volume string `help:"Volume ID, UUID, or name" required:""`
+	Box    string `help:"Box ID or name" required:"" arg:""`
+	Volume string `help:"Volume ID or name" required:""`
 }
 
 func (cmd *DetachVolumeCmd) Run(g *flags.GlobalFlags) error {

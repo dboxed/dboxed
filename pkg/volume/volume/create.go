@@ -37,7 +37,11 @@ func Create(ctx context.Context, opts CreateOptions) error {
 
 	vgName := opts.VgName
 	if vgName == "" {
-		vgName = uuid.NewString()
+		u, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		vgName = u.String()
 	}
 
 	volName := "filesystem"

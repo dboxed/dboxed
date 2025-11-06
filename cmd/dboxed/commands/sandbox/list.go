@@ -44,7 +44,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		s := sandbox.Sandbox{
 			Debug:           g.Debug,
 			HostWorkDir:     g.WorkDir,
-			SandboxDir:      filepath.Join(sandboxBaseDir, si.Box.Uuid),
+			SandboxDir:      filepath.Join(sandboxBaseDir, si.Box.ID),
 			VethNetworkCidr: si.VethNetworkCidr,
 		}
 
@@ -56,7 +56,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 
 		table = append(table, PrintSandbox{
 			Name:      si.SandboxName,
-			Box:       fmt.Sprintf("%s (id=%d)", si.Box.Name, si.Box.ID),
+			Box:       fmt.Sprintf("%s (id=%s)", si.Box.Name, si.Box.ID),
 			Workspace: ct.Workspaces.GetColumn(ctx, si.Box.Workspace),
 			Status:    statusStr,
 		})

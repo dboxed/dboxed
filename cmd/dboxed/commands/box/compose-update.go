@@ -11,7 +11,7 @@ import (
 )
 
 type UpdateComposeCmd struct {
-	Box         string `help:"Box ID, UUID, or name" required:"" arg:""`
+	Box         string `help:"Box ID or name" required:"" arg:""`
 	ComposeFile string `help:"Path to docker-compose.yml file" required:"" short:"f"`
 }
 

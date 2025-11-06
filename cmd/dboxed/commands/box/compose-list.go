@@ -12,7 +12,7 @@ import (
 )
 
 type ListComposeCmd struct {
-	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
+	Box string `help:"Box ID or name" required:"" arg:""`
 }
 
 type PrintCompose struct {

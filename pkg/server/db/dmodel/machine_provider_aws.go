@@ -5,7 +5,7 @@ import (
 )
 
 type MachineProviderAws struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	Region             querier2.NullForJoin[string] `db:"region"`
 	AwsAccessKeyID     *string                      `db:"aws_access_key_id"`
@@ -16,7 +16,7 @@ type MachineProviderAws struct {
 }
 
 type MachineProviderAwsStatus struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	VpcName         *string `db:"vpc_name"`
 	VpcCidr         *string `db:"vpc_cidr"`
@@ -26,7 +26,7 @@ type MachineProviderAwsStatus struct {
 }
 
 type MachineProviderAwsSubnet struct {
-	MachineProviderID querier2.NullForJoin[int64] `db:"machine_provider_id"`
+	MachineProviderID querier2.NullForJoin[string] `db:"machine_provider_id"`
 
 	SubnetID         querier2.NullForJoin[string] `db:"subnet_id"`
 	SubnetName       *string                      `db:"subnet_name"`
@@ -46,14 +46,14 @@ func (v *MachineProviderAwsSubnet) CreateOrUpdate(q *querier2.Querier) error {
 	return querier2.CreateOrUpdate(q, v, "machine_provider_id, subnet_id")
 }
 
-func DeleteMachineProviderAwsSubnet(q *querier2.Querier, machineProviderId int64, subnetId string) error {
+func DeleteMachineProviderAwsSubnet(q *querier2.Querier, machineProviderId string, subnetId string) error {
 	return querier2.DeleteOneByFields[MachineProviderAwsSubnet](q, map[string]any{
 		"machine_provider_id": machineProviderId,
 		"subnet_id":           subnetId,
 	})
 }
 
-func GetMachineProviderSubnet(q *querier2.Querier, machineProviderId int64, subnetId string) (*MachineProviderAwsSubnet, error) {
+func GetMachineProviderSubnet(q *querier2.Querier, machineProviderId string, subnetId string) (*MachineProviderAwsSubnet, error) {
 	return querier2.GetOne[MachineProviderAwsSubnet](q, map[string]any{
 		"machine_provider_id": machineProviderId,
 		"subnet_id":           subnetId,

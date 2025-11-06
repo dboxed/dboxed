@@ -7,17 +7,17 @@ import (
 
 type SandboxRunArgs struct {
 	Box         string  `help:"Specify box name or id" required:"" arg:""`
-	SandboxName *string `help:"Override local sandbox name. Defaults to the box UUID"`
+	SandboxName *string `help:"Override local sandbox name. Defaults to the box ID"`
 
 	InfraImage string `help:"Specify the infra/sandbox image to use" default:"${default_infra_image}"`
 	VethCidr   string `help:"CIDR to use for veth pairs. dboxed will dynamically allocate 2 IPs from this CIDR per box" default:"1.2.3.0/24"`
 }
 
 type SandboxArgsOptional struct {
-	Sandbox *string `help:"Specify the local sandbox name, box name, box id, or box uuid" optional:"" arg:""`
+	Sandbox *string `help:"Specify the local sandbox name, box name, box id, or box id" optional:"" arg:""`
 }
 type SandboxArgsRequired struct {
-	Sandbox string `help:"Specify the local sandbox name, box name, box id, or box uuid" required:"" arg:""`
+	Sandbox string `help:"Specify the local sandbox name, box name, box id, or box id" required:"" arg:""`
 }
 
 func (a SandboxRunArgs) GetSandboxName(box *models.Box) (string, error) {
@@ -29,7 +29,7 @@ func (a SandboxRunArgs) GetSandboxName(box *models.Box) (string, error) {
 		}
 		ret = *a.SandboxName
 	} else {
-		ret = box.Uuid
+		ret = box.ID
 	}
 	return ret, nil
 }

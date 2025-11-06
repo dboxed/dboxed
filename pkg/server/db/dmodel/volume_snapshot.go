@@ -9,15 +9,15 @@ import (
 type VolumeSnapshot struct {
 	OwnedByWorkspace
 
-	VolumeProviderID querier.NullForJoin[int64]  `db:"volume_provider_id"`
-	VolumedID        querier.NullForJoin[int64]  `db:"volume_id"`
+	VolumeProviderID querier.NullForJoin[string] `db:"volume_provider_id"`
+	VolumedID        querier.NullForJoin[string] `db:"volume_id"`
 	LockID           querier.NullForJoin[string] `db:"lock_id"`
 
 	Rustic *VolumeSnapshotRustic `join:"true"`
 }
 
 type VolumeSnapshotRustic struct {
-	ID querier.NullForJoin[int64] `db:"id"`
+	ID querier.NullForJoin[string] `db:"id"`
 
 	SnapshotId       querier.NullForJoin[string]    `db:"snapshot_id"`
 	SnapshotTime     querier.NullForJoin[time.Time] `db:"snapshot_time"`
@@ -59,7 +59,7 @@ func (v *VolumeSnapshotRustic) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func GetVolumeSnapshotById(q *querier.Querier, workspaceId *int64, volumeId *int64, id int64, skipDeleted bool) (*VolumeSnapshot, error) {
+func GetVolumeSnapshotById(q *querier.Querier, workspaceId *string, volumeId *string, id string, skipDeleted bool) (*VolumeSnapshot, error) {
 	return querier.GetOne[VolumeSnapshot](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"volume_id":    querier.OmitIfNull(volumeId),
@@ -75,7 +75,7 @@ func GetVolumeSnapshotBySnapshotId(q *querier.Querier, snapshotId string, skipDe
 	})
 }
 
-func ListVolumeSnapshotsForProvider(q *querier.Querier, workspaceId *int64, providerId int64, skipDeleted bool) ([]VolumeSnapshot, error) {
+func ListVolumeSnapshotsForProvider(q *querier.Querier, workspaceId *string, providerId string, skipDeleted bool) ([]VolumeSnapshot, error) {
 	return querier.GetMany[VolumeSnapshot](q, map[string]any{
 		"workspace_id":       querier.OmitIfNull(workspaceId),
 		"volume_provider_id": providerId,
@@ -83,7 +83,7 @@ func ListVolumeSnapshotsForProvider(q *querier.Querier, workspaceId *int64, prov
 	}, nil)
 }
 
-func ListVolumeSnapshotsForVolume(q *querier.Querier, workspaceId *int64, volumeId int64, skipDeleted bool) ([]VolumeSnapshot, error) {
+func ListVolumeSnapshotsForVolume(q *querier.Querier, workspaceId *string, volumeId string, skipDeleted bool) ([]VolumeSnapshot, error) {
 	return querier.GetManySorted[VolumeSnapshot](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"volume_id":    volumeId,

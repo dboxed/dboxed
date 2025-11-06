@@ -20,7 +20,7 @@ func (c *S3BucketsClient) CreateS3Bucket(ctx context.Context, req models.CreateS
 	return baseclient.RequestApi[models.S3Bucket](ctx, c.Client, "POST", p, req)
 }
 
-func (c *S3BucketsClient) DeleteS3Bucket(ctx context.Context, s3BucketId int64) error {
+func (c *S3BucketsClient) DeleteS3Bucket(ctx context.Context, s3BucketId string) error {
 	p, err := c.Client.BuildApiPath(true, "s3-buckets", s3BucketId)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (c *S3BucketsClient) ListS3Buckets(ctx context.Context) ([]models.S3Bucket,
 	return l.Items, err
 }
 
-func (c *S3BucketsClient) GetS3BucketById(ctx context.Context, s3BucketId int64) (*models.S3Bucket, error) {
+func (c *S3BucketsClient) GetS3BucketById(ctx context.Context, s3BucketId string) (*models.S3Bucket, error) {
 	p, err := c.Client.BuildApiPath(true, "s3-buckets", s3BucketId)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (c *S3BucketsClient) GetS3BucketByBucketName(ctx context.Context, bucket st
 	return baseclient.RequestApi[models.S3Bucket](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *S3BucketsClient) UpdateS3Bucket(ctx context.Context, s3BucketId int64, req models.UpdateS3Bucket) (*models.S3Bucket, error) {
+func (c *S3BucketsClient) UpdateS3Bucket(ctx context.Context, s3BucketId string, req models.UpdateS3Bucket) (*models.S3Bucket, error) {
 	p, err := c.Client.BuildApiPath(true, "s3-buckets", s3BucketId)
 	if err != nil {
 		return nil, err

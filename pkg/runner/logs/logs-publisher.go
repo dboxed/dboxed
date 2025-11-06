@@ -102,7 +102,6 @@ func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
 			metadata["volume"] = map[string]any{
 				"name":       volumeState.Volume.Name,
 				"id":         volumeState.Volume.ID,
-				"uuid":       volumeState.Volume.Uuid,
 				"mount-name": volumeState.MountName,
 			}
 			fileName = filepath.Join("volumes", volumeState.Volume.Name)

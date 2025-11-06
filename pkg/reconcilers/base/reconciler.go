@@ -13,7 +13,7 @@ import (
 )
 
 type ReconcileImpl[T dmodel.HasReconcileStatusAndSoftDelete] interface {
-	GetItem(ctx context.Context, id int64) (T, error)
+	GetItem(ctx context.Context, id string) (T, error)
 
 	Reconcile(ctx context.Context, v T, log *slog.Logger) ReconcileResult
 }
@@ -43,7 +43,7 @@ type Reconciler[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 }
 
 type workQueueItem struct {
-	id int64
+	id string
 }
 
 func NewReconciler[T dmodel.HasReconcileStatusAndSoftDelete](config Config[T]) *Reconciler[T] {
@@ -92,7 +92,7 @@ func (r *Reconciler[T]) Run(ctx context.Context) error {
 func (r *Reconciler[T]) findChanges(ctx context.Context, fullCheck bool) {
 	q := querier2.GetQuerier(ctx)
 
-	toQueue := map[int64]workQueueItem{}
+	toQueue := map[string]workQueueItem{}
 	if !r.didInitial || fullCheck {
 		maxId, err := dmodel.GetMaxChangeTrackingId[T](q)
 		if err != nil {

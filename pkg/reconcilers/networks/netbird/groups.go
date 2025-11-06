@@ -12,12 +12,12 @@ import (
 
 func (r *Reconciler) workspaceGroup(ctx context.Context) string {
 	config := config.GetConfig(ctx)
-	return fmt.Sprintf("%s-workspace-%d", config.InstanceName, r.n.WorkspaceID)
+	return fmt.Sprintf("%s-workspace-%s", config.InstanceName, r.n.WorkspaceID)
 }
 
 func (r *Reconciler) networkGroup(ctx context.Context) string {
 	config := config.GetConfig(ctx)
-	return fmt.Sprintf("%s-network-%d", config.InstanceName, r.n.ID)
+	return fmt.Sprintf("%s-network-%s", config.InstanceName, r.n.ID)
 }
 
 func (r *Reconciler) desiredGroups(ctx context.Context) []string {
@@ -31,7 +31,7 @@ func (r *Reconciler) groupsToDelete(ctx context.Context) []string {
 	config := config.GetConfig(ctx)
 
 	var ret []string
-	ret = append(ret, fmt.Sprintf("%s-network-%d", config.InstanceName, r.n.ID))
+	ret = append(ret, fmt.Sprintf("%s-network-%s", config.InstanceName, r.n.ID))
 	return ret
 }
 

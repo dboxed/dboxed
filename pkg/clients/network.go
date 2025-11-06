@@ -24,7 +24,7 @@ func (c *NetworkClient) ListNetworks(ctx context.Context) ([]models.Network, err
 	return l.Items, err
 }
 
-func (c *NetworkClient) GetNetworkById(ctx context.Context, id int64) (*models.Network, error) {
+func (c *NetworkClient) GetNetworkById(ctx context.Context, id string) (*models.Network, error) {
 	p, err := c.Client.BuildApiPath(true, "networks", id)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (c *NetworkClient) CreateNetwork(ctx context.Context, req models.CreateNetw
 	return baseclient.RequestApi[models.Network](ctx, c.Client, "POST", p, req)
 }
 
-func (c *NetworkClient) UpdateNetwork(ctx context.Context, id int64, req models.UpdateNetwork) (*models.Network, error) {
+func (c *NetworkClient) UpdateNetwork(ctx context.Context, id string, req models.UpdateNetwork) (*models.Network, error) {
 	p, err := c.Client.BuildApiPath(true, "networks", id)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (c *NetworkClient) UpdateNetwork(ctx context.Context, id int64, req models.
 	return baseclient.RequestApi[models.Network](ctx, c.Client, "PATCH", p, req)
 }
 
-func (c *NetworkClient) DeleteNetwork(ctx context.Context, id int64) error {
+func (c *NetworkClient) DeleteNetwork(ctx context.Context, id string) error {
 	p, err := c.Client.BuildApiPath(true, "networks", id)
 	if err != nil {
 		return err

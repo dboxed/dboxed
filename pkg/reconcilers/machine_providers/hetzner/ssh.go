@@ -17,7 +17,7 @@ func (r *Reconciler) reconcileSshKey(ctx context.Context) base.ReconcileResult {
 		r.sshKeyId = -1
 		return base.ReconcileResult{}
 	}
-	keyName := fmt.Sprintf("%s--%s-%d", config.InstanceName, r.mp.Name, r.mp.ID)
+	keyName := fmt.Sprintf("%s--%s-%s", config.InstanceName, r.mp.Name, r.mp.ID)
 
 	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(*r.mp.SshKeyPublic))
 	if err != nil {

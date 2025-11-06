@@ -11,7 +11,7 @@ import (
 
 func AddNetbirdService(n2 dmodel.NetworkNetbird, box *dmodel.Box, composeProject *ctypes.Project) error {
 	if box.Netbird.SetupKey == nil {
-		return fmt.Errorf("box %d has no setup key", box.ID)
+		return fmt.Errorf("box %s has no setup key", box.ID)
 	}
 
 	if composeProject.Services == nil {

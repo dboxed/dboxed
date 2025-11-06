@@ -20,7 +20,7 @@ func (c *WorkspacesClient) CreateWorkspace(ctx context.Context, req models.Creat
 	return baseclient.RequestApi[models.Workspace](ctx, c.Client, "POST", p, req)
 }
 
-func (c *WorkspacesClient) DeleteWorkspace(ctx context.Context, workspaceId int64) error {
+func (c *WorkspacesClient) DeleteWorkspace(ctx context.Context, workspaceId string) error {
 	p, err := c.Client.BuildApiPath(false, "workspaces", workspaceId)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (c *WorkspacesClient) ListWorkspaces(ctx context.Context) ([]models.Workspa
 	return l.Items, err
 }
 
-func (c *WorkspacesClient) GetWorkspaceById(ctx context.Context, workspaceId int64) (*models.Workspace, error) {
+func (c *WorkspacesClient) GetWorkspaceById(ctx context.Context, workspaceId string) (*models.Workspace, error) {
 	p, err := c.Client.BuildApiPath(false, "workspaces", workspaceId)
 	if err != nil {
 		return nil, err

@@ -70,6 +70,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.tokens = tokens.New()
 	s.workspaces = workspaces.New()
 	s.machineProviders = machine_providers.New()
+	s.s3BucketsServer = s3buckets.New()
 	s.volumeProviders = volume_providers.New()
 	s.s3Proxy = s3proxy.New()
 	s.networks = networks.New()
@@ -114,7 +115,7 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 			In:          "path",
 			Description: "The workspace id",
 			Required:    true,
-			Schema:      huma.SchemaFromType(s.humaConfig.Components.Schemas, reflect.TypeOf(0)),
+			Schema:      huma.SchemaFromType(s.humaConfig.Components.Schemas, reflect.TypeOf("")),
 		})
 		next(o)
 	})

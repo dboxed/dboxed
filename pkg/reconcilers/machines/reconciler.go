@@ -21,7 +21,7 @@ func NewMachinesReconciler(config config.Config) *base.Reconciler[*dmodel.Machin
 	})
 }
 
-func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.Machine, error) {
+func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.Machine, error) {
 	return dmodel.GetMachineById(querier.GetQuerier(ctx), nil, id, false)
 }
 

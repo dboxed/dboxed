@@ -97,7 +97,7 @@ func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileR
 		return result
 	}
 
-	networkGroupId, ok := r.nbGroupsByName[fmt.Sprintf("%s-network-%d", config.InstanceName, r.n.ID)]
+	networkGroupId, ok := r.nbGroupsByName[fmt.Sprintf("%s-network-%s", config.InstanceName, r.n.ID)]
 	if ok {
 		peers, err := r.netbirdClient.Peers.List(ctx)
 		if err != nil {

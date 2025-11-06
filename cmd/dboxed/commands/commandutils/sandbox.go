@@ -3,7 +3,6 @@ package commandutils
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 )
@@ -18,13 +17,8 @@ func GetSandboxInfo(baseDir string, sandboxArg *string) (*sandbox.SandboxInfo, e
 		return nil, err
 	}
 
-	sandboxId, err := strconv.ParseInt(*sandboxArg, 10, 64)
-	if err != nil {
-		sandboxId = -1
-	}
-
 	for _, s := range sandboxes {
-		if s.SandboxName == *sandboxArg || s.Box.Name == *sandboxArg || s.Box.ID == sandboxId || s.Box.Uuid == *sandboxArg {
+		if s.SandboxName == *sandboxArg || s.Box.Name == *sandboxArg || s.Box.ID == *sandboxArg {
 			return &s, nil
 		}
 	}

@@ -5,9 +5,8 @@ import (
 )
 
 type DboxedVolume struct {
-	Uuid string `json:"uuid"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
-	Id   int64  `json:"id"`
 
 	RootUid  uint32 `json:"rootUid"`
 	RootGid  uint32 `json:"rootGid"`

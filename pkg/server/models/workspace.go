@@ -7,7 +7,7 @@ import (
 )
 
 type Workspace struct {
-	ID        int64     `json:"id"`
+	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 
 	Status        string `json:"status"`
@@ -23,7 +23,7 @@ type CreateWorkspace struct {
 }
 
 type WorkspaceIdByPath struct {
-	WorkspaceId int64 `path:"workspaceId"`
+	WorkspaceId string `path:"workspaceId"`
 }
 
 type WorkspaceAccess struct {

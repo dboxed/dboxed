@@ -129,8 +129,8 @@ func (rn *BoxSpecRunner) runComposeDownByNames(ctx context.Context, names []stri
 }
 
 func (rn *BoxSpecRunner) loadAndWriteComposeProjects(ctx context.Context) (map[string]*ctypes.Project, string, error) {
-	getMount := func(volumeUuid string) string {
-		return rn.getVolumeMountDir(volumeUuid)
+	getMount := func(volumeId string) string {
+		return rn.getVolumeMountDir(volumeId)
 	}
 	composeProjects, err := rn.BoxSpec.LoadComposeProjects(ctx, getMount)
 	if err != nil {

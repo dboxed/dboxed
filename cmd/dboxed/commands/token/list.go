@@ -12,7 +12,7 @@ import (
 type ListCmd struct{}
 
 type PrintToken struct {
-	ID           int64  `col:"Id"`
+	ID           string `col:"Id"`
 	Name         string `col:"Name"`
 	ForWorkspace bool   `col:"For Workspace"`
 	Box          string `col:"Box"`

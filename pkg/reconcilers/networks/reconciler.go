@@ -26,7 +26,7 @@ func NewNetworksReconciler(config config.Config) *base.Reconciler[*dmodel.Networ
 	})
 }
 
-func (r *networkReconciler) GetItem(ctx context.Context, id int64) (*dmodel.Network, error) {
+func (r *networkReconciler) GetItem(ctx context.Context, id string) (*dmodel.Network, error) {
 	return dmodel.GetNetworkById(querier.GetQuerier(ctx), nil, id, false)
 }
 

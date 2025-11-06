@@ -136,8 +136,8 @@ func (s *BoxesServer) attachVolume(c context.Context, box *dmodel.Box, req model
 }
 
 type restUpdateAttachedVolumeInput struct {
-	Id       int64 `path:"id"`
-	VolumeId int64 `path:"volumeId"`
+	Id       string `path:"id"`
+	VolumeId string `path:"volumeId"`
 	huma_utils.JsonBody[models.UpdateVolumeAttachmentRequest]
 }
 
@@ -185,8 +185,8 @@ func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateA
 }
 
 type restDetachVolumeInput struct {
-	Id       int64 `path:"id"`
-	VolumeId int64 `path:"volumeId"`
+	Id       string `path:"id"`
+	VolumeId string `path:"volumeId"`
 }
 
 func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInput) (*huma_utils.Empty, error) {

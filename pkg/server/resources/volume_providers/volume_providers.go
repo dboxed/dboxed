@@ -68,7 +68,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		return nil, err
 	}
 
-	checkS3Bucket := func(bucketId int64) error {
+	checkS3Bucket := func(bucketId string) error {
 		_, err := dmodel.GetS3BucketById(q, &w.ID, bucketId, true)
 		if err != nil {
 			return err

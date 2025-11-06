@@ -9,19 +9,18 @@ import (
 )
 
 type Box struct {
-	ID        int64     `json:"id"`
-	Workspace int64     `json:"workspace"`
+	ID        string    `json:"id"`
+	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
 
-	Uuid string `json:"uuid"`
 	Name string `json:"name"`
 
-	Machine *int64 `json:"machine"`
+	Machine *string `json:"machine"`
 
-	Network     *int64              `json:"network"`
+	Network     *string             `json:"network"`
 	NetworkType *global.NetworkType `json:"networkType"`
 
 	DboxedVersion string `json:"dboxedVersion"`
@@ -34,7 +33,7 @@ type Box struct {
 type CreateBox struct {
 	Name string `json:"name"`
 
-	Network *int64 `json:"network,omitempty"`
+	Network *string `json:"network,omitempty"`
 
 	VolumeAttachments []AttachVolumeRequest     `json:"volumeAttachments,omitempty"`
 	ComposeProjects   []CreateBoxComposeProject `json:"composeProjects,omitempty"`
@@ -88,7 +87,6 @@ func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, erro
 		Status:        s.ReconcileStatus.ReconcileStatus.V,
 		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
-		Uuid: s.Uuid,
 		Name: s.Name,
 
 		Machine: s.MachineID,

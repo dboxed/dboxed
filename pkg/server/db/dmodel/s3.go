@@ -16,7 +16,7 @@ func (v *S3Bucket) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func ListS3Buckets(q *querier.Querier, workspaceId *int64, skipDeleted bool) ([]S3Bucket, error) {
+func ListS3Buckets(q *querier.Querier, workspaceId *string, skipDeleted bool) ([]S3Bucket, error) {
 	l, err := querier.GetMany[S3Bucket](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
@@ -28,7 +28,7 @@ func ListS3Buckets(q *querier.Querier, workspaceId *int64, skipDeleted bool) ([]
 	return l, nil
 }
 
-func GetS3BucketById(q *querier.Querier, workspaceId *int64, id int64, skipDeleted bool) (*S3Bucket, error) {
+func GetS3BucketById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*S3Bucket, error) {
 	vp, err := querier.GetOne[S3Bucket](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"id":           id,
@@ -40,7 +40,7 @@ func GetS3BucketById(q *querier.Querier, workspaceId *int64, id int64, skipDelet
 	return vp, nil
 }
 
-func GetS3BucketByBucketName(q *querier.Querier, workspaceId int64, bucket string, skipDeleted bool) (*S3Bucket, error) {
+func GetS3BucketByBucketName(q *querier.Querier, workspaceId string, bucket string, skipDeleted bool) (*S3Bucket, error) {
 	return querier.GetOne[S3Bucket](q, map[string]any{
 		"workspace_id": workspaceId,
 		"bucket":       bucket,

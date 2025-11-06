@@ -14,8 +14,8 @@ import (
 )
 
 type IsSoftDelete interface {
-	SetId(id int64)
-	GetId() int64
+	SetId(id string)
+	GetId() string
 	GetDeletedAt() *time.Time
 	SetDeletedAt(t *time.Time)
 	GetFinalizers() []string
@@ -86,7 +86,7 @@ func SoftDelete[T IsSoftDelete](q *querier2.Querier, byFields map[string]any) er
 	})
 }
 
-func SoftDeleteByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64) error {
+func SoftDeleteByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *string, id string) error {
 	err := SoftDelete[T](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -145,7 +145,7 @@ func SoftDeleteWithConstraints[T IsSoftDelete](q *querier2.Querier, byFields map
 	return nil
 }
 
-func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64, extra SoftDeleteWithConstraintsExtra) error {
+func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDelete](q *querier2.Querier, workspaceId *string, id string, extra SoftDeleteWithConstraintsExtra) error {
 	err := SoftDeleteWithConstraints[T](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -160,7 +160,7 @@ func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDelete](q *querier2.Querier, wo
 	return nil
 }
 
-func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *int64, id int64) error {
+func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *string, id string) error {
 	return SoftDeleteWithConstraintsByIdsExtra[T](q, workspaceId, id, nil)
 }
 
@@ -176,7 +176,7 @@ where id = :id
 returning finalizers`,
 }
 
-func setDBFinalizers[T any](q *querier2.Querier, id int64, k string, v bool) (string, error) {
+func setDBFinalizers[T any](q *querier2.Querier, id string, k string, v bool) (string, error) {
 	nullOrTrue := "null"
 	if v {
 		nullOrTrue = "true"

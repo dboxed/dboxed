@@ -8,22 +8,21 @@ import (
 )
 
 type Volume struct {
-	ID        int64     `json:"id"`
-	Workspace int64     `json:"workspace"`
+	ID        string    `json:"id"`
+	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
-	Uuid string `json:"uuid"`
 	Name string `json:"name"`
 
-	VolumeProviderId   int64                     `json:"volumeProviderId"`
+	VolumeProviderId   string                    `json:"volumeProviderId"`
 	VolumeProviderType dmodel.VolumeProviderType `json:"volumeProviderType"`
 	VolumeProvider     *VolumeProvider           `json:"volumeProvider"`
 
 	LockId    *string    `json:"lockId,omitempty"`
 	LockTime  *time.Time `json:"lockTime,omitempty"`
-	LockBoxId *int64     `json:"lockBoxId,omitempty"`
+	LockBoxId *string    `json:"lockBoxId,omitempty"`
 
-	LatestSnapshotId *int64 `json:"latestSnapshotId,omitempty"`
+	LatestSnapshotId *string `json:"latestSnapshotId,omitempty"`
 
 	Attachment *VolumeAttachment `json:"attachment,omitempty"`
 
@@ -40,7 +39,7 @@ type VolumeRustic struct {
 type CreateVolume struct {
 	Name string `json:"name"`
 
-	VolumeProvider int64 `json:"volumeProvider"`
+	VolumeProvider string `json:"volumeProvider"`
 
 	Rustic *CreateVolumeRustic `json:"rustic,omitempty"`
 }
@@ -54,8 +53,8 @@ type UpdateVolume struct {
 }
 
 type VolumeAttachment struct {
-	BoxID    int64 `json:"boxId"`
-	VolumeID int64 `json:"volumeId"`
+	BoxID    string `json:"boxId"`
+	VolumeID string `json:"volumeId"`
 
 	RootUid  int64  `json:"rootUid"`
 	RootGid  int64  `json:"rootGid"`
@@ -65,7 +64,7 @@ type VolumeAttachment struct {
 }
 
 type AttachVolumeRequest struct {
-	VolumeId int64 `json:"volumeId"`
+	VolumeId string `json:"volumeId"`
 
 	RootUid  *int64  `json:"rootUid,omitempty"`
 	RootGid  *int64  `json:"rootGid,omitempty"`
@@ -79,7 +78,7 @@ type UpdateVolumeAttachmentRequest struct {
 }
 
 type VolumeLockRequest struct {
-	BoxId *int64 `json:"boxId,omitempty"`
+	BoxId *string `json:"boxId,omitempty"`
 }
 
 type VolumeRefreshLockRequest struct {
@@ -96,7 +95,6 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volum
 		Workspace: s.WorkspaceID,
 		CreatedAt: s.CreatedAt,
 
-		Uuid: s.Uuid,
 		Name: s.Name,
 
 		VolumeProviderId:   s.VolumeProviderID,

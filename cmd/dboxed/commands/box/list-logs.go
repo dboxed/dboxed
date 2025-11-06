@@ -10,11 +10,11 @@ import (
 )
 
 type ListLogsCmd struct {
-	Box string `help:"Box ID, UUID, or name" required:"" arg:""`
+	Box string `help:"Box ID or name" required:"" arg:""`
 }
 
 type PrintListLogs struct {
-	ID          int64  `col:"ID"`
+	ID          string `col:"ID"`
 	CreateAt    string `col:"Created At"`
 	FileName    string `col:"File Name"`
 	Format      string `col:"Format"`

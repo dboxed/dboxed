@@ -5,7 +5,7 @@ import (
 )
 
 type NetworkNetbird struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	NetbirdVersion querier2.NullForJoin[string] `db:"netbird_version"`
 	ApiUrl         querier2.NullForJoin[string] `db:"api_url"`

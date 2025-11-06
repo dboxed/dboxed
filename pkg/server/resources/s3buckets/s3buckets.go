@@ -3,6 +3,7 @@ package s3buckets
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"regexp"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
+	"github.com/dboxed/dboxed/pkg/server/s3utils"
 )
 
 type S3BucketsServer struct {
@@ -40,7 +42,7 @@ func (s *S3BucketsServer) restCreateS3Bucket(ctx context.Context, i *huma_utils.
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
 
-	r := dmodel.S3Bucket{
+	r := &dmodel.S3Bucket{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
@@ -50,12 +52,22 @@ func (s *S3BucketsServer) restCreateS3Bucket(ctx context.Context, i *huma_utils.
 		SecretAccessKey: i.Body.SecretAccessKey,
 	}
 
-	err := r.Create(q)
+	c, err := s3utils.BuildS3Client(r, "")
+	if err != nil {
+		return nil, huma.Error400BadRequest(fmt.Sprintf("failed to verify S3 bucket: %s", err.Error()), err)
+	}
+	loc, err := c.GetBucketLocation(ctx, r.Bucket)
+	if err != nil {
+		return nil, err
+	}
+	slog.InfoContext(ctx, "adding S3 bucket", "endpoint", i.Body.Endpoint, "bucket", i.Body.Bucket, "location", loc)
+
+	err = r.Create(q)
 	if err != nil {
 		return nil, err
 	}
 
-	return huma_utils.NewJsonBody(models.S3BucketFromDB(r)), nil
+	return huma_utils.NewJsonBody(models.S3BucketFromDB(*r)), nil
 }
 
 func (s *S3BucketsServer) restListS3Buckets(ctx context.Context, i *struct{}) (*huma_utils.List[models.S3Bucket], error) {

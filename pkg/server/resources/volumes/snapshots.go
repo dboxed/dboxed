@@ -125,7 +125,7 @@ func (s *VolumeServer) restListSnapshots(ctx context.Context, i *huma_utils.IdBy
 
 type snapshotIdByPath struct {
 	huma_utils.IdByPath
-	SnapshotId int64 `path:"snapshotId"`
+	SnapshotId string `path:"snapshotId"`
 }
 
 func (s *VolumeServer) restGetSnapshot(ctx context.Context, i *snapshotIdByPath) (*huma_utils.JsonBody[models.VolumeSnapshot], error) {

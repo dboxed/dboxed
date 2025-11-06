@@ -14,7 +14,7 @@ type ListCmd struct {
 }
 
 type PrintVolumeProvider struct {
-	ID            int64  `col:"Id"`
+	ID            string `col:"Id"`
 	Name          string `col:"Name"`
 	Type          string `col:"Type"`
 	Status        string `col:"Status"`

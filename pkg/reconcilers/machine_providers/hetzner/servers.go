@@ -18,7 +18,7 @@ import (
 func (r *Reconciler) queryHetznerServers(ctx context.Context) base.ReconcileResult {
 	hetznerServers, err := r.hcloudClient.Server.AllWithOpts(ctx, hcloud.ServerListOpts{
 		ListOpts: hcloud.ListOpts{
-			LabelSelector: fmt.Sprintf("%s=%d", cloud_utils.MachineProviderIdTagName, r.mp.ID),
+			LabelSelector: fmt.Sprintf("%s=%s", cloud_utils.MachineProviderIdTagName, r.mp.ID),
 		},
 	})
 	if err != nil {
@@ -119,7 +119,7 @@ func (r *Reconciler) reconcileDeleteHetznerMachine(ctx context.Context, log *slo
 
 func (r *Reconciler) buildHetznerServerName(ctx context.Context, m *dmodel.Machine) string {
 	config := config.GetConfig(ctx)
-	return fmt.Sprintf("%s-%s-%d", config.InstanceName, m.Name, m.ID)
+	return fmt.Sprintf("%s-%s-%s", config.InstanceName, m.Name, m.ID)
 }
 
 func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {

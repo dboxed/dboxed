@@ -1,7 +1,7 @@
 package querier
 
 type HasId interface {
-	GetId() int64
+	GetId() string
 }
 
 type HasTableName interface {

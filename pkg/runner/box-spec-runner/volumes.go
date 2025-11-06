@@ -16,17 +16,17 @@ import (
 	"github.com/moby/sys/mountinfo"
 )
 
-func (rn *BoxSpecRunner) getVolumeWorkDir(uuid string) string {
-	return filepath.Join(rn.WorkDir, "volumes", uuid)
+func (rn *BoxSpecRunner) getVolumeWorkDir(id string) string {
+	return filepath.Join(rn.WorkDir, "volumes", id)
 }
 
-func (rn *BoxSpecRunner) getVolumeMountDir(uuid string) string {
-	return filepath.Join(rn.getVolumeWorkDir(uuid), "mount")
+func (rn *BoxSpecRunner) getVolumeMountDir(id string) string {
+	return filepath.Join(rn.getVolumeWorkDir(id), "mount")
 }
 
 func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects map[string]*ctypes.Project, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
-	oldVolumesByName := map[int64]*volume_serve.VolumeState{}
-	newVolumeByName := map[int64]*boxspec.DboxedVolume{}
+	oldVolumesByName := map[string]*volume_serve.VolumeState{}
+	newVolumeByName := map[string]*boxspec.DboxedVolume{}
 
 	oldVolumes, err := volume_serve.ListVolumeState(rn.getVolumeWorkDir(""))
 	if err != nil {
@@ -37,7 +37,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 		oldVolumesByName[v.Volume.ID] = v
 	}
 	for _, v := range newVolumes {
-		newVolumeByName[v.Id] = &v
+		newVolumeByName[v.ID] = &v
 	}
 
 	needDown := false
@@ -57,8 +57,8 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 		}
 	}
 	for _, newVolume := range newVolumeByName {
-		if oldVolume, ok := oldVolumesByName[newVolume.Id]; ok {
-			mountDir := rn.getVolumeMountDir(oldVolume.Volume.Uuid)
+		if oldVolume, ok := oldVolumesByName[newVolume.ID]; ok {
+			mountDir := rn.getVolumeMountDir(oldVolume.Volume.ID)
 
 			mounted, err := mountinfo.Mounted(mountDir)
 			if err != nil {
@@ -105,7 +105,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 		}
 	}
 	for _, v := range newVolumes {
-		mountDir := rn.getVolumeMountDir(v.Uuid)
+		mountDir := rn.getVolumeMountDir(v.ID)
 		err = rn.fixVolumePermissions(v, mountDir)
 		if err != nil {
 			return err
@@ -130,8 +130,8 @@ func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVo
 		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"create",
-		"--volume", vol.Uuid,
-		"--box", rn.BoxSpec.Uuid,
+		"--volume", vol.ID,
+		"--box", rn.BoxSpec.ID,
 	}
 
 	err := rn.runDboxedVolume(ctx, args)
@@ -151,7 +151,7 @@ func (rn *BoxSpecRunner) mountVolume(ctx context.Context, vol *boxspec.DboxedVol
 		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"mount",
-		vol.Uuid,
+		vol.ID,
 	}
 
 	err := rn.runDboxedVolume(ctx, args)
@@ -171,7 +171,7 @@ func (rn *BoxSpecRunner) releaseVolume(ctx context.Context, vol *volume_serve.Vo
 		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"release",
-		vol.Volume.Uuid,
+		vol.Volume.ID,
 	}
 
 	err := rn.runDboxedVolume(ctx, args)
@@ -190,7 +190,7 @@ func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.
 		"volume-mount",
 		"service",
 		"install",
-		vol.Uuid,
+		vol.ID,
 		"--backup-interval", vol.BackupInterval,
 	}
 
@@ -211,7 +211,7 @@ func (rn *BoxSpecRunner) uninstallVolumeService(ctx context.Context, vol *volume
 		"volume-mount",
 		"service",
 		"uninstall",
-		vol.Volume.Uuid,
+		vol.Volume.ID,
 	}
 
 	err := rn.runDboxedVolume(ctx, args)

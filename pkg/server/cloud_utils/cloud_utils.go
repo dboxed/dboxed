@@ -8,17 +8,17 @@ import (
 
 const MachineProviderIdTagName = "dboxed.io/machine-provider-id"
 
-func BuildCloudBaseTags(machineProviderId int64, workspaceId int64) map[string]string {
+func BuildCloudBaseTags(machineProviderId string, workspaceId string) map[string]string {
 	m := map[string]string{
-		MachineProviderIdTagName: fmt.Sprintf("%d", machineProviderId),
-		"dboxed.io/workspace-id": fmt.Sprintf("%d", workspaceId),
+		MachineProviderIdTagName: fmt.Sprintf("%s", machineProviderId),
+		"dboxed.io/workspace-id": fmt.Sprintf("%s", workspaceId),
 	}
 	return m
 }
 
-func BuildCloudMachineTags(machineProviderId int64, machine *dmodel.Machine) map[string]string {
+func BuildCloudMachineTags(machineProviderId string, machine *dmodel.Machine) map[string]string {
 	m := map[string]string{
-		"dboxed.io/machine-id":   fmt.Sprintf("%d", machine.ID),
+		"dboxed.io/machine-id":   fmt.Sprintf("%s", machine.ID),
 		"dboxed.io/machine-name": machine.Name,
 	}
 	for k, v := range BuildCloudBaseTags(machineProviderId, machine.WorkspaceID) {

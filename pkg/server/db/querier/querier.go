@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/lib/pq"
@@ -208,14 +209,18 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 		}
 		returningFieldNames = append(returningFieldNames, f.FieldName)
 
-		if f.StructField.Tag.Get("omitCreate") == "true" {
+		isUuid := f.StructField.Tag.Get("uuid") == "true"
+		isOmitCreate := f.StructField.Tag.Get("omitCreate") == "true"
+		isOmitOnConflictUpdate := f.StructField.Tag.Get("omitOnConflictUpdate") == "true"
+
+		if isOmitCreate {
 			continue
 		}
 
 		createFields = append(createFields, f)
 		createFieldNames = append(createFieldNames, f.FieldName)
 
-		if f.StructField.Tag.Get("omitOnConflictUpdate") != "true" {
+		if !isUuid && !isOmitOnConflictUpdate {
 			conflictSets = append(conflictSets, fmt.Sprintf("%s = excluded.%s", f.FieldName, f.FieldName))
 		}
 	}
@@ -226,9 +231,20 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 
 		for _, f := range createFields {
 			argName := fmt.Sprintf("i%d_%s", i, f.FieldName)
+
+			isUuid := f.StructField.Tag.Get("uuid") == "true"
+
 			values = append(values, ":"+argName)
-			fv := GetStructValueByPath(v, f.Path)
-			args[argName] = fv.Interface()
+			if isUuid {
+				u, err := uuid.NewV7()
+				if err != nil {
+					return err
+				}
+				args[argName] = u.String()
+			} else {
+				fv := GetStructValueByPath(v, f.Path)
+				args[argName] = fv.Interface()
+			}
 		}
 
 		valuesList = append(valuesList, fmt.Sprintf("(%s)", strings.Join(values, ", ")))
@@ -488,7 +504,7 @@ func DeleteOneByStruct[T HasId](q *Querier, v T) error {
 	return DeleteOneById[T](q, v.GetId())
 }
 
-func DeleteOneById[T any](q *Querier, id int64) error {
+func DeleteOneById[T any](q *Querier, id string) error {
 	return DeleteOneByFields[T](q, map[string]any{
 		"id": id,
 	})

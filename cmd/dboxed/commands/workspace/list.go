@@ -13,7 +13,7 @@ type ListCmd struct {
 }
 
 type PrintWorkspace struct {
-	ID            int64  `col:"ID"`
+	ID            string `col:"ID"`
 	Name          string `col:"Name"`
 	Status        string `col:"Status"`
 	StatusDetails string `col:"Status Detail"`

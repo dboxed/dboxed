@@ -7,11 +7,11 @@ import (
 )
 
 type VolumeSnapshot struct {
-	ID        int64     `json:"id"`
-	Workspace int64     `json:"workspace"`
+	ID        string    `json:"id"`
+	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
-	VolumeID int64  `json:"volumeId"`
+	VolumeID string `json:"volumeId"`
 	LockID   string `json:"lockId"`
 
 	Rustic *VolumeSnapshotRustic `json:"rustic,omitempty"`

@@ -20,7 +20,7 @@ func (c *VolumeProvidersClient) CreateVolumeProvider(ctx context.Context, req mo
 	return baseclient.RequestApi[models.VolumeProvider](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumeProvidersClient) DeleteVolumeProvider(ctx context.Context, volumeProviderId int64) error {
+func (c *VolumeProvidersClient) DeleteVolumeProvider(ctx context.Context, volumeProviderId string) error {
 	p, err := c.Client.BuildApiPath(true, "volume-providers", volumeProviderId)
 	if err != nil {
 		return err
@@ -29,7 +29,7 @@ func (c *VolumeProvidersClient) DeleteVolumeProvider(ctx context.Context, volume
 	return err
 }
 
-func (c *VolumeProvidersClient) UpdateVolumeProvider(ctx context.Context, volumeProviderId int64, req models.UpdateVolumeProvider) (*models.VolumeProvider, error) {
+func (c *VolumeProvidersClient) UpdateVolumeProvider(ctx context.Context, volumeProviderId string, req models.UpdateVolumeProvider) (*models.VolumeProvider, error) {
 	p, err := c.Client.BuildApiPath(true, "volume-providers", volumeProviderId)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (c *VolumeProvidersClient) ListVolumeProviders(ctx context.Context) ([]mode
 	return l.Items, err
 }
 
-func (c *VolumeProvidersClient) GetVolumeProviderById(ctx context.Context, volumeProviderId int64) (*models.VolumeProvider, error) {
+func (c *VolumeProvidersClient) GetVolumeProviderById(ctx context.Context, volumeProviderId string) (*models.VolumeProvider, error) {
 	p, err := c.Client.BuildApiPath(true, "volume-providers", volumeProviderId)
 	if err != nil {
 		return nil, err

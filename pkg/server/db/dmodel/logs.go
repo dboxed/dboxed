@@ -10,9 +10,9 @@ import (
 type LogMetadata struct {
 	OwnedByWorkspace
 
-	BoxID int64 `db:"box_id"`
+	BoxID string `db:"box_id" omitOnConflictUpdate:"true"`
 
-	FileName string `db:"file_name"`
+	FileName string `db:"file_name" omitOnConflictUpdate:"true"`
 	Format   string `db:"format"`
 	Metadata string `db:"metadata"`
 
@@ -21,9 +21,9 @@ type LogMetadata struct {
 }
 
 type LogLine struct {
-	ID          int64 `db:"id" omitCreate:"true"`
-	WorkspaceID int64 `db:"workspace_id"`
-	LogID       int64 `db:"log_id"`
+	ID          int64  `db:"id" omitCreate:"true"`
+	WorkspaceID string `db:"workspace_id"`
+	LogID       string `db:"log_id"`
 
 	Time time.Time `db:"time"`
 	Line string    `db:"line"`
@@ -37,7 +37,7 @@ func (v *LogLine) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListLogMetadataForBox(q *querier2.Querier, workspaceId *int64, boxId int64, skipDeleted bool) ([]LogMetadata, error) {
+func ListLogMetadataForBox(q *querier2.Querier, workspaceId *string, boxId string, skipDeleted bool) ([]LogMetadata, error) {
 	return querier2.GetMany[LogMetadata](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"box_id":       boxId,
@@ -45,7 +45,7 @@ func ListLogMetadataForBox(q *querier2.Querier, workspaceId *int64, boxId int64,
 	}, nil)
 }
 
-func GetLogMetadataById(q *querier2.Querier, workspaceId *int64, logId int64, skipDeleted bool) (*LogMetadata, error) {
+func GetLogMetadataById(q *querier2.Querier, workspaceId *string, logId string, skipDeleted bool) (*LogMetadata, error) {
 	return querier2.GetOne[LogMetadata](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           logId,
@@ -53,7 +53,7 @@ func GetLogMetadataById(q *querier2.Querier, workspaceId *int64, logId int64, sk
 	})
 }
 
-func ListLogLinesSinceTime(q *querier2.Querier, logId int64, since time.Time, limit *int64) ([]LogLine, error) {
+func ListLogLinesSinceTime(q *querier2.Querier, logId string, since time.Time, limit *int64) ([]LogLine, error) {
 	var timeExpr string
 	switch q.DB.DriverName() {
 	case "pgx":
@@ -78,7 +78,7 @@ func ListLogLinesSinceTime(q *querier2.Querier, logId int64, since time.Time, li
 	})
 }
 
-func ListLogLinesSinceSeq(q *querier2.Querier, logId int64, seq int64, limit *int64) ([]LogLine, error) {
+func ListLogLinesSinceSeq(q *querier2.Querier, logId string, seq int64, limit *int64) ([]LogLine, error) {
 	return querier2.GetManySorted[LogLine](q, map[string]any{
 		"log_id": logId,
 		"id":     querier2.RawSql(fmt.Sprintf(">= %d", seq)),
@@ -94,12 +94,12 @@ func ListLogLinesSinceSeq(q *querier2.Querier, logId int64, seq int64, limit *in
 }
 
 type LogLineBytes struct {
-	ID        int64 `db:"id"`
-	LogID     int64 `db:"log_id"`
-	LineBytes int64 `db:"log_line_bytes"`
+	ID        int64  `db:"id"`
+	LogID     string `db:"log_id"`
+	LineBytes int64  `db:"log_line_bytes"`
 }
 
-func QueryLogLineBytes(q *querier2.Querier, workspaceId int64, limit int64) ([]LogLineBytes, error) {
+func QueryLogLineBytes(q *querier2.Querier, workspaceId string, limit int64) ([]LogLineBytes, error) {
 	query := fmt.Sprintf("select id, log_id, octet_length(line) as log_line_bytes from log_line where workspace_id = :workspace_id order by id asc limit :limit")
 
 	var ret []LogLineBytes
@@ -114,15 +114,15 @@ func QueryLogLineBytes(q *querier2.Querier, workspaceId int64, limit int64) ([]L
 }
 
 type WorkspaceLogBytesUsage struct {
-	WorkspaceID  int64 `db:"workspace_id"`
-	SumLineBytes int64 `db:"sum_line_bytes"`
+	WorkspaceID  string `db:"workspace_id"`
+	SumLineBytes int64  `db:"sum_line_bytes"`
 }
 
 func (v *WorkspaceLogBytesUsage) GetTableName() string {
 	return "log_metadata"
 }
 
-func QueryWorkspaceLogBytesUsage(q *querier2.Querier, workspaceId int64) (*WorkspaceLogBytesUsage, error) {
+func QueryWorkspaceLogBytesUsage(q *querier2.Querier, workspaceId string) (*WorkspaceLogBytesUsage, error) {
 	query := fmt.Sprintf("select workspace_id, coalesce(sum(total_line_bytes), 0) as sum_line_bytes from log_metadata where workspace_id = :workspace_id group by workspace_id")
 
 	var ret WorkspaceLogBytesUsage
@@ -135,7 +135,7 @@ func QueryWorkspaceLogBytesUsage(q *querier2.Querier, workspaceId int64) (*Works
 	return &ret, nil
 }
 
-func DeleteLogLinesUntilId(q *querier2.Querier, workspaceId int64, untilLogLineId int64) (int64, error) {
+func DeleteLogLinesUntilId(q *querier2.Querier, workspaceId string, untilLogLineId int64) (int64, error) {
 	query := fmt.Sprintf("delete from log_line where workspace_id = :workspace_id and id <= :uid")
 
 	qr, err := q.ExecNamed(query, map[string]any{
@@ -152,7 +152,7 @@ func DeleteLogLinesUntilId(q *querier2.Querier, workspaceId int64, untilLogLineI
 	return la, nil
 }
 
-func AddLogMetadataTotalBytes(q *querier2.Querier, logId int64, add int64) error {
+func AddLogMetadataTotalBytes(q *querier2.Querier, logId string, add int64) error {
 	query := fmt.Sprintf("update log_metadata set total_line_bytes = total_line_bytes + :add where id = :log_id")
 
 	return q.ExecOneNamed(query, map[string]any{

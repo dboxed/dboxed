@@ -62,7 +62,7 @@ func AwsGetNameFromTags(tags []types.Tag) *string {
 	return nil
 }
 
-func BuildAwsSshKeyName(ctx context.Context, machineProviderName string, machineProviderId int64) string {
+func BuildAwsSshKeyName(ctx context.Context, machineProviderName string, machineProviderId string) string {
 	config := config.GetConfig(ctx)
-	return fmt.Sprintf("%s-%s-%d", config.InstanceName, machineProviderName, machineProviderId)
+	return fmt.Sprintf("%s-%s-%s", config.InstanceName, machineProviderName, machineProviderId)
 }

@@ -12,7 +12,7 @@ import (
 type ListCmd struct{}
 
 type PrintNetwork struct {
-	ID            int64  `col:"Id"`
+	ID            string `col:"Id"`
 	Name          string `col:"Name"`
 	Type          string `col:"Type"`
 	Status        string `col:"Status"`

@@ -104,17 +104,17 @@ func renderTokenCreated(token *models.Token) {
 
 	content.WriteString(fmt.Sprintf("%s  %s\n",
 		labelStyle.Render("ID:"),
-		valueStyle.Render(fmt.Sprintf("%d", token.ID)),
+		valueStyle.Render(token.ID),
 	))
 
 	content.WriteString(fmt.Sprintf("%s  %s\n",
 		labelStyle.Render("Workspace:"),
-		valueStyle.Render(fmt.Sprintf("%d", token.Workspace)),
+		valueStyle.Render(token.Workspace),
 	))
 
 	scope := "Workspace"
 	if token.BoxID != nil {
-		scope = fmt.Sprintf("Box %d", *token.BoxID)
+		scope = fmt.Sprintf("Box %s", *token.BoxID)
 	}
 	content.WriteString(fmt.Sprintf("%s  %s\n",
 		labelStyle.Render("Scope:"),

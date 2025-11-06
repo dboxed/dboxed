@@ -19,9 +19,8 @@ type VolumeBackup struct {
 	Client *baseclient.Client
 	Volume *volume.Volume
 
-	VolumeId   int64
-	VolumeUuid string
-	LockId     string
+	VolumeId string
+	LockId   string
 
 	RusticPassword        string
 	Mount                 string
@@ -31,7 +30,7 @@ type VolumeBackup struct {
 
 func (vb *VolumeBackup) Backup(ctx context.Context) error {
 	snapshotName := "backup-snapshot"
-	rusticHost := fmt.Sprintf("dboxed-volume-%s", vb.VolumeUuid)
+	rusticHost := fmt.Sprintf("dboxed-volume-%s", vb.VolumeId)
 
 	_ = util.RunCommand(ctx, "sync")
 
@@ -67,7 +66,7 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 			slog.Error("deferred unmounting failed", slog.Any("error", err))
 		}
 	}()
-	tags := BuildBackupTags(v.VolumeProvider.ID, &vb.VolumeId, &vb.VolumeUuid, &vb.LockId)
+	tags := BuildBackupTags(v.VolumeProvider.ID, &vb.VolumeId, &vb.LockId)
 
 	var rsSnapshot *rustic.Snapshot
 	err = vb.runWithWebdavProxy(ctx, v, func(config rustic.RusticConfig) error {

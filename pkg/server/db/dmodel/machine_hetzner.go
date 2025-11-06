@@ -5,7 +5,7 @@ import (
 )
 
 type MachineHetzner struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 	ReconcileStatus
 
 	ServerType     querier2.NullForJoin[string] `db:"server_type"`
@@ -14,12 +14,12 @@ type MachineHetzner struct {
 	Status *MachineHetznerStatus `join:"true"`
 }
 
-func (v *MachineHetzner) GetId() int64 {
+func (v *MachineHetzner) GetId() string {
 	return v.ID.V
 }
 
 type MachineHetznerStatus struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	ServerID *int64 `db:"server_id"`
 }

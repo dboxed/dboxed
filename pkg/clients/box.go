@@ -35,16 +35,8 @@ func (c *BoxClient) ListBoxes(ctx context.Context) ([]models.Box, error) {
 	return l.Items, err
 }
 
-func (c *BoxClient) GetBoxById(ctx context.Context, id int64) (*models.Box, error) {
+func (c *BoxClient) GetBoxById(ctx context.Context, id string) (*models.Box, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", id)
-	if err != nil {
-		return nil, err
-	}
-	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
-}
-
-func (c *BoxClient) GetBoxByUuid(ctx context.Context, uuid string) (*models.Box, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", "by-uuid", uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +51,7 @@ func (c *BoxClient) GetBoxByName(ctx context.Context, name string) (*models.Box,
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *BoxClient) GetBoxSpecById(ctx context.Context, id int64) (*boxspec.BoxSpec, error) {
+func (c *BoxClient) GetBoxSpecById(ctx context.Context, id string) (*boxspec.BoxSpec, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", id, "box-spec")
 	if err != nil {
 		return nil, err
@@ -67,7 +59,7 @@ func (c *BoxClient) GetBoxSpecById(ctx context.Context, id int64) (*boxspec.BoxS
 	return baseclient.RequestApi[boxspec.BoxSpec](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {
+func (c *BoxClient) DeleteBox(ctx context.Context, id string) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", id)
 	if err != nil {
 		return err
@@ -76,7 +68,7 @@ func (c *BoxClient) DeleteBox(ctx context.Context, id int64) error {
 	return err
 }
 
-func (c *BoxClient) UpdateBox(ctx context.Context, id int64, req models.UpdateBox) (*models.Box, error) {
+func (c *BoxClient) UpdateBox(ctx context.Context, id string, req models.UpdateBox) (*models.Box, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", id)
 	if err != nil {
 		return nil, err
@@ -84,21 +76,21 @@ func (c *BoxClient) UpdateBox(ctx context.Context, id int64, req models.UpdateBo
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "PATCH", p, req)
 }
 
-func (c *BoxClient) StartBox(ctx context.Context, id int64) (*models.Box, error) {
+func (c *BoxClient) StartBox(ctx context.Context, id string) (*models.Box, error) {
 	desiredState := "up"
 	return c.UpdateBox(ctx, id, models.UpdateBox{
 		DesiredState: &desiredState,
 	})
 }
 
-func (c *BoxClient) StopBox(ctx context.Context, id int64) (*models.Box, error) {
+func (c *BoxClient) StopBox(ctx context.Context, id string) (*models.Box, error) {
 	desiredState := "down"
 	return c.UpdateBox(ctx, id, models.UpdateBox{
 		DesiredState: &desiredState,
 	})
 }
 
-func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId int64) (*models.BoxSandboxStatus, error) {
+func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId string) (*models.BoxSandboxStatus, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
 	if err != nil {
 		return nil, err
@@ -106,7 +98,7 @@ func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId int64) (*models.
 	return baseclient.RequestApi[models.BoxSandboxStatus](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *BoxClient) UpdateSandboxStatus(ctx context.Context, boxId int64, req models.UpdateBoxSandboxStatus) error {
+func (c *BoxClient) UpdateSandboxStatus(ctx context.Context, boxId string, req models.UpdateBoxSandboxStatus) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
 	if err != nil {
 		return err
@@ -115,7 +107,7 @@ func (c *BoxClient) UpdateSandboxStatus(ctx context.Context, boxId int64, req mo
 	return err
 }
 
-func (c *BoxClient) PostLogLines(ctx context.Context, boxId int64, req models.PostLogs) error {
+func (c *BoxClient) PostLogLines(ctx context.Context, boxId string, req models.PostLogs) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs")
 	if err != nil {
 		return err
@@ -124,7 +116,7 @@ func (c *BoxClient) PostLogLines(ctx context.Context, boxId int64, req models.Po
 	return err
 }
 
-func (c *BoxClient) ListLogs(ctx context.Context, boxId int64) ([]models.LogMetadataModel, error) {
+func (c *BoxClient) ListLogs(ctx context.Context, boxId string) ([]models.LogMetadataModel, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs")
 	if err != nil {
 		return nil, err
@@ -136,7 +128,7 @@ func (c *BoxClient) ListLogs(ctx context.Context, boxId int64) ([]models.LogMeta
 	return l.Items, err
 }
 
-func (c *BoxClient) ListComposeProjects(ctx context.Context, boxId int64) ([]models.BoxComposeProject, error) {
+func (c *BoxClient) ListComposeProjects(ctx context.Context, boxId string) ([]models.BoxComposeProject, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects")
 	if err != nil {
 		return nil, err
@@ -148,7 +140,7 @@ func (c *BoxClient) ListComposeProjects(ctx context.Context, boxId int64) ([]mod
 	return l.Items, err
 }
 
-func (c *BoxClient) CreateComposeProject(ctx context.Context, boxId int64, req models.CreateBoxComposeProject) error {
+func (c *BoxClient) CreateComposeProject(ctx context.Context, boxId string, req models.CreateBoxComposeProject) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects")
 	if err != nil {
 		return err
@@ -157,7 +149,7 @@ func (c *BoxClient) CreateComposeProject(ctx context.Context, boxId int64, req m
 	return err
 }
 
-func (c *BoxClient) UpdateComposeProject(ctx context.Context, boxId int64, composeName string, req models.UpdateBoxComposeProject) error {
+func (c *BoxClient) UpdateComposeProject(ctx context.Context, boxId string, composeName string, req models.UpdateBoxComposeProject) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects", composeName)
 	if err != nil {
 		return err
@@ -166,7 +158,7 @@ func (c *BoxClient) UpdateComposeProject(ctx context.Context, boxId int64, compo
 	return err
 }
 
-func (c *BoxClient) DeleteComposeProject(ctx context.Context, boxId int64, composeName string) error {
+func (c *BoxClient) DeleteComposeProject(ctx context.Context, boxId string, composeName string) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects", composeName)
 	if err != nil {
 		return err
@@ -175,7 +167,7 @@ func (c *BoxClient) DeleteComposeProject(ctx context.Context, boxId int64, compo
 	return err
 }
 
-func (c *BoxClient) ListAttachedVolumes(ctx context.Context, boxId int64) ([]models.VolumeAttachment, error) {
+func (c *BoxClient) ListAttachedVolumes(ctx context.Context, boxId string) ([]models.VolumeAttachment, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes")
 	if err != nil {
 		return nil, err
@@ -187,7 +179,7 @@ func (c *BoxClient) ListAttachedVolumes(ctx context.Context, boxId int64) ([]mod
 	return l.Items, err
 }
 
-func (c *BoxClient) AttachVolume(ctx context.Context, boxId int64, req models.AttachVolumeRequest) error {
+func (c *BoxClient) AttachVolume(ctx context.Context, boxId string, req models.AttachVolumeRequest) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes")
 	if err != nil {
 		return err
@@ -196,7 +188,7 @@ func (c *BoxClient) AttachVolume(ctx context.Context, boxId int64, req models.At
 	return err
 }
 
-func (c *BoxClient) UpdateAttachedVolume(ctx context.Context, boxId int64, volumeId int64, req models.UpdateVolumeAttachmentRequest) (*models.VolumeAttachment, error) {
+func (c *BoxClient) UpdateAttachedVolume(ctx context.Context, boxId string, volumeId string, req models.UpdateVolumeAttachmentRequest) (*models.VolumeAttachment, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes", volumeId)
 	if err != nil {
 		return nil, err
@@ -204,7 +196,7 @@ func (c *BoxClient) UpdateAttachedVolume(ctx context.Context, boxId int64, volum
 	return baseclient.RequestApi[models.VolumeAttachment](ctx, c.Client, "PATCH", p, req)
 }
 
-func (c *BoxClient) DetachVolume(ctx context.Context, boxId int64, volumeId int64) error {
+func (c *BoxClient) DetachVolume(ctx context.Context, boxId string, volumeId string) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "volumes", volumeId)
 	if err != nil {
 		return err
@@ -214,7 +206,7 @@ func (c *BoxClient) DetachVolume(ctx context.Context, boxId int64, volumeId int6
 }
 
 // StreamLogs streams logs from the specified log ID and calls the callback for each event
-func (c *BoxClient) StreamLogs(ctx context.Context, boxId int64, logId int64, since string, callback func(interface{}) error) error {
+func (c *BoxClient) StreamLogs(ctx context.Context, boxId string, logId string, since string, callback func(interface{}) error) error {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs", logId, "stream")
 	if err != nil {
 		return err

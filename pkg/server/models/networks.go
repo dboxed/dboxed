@@ -8,9 +8,9 @@ import (
 )
 
 type Network struct {
-	ID        int64     `json:"id"`
+	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
-	Workspace int64     `json:"workspace"`
+	Workspace string    `json:"workspace"`
 
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`

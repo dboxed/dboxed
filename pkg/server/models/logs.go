@@ -9,8 +9,8 @@ import (
 )
 
 type LogMetadataModel struct {
-	ID        int64     `json:"id"`
-	Workspace int64     `json:"workspace"`
+	ID        string    `json:"id"`
+	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
 	LastLogTime *time.Time `json:"lastLogTime"`

@@ -13,7 +13,7 @@ type ListCmd struct {
 }
 
 type PrintS3Bucket struct {
-	ID            int64  `col:"Id"`
+	ID            string `col:"Id"`
 	Endpoint      string `col:"Endpoint"`
 	Bucket        string `col:"Bucket"`
 	Status        string `col:"Status"`

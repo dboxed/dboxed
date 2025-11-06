@@ -8,8 +8,8 @@ import (
 )
 
 type Machine struct {
-	ID        int64     `json:"id"`
-	Workspace int64     `json:"workspace"`
+	ID        string    `json:"id"`
+	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
 	Status        string `json:"status"`
@@ -17,18 +17,18 @@ type Machine struct {
 
 	Name string `json:"name"`
 
-	Box int64 `json:"box"`
+	Box string `json:"box"`
 
-	MachineProvider     int64                      `json:"machineProvider"`
+	MachineProvider     string                     `json:"machineProvider"`
 	MachineProviderType global.MachineProviderType `json:"machineProviderType"`
 }
 
 type CreateMachine struct {
 	Name string `json:"name"`
 
-	Box int64 `json:"box"`
+	Box string `json:"box"`
 
-	MachineProvider int64 `json:"machineProvider"`
+	MachineProvider string `json:"machineProvider"`
 
 	Hetzner *CreateMachineHetzner `json:"hetzner,omitempty"`
 	Aws     *CreateMachineAws     `json:"aws,omitempty"`

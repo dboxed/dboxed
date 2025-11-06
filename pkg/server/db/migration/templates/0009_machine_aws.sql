@@ -1,6 +1,6 @@
 create table machine_aws
 (
-    id                       bigint not null primary key references machine (id) on delete cascade,
+    id                       text   not null primary key references machine (id) on delete cascade,
 
     reconcile_status         text   not null default 'Initializing',
     reconcile_status_details text   not null default '',
@@ -12,7 +12,7 @@ create table machine_aws
 
 create table machine_aws_status
 (
-    id          bigint not null primary key references machine (id) on delete cascade,
+    id          text not null primary key references machine (id) on delete cascade,
 
     instance_id text unique
 );

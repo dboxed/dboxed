@@ -8,9 +8,9 @@ import (
 )
 
 type MachineProvider struct {
-	ID        int64     `json:"id"`
+	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
-	Workspace int64     `json:"workspace"`
+	Workspace string    `json:"workspace"`
 
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
@@ -35,7 +35,7 @@ type MachineProviderAws struct {
 }
 
 type MachineProviderAwsSubnet struct {
-	MachineProvider  int64   `json:"machineProvider"`
+	MachineProvider  string  `json:"machineProvider"`
 	SubnetID         string  `json:"subnetId"`
 	SubnetName       *string `json:"subnetName"`
 	AvailabilityZone string  `json:"availabilityZone"`

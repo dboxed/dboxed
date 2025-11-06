@@ -16,7 +16,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/google/uuid"
 )
 
 type BoxesServer struct {
@@ -35,7 +34,6 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Post(workspacesGroup, "/boxes", s.restCreateBox)
 	huma.Get(workspacesGroup, "/boxes", s.restListBoxes, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox, allowBoxTokenModifier)
-	huma.Get(workspacesGroup, "/boxes/by-uuid/{uuid}", s.restGetBoxByUuid, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/by-name/{name}", s.restGetBoxByName, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}/box-spec", s.restGetBoxSpec, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}", s.restUpdateBox)
@@ -110,7 +108,7 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		return nil, err.Error(), nil
 	}
 
-	var networkId *int64
+	var networkId *string
 	var networkType *string
 	if body.Network != nil {
 		var network *dmodel.Network
@@ -126,7 +124,6 @@ func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmod
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Uuid: uuid.NewString(),
 		Name: body.Name,
 
 		DboxedVersion: "nightly",
@@ -212,7 +209,7 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) checkBoxToken(c context.Context, boxId int64) error {
+func (s *BoxesServer) checkBoxToken(c context.Context, boxId string) error {
 	token := auth.GetToken(c)
 
 	if token != nil && token.BoxID != nil {
@@ -258,22 +255,6 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 	w := global.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxWithSandboxStatusByName(q, w.ID, i.BoxName, true)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.getBoxHelper(c, box)
-}
-
-type BoxUuid struct {
-	BoxUuid string `path:"uuid"`
-}
-
-func (s *BoxesServer) restGetBoxByUuid(c context.Context, i *BoxUuid) (*huma_utils.JsonBody[models.Box], error) {
-	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
-
-	box, err := dmodel.GetBoxWithSandboxStatusByUuid(q, w.ID, i.BoxUuid, true)
 	if err != nil {
 		return nil, err
 	}

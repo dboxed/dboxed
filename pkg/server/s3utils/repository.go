@@ -10,7 +10,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-func BuildS3ClientFromId(ctx context.Context, bucketId int64, region string) (*dmodel.S3Bucket, *minio.Client, error) {
+func BuildS3ClientFromId(ctx context.Context, bucketId string, region string) (*dmodel.S3Bucket, *minio.Client, error) {
 	q := querier.GetQuerier(ctx)
 	b, err := dmodel.GetS3BucketById(q, nil, bucketId, true)
 	if err != nil {

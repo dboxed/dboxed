@@ -36,7 +36,6 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 	huma.Post(workspacesGroup, "/volumes", s.restCreateVolume)
 	huma.Get(workspacesGroup, "/volumes", s.restListVolumes, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/volumes/{id}", s.restGetVolume, allowBoxTokenModifier)
-	huma.Get(workspacesGroup, "/volumes/by-uuid/{uuid}", s.restGetVolumeByUuid, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/volumes/by-name/{name}", s.restGetVolumeByName, allowBoxTokenModifier)
 	huma.Delete(workspacesGroup, "/volumes/{id}", s.restDeleteVolume)
 
@@ -91,7 +90,6 @@ func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolum
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Uuid:               uuid.NewString(),
 		Name:               body.Name,
 		VolumeProviderType: vp.Type,
 		VolumeProviderID:   vp.ID,
@@ -172,33 +170,6 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 	}
 
 	err = s.checkBoxToken(ctx, &v.Volume, v.Attachment)
-	if err != nil {
-		return nil, err
-	}
-
-	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, v.VolumeProviderID, true)
-	if err != nil {
-		return nil, err
-	}
-
-	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
-	return huma_utils.NewJsonBody(m), nil
-}
-
-type VolumeUuid struct {
-	VolumeUuid string `path:"uuid"`
-}
-
-func (s *VolumeServer) restGetVolumeByUuid(c context.Context, i *VolumeUuid) (*huma_utils.JsonBody[models.Volume], error) {
-	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
-
-	v, err := dmodel.GetVolumeByUuid(q, &w.ID, i.VolumeUuid, true)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.checkBoxToken(c, &v.Volume, v.Attachment)
 	if err != nil {
 		return nil, err
 	}
@@ -329,10 +300,13 @@ func (s *VolumeServer) restLockVolume(ctx context.Context, i *huma_utils.IdByPat
 
 	log.Info("locking volume")
 
-	lockId := uuid.NewString()
+	lockId, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
 	lockTime := time.Now()
 
-	err = v.UpdateLock(q, &lockId, &lockTime, i.Body.BoxId)
+	err = v.UpdateLock(q, util.Ptr(lockId.String()), &lockTime, i.Body.BoxId)
 	if err != nil {
 		return nil, err
 	}

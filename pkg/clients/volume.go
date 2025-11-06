@@ -20,7 +20,7 @@ func (c *VolumesClient) CreateVolume(ctx context.Context, req models.CreateVolum
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) DeleteVolume(ctx context.Context, volumeId int64) error {
+func (c *VolumesClient) DeleteVolume(ctx context.Context, volumeId string) error {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId)
 	if err != nil {
 		return err
@@ -41,16 +41,8 @@ func (c *VolumesClient) ListVolumes(ctx context.Context) ([]models.Volume, error
 	return l.Items, err
 }
 
-func (c *VolumesClient) GetVolumeById(ctx context.Context, volumeId int64) (*models.Volume, error) {
+func (c *VolumesClient) GetVolumeById(ctx context.Context, volumeId string) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId)
-	if err != nil {
-		return nil, err
-	}
-	return baseclient.RequestApi[models.Volume](ctx, c.Client, "GET", p, struct{}{})
-}
-
-func (c *VolumesClient) GetVolumeByUuid(ctx context.Context, uuid string) (*models.Volume, error) {
-	p, err := c.Client.BuildApiPath(true, "volumes", "by-uuid", uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +57,7 @@ func (c *VolumesClient) GetVolumeByName(ctx context.Context, name string) (*mode
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *VolumesClient) VolumeLock(ctx context.Context, volumeId int64, req models.VolumeLockRequest) (*models.Volume, error) {
+func (c *VolumesClient) VolumeLock(ctx context.Context, volumeId string, req models.VolumeLockRequest) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "lock")
 	if err != nil {
 		return nil, err
@@ -73,7 +65,7 @@ func (c *VolumesClient) VolumeLock(ctx context.Context, volumeId int64, req mode
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeRefreshLock(ctx context.Context, volumeId int64, req models.VolumeRefreshLockRequest) (*models.Volume, error) {
+func (c *VolumesClient) VolumeRefreshLock(ctx context.Context, volumeId string, req models.VolumeRefreshLockRequest) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "refresh-lock")
 	if err != nil {
 		return nil, err
@@ -81,7 +73,7 @@ func (c *VolumesClient) VolumeRefreshLock(ctx context.Context, volumeId int64, r
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId int64, req models.VolumeReleaseRequest) (*models.Volume, error) {
+func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId string, req models.VolumeReleaseRequest) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "release")
 	if err != nil {
 		return nil, err
@@ -89,7 +81,7 @@ func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId int64, req m
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeForceUnlock(ctx context.Context, volumeId int64) (*models.Volume, error) {
+func (c *VolumesClient) VolumeForceUnlock(ctx context.Context, volumeId string) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "force-unlock")
 	if err != nil {
 		return nil, err
@@ -97,7 +89,7 @@ func (c *VolumesClient) VolumeForceUnlock(ctx context.Context, volumeId int64) (
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, struct{}{})
 }
 
-func (c *VolumesClient) CreateSnapshot(ctx context.Context, volumeId int64, req models.CreateVolumeSnapshot) (*models.VolumeSnapshot, error) {
+func (c *VolumesClient) CreateSnapshot(ctx context.Context, volumeId string, req models.CreateVolumeSnapshot) (*models.VolumeSnapshot, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "snapshots")
 	if err != nil {
 		return nil, err
@@ -105,7 +97,7 @@ func (c *VolumesClient) CreateSnapshot(ctx context.Context, volumeId int64, req 
 	return baseclient.RequestApi[models.VolumeSnapshot](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) GetVolumeSnapshotById(ctx context.Context, volumeId int64, snapshotId int64) (*models.VolumeSnapshot, error) {
+func (c *VolumesClient) GetVolumeSnapshotById(ctx context.Context, volumeId string, snapshotId string) (*models.VolumeSnapshot, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "snapshots", snapshotId)
 	if err != nil {
 		return nil, err

@@ -1,7 +1,7 @@
 create table machine_provider
 (
-    id                       TYPES_INT_PRIMARY_KEY,
-    workspace_id             bigint         not null references workspace (id) on delete restrict,
+    id                       TYPES_UUID_PRIMARY_KEY,
+    workspace_id             text           not null references workspace (id) on delete restrict,
     created_at               TYPES_DATETIME not null default current_timestamp,
     deleted_at               TYPES_DATETIME,
     finalizers               text           not null default '{}',

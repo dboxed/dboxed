@@ -79,14 +79,14 @@ func (r *Reconciler) getTagValue(tags []string, tagPrefix string) string {
 	return ""
 }
 
-func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[int64]*dmodel.VolumeWithAttachment, dbSnapshots map[int64]*dmodel.VolumeSnapshot) base.ReconcileResult {
+func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithAttachment, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult {
 	dbSnapshotsByRusticId := map[string]*dmodel.VolumeSnapshot{}
 	for _, s := range dbSnapshots {
 		dbSnapshotsByRusticId[s.Rustic.SnapshotId.V] = s
 	}
 	dbVolumesByUuuid := map[string]*dmodel.VolumeWithAttachment{}
 	for _, v := range dbVolumes {
-		dbVolumesByUuuid[v.Uuid] = v
+		dbVolumesByUuuid[v.ID] = v
 	}
 
 	rsSnapshotIds, result := r.listRusticSnapshotIds(ctx, vp)

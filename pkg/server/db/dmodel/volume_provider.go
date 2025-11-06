@@ -15,13 +15,13 @@ type VolumeProvider struct {
 }
 
 type VolumeProviderRustic struct {
-	ID querier.NullForJoin[int64] `db:"id"`
+	ID querier.NullForJoin[string] `db:"id"`
 
 	Password querier.NullForJoin[string] `db:"password"`
 
 	StorageType querier.NullForJoin[VolumeProviderStorageType] `db:"storage_type"`
 
-	S3BucketID    *int64                      `db:"s3_bucket_id"`
+	S3BucketID    *string                     `db:"s3_bucket_id"`
 	StoragePrefix querier.NullForJoin[string] `db:"storage_prefix"`
 }
 
@@ -37,7 +37,7 @@ func (v *VolumeProviderRustic) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func ListVolumeProviders(q *querier.Querier, workspaceId *int64, skipDeleted bool) ([]VolumeProvider, error) {
+func ListVolumeProviders(q *querier.Querier, workspaceId *string, skipDeleted bool) ([]VolumeProvider, error) {
 	l, err := querier.GetMany[VolumeProvider](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
@@ -57,7 +57,7 @@ func ListVolumeProviders(q *querier.Querier, workspaceId *int64, skipDeleted boo
 	return ret, nil
 }
 
-func GetVolumeProviderById(q *querier.Querier, workspaceId *int64, id int64, skipDeleted bool) (*VolumeProvider, error) {
+func GetVolumeProviderById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*VolumeProvider, error) {
 	vp, err := querier.GetOne[VolumeProvider](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"id":           id,
@@ -73,7 +73,7 @@ func GetVolumeProviderById(q *querier.Querier, workspaceId *int64, id int64, ski
 	return vp, nil
 }
 
-func GetVolumeProviderByName(q *querier.Querier, workspaceId int64, name string, skipDeleted bool) (*VolumeProvider, error) {
+func GetVolumeProviderByName(q *querier.Querier, workspaceId string, name string, skipDeleted bool) (*VolumeProvider, error) {
 	vp, err := querier.GetOne[VolumeProvider](q, map[string]any{
 		"workspace_id": workspaceId,
 		"name":         name,
@@ -89,7 +89,7 @@ func GetVolumeProviderByName(q *querier.Querier, workspaceId int64, name string,
 	return vp, nil
 }
 
-func (v *VolumeProviderRustic) UpdateS3Bucket(q *querier.Querier, bucketId int64) error {
+func (v *VolumeProviderRustic) UpdateS3Bucket(q *querier.Querier, bucketId string) error {
 	v.S3BucketID = &bucketId
 	return querier.UpdateOneFromStruct(q, v,
 		"s3_bucket_id",

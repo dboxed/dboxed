@@ -23,7 +23,7 @@ func NewS3BucketsReconciler(config config.Config) *base.Reconciler[*dmodel.S3Buc
 	})
 }
 
-func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.S3Bucket, error) {
+func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.S3Bucket, error) {
 	return dmodel.GetS3BucketById(querier.GetQuerier(ctx), nil, id, false)
 }
 

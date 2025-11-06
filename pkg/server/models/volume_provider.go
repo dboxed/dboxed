@@ -7,9 +7,9 @@ import (
 )
 
 type VolumeProvider struct {
-	ID        int64     `json:"id"`
+	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
-	Workspace int64     `json:"workspace"`
+	Workspace string    `json:"workspace"`
 
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
@@ -22,7 +22,7 @@ type VolumeProvider struct {
 
 type VolumeProviderRustic struct {
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
-	S3BucketId  *int64                           `json:"s3BucketId"`
+	S3BucketId  *string                          `json:"s3BucketId"`
 
 	StoragePrefix string `json:"storagePrefix"`
 }
@@ -38,7 +38,7 @@ type CreateVolumeProviderRustic struct {
 	Password string `json:"password"`
 
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
-	S3BucketId  *int64                           `json:"s3BucketId"`
+	S3BucketId  *string                          `json:"s3BucketId"`
 
 	StoragePrefix string `json:"storagePrefix"`
 }
@@ -53,7 +53,7 @@ type UpdateVolumeProviderRustic struct {
 }
 
 type UpdateRepositoryStorageS3 struct {
-	S3BucketId    *int64  `json:"s3BucketId"`
+	S3BucketId    *string `json:"s3BucketId"`
 	StoragePrefix *string `json:"storagePrefix"`
 }
 

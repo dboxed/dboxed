@@ -16,7 +16,7 @@ type Client struct {
 
 	overrideApiUrl      *string
 	overrideApiToken    *string
-	overrideWorkspaceId *int64
+	overrideWorkspaceId *string
 
 	debug bool
 
@@ -51,7 +51,7 @@ func (c *Client) SetOverrideApiToken(token string) {
 	c.overrideApiToken = &token
 }
 
-func (c *Client) SetOverrideWorkspaceId(id int64) {
+func (c *Client) SetOverrideWorkspaceId(id string) {
 	c.overrideWorkspaceId = &id
 }
 
@@ -73,7 +73,7 @@ func (c *Client) GetApiToken() *string {
 	return c.clientAuth.StaticToken
 }
 
-func (c *Client) GetWorkspaceId() *int64 {
+func (c *Client) GetWorkspaceId() *string {
 	if c.overrideWorkspaceId != nil {
 		return c.overrideWorkspaceId
 	}

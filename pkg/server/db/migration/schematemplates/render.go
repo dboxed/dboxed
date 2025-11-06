@@ -11,14 +11,16 @@ import (
 
 var replacements = map[string]map[string]string{
 	"postgres": {
-		"TYPES_INT_PRIMARY_KEY": "bigserial not null primary key",
-		"TYPES_DATETIME":        "timestamptz",
-		"TYPES_BYTES":           "bytea",
+		"TYPES_INT_PRIMARY_KEY":  "bigserial not null primary key",
+		"TYPES_UUID_PRIMARY_KEY": "text not null primary key",
+		"TYPES_DATETIME":         "timestamptz",
+		"TYPES_BYTES":            "bytea",
 	},
 	"sqlite": {
-		"TYPES_INT_PRIMARY_KEY": "integer not null primary key autoincrement",
-		"TYPES_DATETIME":        "datetime",
-		"TYPES_BYTES":           "blob",
+		"TYPES_INT_PRIMARY_KEY":  "integer not null primary key autoincrement",
+		"TYPES_UUID_PRIMARY_KEY": "text not null primary key",
+		"TYPES_DATETIME":         "datetime",
+		"TYPES_BYTES":            "blob",
 	},
 }
 

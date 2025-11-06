@@ -23,7 +23,7 @@ func NewWorkspacesReconciler(config config.Config) *base.Reconciler[*dmodel.Work
 	})
 }
 
-func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.Workspace, error) {
+func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.Workspace, error) {
 	return dmodel.GetWorkspaceById(querier.GetQuerier(ctx), id, false)
 }
 

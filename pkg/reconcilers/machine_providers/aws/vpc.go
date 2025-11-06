@@ -126,7 +126,7 @@ func (r *Reconciler) reconcileSubnets(ctx context.Context) base.ReconcileResult 
 func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) base.ReconcileResult {
 	q := querier2.GetQuerier(ctx)
 	config := config.GetConfig(ctx)
-	groupName := fmt.Sprintf("%s-machines-%d", config.InstanceName, r.mp.Aws.ID.V)
+	groupName := fmt.Sprintf("%s-machines-%s", config.InstanceName, r.mp.Aws.ID.V)
 
 	log := r.log.With(slog.Any("securityGroupName", groupName))
 
@@ -176,7 +176,7 @@ func (r *Reconciler) createSecurityGroup(ctx context.Context, log *slog.Logger, 
 
 	log.InfoContext(ctx, "creating security group")
 	resp, err := r.ec2Client.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
-		Description: util.Ptr(fmt.Sprintf("dboxed security group for nodes in machine provider %d", r.mp.Aws.ID.V)),
+		Description: util.Ptr(fmt.Sprintf("dboxed security group for nodes in machine provider %s", r.mp.Aws.ID.V)),
 		GroupName:   &groupName,
 		VpcId:       r.mp.Aws.VpcID,
 		TagSpecifications: []types.TagSpecification{

@@ -5,7 +5,7 @@ import (
 )
 
 type MachineAws struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 	ReconcileStatus
 
 	InstanceType   querier2.NullForJoin[string] `db:"instance_type"`
@@ -15,12 +15,12 @@ type MachineAws struct {
 	Status *MachineAwsStatus `join:"true"`
 }
 
-func (v *MachineAws) GetId() int64 {
+func (v *MachineAws) GetId() string {
 	return v.ID.V
 }
 
 type MachineAwsStatus struct {
-	ID querier2.NullForJoin[int64] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id"`
 
 	InstanceID *string `db:"instance_id"`
 }

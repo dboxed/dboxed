@@ -181,8 +181,8 @@ func (c *Client) CurrentToken(ctx context.Context) (*models.Token, error) {
 	return RequestApi[models.Token](ctx, c, "GET", "v1/auth/current-token", struct{}{})
 }
 
-func (c *Client) GetWorkspaceById(ctx context.Context, workspaceId int64) (*models.Workspace, error) {
-	return RequestApi[models.Workspace](ctx, c, "GET", fmt.Sprintf("v1/workspaces/%d", workspaceId), struct{}{})
+func (c *Client) GetWorkspaceById(ctx context.Context, workspaceId string) (*models.Workspace, error) {
+	return RequestApi[models.Workspace](ctx, c, "GET", fmt.Sprintf("v1/workspaces/%s", workspaceId), struct{}{})
 }
 
 func (c *Client) ListWorkspaces(ctx context.Context) ([]models.Workspace, error) {
@@ -193,7 +193,7 @@ func (c *Client) ListWorkspaces(ctx context.Context) ([]models.Workspace, error)
 	return l.Items, nil
 }
 
-func (c *Client) SwitchWorkspaceById(ctx context.Context, workspaceId int64) (*models.Workspace, error) {
+func (c *Client) SwitchWorkspaceById(ctx context.Context, workspaceId string) (*models.Workspace, error) {
 	w, err := c.GetWorkspaceById(ctx, workspaceId)
 	if err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ func (c *Client) WorkspaceApiPath() (string, error) {
 	if workspaceId == nil {
 		return "", fmt.Errorf("no workspace selected")
 	}
-	return fmt.Sprintf("v1/workspaces/%d", *workspaceId), nil
+	return fmt.Sprintf("v1/workspaces/%s", *workspaceId), nil
 }
 
 func (c *Client) BuildApiPath(workspace bool, pathElems ...any) (string, error) {

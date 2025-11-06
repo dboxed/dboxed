@@ -21,7 +21,7 @@ func NewBoxesReconciler(config config.Config) *base.Reconciler[*dmodel.Box] {
 	})
 }
 
-func (r *reconciler) GetItem(ctx context.Context, id int64) (*dmodel.Box, error) {
+func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.Box, error) {
 	return dmodel.GetBoxById(querier.GetQuerier(ctx), nil, id, false)
 }
 

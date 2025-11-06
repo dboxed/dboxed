@@ -23,11 +23,11 @@ type Times struct {
 }
 
 type OwnedByWorkspace struct {
-	ID int64 `db:"id" omitCreate:"true"`
+	ID string `db:"id" uuid:"true"`
 	SoftDeleteFields
 	Times
 
-	WorkspaceID int64 `db:"workspace_id"`
+	WorkspaceID string `db:"workspace_id"`
 	Workspace   *Workspace
 }
 
@@ -36,11 +36,11 @@ type ReconcileStatus struct {
 	ReconcileStatusDetails querier2.NullForJoin[string] `db:"reconcile_status_details" omitCreate:"true"`
 }
 
-func (v *OwnedByWorkspace) SetId(id int64) {
+func (v *OwnedByWorkspace) SetId(id string) {
 	v.ID = id
 }
 
-func (v OwnedByWorkspace) GetId() int64 {
+func (v OwnedByWorkspace) GetId() string {
 	return v.ID
 }
 
@@ -57,8 +57,8 @@ func UpdateReconcileStatus[T HasReconcileStatus](q *querier2.Querier, v T) error
 	return querier2.UpdateOneFromStruct(q, &v, "reconcile_status", "reconcile_status_details")
 }
 
-func GetAllIds[T querier2.HasId](q *querier2.Querier) ([]int64, error) {
-	var ret []int64
+func GetAllIds[T querier2.HasId](q *querier2.Querier) ([]string, error) {
+	var ret []string
 	err := q.SelectNamed(&ret, fmt.Sprintf("select id from %s", querier2.GetTableName[T]()), nil)
 	if err != nil {
 		return nil, err

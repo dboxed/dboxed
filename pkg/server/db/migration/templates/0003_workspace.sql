@@ -1,6 +1,6 @@
 create table workspace
 (
-    id                       TYPES_INT_PRIMARY_KEY,
+    id                       TYPES_UUID_PRIMARY_KEY,
     created_at               TYPES_DATETIME not null default current_timestamp,
     deleted_at               TYPES_DATETIME,
     finalizers               text           not null default '{}',
@@ -13,15 +13,15 @@ create table workspace
 
 create table workspace_access
 (
-    workspace_id bigint not null references workspace (id) on delete cascade,
-    user_id      text   not null references "user" (id) on delete restrict,
+    workspace_id text not null references workspace (id) on delete cascade,
+    user_id      text not null references "user" (id) on delete restrict,
 
     primary key (workspace_id, user_id)
 );
 
 create table workspace_quotas
 (
-    workspace_id bigint not null primary key references workspace (id) on delete cascade,
+    workspace_id  text not null primary key references workspace (id) on delete cascade,
 
-    max_log_bytes int not null default 100
+    max_log_bytes int  not null default 100
 );

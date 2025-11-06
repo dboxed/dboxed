@@ -17,7 +17,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (s *BoxesServer) putLogMetadata(c context.Context, boxId int64, logMetadata boxspec.LogMetadata) (*dmodel.LogMetadata, error) {
+func (s *BoxesServer) putLogMetadata(c context.Context, boxId string, logMetadata boxspec.LogMetadata) (*dmodel.LogMetadata, error) {
 	q := querier.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -146,7 +146,7 @@ func (s *BoxesServer) restListLogs(c context.Context, i *huma_utils.IdByPath) (*
 type sseLogsStreamInput struct {
 	huma_utils.IdByPath
 
-	LogId int64  `path:"logId"`
+	LogId string `path:"logId"`
 	Since string `query:"since"`
 }
 

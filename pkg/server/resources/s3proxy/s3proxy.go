@@ -45,7 +45,7 @@ func (s *S3ProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error
 	return nil
 }
 
-func (s *S3ProxyServer) handleBase(ctx context.Context, bucketId int64) (*dmodel.S3Bucket, *minio.Client, error) {
+func (s *S3ProxyServer) handleBase(ctx context.Context, bucketId string) (*dmodel.S3Bucket, *minio.Client, error) {
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
 	token := auth.GetToken(ctx)

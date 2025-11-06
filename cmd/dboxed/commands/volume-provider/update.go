@@ -40,7 +40,7 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 		Password: cmd.RusticPassword,
 	}
 
-	var bucketId *int64
+	var bucketId *string
 	if cmd.S3Bucket != nil {
 		b, err := commandutils.GetS3Bucket(ctx, c, *cmd.S3Bucket)
 		if err != nil {

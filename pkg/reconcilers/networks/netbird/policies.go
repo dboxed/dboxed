@@ -13,7 +13,7 @@ import (
 
 func (r *Reconciler) policyName(ctx context.Context) string {
 	config := config.GetConfig(ctx)
-	return fmt.Sprintf("%s-network-%d", config.InstanceName, r.n.ID)
+	return fmt.Sprintf("%s-network-%s", config.InstanceName, r.n.ID)
 }
 
 func (r *Reconciler) reconcileNetbirdPolicies(ctx context.Context, delete bool) base.ReconcileResult {

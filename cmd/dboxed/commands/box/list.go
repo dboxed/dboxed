@@ -12,7 +12,7 @@ import (
 type ListCmd struct{}
 
 type PrintBox struct {
-	ID            int64  `col:"ID"`
+	ID            string `col:"ID"`
 	Name          string `col:"Name"`
 	Network       string `col:"Network"`
 	DesiredState  string `col:"Desired State"`
