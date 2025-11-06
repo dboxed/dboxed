@@ -2,6 +2,21 @@ package rustic
 
 import "context"
 
+type InitOpts struct {
+}
+
+func RunInit(ctx context.Context, config RusticConfig, opts InitOpts) error {
+	args := []string{
+		"init",
+	}
+
+	_, err := RunRusticCommand(ctx, config, false, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type BackupOpts struct {
 	Init      bool
 	Host      *string

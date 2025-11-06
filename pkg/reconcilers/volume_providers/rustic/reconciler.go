@@ -11,18 +11,58 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/s3utils"
+	"github.com/dboxed/dboxed/pkg/volume/rustic"
 	"github.com/minio/minio-go/v7"
 )
 
 type Reconciler struct {
 }
 
-func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider) ([]string, base.ReconcileResult) {
-	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
-	if err != nil {
-		return nil, base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
+func (vb *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, region string) rustic.RusticConfig {
+	config := rustic.RusticConfig{
+		Repository: rustic.RusticConfigRepository{
+			Repository: "opendal:s3",
+			Password:   vp.Rustic.Password.V,
+			Options: rustic.RusticConfigRepositoryOptions{
+				Endpoint:        b.Endpoint,
+				Region:          &region,
+				Bucket:          b.Bucket,
+				AccessKeyId:     b.AccessKeyId,
+				SecretAccessKey: b.SecretAccessKey,
+				Root:            vp.Rustic.StoragePrefix.V,
+			},
+		},
+	}
+	return config
+}
+
+func (r *Reconciler) initRusticRepo(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, c *minio.Client) base.ReconcileResult {
+	_, err := c.StatObject(ctx, b.Bucket,
+		path.Join(vp.Rustic.StoragePrefix.V, "config"),
+		minio.StatObjectOptions{})
+	if err == nil {
+		return base.ReconcileResult{}
+	}
+	var err2 *minio.ErrorResponse
+	if !errors.As(err, &err2) || err2.Code != minio.NoSuchKey {
+		return base.ErrorWithMessage(err, "failed to determine if rustic repo is already initialized: %s", err.Error())
 	}
 
+	region, err := c.GetBucketLocation(ctx, b.Bucket)
+	if err != nil {
+		return base.ErrorWithMessage(err, "failed to determine bucket region: %s", err.Error())
+	}
+
+	log.InfoContext(ctx, "initializing rustic repo")
+	err = rustic.RunInit(ctx, r.buildRusticConfig(vp, b, region), rustic.InitOpts{})
+	if err != nil {
+		return base.ErrorWithMessage(err, "failed to initialize rustic repo: %s", err.Error())
+	}
+
+	return base.ReconcileResult{}
+}
+
+func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, c *minio.Client) ([]string, base.ReconcileResult) {
 	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
 	ch := c.ListObjects(ctx, b.Bucket, minio.ListObjectsOptions{
 		Prefix: prefix,
@@ -89,7 +129,17 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		dbVolumesByUuuid[v.ID] = v
 	}
 
-	rsSnapshotIds, result := r.listRusticSnapshotIds(ctx, vp)
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
+	if err != nil {
+		return base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
+	}
+
+	result := r.initRusticRepo(ctx, log, vp, b, c)
+	if result.Error != nil {
+		return result
+	}
+
+	rsSnapshotIds, result := r.listRusticSnapshotIds(ctx, vp, b, c)
 	if result.Error != nil {
 		return result
 	}

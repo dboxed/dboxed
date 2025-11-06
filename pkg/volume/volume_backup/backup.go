@@ -72,7 +72,6 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 	err = vb.runWithWebdavProxy(ctx, v, func(config rustic.RusticConfig) error {
 		var err error
 		rsSnapshot, err = rustic.RunBackup(ctx, config, vb.SnapshotMount, rustic.BackupOpts{
-			Init:      true,
 			Host:      &rusticHost,
 			AsPath:    util.Ptr("/"),
 			WithAtime: true,
