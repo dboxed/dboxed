@@ -30,10 +30,10 @@ tasks:
       - if [ "{{ .MIGRATION_NAME }}" = "" ]; then echo "please provide MIGRATION_NAME=xxx to the task invocation"; exit 1; fi
 
   generate-migrations:
-    deps:
-      - check-migration-name
-      - generate-migrations-sqlite
-      - generate-migrations-postgres
+    cmds:
+      - task: check-migration-name
+      - task: generate-migrations-sqlite
+      - task: generate-migrations-postgres
 
   goreleaser-helper:
     vars:
