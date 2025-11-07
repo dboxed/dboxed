@@ -57,6 +57,14 @@ func (c *VolumesClient) GetVolumeByName(ctx context.Context, name string) (*mode
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "GET", p, struct{}{})
 }
 
+func (c *VolumesClient) GetMountStatus(ctx context.Context, volumeId string) (*models.VolumeMountStatus, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "mount-status")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.VolumeMountStatus](ctx, c.Client, "GET", p, struct{}{})
+}
+
 func (c *VolumesClient) VolumeMount(ctx context.Context, volumeId string, req models.VolumeMountRequest) (*models.Volume, error) {
 	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "mount")
 	if err != nil {

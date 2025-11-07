@@ -39,6 +39,7 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 	huma.Get(workspacesGroup, "/volumes/by-name/{name}", s.restGetVolumeByName, allowBoxTokenModifier)
 	huma.Delete(workspacesGroup, "/volumes/{id}", s.restDeleteVolume)
 
+	huma.Get(workspacesGroup, "/volumes/{id}/mount-status", s.restGetMountStatus, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/mount", s.restMountVolume, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/refresh-mount", s.restRefreshMount, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/volumes/{id}/release-mount", s.restReleaseMount, allowBoxTokenModifier)
@@ -63,7 +64,7 @@ func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonB
 		return nil, huma.Error400BadRequest(inputErr)
 	}
 
-	ret := models.VolumeFromDB(*v, nil, nil)
+	ret := models.VolumeFromDB(*v, nil, nil, nil)
 
 	err = dmodel.AddChangeTracking(q, v)
 	if err != nil {
@@ -154,7 +155,7 @@ func (s *VolumeServer) restListVolumes(ctx context.Context, i *struct{}) (*huma_
 			continue
 		}
 
-		mm := models.VolumeFromDB(r.Volume, r.Attachment, nil)
+		mm := models.VolumeFromDB(r.Volume, r.Attachment, nil, r.MountStatus)
 		ret = append(ret, mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
@@ -179,7 +180,7 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp, v.MountStatus)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -209,7 +210,7 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp, v.MountStatus)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -259,6 +260,28 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 	return &huma_utils.Empty{}, nil
 }
 
+func (s *VolumeServer) restGetMountStatus(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.VolumeMountStatus], error) {
+	q := querier.GetQuerier(ctx)
+	w := global.GetWorkspace(ctx)
+
+	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkBoxToken(ctx, &v.Volume, v.Attachment)
+	if err != nil {
+		return nil, err
+	}
+
+	if v.MountStatus == nil || !v.MountStatus.VolumeId.Valid {
+		return nil, huma.Error404NotFound("volume is not mounted")
+	}
+
+	m := models.VolumeMountStatusFromDB(*v.MountStatus)
+	return huma_utils.NewJsonBody(m), nil
+}
+
 func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.VolumeMountRequest]) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
@@ -300,13 +323,27 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 
 	log.Info("mounting volume")
 
-	lockId, err := uuid.NewV7()
+	mountId2, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
 	}
-	lockTime := time.Now()
+	mountId := mountId2.String()
+	mountTime := time.Now()
 
-	err = v.UpdateMount(q, util.Ptr(lockId.String()), &lockTime, i.Body.BoxId)
+	mountStatus := &dmodel.VolumeMountStatus{
+		VolumeId:      querier.N(v.ID),
+		MountId:       querier.N(mountId),
+		BoxId:         i.Body.BoxId,
+		ForceReleased: querier.N(false),
+		MountTime:     querier.N(mountTime),
+		StatusTime:    querier.N(mountTime),
+	}
+	err = mountStatus.Create(q)
+	if err != nil {
+		return nil, err
+	}
+
+	err = v.UpdateMountId(q, &mountId)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +353,7 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp, mountStatus)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -341,7 +378,7 @@ func (s *VolumeServer) restRefreshMount(ctx context.Context, i *huma_utils.IdByP
 		return nil, huma.Error409Conflict("volume is mounted with another mount id")
 	}
 
-	err = v.UpdateMount(q, v.MountId, util.Ptr(time.Now()), v.MountBoxId)
+	err = v.MountStatus.UpdateMountInfo(q, i.Body.VolumeTotalSize, i.Body.VolumeFreeSize, i.Body.LastFinishedSnapshotId, i.Body.SnapshotStartTime, i.Body.SnapshotEndTime)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +388,7 @@ func (s *VolumeServer) restRefreshMount(ctx context.Context, i *huma_utils.IdByP
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, vp)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, vp, v.MountStatus)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -385,12 +422,18 @@ func (s *VolumeServer) restReleaseMount(ctx context.Context, i *restReleaseVolum
 
 	log.Info("releasing mount", slog.Any("mountId", i.Body.MountId))
 
-	err = v.UpdateMount(q, nil, nil, nil)
+	releaseTime := time.Now()
+	err = v.MountStatus.UpdateReleaseInfo(q, &releaseTime, false)
 	if err != nil {
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+	err = v.UpdateMountId(q, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil, v.MountStatus)
 	return huma_utils.NewJsonBody(m), nil
 }
 
@@ -407,18 +450,25 @@ func (s *VolumeServer) restForceReleaseMount(ctx context.Context, i *huma_utils.
 
 	if v.MountId == nil {
 		log.Info("volume is not mounted, no action needed")
-		m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+		m := models.VolumeFromDB(v.Volume, v.Attachment, nil, v.MountStatus)
 		return huma_utils.NewJsonBody(m), nil
 	}
 
-	log.Warn("force releasing mount", slog.Any("lockId", *v.MountId), slog.Any("mountBoxId", v.MountBoxId))
+	log.Warn("force releasing mount", slog.Any("mountId", *v.MountId))
+
+	releaseTime := time.Now()
+
+	err = v.MountStatus.UpdateReleaseInfo(q, &releaseTime, true)
+	if err != nil {
+		return nil, err
+	}
 
 	err = v.ForceReleaseMount(q)
 	if err != nil {
 		return nil, err
 	}
 
-	m := models.VolumeFromDB(v.Volume, v.Attachment, nil)
+	m := models.VolumeFromDB(v.Volume, v.Attachment, nil, v.MountStatus)
 	return huma_utils.NewJsonBody(m), nil
 }
 

@@ -39,13 +39,13 @@ func (r *reconciler) getSubReconciler(mp *dmodel.VolumeProvider) (subReconciler,
 	}
 }
 
-func (r *reconciler) getVolumeProviderChildren(ctx context.Context, vp *dmodel.VolumeProvider) (map[string]*dmodel.VolumeWithAttachment, map[string]*dmodel.VolumeSnapshot, base.ReconcileResult) {
+func (r *reconciler) getVolumeProviderChildren(ctx context.Context, vp *dmodel.VolumeProvider) (map[string]*dmodel.VolumeWithJoins, map[string]*dmodel.VolumeSnapshot, base.ReconcileResult) {
 	q := querier.GetQuerier(ctx)
 	volumes, err := dmodel.ListVolumesForVolumeProvider(q, vp.ID, false)
 	if err != nil {
 		return nil, nil, base.InternalError(err)
 	}
-	volumesById := map[string]*dmodel.VolumeWithAttachment{}
+	volumesById := map[string]*dmodel.VolumeWithJoins{}
 	for _, v := range volumes {
 		volumesById[v.ID] = &v
 	}
@@ -131,7 +131,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) forgetOldSnapshots(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithAttachment, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult {
+func (r *reconciler) forgetOldSnapshots(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithJoins, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult {
 	snapshotsByVolumes := map[string][]*dmodel.VolumeSnapshot{}
 
 	for _, s := range dbSnapshots {
@@ -155,7 +155,7 @@ func (r *reconciler) forgetOldSnapshots(ctx context.Context, log *slog.Logger, v
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) forgetOldSnapshotsForVolume(ctx context.Context, log *slog.Logger, v *dmodel.VolumeWithAttachment, snapshots []*dmodel.VolumeSnapshot) base.ReconcileResult {
+func (r *reconciler) forgetOldSnapshotsForVolume(ctx context.Context, log *slog.Logger, v *dmodel.VolumeWithJoins, snapshots []*dmodel.VolumeSnapshot) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	p := forget.ExpirePolicy{
@@ -179,7 +179,7 @@ func (r *reconciler) forgetOldSnapshotsForVolume(ctx context.Context, log *slog.
 }
 
 type subReconciler interface {
-	ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithAttachment, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult
+	ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithJoins, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult
 	ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) base.ReconcileResult
-	ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithAttachment) base.ReconcileResult
+	ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithJoins) base.ReconcileResult
 }

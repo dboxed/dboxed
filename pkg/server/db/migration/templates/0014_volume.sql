@@ -12,8 +12,6 @@ create table volume
     name                 text           not null,
 
     mount_id             text,
-    mount_time           TYPES_DATETIME,
-    mount_box_id         text references box (id) on delete restrict,
 
     --{{ if eq .DbType "sqlite" }}
     latest_snapshot_id   text references volume_snapshot (id) on delete restrict,
@@ -23,6 +21,11 @@ create table volume
     --{{ end }}
 
     unique (workspace_id, name)
+
+    --{{ if eq .DbType "sqlite" }}
+    ,
+    foreign key (id, mount_id) references volume_mount_status (volume_id, mount_id) on delete restrict
+    --{{ end }}
 );
 
 create table volume_rustic
@@ -51,15 +54,31 @@ create table box_volume_attachment
 
 create table volume_mount_status
 (
-    id          text not null primary key references volume (id) on delete cascade,
+    volume_id                 text           not null references volume (id) on delete cascade,
+    mount_id                  text           not null unique,
 
+    -- we don't use a reference here so that deletion of boxes does not remove the box id
+    box_id                    text,
 
-    status_time TYPES_DATETIME,
+    mount_time                TYPES_DATETIME not null,
+    release_time              TYPES_DATETIME,
+    force_released            bool           not null,
 
-    run_status  text,
-    start_time  TYPES_DATETIME,
-    stop_time   TYPES_DATETIME,
+    status_time               TYPES_DATETIME not null,
 
-    -- gzip compressed json
-    docker_ps   TYPES_BYTES
+    volume_total_size         bigint,
+    volume_free_size          bigint,
+
+    -- we don't use a reference here so that deletion of snapshots does not remove the snapshot id
+    last_finished_snapshot_id text,
+
+    snapshot_start_time       TYPES_DATETIME,
+    snapshot_end_time         TYPES_DATETIME,
+
+    primary key (volume_id, mount_id)
 );
+
+--{{ if eq .DbType "postgres" }}
+alter table volume
+    add foreign key (id, mount_id) references volume_mount_status (volume_id, mount_id) on delete restrict;
+--{{ end }}

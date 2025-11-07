@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/mount"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
 	"github.com/dboxed/dboxed/pkg/volume/volume_backup"
@@ -36,12 +38,13 @@ type VolumeServeOpts struct {
 type VolumeServe struct {
 	opts VolumeServeOpts
 
-	volume *models.Volume
-	log    *slog.Logger
+	log *slog.Logger
 
 	LocalVolume *volume.Volume
 
 	stop chan struct{}
+
+	volumeStateMutex sync.Mutex
 }
 
 func New(opts VolumeServeOpts) (*VolumeServe, error) {
@@ -67,7 +70,7 @@ func New(opts VolumeServeOpts) (*VolumeServe, error) {
 	return vs, nil
 }
 
-func (vs *VolumeServe) buildClient(ctx context.Context, s *VolumeState) (*baseclient.Client, error) {
+func (vs *VolumeServe) buildClient(s *VolumeState) (*baseclient.Client, error) {
 	if vs.opts.Client != nil {
 		return vs.opts.Client, nil
 	}
@@ -98,38 +101,44 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 		return err
 	}
 
-	err = vs.refreshVolumeMount(ctx)
+	err = vs.mountVolumeViaApi(ctx)
 	if err != nil {
 		return err
 	}
-	vs.log = vs.log.With(slog.Any("mountId", *vs.volume.MountId))
 
-	if vs.volume.Rustic == nil {
+	s, err = vs.loadVolumeState()
+	if err != nil {
+		return err
+	}
+
+	vs.log = vs.log.With(slog.Any("mountId", *s.Volume.MountId))
+
+	if s.Volume.Rustic == nil {
 		return fmt.Errorf("only rustic is supported for now")
 	}
 
 	lvmTags := []string{
 		"dboxed-volume",
-		fmt.Sprintf("dboxed-volume-%s", vs.volume.ID),
-		fmt.Sprintf("dboxed-volume-mount-%s", *vs.volume.MountId),
+		fmt.Sprintf("dboxed-volume-%s", s.Volume.ID),
+		fmt.Sprintf("dboxed-volume-mount-%s", *s.Volume.MountId),
 	}
 
 	image := filepath.Join(vs.opts.Dir, "image")
 
-	imageSize := vs.volume.Rustic.FsSize * 2
+	imageSize := s.Volume.Rustic.FsSize * 2
 	vs.log.Info("creating local volume image",
 		slog.Any("path", image),
 		slog.Any("imageSize", humanize.Bytes(uint64(imageSize))),
-		slog.Any("fsSize", humanize.Bytes(uint64(vs.volume.Rustic.FsSize))),
-		slog.Any("fsType", vs.volume.Rustic.FsType),
+		slog.Any("fsSize", humanize.Bytes(uint64(s.Volume.Rustic.FsSize))),
+		slog.Any("fsType", s.Volume.Rustic.FsType),
 		slog.Any("lvmTags", lvmTags),
 	)
 	err = volume.Create(ctx, volume.CreateOptions{
-		MountId:   *vs.volume.MountId,
+		MountId:   *s.Volume.MountId,
 		ImagePath: image,
 		ImageSize: imageSize,
-		FsSize:    vs.volume.Rustic.FsSize,
-		FsType:    vs.volume.Rustic.FsType,
+		FsSize:    s.Volume.Rustic.FsSize,
+		FsType:    s.Volume.Rustic.FsType,
 		LvmTags:   lvmTags,
 	})
 	if err != nil {
@@ -158,13 +167,13 @@ func (vs *VolumeServe) Open(ctx context.Context) error {
 		slog.Any("path", image),
 	)
 
-	vs.LocalVolume, err = volume.Open(ctx, image, *vs.volume.MountId)
+	vs.LocalVolume, err = volume.Open(ctx, image, *s.Volume.MountId)
 	if err != nil {
 		return err
 	}
 
 	refMountDir := filepath.Join(vs.opts.Dir, "loop-ref")
-	err = volume.WriteLoopRef(ctx, refMountDir, *vs.volume.MountId)
+	err = volume.WriteLoopRef(ctx, refMountDir, *s.Volume.MountId)
 	if err != nil {
 		return err
 	}
@@ -224,15 +233,6 @@ func (vs *VolumeServe) MountDevice(ctx context.Context, readOnly bool) error {
 	return nil
 }
 
-func (vs *VolumeServe) MountVolumeViaApi(ctx context.Context) error {
-	err := vs.refreshVolumeMount(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (vs *VolumeServe) ReleaseVolumeMountViaApi(ctx context.Context) error {
 	s, err := vs.loadVolumeState()
 	if err != nil && !os.IsNotExist(err) {
@@ -243,7 +243,7 @@ func (vs *VolumeServe) ReleaseVolumeMountViaApi(ctx context.Context) error {
 		return fmt.Errorf("volume is not mounted")
 	}
 
-	c, err := vs.buildClient(ctx, s)
+	c, err := vs.buildClient(s)
 	if err != nil {
 		return err
 	}
@@ -259,11 +259,10 @@ func (vs *VolumeServe) ReleaseVolumeMountViaApi(ctx context.Context) error {
 		return err
 	}
 
-	vs.volume = newVolume
-
-	s.Volume = newVolume
-
-	err = vs.saveVolumeState(*s)
+	err = vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+		s.Volume = newVolume
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -272,6 +271,23 @@ func (vs *VolumeServe) ReleaseVolumeMountViaApi(ctx context.Context) error {
 }
 
 func (vs *VolumeServe) Run(ctx context.Context) error {
+	err := vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+		s.ServeStartTime = util.Ptr(time.Now())
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+			s.ServeStopTime = util.Ptr(time.Now())
+			return nil
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to update volume state", "error", err)
+		}
+	}()
+
 	return vs.periodicBackup(ctx)
 }
 
@@ -279,59 +295,80 @@ func (vs *VolumeServe) Stop() {
 	close(vs.stop)
 }
 
-func (vs *VolumeServe) refreshVolumeMount(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
-	if err != nil && !os.IsNotExist(err) {
+func (vs *VolumeServe) mountVolumeViaApi(ctx context.Context) error {
+	if vs.opts.Client == nil {
+		return fmt.Errorf("missing client")
+	}
+
+	c2 := clients.VolumesClient{Client: vs.opts.Client}
+
+	var newVolume *models.Volume
+	vs.log.Info("mounting volume")
+	mountRequest := models.VolumeMountRequest{
+		BoxId: vs.opts.BoxId,
+	}
+	newVolume, err := c2.VolumeMount(ctx, vs.opts.VolumeId, mountRequest)
+	if err != nil {
 		return err
 	}
-	if s == nil {
-		if vs.opts.Client == nil {
-			return fmt.Errorf("no volume state loaded and missing client")
-		}
 
-		s = &VolumeState{
-			ClientAuth: vs.opts.Client.GetClientAuth(true),
-			MountName:  vs.opts.MountName,
-		}
+	s := &VolumeState{
+		ClientAuth: vs.opts.Client.GetClientAuth(true),
+		MountName:  vs.opts.MountName,
+		Volume:     newVolume,
+	}
+	err = vs.saveVolumeState(s)
+	if err != nil {
+		return err
 	}
 
-	var prevMountId *string
-	if s.Volume != nil {
-		prevMountId = s.Volume.MountId
+	return nil
+}
+
+func (vs *VolumeServe) refreshVolumeMount(ctx context.Context) error {
+	s, err := vs.loadVolumeState()
+	if err != nil {
+		return err
+	}
+	if s.Volume.MountId == nil {
+		return fmt.Errorf("volume has no mount id")
 	}
 
-	c, err := vs.buildClient(ctx, s)
+	c, err := vs.buildClient(s)
 	if err != nil {
 		return err
 	}
 
 	c2 := clients.VolumesClient{Client: c}
 
-	var newVolume *models.Volume
-	if prevMountId == nil {
-		vs.log.Info("mounting volume")
-		mountRequest := models.VolumeMountRequest{
-			BoxId: vs.opts.BoxId,
-		}
-		newVolume, err = c2.VolumeMount(ctx, vs.opts.VolumeId, mountRequest)
-		if err != nil {
-			return err
-		}
-	} else {
-		vs.log.Debug("refreshing mount", slog.Any("prevMountId", *prevMountId))
-		refreshMountRequest := models.VolumeRefreshMountRequest{
-			MountId: *prevMountId,
-		}
-		newVolume, err = c2.VolumeRefreshMount(ctx, vs.opts.VolumeId, refreshMountRequest)
-		if err != nil {
-			return err
-		}
+	vs.log.Debug("refreshing mount", slog.Any("mountId", *s.Volume.MountId))
+
+	refreshMountRequest := models.VolumeRefreshMountRequest{
+		MountId:           *s.Volume.MountId,
+		SnapshotStartTime: s.SnapshotStartTime,
+		SnapshotEndTime:   s.SnapshotEndTime,
+	}
+	if s.LastFinishedSnapshot != nil {
+		refreshMountRequest.LastFinishedSnapshotId = &s.LastFinishedSnapshot.ID
 	}
 
-	vs.volume = newVolume
-	s.Volume = newVolume
+	st, err := mount.StatFS(vs.GetMountDir())
+	if err != nil {
+		vs.log.Error(err.Error())
+	} else {
+		refreshMountRequest.VolumeTotalSize = st.TotalSize
+		refreshMountRequest.VolumeFreeSize = st.FreeSize
+	}
 
-	err = vs.saveVolumeState(*s)
+	newVolume, err := c2.VolumeRefreshMount(ctx, vs.opts.VolumeId, refreshMountRequest)
+	if err != nil {
+		return err
+	}
+
+	err = vs.updateVolumeState(ctx, false, func(s *VolumeState) error {
+		s.Volume = newVolume
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -340,7 +377,7 @@ func (vs *VolumeServe) refreshVolumeMount(ctx context.Context) error {
 }
 
 func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*volume_backup.VolumeBackup, error) {
-	c, err := vs.buildClient(ctx, s)
+	c, err := vs.buildClient(s)
 	if err != nil {
 		return nil, err
 	}
@@ -351,9 +388,9 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 	vb := &volume_backup.VolumeBackup{
 		Client:                c,
 		Volume:                vs.LocalVolume,
-		VolumeId:              vs.volume.ID,
-		MountId:               *vs.volume.MountId,
-		RusticPassword:        vs.volume.Rustic.Password,
+		VolumeId:              s.Volume.ID,
+		MountId:               *s.Volume.MountId,
+		RusticPassword:        s.Volume.Rustic.Password,
 		Mount:                 mount,
 		SnapshotMount:         snapshotMount,
 		WebdavProxyListenAddr: vs.opts.WebdavProxyListen,
@@ -372,7 +409,30 @@ func (vs *VolumeServe) BackupOnce(ctx context.Context) error {
 		return err
 	}
 
-	err = vb.Backup(ctx)
+	err = vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+		s.SnapshotStartTime = util.Ptr(time.Now())
+		s.SnapshotEndTime = nil
+		s.SnapshotError = nil
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	snapshot, err := vb.Backup(ctx)
+	if err != nil {
+		_ = vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+			s.SnapshotError = util.Ptr(err.Error())
+			return nil
+		})
+		return err
+	}
+
+	err = vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+		s.LastFinishedSnapshot = snapshot
+		s.SnapshotEndTime = util.Ptr(time.Now())
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -393,14 +453,14 @@ func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId string, d
 	if err != nil {
 		return err
 	}
-	c, err := vs.buildClient(ctx, s)
+	c, err := vs.buildClient(s)
 	if err != nil {
 		return err
 	}
 
 	c2 := clients.VolumesClient{Client: c}
 
-	snapshot, err := c2.GetVolumeSnapshotById(ctx, vs.volume.ID, snapshotId)
+	snapshot, err := c2.GetVolumeSnapshotById(ctx, s.Volume.ID, snapshotId)
 	if err != nil {
 		return err
 	}
@@ -415,28 +475,38 @@ func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId string, d
 		return err
 	}
 
+	err = vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+		s.RestoreDone = true
+		s.RestoreSnapshot = &snapshot.ID
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
-	if vs.volume.LatestSnapshotId != nil {
-		err := vs.RestoreSnapshot(ctx, *vs.volume.LatestSnapshotId, true)
-		if err != nil {
-			return err
-		}
-	}
-
 	s, err := vs.loadVolumeState()
 	if err != nil {
 		return err
 	}
 
-	s.RestoreDone = true
-	s.RestoreSnapshot = vs.volume.LatestSnapshotId
-
-	err = vs.saveVolumeState(*s)
-	if err != nil {
-		return err
+	if s.Volume.LatestSnapshotId != nil {
+		err := vs.RestoreSnapshot(ctx, *s.Volume.LatestSnapshotId, true)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = vs.updateVolumeState(ctx, true, func(s *VolumeState) error {
+			s.RestoreDone = true
+			s.RestoreSnapshot = nil
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -1,8 +1,10 @@
 package volume_serve
 
 import (
+	"context"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -16,6 +18,14 @@ type VolumeState struct {
 	MountName string `json:"mountName"`
 
 	Volume *models.Volume `json:"volume"`
+
+	ServeStartTime *time.Time `json:"serveStartTime"`
+	ServeStopTime  *time.Time `json:"serveStopTime"`
+
+	LastFinishedSnapshot *models.VolumeSnapshot `json:"lastFinishedSnapshot"`
+	SnapshotStartTime    *time.Time             `json:"snapshotStartTime"`
+	SnapshotEndTime      *time.Time             `json:"snapshotEndTime"`
+	SnapshotError        *string                `json:"snapshotError"`
 
 	RestoreDone     bool    `json:"restoreDone"`
 	RestoreSnapshot *string `json:"restoreSnapshot"`
@@ -37,12 +47,46 @@ func LoadVolumeState(dir string) (*VolumeState, error) {
 	return s, nil
 }
 
-func (vs *VolumeServe) saveVolumeState(s VolumeState) error {
+func (vs *VolumeServe) saveVolumeState(s *VolumeState) error {
 	b, err := yaml.Marshal(s)
 	if err != nil {
 		return err
 	}
-	return util.AtomicWriteFile(filepath.Join(vs.opts.Dir, "volume-state.yaml"), b, 0600)
+
+	err = util.AtomicWriteFile(filepath.Join(vs.opts.Dir, "volume-state.yaml"), b, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (vs *VolumeServe) updateVolumeState(ctx context.Context, sendStatus bool, fn func(s *VolumeState) error) error {
+	if sendStatus {
+		// we do it in defer so that the lock from below is actually unlocked
+		defer func() {
+			err := vs.refreshVolumeMount(ctx)
+			if err != nil {
+				vs.log.ErrorContext(ctx, "failed to refresh volume mount", "error", err)
+			}
+		}()
+	}
+
+	vs.volumeStateMutex.Lock()
+	defer vs.volumeStateMutex.Unlock()
+
+	s, err := vs.loadVolumeState()
+	if err != nil {
+		return err
+	}
+	err = fn(s)
+	if err != nil {
+		return err
+	}
+	err = vs.saveVolumeState(s)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func ListVolumeState(baseDir string) ([]*VolumeState, error) {

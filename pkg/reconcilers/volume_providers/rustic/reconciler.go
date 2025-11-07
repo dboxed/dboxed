@@ -119,12 +119,12 @@ func (r *Reconciler) getTagValue(tags []string, tagPrefix string) string {
 	return ""
 }
 
-func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithAttachment, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult {
+func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithJoins, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult {
 	dbSnapshotsByRusticId := map[string]*dmodel.VolumeSnapshot{}
 	for _, s := range dbSnapshots {
 		dbSnapshotsByRusticId[s.Rustic.SnapshotId.V] = s
 	}
-	dbVolumesByUuuid := map[string]*dmodel.VolumeWithAttachment{}
+	dbVolumesByUuuid := map[string]*dmodel.VolumeWithJoins{}
 	for _, v := range dbVolumes {
 		dbVolumesByUuuid[v.ID] = v
 	}
@@ -196,7 +196,7 @@ func (r *Reconciler) ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logg
 	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithAttachment) base.ReconcileResult {
+func (r *Reconciler) ReconcileDeleteVolume(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.VolumeWithJoins) base.ReconcileResult {
 	// we assume that all snapshots have been deleted already
 	return base.ReconcileResult{}
 }

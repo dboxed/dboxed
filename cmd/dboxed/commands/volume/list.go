@@ -50,11 +50,11 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			Type:     string(v.VolumeProviderType),
 			Provider: ct.VolumeProviders.GetColumn(ctx, v.VolumeProviderId),
 		}
-		if v.MountId != nil && v.MountTime != nil {
-			p.MountTime = v.MountTime.String()
-		}
-		if v.MountBoxId != nil {
-			p.MountBox = ct.Boxes.GetColumn(ctx, *v.MountBoxId)
+		if v.MountId != nil && v.MountStatus != nil {
+			p.MountTime = v.MountStatus.MountTime.String()
+			if v.MountStatus.BoxId != nil {
+				p.MountBox = ct.Boxes.GetColumn(ctx, *v.MountStatus.BoxId)
+			}
 		}
 		if v.Attachment != nil {
 			p.Attachment = ct.Boxes.GetColumn(ctx, v.Attachment.BoxID)

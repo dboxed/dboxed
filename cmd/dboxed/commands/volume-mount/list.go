@@ -49,14 +49,14 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
 		}
 		if v.Volume != nil {
-			if v.Volume.MountBoxId != nil {
-				p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.MountBoxId)
-			}
 			if v.Volume.MountId != nil {
 				p.MountId = *v.Volume.MountId
-			}
-			if v.Volume.MountTime != nil {
-				p.MountTime = v.Volume.MountTime.String()
+				if v.Volume.MountStatus != nil {
+					if v.Volume.MountStatus.BoxId != nil {
+						p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.MountStatus.BoxId)
+					}
+					p.MountTime = v.Volume.MountStatus.MountTime.String()
+				}
 			}
 		}
 		if v.RestoreSnapshot != nil {

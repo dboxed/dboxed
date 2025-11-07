@@ -1,8 +1,6 @@
 package dmodel
 
 import (
-	"time"
-
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
 
@@ -14,9 +12,7 @@ type Volume struct {
 	VolumeProviderID   string             `db:"volume_provider_id"`
 	VolumeProviderType VolumeProviderType `db:"volume_provider_type"`
 
-	MountId    *string    `db:"mount_id"`
-	MountTime  *time.Time `db:"mount_time"`
-	MountBoxId *string    `db:"mount_box_id"`
+	MountId *string `db:"mount_id"`
 
 	LatestSnapshotId *string `db:"latest_snapshot_id"`
 
@@ -36,13 +32,14 @@ type VolumeRusticStatus struct {
 	ID querier.NullForJoin[string] `db:"id"`
 }
 
-type VolumeWithAttachment struct {
+type VolumeWithJoins struct {
 	Volume
 
-	Attachment *BoxVolumeAttachment `join:"true" join_left_field:"id" join_right_table:"box_volume_attachment" join_right_field:"volume_id"`
+	Attachment  *BoxVolumeAttachment `join:"true" join_left_field:"id" join_right_table:"box_volume_attachment" join_right_field:"volume_id"`
+	MountStatus *VolumeMountStatus   `join:"true" db:"mount_status" join_left_field:"mount_id" join_right_table:"volume_mount_status" join_right_field:"mount_id"`
 }
 
-func (x *VolumeWithAttachment) GetTableName() string {
+func (x *VolumeWithJoins) GetTableName() string {
 	return "volume"
 }
 
@@ -80,39 +77,39 @@ func (v *BoxVolumeAttachment) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func GetVolumeById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*VolumeWithAttachment, error) {
-	return querier.GetOne[VolumeWithAttachment](q, map[string]any{
+func GetVolumeById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*VolumeWithJoins, error) {
+	return querier.GetOne[VolumeWithJoins](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"id":           id,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func GetVolumeByName(q *querier.Querier, workspaceId string, name string, skipDeleted bool) (*VolumeWithAttachment, error) {
-	return querier.GetOne[VolumeWithAttachment](q, map[string]any{
+func GetVolumeByName(q *querier.Querier, workspaceId string, name string, skipDeleted bool) (*VolumeWithJoins, error) {
+	return querier.GetOne[VolumeWithJoins](q, map[string]any{
 		"workspace_id": workspaceId,
 		"name":         name,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListVolumesByMountBoxId(q *querier.Querier, workspaceId *string, boxId string, skipDeleted bool) ([]VolumeWithAttachment, error) {
-	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
-		"workspace_id": querier.OmitIfNull(workspaceId),
-		"mount_box_id": boxId,
-		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
+func ListVolumesByMountBoxId(q *querier.Querier, workspaceId *string, boxId string, skipDeleted bool) ([]VolumeWithJoins, error) {
+	return querier.GetMany[VolumeWithJoins](q, map[string]any{
+		"workspace_id":        querier.OmitIfNull(workspaceId),
+		"mount_status.box_id": boxId,
+		"deleted_at":          querier.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func ListVolumesForWorkspace(q *querier.Querier, workspaceId string, skipDeleted bool) ([]VolumeWithAttachment, error) {
-	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
+func ListVolumesForWorkspace(q *querier.Querier, workspaceId string, skipDeleted bool) ([]VolumeWithJoins, error) {
+	return querier.GetMany[VolumeWithJoins](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func ListVolumesForVolumeProvider(q *querier.Querier, volumeProviderId string, skipDeleted bool) ([]VolumeWithAttachment, error) {
-	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
+func ListVolumesForVolumeProvider(q *querier.Querier, volumeProviderId string, skipDeleted bool) ([]VolumeWithJoins, error) {
+	return querier.GetMany[VolumeWithJoins](q, map[string]any{
 		"volume_provider_id": volumeProviderId,
 		"deleted_at":         querier.ExcludeNonNull(skipDeleted),
 	}, nil)
@@ -131,31 +128,21 @@ func GetBoxVolumeAttachment(q *querier.Querier, boxId string, volumeId string) (
 	})
 }
 
-func (v *Volume) UpdateMount(q *querier.Querier, newMountId *string, newMountTime *time.Time, boxId *string) error {
+func (v *Volume) UpdateMountId(q *querier.Querier, newMountId *string) error {
 	oldMountId := v.MountId
-	oldMountTime := v.MountTime
 	v.MountId = newMountId
-	v.MountTime = newMountTime
-	v.MountBoxId = boxId
 	return querier.UpdateOneByFields[Volume](q, map[string]any{
-		"id":         v.ID,
-		"mount_id":   oldMountId,
-		"mount_time": oldMountTime,
+		"id":       v.ID,
+		"mount_id": oldMountId,
 	}, map[string]any{
-		"mount_id":     v.MountId,
-		"mount_time":   v.MountTime,
-		"mount_box_id": v.MountBoxId,
+		"mount_id": v.MountId,
 	})
 }
 
 func (v *Volume) ForceReleaseMount(q *querier.Querier) error {
 	v.MountId = nil
-	v.MountTime = nil
-	v.MountBoxId = nil
 	return querier.UpdateOneFromStruct[Volume](q, v,
 		"mount_id",
-		"mount_time",
-		"mount_box_id",
 	)
 }
 

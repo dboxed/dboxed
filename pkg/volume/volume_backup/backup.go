@@ -28,7 +28,7 @@ type VolumeBackup struct {
 	WebdavProxyListenAddr string
 }
 
-func (vb *VolumeBackup) Backup(ctx context.Context) error {
+func (vb *VolumeBackup) Backup(ctx context.Context) (*models.VolumeSnapshot, error) {
 	snapshotName := "backup-snapshot"
 	rusticHost := fmt.Sprintf("dboxed-volume-%s", vb.VolumeId)
 
@@ -37,17 +37,17 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 	c2 := clients.VolumesClient{Client: vb.Client}
 	v, err := c2.GetVolumeById(ctx, vb.VolumeId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = vb.Volume.UnmountSnapshot(ctx, snapshotName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = vb.Volume.CreateSnapshot(ctx, snapshotName, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		err := vb.Volume.DeleteSnapshot(ctx, snapshotName)
@@ -58,7 +58,7 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 
 	err = vb.Volume.MountSnapshot(ctx, snapshotName, vb.SnapshotMount)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		err := vb.Volume.UnmountSnapshot(ctx, snapshotName)
@@ -84,18 +84,18 @@ func (vb *VolumeBackup) Backup(ctx context.Context) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = c2.CreateSnapshot(ctx, vb.VolumeId, models.CreateVolumeSnapshot{
+	snapshot, err := c2.CreateSnapshot(ctx, vb.VolumeId, models.CreateVolumeSnapshot{
 		MountId: vb.MountId,
 		Rustic:  rsSnapshot.ToApi(),
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return snapshot, nil
 }
 
 func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string, delete bool) error {

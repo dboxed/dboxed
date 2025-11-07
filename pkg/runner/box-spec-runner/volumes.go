@@ -190,7 +190,7 @@ func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.
 		"volume-mount",
 		"service",
 		"install",
-		vol.ID,
+		"--volume", vol.ID,
 		"--backup-interval", vol.BackupInterval,
 	}
 
