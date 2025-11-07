@@ -43,7 +43,7 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	err = vs.Mount(ctx, true)
+	err = vs.MountDevice(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -60,9 +60,9 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	// we unlock early, because the volume being read-only already ensures we don't lose data
-	slog.Info("releasing volume lock")
-	err = vs.Unlock(ctx)
+	// we release early, because the volume being read-only already ensures we don't lose data
+	slog.Info("releasing volume mount")
+	err = vs.ReleaseVolumeMountViaApi(ctx)
 	if err != nil {
 		return err
 	}

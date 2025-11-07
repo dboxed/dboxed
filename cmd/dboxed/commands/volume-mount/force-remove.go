@@ -44,19 +44,19 @@ func (cmd *ForceRemoveCmd) Run(g *flags.GlobalFlags) error {
 
 	slog.Info("force-removing volume mount - no backup will be performed", slog.Any("volume", volumeState.Volume.Name), slog.Any("mountName", volumeState.MountName))
 
-	if c != nil && vs.Volume != nil && vs.Volume.LockId != nil {
-		slog.Info("trying to release volume lock")
+	if c != nil && vs.Volume != nil && vs.Volume.MountId != nil {
+		slog.Info("trying to release volume mount")
 		c2 := clients.VolumesClient{Client: c}
-		_, err = c2.VolumeRelease(ctx, vs.Volume.ID, models.VolumeReleaseRequest{
-			LockId: *vs.Volume.LockId,
+		_, err = c2.VolumeReleaseMount(ctx, vs.Volume.ID, models.VolumeReleaseRequest{
+			MountId: *vs.Volume.MountId,
 		})
 		if err != nil {
-			slog.Warn("failed to release volume lock", "error", err)
+			slog.Warn("failed to release volume mount", "error", err)
 		}
 	}
 
 	if vs.Volume != nil {
-		tag := fmt.Sprintf("dboxed-volume-lock-%s", *vs.Volume.LockId)
+		tag := fmt.Sprintf("dboxed-volume-mount-%s", *vs.Volume.MountId)
 		lvs, err := lvm.FindLVsWithTag(ctx, tag)
 		if err != nil {
 			return err

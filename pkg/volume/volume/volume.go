@@ -23,14 +23,14 @@ type Volume struct {
 	filesystemLv *lvm.LVEntry
 }
 
-func Open(ctx context.Context, image string, lockId string) (*Volume, error) {
-	_, loHandle, err := GetOrAttachLoopDev(image, lockId)
+func Open(ctx context.Context, image string, mountId string) (*Volume, error) {
+	_, loHandle, err := GetOrAttachLoopDev(image, mountId)
 	if err != nil {
 		return nil, err
 	}
 	defer loHandle.Close()
 
-	tag := fmt.Sprintf("dboxed-volume-lock-%s", lockId)
+	tag := fmt.Sprintf("dboxed-volume-mount-%s", mountId)
 
 	lvs, err := lvm.FindLVsWithTag(ctx, tag)
 	if err != nil {

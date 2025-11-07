@@ -12,7 +12,7 @@ type VolumeSnapshot struct {
 	CreatedAt time.Time `json:"createdAt"`
 
 	VolumeID string `json:"volumeId"`
-	LockID   string `json:"lockId"`
+	MountId  string `json:"mountId"`
 
 	Rustic *VolumeSnapshotRustic `json:"rustic,omitempty"`
 }
@@ -51,7 +51,7 @@ type VolumeSnapshotRustic struct {
 }
 
 type CreateVolumeSnapshot struct {
-	LockID string `json:"lockId"`
+	MountId string `json:"mountId"`
 
 	Rustic *VolumeSnapshotRustic `json:"rustic,omitempty"`
 }
@@ -62,7 +62,7 @@ func VolumeSnapshotFromDB(v dmodel.VolumeSnapshot) VolumeSnapshot {
 		Workspace: v.WorkspaceID,
 		CreatedAt: v.CreatedAt,
 		VolumeID:  v.VolumedID.V,
-		LockID:    v.LockID.V,
+		MountId:   v.MountID.V,
 	}
 
 	if v.Rustic != nil && v.Rustic.ID.Valid {

@@ -18,8 +18,8 @@ type PrintVolume struct {
 	Name               string `col:"Name"`
 	Type               string `col:"Type"`
 	Provider           string `col:"Provider"`
-	LockTime           string `col:"Lock Time"`
-	LockBox            string `col:"Locked by Box"`
+	MountTime          string `col:"Mount Time"`
+	MountBox           string `col:"Mounted by Box"`
 	Attachment         string `col:"Box attachment"`
 	LatestSnapshotId   string `col:"Snapshot ID"`
 	LatestSnapshotTime string `col:"Snapshot Time"`
@@ -50,11 +50,11 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			Type:     string(v.VolumeProviderType),
 			Provider: ct.VolumeProviders.GetColumn(ctx, v.VolumeProviderId),
 		}
-		if v.LockId != nil && v.LockTime != nil {
-			p.LockTime = v.LockTime.String()
+		if v.MountId != nil && v.MountTime != nil {
+			p.MountTime = v.MountTime.String()
 		}
-		if v.LockBoxId != nil {
-			p.LockBox = ct.Boxes.GetColumn(ctx, *v.LockBoxId)
+		if v.MountBoxId != nil {
+			p.MountBox = ct.Boxes.GetColumn(ctx, *v.MountBoxId)
 		}
 		if v.Attachment != nil {
 			p.Attachment = ct.Boxes.GetColumn(ctx, v.Attachment.BoxID)

@@ -14,7 +14,7 @@ import (
 
 type CreateCmd struct {
 	Volume string  `help:"Specify volume" required:""`
-	Box    *string `help:"Specify the box that wants to lock this volume"`
+	Box    *string `help:"Specify the box that wants to mount this volume"`
 
 	MountName *string `help:"Override the local mount name. Defaults to the volume ID"`
 }
@@ -73,7 +73,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	err = vs.Mount(ctx, false)
+	err = vs.MountDevice(ctx, false)
 	if err != nil {
 		return err
 	}

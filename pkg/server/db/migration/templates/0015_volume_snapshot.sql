@@ -9,7 +9,7 @@ create table volume_snapshot
     volume_provider_id text           not null references volume_provider (id) on delete restrict,
     volume_id          text references volume (id) on delete restrict,
 
-    lock_id            text           not null
+    mount_id           text           not null
 );
 
 --{{ if eq .DbType "postgres" }}

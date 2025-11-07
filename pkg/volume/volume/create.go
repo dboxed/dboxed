@@ -14,7 +14,7 @@ import (
 )
 
 type CreateOptions struct {
-	LockId    string
+	MountId   string
 	ImagePath string
 	ImageSize int64
 	FsSize    int64
@@ -58,7 +58,7 @@ func Create(ctx context.Context, opts CreateOptions) error {
 	}
 	_ = f.Close()
 
-	loDev, loDevHandle, err := AttachLoopDev(opts.ImagePath, opts.LockId)
+	loDev, loDevHandle, err := AttachLoopDev(opts.ImagePath, opts.MountId)
 	if err != nil {
 		return err
 	}

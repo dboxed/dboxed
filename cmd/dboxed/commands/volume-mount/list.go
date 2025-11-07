@@ -21,8 +21,8 @@ type PrintVolumeMount struct {
 	Volume    string `col:"Volume"`
 	Workspace string `col:"Workspace"`
 	Box       string `col:"Box"`
-	LockId    string `col:"Lock ID"`
-	LockTime  string `col:"Lock Time"`
+	MountId   string `col:"Mount ID"`
+	MountTime string `col:"Mount Time"`
 	Restored  string `col:"Restored"`
 }
 
@@ -49,14 +49,14 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
 		}
 		if v.Volume != nil {
-			if v.Volume.LockBoxId != nil {
-				p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.LockBoxId)
+			if v.Volume.MountBoxId != nil {
+				p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.MountBoxId)
 			}
-			if v.Volume.LockId != nil {
-				p.LockId = *v.Volume.LockId
+			if v.Volume.MountId != nil {
+				p.MountId = *v.Volume.MountId
 			}
-			if v.Volume.LockTime != nil {
-				p.LockTime = v.Volume.LockTime.String()
+			if v.Volume.MountTime != nil {
+				p.MountTime = v.Volume.MountTime.String()
 			}
 		}
 		if v.RestoreSnapshot != nil {

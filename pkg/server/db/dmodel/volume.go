@@ -14,9 +14,9 @@ type Volume struct {
 	VolumeProviderID   string             `db:"volume_provider_id"`
 	VolumeProviderType VolumeProviderType `db:"volume_provider_type"`
 
-	LockId    *string    `db:"lock_id"`
-	LockTime  *time.Time `db:"lock_time"`
-	LockBoxId *string    `db:"lock_box_id"`
+	MountId    *string    `db:"mount_id"`
+	MountTime  *time.Time `db:"mount_time"`
+	MountBoxId *string    `db:"mount_box_id"`
 
 	LatestSnapshotId *string `db:"latest_snapshot_id"`
 
@@ -96,10 +96,10 @@ func GetVolumeByName(q *querier.Querier, workspaceId string, name string, skipDe
 	})
 }
 
-func ListVolumesByLockBoxId(q *querier.Querier, workspaceId *string, boxId string, skipDeleted bool) ([]VolumeWithAttachment, error) {
+func ListVolumesByMountBoxId(q *querier.Querier, workspaceId *string, boxId string, skipDeleted bool) ([]VolumeWithAttachment, error) {
 	return querier.GetMany[VolumeWithAttachment](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
-		"lock_box_id":  boxId,
+		"mount_box_id": boxId,
 		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
@@ -131,31 +131,31 @@ func GetBoxVolumeAttachment(q *querier.Querier, boxId string, volumeId string) (
 	})
 }
 
-func (v *Volume) UpdateLock(q *querier.Querier, newLockId *string, newLockTime *time.Time, boxId *string) error {
-	oldLockId := v.LockId
-	oldLockTime := v.LockTime
-	v.LockId = newLockId
-	v.LockTime = newLockTime
-	v.LockBoxId = boxId
+func (v *Volume) UpdateMount(q *querier.Querier, newMountId *string, newMountTime *time.Time, boxId *string) error {
+	oldMountId := v.MountId
+	oldMountTime := v.MountTime
+	v.MountId = newMountId
+	v.MountTime = newMountTime
+	v.MountBoxId = boxId
 	return querier.UpdateOneByFields[Volume](q, map[string]any{
-		"id":        v.ID,
-		"lock_id":   oldLockId,
-		"lock_time": oldLockTime,
+		"id":         v.ID,
+		"mount_id":   oldMountId,
+		"mount_time": oldMountTime,
 	}, map[string]any{
-		"lock_id":     v.LockId,
-		"lock_time":   v.LockTime,
-		"lock_box_id": v.LockBoxId,
+		"mount_id":     v.MountId,
+		"mount_time":   v.MountTime,
+		"mount_box_id": v.MountBoxId,
 	})
 }
 
-func (v *Volume) ForceUnlock(q *querier.Querier) error {
-	v.LockId = nil
-	v.LockTime = nil
-	v.LockBoxId = nil
+func (v *Volume) ForceReleaseMount(q *querier.Querier) error {
+	v.MountId = nil
+	v.MountTime = nil
+	v.MountBoxId = nil
 	return querier.UpdateOneFromStruct[Volume](q, v,
-		"lock_id",
-		"lock_time",
-		"lock_box_id",
+		"mount_id",
+		"mount_time",
+		"mount_box_id",
 	)
 }
 

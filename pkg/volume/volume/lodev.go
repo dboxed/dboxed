@@ -39,8 +39,8 @@ func ListLoopDevs() ([]losetup.Info, error) {
 // AttachLoopDev will attach the loop device, open a handle to it and then immediately detach the loop device
 // The loop device will be kept alive as long as the file handle is open. The handle is returned by AttachLoopDev
 // and meant to be closed by the caller.
-func AttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error) {
-	ref := BuildRef(lockId)
+func AttachLoopDev(image string, mountId string) (*losetup.Device, io.Closer, error) {
+	ref := BuildRef(mountId)
 	ref += strings.Repeat("\000", 64-len(ref))
 
 	loDev, err := losetup.Attach(image, 0, false)
@@ -72,8 +72,8 @@ func AttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer, err
 	return &loDev, f, nil
 }
 
-func GetLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error) {
-	ref := BuildRef(lockId)
+func GetLoopDev(mountId string) (*losetup.Device, io.Closer, error) {
+	ref := BuildRef(mountId)
 
 	loInfos, err := ListLoopDevs()
 	if err != nil {
@@ -95,11 +95,11 @@ func GetLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error)
 	return nil, nil, os.ErrNotExist
 }
 
-func GetOrAttachLoopDev(image string, lockId string) (*losetup.Device, io.Closer, error) {
-	d, handle, err := GetLoopDev(image, lockId)
+func GetOrAttachLoopDev(image string, mountId string) (*losetup.Device, io.Closer, error) {
+	d, handle, err := GetLoopDev(mountId)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return AttachLoopDev(image, lockId)
+			return AttachLoopDev(image, mountId)
 		}
 		return nil, nil, err
 	}

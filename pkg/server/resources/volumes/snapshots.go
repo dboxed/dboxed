@@ -26,11 +26,11 @@ func (s *VolumeServer) restCreateSnapshot(ctx context.Context, i *huma_utils.IdB
 		return nil, err
 	}
 
-	if v.LockId == nil {
-		return nil, huma.Error400BadRequest("volume is not locked")
+	if v.MountId == nil {
+		return nil, huma.Error400BadRequest("volume is not mounted")
 	}
-	if *v.LockId != i.Body.LockID {
-		return nil, huma.Error400BadRequest(fmt.Sprintf("unexpected lock id, got %s, expected %s", i.Body.LockID, *v.LockId))
+	if *v.MountId != i.Body.MountId {
+		return nil, huma.Error400BadRequest(fmt.Sprintf("unexpected mount id, got %s, expected %s", i.Body.MountId, *v.MountId))
 	}
 
 	vs := dmodel.VolumeSnapshot{
@@ -39,7 +39,7 @@ func (s *VolumeServer) restCreateSnapshot(ctx context.Context, i *huma_utils.IdB
 		},
 		VolumeProviderID: querier.N(v.VolumeProviderID),
 		VolumedID:        querier.N(v.ID),
-		LockID:           querier.N(*v.LockId),
+		MountID:          querier.N(*v.MountId),
 	}
 	err = vs.Create(q)
 	if err != nil {

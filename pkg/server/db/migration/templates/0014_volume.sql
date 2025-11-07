@@ -11,9 +11,9 @@ create table volume
 
     name                 text           not null,
 
-    lock_id              text,
-    lock_time            TYPES_DATETIME,
-    lock_box_id          text references box (id) on delete restrict,
+    mount_id             text,
+    mount_time           TYPES_DATETIME,
+    mount_box_id         text references box (id) on delete restrict,
 
     --{{ if eq .DbType "sqlite" }}
     latest_snapshot_id   text references volume_snapshot (id) on delete restrict,

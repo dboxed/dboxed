@@ -18,9 +18,9 @@ type Volume struct {
 	VolumeProviderType dmodel.VolumeProviderType `json:"volumeProviderType"`
 	VolumeProvider     *VolumeProvider           `json:"volumeProvider"`
 
-	LockId    *string    `json:"lockId,omitempty"`
-	LockTime  *time.Time `json:"lockTime,omitempty"`
-	LockBoxId *string    `json:"lockBoxId,omitempty"`
+	MountId    *string    `json:"mountId,omitempty"`
+	MountTime  *time.Time `json:"mountTime,omitempty"`
+	MountBoxId *string    `json:"mountBoxId,omitempty"`
 
 	LatestSnapshotId *string `json:"latestSnapshotId,omitempty"`
 
@@ -77,16 +77,16 @@ type UpdateVolumeAttachmentRequest struct {
 	RootMode *string `json:"rootMode,omitempty"`
 }
 
-type VolumeLockRequest struct {
+type VolumeMountRequest struct {
 	BoxId *string `json:"boxId,omitempty"`
 }
 
-type VolumeRefreshLockRequest struct {
-	PrevLockId string `json:"prevLockId"`
+type VolumeRefreshMountRequest struct {
+	MountId string `json:"mountId"`
 }
 
 type VolumeReleaseRequest struct {
-	LockId string `json:"lockId"`
+	MountId string `json:"mountId"`
 }
 
 func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volumeProvider *dmodel.VolumeProvider) Volume {
@@ -100,9 +100,9 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volum
 		VolumeProviderId:   s.VolumeProviderID,
 		VolumeProviderType: s.VolumeProviderType,
 
-		LockId:    s.LockId,
-		LockTime:  s.LockTime,
-		LockBoxId: s.LockBoxId,
+		MountId:    s.MountId,
+		MountTime:  s.MountTime,
+		MountBoxId: s.MountBoxId,
 
 		LatestSnapshotId: s.LatestSnapshotId,
 	}

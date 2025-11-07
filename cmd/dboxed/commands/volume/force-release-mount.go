@@ -9,11 +9,11 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type ForceUnlockCmd struct {
+type ForceReleaseMountCmd struct {
 	Volume string `help:"Specify volume" required:"" arg:""`
 }
 
-func (cmd *ForceUnlockCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *ForceReleaseMountCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
@@ -28,12 +28,12 @@ func (cmd *ForceUnlockCmd) Run(g *flags.GlobalFlags) error {
 
 	c2 := clients.VolumesClient{Client: c}
 
-	_, err = c2.VolumeForceUnlock(ctx, v.ID)
+	_, err = c2.VolumeForceReleaseMount(ctx, v.ID)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("volume force unlocked", slog.Any("id", v.ID), slog.Any("name", v.Name))
+	slog.Info("mount force released", slog.Any("id", v.ID), slog.Any("name", v.Name))
 
 	return nil
 }

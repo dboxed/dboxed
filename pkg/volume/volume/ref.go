@@ -15,8 +15,8 @@ const refFile = ".dboxed-loop-ref"
 
 const RefPrefix = "dboxed-volume"
 
-func BuildRef(lockId string) string {
-	h := strings.ReplaceAll(lockId, "-", "")
+func BuildRef(mountId string) string {
+	h := strings.ReplaceAll(mountId, "-", "")
 	s := fmt.Sprintf("%s-%s", RefPrefix, h)
 	if len(s) > 64 {
 		s = s[:64]
@@ -24,7 +24,7 @@ func BuildRef(lockId string) string {
 	return s
 }
 
-func WriteLoopRef(ctx context.Context, refMountDir string, lockId string) error {
+func WriteLoopRef(ctx context.Context, refMountDir string, mountId string) error {
 	m, err := mount.GetMountByMountpoint(refMountDir)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -47,7 +47,7 @@ func WriteLoopRef(ctx context.Context, refMountDir string, lockId string) error 
 		}
 	}
 
-	err = os.WriteFile(filepath.Join(refMountDir, refFile), []byte(BuildRef(lockId)), 0644)
+	err = os.WriteFile(filepath.Join(refMountDir, refFile), []byte(BuildRef(mountId)), 0644)
 	if err != nil {
 		return err
 	}

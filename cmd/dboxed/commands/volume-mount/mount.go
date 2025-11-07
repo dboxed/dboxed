@@ -19,7 +19,7 @@ type MountCmd struct {
 func (cmd *MountCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	_, err := lockAndMountVolume(ctx, g.WorkDir, cmd.Volume, nil, nil)
+	_, err := mountVolume(ctx, g.WorkDir, cmd.Volume, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func (cmd *MountCmd) Run(g *flags.GlobalFlags) error {
 	return nil
 }
 
-func lockAndMountVolume(ctx context.Context, workDir string, volume string, backupInterval *time.Duration, webdavProxyListen *string) (*volume_serve.VolumeServe, error) {
+func mountVolume(ctx context.Context, workDir string, volume string, backupInterval *time.Duration, webdavProxyListen *string) (*volume_serve.VolumeServe, error) {
 	baseDir := filepath.Join(workDir, "volumes")
 	volumeState, err := commandutils.GetMountedVolume(baseDir, volume)
 	if err != nil {
@@ -37,7 +37,7 @@ func lockAndMountVolume(ctx context.Context, workDir string, volume string, back
 	opts := volume_serve.VolumeServeOpts{
 		MountName: volumeState.MountName,
 		VolumeId:  volumeState.Volume.ID,
-		BoxId:     volumeState.Volume.LockBoxId,
+		BoxId:     volumeState.Volume.MountBoxId,
 		Dir:       filepath.Join(baseDir, volumeState.MountName),
 	}
 	if backupInterval != nil {
@@ -57,12 +57,12 @@ func lockAndMountVolume(ctx context.Context, workDir string, volume string, back
 		return nil, err
 	}
 
-	err = vs.Lock(ctx)
+	err = vs.MountVolumeViaApi(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	err = vs.Mount(ctx, false)
+	err = vs.MountDevice(ctx, false)
 	if err != nil {
 		return nil, err
 	}

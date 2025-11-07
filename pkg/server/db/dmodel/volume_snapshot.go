@@ -11,7 +11,7 @@ type VolumeSnapshot struct {
 
 	VolumeProviderID querier.NullForJoin[string] `db:"volume_provider_id"`
 	VolumedID        querier.NullForJoin[string] `db:"volume_id"`
-	LockID           querier.NullForJoin[string] `db:"lock_id"`
+	MountID          querier.NullForJoin[string] `db:"mount_id"`
 
 	Rustic *VolumeSnapshotRustic `join:"true"`
 }

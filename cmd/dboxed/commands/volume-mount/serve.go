@@ -31,7 +31,7 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	vs, err := lockAndMountVolume(ctx, g.WorkDir, cmd.Volume, &backupInterval, &cmd.WebdavProxyListen)
+	vs, err := mountVolume(ctx, g.WorkDir, cmd.Volume, &backupInterval, &cmd.WebdavProxyListen)
 	if err != nil {
 		return err
 	}

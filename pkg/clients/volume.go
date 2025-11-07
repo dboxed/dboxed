@@ -57,32 +57,32 @@ func (c *VolumesClient) GetVolumeByName(ctx context.Context, name string) (*mode
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "GET", p, struct{}{})
 }
 
-func (c *VolumesClient) VolumeLock(ctx context.Context, volumeId string, req models.VolumeLockRequest) (*models.Volume, error) {
-	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "lock")
+func (c *VolumesClient) VolumeMount(ctx context.Context, volumeId string, req models.VolumeMountRequest) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "mount")
 	if err != nil {
 		return nil, err
 	}
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeRefreshLock(ctx context.Context, volumeId string, req models.VolumeRefreshLockRequest) (*models.Volume, error) {
-	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "refresh-lock")
+func (c *VolumesClient) VolumeRefreshMount(ctx context.Context, volumeId string, req models.VolumeRefreshMountRequest) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "refresh-mount")
 	if err != nil {
 		return nil, err
 	}
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeRelease(ctx context.Context, volumeId string, req models.VolumeReleaseRequest) (*models.Volume, error) {
-	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "release")
+func (c *VolumesClient) VolumeReleaseMount(ctx context.Context, volumeId string, req models.VolumeReleaseRequest) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "release-mount")
 	if err != nil {
 		return nil, err
 	}
 	return baseclient.RequestApi[models.Volume](ctx, c.Client, "POST", p, req)
 }
 
-func (c *VolumesClient) VolumeForceUnlock(ctx context.Context, volumeId string) (*models.Volume, error) {
-	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "force-unlock")
+func (c *VolumesClient) VolumeForceReleaseMount(ctx context.Context, volumeId string) (*models.Volume, error) {
+	p, err := c.Client.BuildApiPath(true, "volumes", volumeId, "force-release-mount")
 	if err != nil {
 		return nil, err
 	}
