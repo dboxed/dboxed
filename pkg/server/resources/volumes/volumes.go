@@ -300,7 +300,9 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 	log := slog.With(slog.Any("volId", v.ID))
 
 	if v.MountId != nil {
-		return nil, huma.Error409Conflict("volume is already mounted")
+		if v.MountStatus.ReleaseTime == nil {
+			return nil, huma.Error409Conflict("volume is already mounted")
+		}
 	}
 
 	if i.Body.BoxId != nil {
@@ -424,11 +426,6 @@ func (s *VolumeServer) restReleaseMount(ctx context.Context, i *restReleaseVolum
 
 	releaseTime := time.Now()
 	err = v.MountStatus.UpdateReleaseInfo(q, &releaseTime, false)
-	if err != nil {
-		return nil, err
-	}
-
-	err = v.UpdateMountId(q, nil)
 	if err != nil {
 		return nil, err
 	}
