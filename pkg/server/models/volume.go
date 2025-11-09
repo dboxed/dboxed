@@ -137,7 +137,7 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volum
 	}
 
 	if attachment != nil && attachment.VolumeId.Valid {
-		ret.Attachment = util.Ptr(VolumeAttachmentFromDB(*attachment, nil, volumeProvider))
+		ret.Attachment = util.Ptr(VolumeAttachmentFromDB(*attachment, nil, volumeProvider, volumeMountStatus))
 	}
 
 	if s.Rustic != nil && s.Rustic.ID.Valid {
@@ -179,7 +179,7 @@ func VolumeMountStatusFromDB(s dmodel.VolumeMountStatus) VolumeMountStatus {
 	}
 }
 
-func VolumeAttachmentFromDB(attachment dmodel.BoxVolumeAttachment, volume *dmodel.Volume, volumeProvider *dmodel.VolumeProvider) VolumeAttachment {
+func VolumeAttachmentFromDB(attachment dmodel.BoxVolumeAttachment, volume *dmodel.Volume, volumeProvider *dmodel.VolumeProvider, volumeMountStatus *dmodel.VolumeMountStatus) VolumeAttachment {
 	ret := VolumeAttachment{
 		BoxID:    attachment.BoxId.V,
 		VolumeID: attachment.VolumeId.V,
@@ -189,7 +189,7 @@ func VolumeAttachmentFromDB(attachment dmodel.BoxVolumeAttachment, volume *dmode
 	}
 
 	if volume != nil {
-		ret.Volume = util.Ptr(VolumeFromDB(*volume, nil, volumeProvider, nil))
+		ret.Volume = util.Ptr(VolumeFromDB(*volume, nil, volumeProvider, volumeMountStatus))
 	}
 
 	return ret

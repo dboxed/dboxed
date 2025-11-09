@@ -35,7 +35,14 @@ func (s *BoxesServer) restListAttachedVolumes(c context.Context, i *huma_utils.I
 
 	var ret []models.VolumeAttachment
 	for _, a := range attachments {
-		ma := models.VolumeAttachmentFromDB(a.BoxVolumeAttachment, &a.Volume, nil)
+		var mountStatus *dmodel.VolumeMountStatus
+		if a.Volume.MountId != nil {
+			mountStatus, err = dmodel.GetVolumeMountStatusById(q, a.VolumeId.V, *a.Volume.MountId)
+			if err != nil && !querier2.IsSqlNotFoundError(err) {
+				return nil, err
+			}
+		}
+		ma := models.VolumeAttachmentFromDB(a.BoxVolumeAttachment, &a.Volume, nil, mountStatus)
 		ret = append(ret, ma)
 	}
 
@@ -180,7 +187,7 @@ func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateA
 		return nil, err
 	}
 
-	ret := models.VolumeAttachmentFromDB(attachment.BoxVolumeAttachment, &attachment.Volume, nil)
+	ret := models.VolumeAttachmentFromDB(attachment.BoxVolumeAttachment, &attachment.Volume, nil, volume.MountStatus)
 	return huma_utils.NewJsonBody(ret), nil
 }
 

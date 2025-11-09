@@ -52,7 +52,7 @@ type BoxVolumeAttachment struct {
 	RootMode querier.NullForJoin[string] `db:"root_mode"`
 }
 
-type BoxVolumeAttachmentWithVolume struct {
+type BoxVolumeAttachmentWithJoins struct {
 	BoxVolumeAttachment
 	Volume Volume `join:"true" join_left_field:"volume_id"`
 }
@@ -115,14 +115,14 @@ func ListVolumesForVolumeProvider(q *querier.Querier, volumeProviderId string, s
 	}, nil)
 }
 
-func ListBoxVolumeAttachments(q *querier.Querier, boxId string) ([]BoxVolumeAttachmentWithVolume, error) {
-	return querier.GetMany[BoxVolumeAttachmentWithVolume](q, map[string]any{
+func ListBoxVolumeAttachments(q *querier.Querier, boxId string) ([]BoxVolumeAttachmentWithJoins, error) {
+	return querier.GetMany[BoxVolumeAttachmentWithJoins](q, map[string]any{
 		"box_id": boxId,
 	}, nil)
 }
 
-func GetBoxVolumeAttachment(q *querier.Querier, boxId string, volumeId string) (*BoxVolumeAttachmentWithVolume, error) {
-	return querier.GetOne[BoxVolumeAttachmentWithVolume](q, map[string]any{
+func GetBoxVolumeAttachment(q *querier.Querier, boxId string, volumeId string) (*BoxVolumeAttachmentWithJoins, error) {
+	return querier.GetOne[BoxVolumeAttachmentWithJoins](q, map[string]any{
 		"box_id":    boxId,
 		"volume_id": volumeId,
 	})
