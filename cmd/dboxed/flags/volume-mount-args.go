@@ -1,7 +1,7 @@
 package flags
 
 type VolumeMountArgs struct {
-	Volume string `help:"Specify volume" required:""`
+	Volume string `help:"Specify volume" required:"" arg:""`
 }
 
 type VolumeServeArgs struct {

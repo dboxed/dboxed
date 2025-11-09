@@ -5,6 +5,6 @@ fi
 exec dboxed volume-mount \
   --work-dir={{ .DboxedWorkdir }} \
   serve \
-  --volume {{ .VolumeId }} \
+  {{ .VolumeId }} \
   --backup-interval={{ .BackupInterval }} \
   2>&1

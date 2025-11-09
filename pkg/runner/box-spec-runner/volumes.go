@@ -130,7 +130,7 @@ func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVo
 		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"create",
-		"--volume", vol.ID,
+		vol.ID,
 		"--box", rn.BoxSpec.ID,
 	}
 
@@ -190,7 +190,7 @@ func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.
 		"volume-mount",
 		"service",
 		"install",
-		"--volume", vol.ID,
+		vol.ID,
 		"--backup-interval", vol.BackupInterval,
 	}
 
