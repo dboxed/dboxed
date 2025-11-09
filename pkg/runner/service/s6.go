@@ -53,10 +53,31 @@ func (s *S6Service) Install(ctx context.Context) error {
 		}
 	}
 
+	doSymlink := true
 	symlinkPath := filepath.Join(s.s6Helper.ServiceLinksDir, s.ServiceName)
-	err = os.Symlink(serviceDir, symlinkPath)
+	st, err := os.Lstat(symlinkPath)
 	if err != nil {
-		return err
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		if st.Mode().Type() != os.ModeSymlink {
+			return fmt.Errorf("%s already exists and is not a symlink", symlinkPath)
+		}
+		x, err := os.Readlink(symlinkPath)
+		if err != nil {
+			return err
+		}
+		if x != serviceDir {
+			return fmt.Errorf("%s already exists but it points to %s", symlinkPath, x)
+		}
+		doSymlink = false
+	}
+	if doSymlink {
+		err = os.Symlink(serviceDir, symlinkPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	// initially disable it

@@ -68,8 +68,8 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 			}
 			if !mounted {
 				mountVolumes = append(mountVolumes, newVolume)
-				installServices = append(installServices, newVolume)
 			}
+			installServices = append(installServices, newVolume)
 		} else {
 			createVolumes = append(createVolumes, newVolume)
 			installServices = append(installServices, newVolume)
