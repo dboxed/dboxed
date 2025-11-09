@@ -30,7 +30,7 @@ func NewTailToApi(ctx context.Context, c *baseclient.Client, tailDbFile string, 
 
 	var err error
 	ttn.MultiTail, err = multitail2.NewMultiTail(ctx, tailDbFile, multitail2.MultiTailOptions{
-		LineBatchBytesCount: 512 * humanize.KiByte,
+		LineBatchBytesCount: 256 * humanize.KiByte,
 		LineBatchLinger:     time.Millisecond * 100,
 		LineBatchHandler:    ttn.handleLineBatch,
 	})
