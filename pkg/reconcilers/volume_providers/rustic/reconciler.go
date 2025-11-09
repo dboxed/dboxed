@@ -43,7 +43,7 @@ func (r *Reconciler) initRusticRepo(ctx context.Context, log *slog.Logger, vp *d
 	if err == nil {
 		return base.ReconcileResult{}
 	}
-	var err2 *minio.ErrorResponse
+	var err2 minio.ErrorResponse
 	if !errors.As(err, &err2) || err2.Code != minio.NoSuchKey {
 		return base.ErrorWithMessage(err, "failed to determine if rustic repo is already initialized: %s", err.Error())
 	}
