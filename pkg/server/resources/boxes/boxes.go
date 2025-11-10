@@ -326,8 +326,10 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	if err != nil {
 		return nil, err
 	}
-	if len(v) != 0 {
-		return nil, huma.Error400BadRequest("can't delete box while a volume is mounted by the box")
+	for _, x := range v {
+		if x.MountStatus.MountId.Valid && x.MountStatus.ReleaseTime == nil {
+			return nil, huma.Error400BadRequest("can't delete box while a volume is mounted by the box")
+		}
 	}
 
 	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &w.ID, i.Id)
