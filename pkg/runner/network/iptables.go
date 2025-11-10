@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"syscall"
 	"text/template"
 )
@@ -36,8 +35,7 @@ func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 
 	slog.DebugContext(ctx, "running iptables script:\n"+script2+"\n")
 
-	chrootBin := filepath.Join(n.InfraContainerRoot, "/usr/sbin/chroot")
-	cmd := exec.CommandContext(ctx, chrootBin, n.InfraContainerRoot, "/bin/sh", "-c", script2)
+	cmd := exec.CommandContext(ctx, "chroot", n.InfraContainerRoot, "/bin/sh", "-c", script2)
 	cmd.Env = []string{
 		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
 	}
