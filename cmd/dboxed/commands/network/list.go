@@ -9,10 +9,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type ListCmd struct{}
+type ListCmd struct {
+	flags.ListFlags
+}
 
 type PrintNetwork struct {
-	ID            string `col:"Id"`
+	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
 	Type          string `col:"Type"`
 	Status        string `col:"Status"`
@@ -45,7 +47,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		})
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

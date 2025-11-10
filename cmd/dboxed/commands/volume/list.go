@@ -11,10 +11,11 @@ import (
 )
 
 type ListCmd struct {
+	flags.ListFlags
 }
 
 type PrintVolume struct {
-	ID                 string `col:"Id"`
+	ID                 string `col:"ID" id:"true"`
 	Name               string `col:"Name"`
 	Type               string `col:"Type"`
 	Provider           string `col:"Provider"`
@@ -48,16 +49,16 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			ID:       v.ID,
 			Name:     v.Name,
 			Type:     string(v.VolumeProviderType),
-			Provider: ct.VolumeProviders.GetColumn(ctx, v.VolumeProviderId),
+			Provider: ct.VolumeProviders.GetColumn(ctx, v.VolumeProviderId, false),
 		}
 		if v.MountId != nil && v.MountStatus != nil {
 			p.MountTime = v.MountStatus.MountTime.String()
 			if v.MountStatus.BoxId != nil {
-				p.MountBox = ct.Boxes.GetColumn(ctx, *v.MountStatus.BoxId)
+				p.MountBox = ct.Boxes.GetColumn(ctx, *v.MountStatus.BoxId, false)
 			}
 		}
 		if v.Attachment != nil {
-			p.Attachment = ct.Boxes.GetColumn(ctx, v.Attachment.BoxID)
+			p.Attachment = ct.Boxes.GetColumn(ctx, v.Attachment.BoxID, false)
 		}
 		if v.LatestSnapshotId != nil {
 			snapshot, err := c2.GetVolumeSnapshotById(ctx, v.ID, *v.LatestSnapshotId)
@@ -73,7 +74,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		table = append(table, p)
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

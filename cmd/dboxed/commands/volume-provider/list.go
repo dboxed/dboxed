@@ -11,10 +11,11 @@ import (
 )
 
 type ListCmd struct {
+	flags.ListFlags
 }
 
 type PrintVolumeProvider struct {
-	ID            string `col:"Id"`
+	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
 	Type          string `col:"Type"`
 	Status        string `col:"Status"`
@@ -50,7 +51,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 				switch r.Rustic.StorageType {
 				case dmodel.VolumeProviderStorageTypeS3:
 					if r.Rustic.S3BucketId != nil {
-						storage = ct.S3Buckets.GetColumn(ctx, *r.Rustic.S3BucketId)
+						storage = ct.S3Buckets.GetColumn(ctx, *r.Rustic.S3BucketId, false)
 					}
 				}
 			}
@@ -67,7 +68,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		})
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

@@ -62,7 +62,7 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 		}
 
 		if len(containers) > 0 {
-			err = commandutils.PrintTable(os.Stdout, containers)
+			err = commandutils.PrintTable(os.Stdout, containers, true)
 			if err != nil {
 				return err
 			}

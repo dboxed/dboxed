@@ -4,7 +4,6 @@ package sandbox
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -15,9 +14,11 @@ import (
 )
 
 type ListCmd struct {
+	flags.ListFlags
 }
 
 type PrintSandbox struct {
+	ID        string `col:"ID" id:"true"`
 	Name      string `col:"Name"`
 	Workspace string `col:"Workspace"`
 	Box       string `col:"Box"`
@@ -55,14 +56,15 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		}
 
 		table = append(table, PrintSandbox{
+			ID:        si.Box.ID,
 			Name:      si.SandboxName,
-			Box:       fmt.Sprintf("%s (id=%s)", si.Box.Name, si.Box.ID),
-			Workspace: ct.Workspaces.GetColumn(ctx, si.Box.Workspace),
+			Box:       si.Box.Name,
+			Workspace: ct.Workspaces.GetColumn(ctx, si.Box.Workspace, false),
 			Status:    statusStr,
 		})
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

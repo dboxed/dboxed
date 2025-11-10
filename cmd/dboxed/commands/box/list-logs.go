@@ -11,6 +11,7 @@ import (
 
 type ListLogsCmd struct {
 	Box string `help:"Box ID or name" required:"" arg:""`
+	flags.ListFlags
 }
 
 type PrintListLogs struct {
@@ -55,7 +56,7 @@ func (cmd *ListLogsCmd) Run(g *flags.GlobalFlags) error {
 		table = append(table, p)
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

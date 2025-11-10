@@ -13,6 +13,7 @@ import (
 
 type ListComposeCmd struct {
 	Box string `help:"Box ID or name" required:"" arg:""`
+	flags.ListFlags
 }
 
 type PrintCompose struct {
@@ -62,7 +63,7 @@ func (cmd *ListComposeCmd) Run(g *flags.GlobalFlags) error {
 		})
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

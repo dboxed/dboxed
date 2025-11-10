@@ -10,10 +10,11 @@ import (
 )
 
 type ListCmd struct {
+	flags.ListFlags
 }
 
 type PrintWorkspace struct {
-	ID            string `col:"ID"`
+	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
 	Status        string `col:"Status"`
 	StatusDetails string `col:"Status Detail"`
@@ -51,7 +52,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		})
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

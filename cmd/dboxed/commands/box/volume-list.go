@@ -11,9 +11,11 @@ import (
 
 type ListVolumesCmd struct {
 	Box string `help:"Box ID or name" required:""`
+	flags.ListFlags
 }
 
 type PrintVolumeAttachment struct {
+	ID       string `col:"ID" id:"true"`
 	Volume   string `col:"Volume"`
 	RootUid  int64  `col:"Root UID"`
 	RootGid  int64  `col:"Root GID"`
@@ -45,14 +47,15 @@ func (cmd *ListVolumesCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintVolumeAttachment
 	for _, a := range attachments {
 		table = append(table, PrintVolumeAttachment{
-			Volume:   ct.Boxes.GetColumn(ctx, a.VolumeID),
+			ID:       a.VolumeID,
+			Volume:   ct.Volumes.GetColumn(ctx, a.VolumeID, false),
 			RootUid:  a.RootUid,
 			RootGid:  a.RootGid,
 			RootMode: a.RootMode,
 		})
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

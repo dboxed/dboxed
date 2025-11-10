@@ -12,15 +12,24 @@ import (
 type TableItem interface {
 }
 
-func FormatTable[T TableItem](l []T) string {
+func FormatTable[T TableItem](l []T, showIds bool) string {
 	t := reflect.TypeFor[T]()
 
-	// Extract headers
+	// Extract headers and determine which columns to show
 	var headers []string
+	var columnIndices []int
 	for i := range t.NumField() {
 		f := t.Field(i)
 		col := f.Tag.Get("col")
+		idCol := f.Tag.Get("id") == "true"
+
+		// Skip ID columns when showIds is false
+		if idCol && !showIds {
+			continue
+		}
+
 		headers = append(headers, col)
+		columnIndices = append(columnIndices, i)
 	}
 
 	// Extract rows
@@ -28,7 +37,7 @@ func FormatTable[T TableItem](l []T) string {
 	for _, e := range l {
 		v := reflect.Indirect(reflect.ValueOf(e))
 		var row []string
-		for i := range t.NumField() {
+		for _, i := range columnIndices {
 			f := v.Field(i)
 			row = append(row, fmt.Sprintf("%v", f.Interface()))
 		}
@@ -51,8 +60,8 @@ func FormatTable[T TableItem](l []T) string {
 	return tw.Render()
 }
 
-func PrintTable[T TableItem](w io.Writer, l []T) error {
-	s := FormatTable(l)
+func PrintTable[T TableItem](w io.Writer, l []T, showIds bool) error {
+	s := FormatTable(l, showIds)
 	_, err := w.Write([]byte(s))
 	if err != nil {
 		return err

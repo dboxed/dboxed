@@ -9,10 +9,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type ListCmd struct{}
+type ListCmd struct {
+	flags.ListFlags
+}
 
 type PrintToken struct {
-	ID           string `col:"Id"`
+	ID           string `col:"ID" id:"true"`
 	Name         string `col:"Name"`
 	ForWorkspace bool   `col:"For Workspace"`
 	Box          string `col:"Box"`
@@ -42,12 +44,12 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			ForWorkspace: token.ForWorkspace,
 		}
 		if token.BoxID != nil {
-			p.Box = ct.Boxes.GetColumn(ctx, *token.BoxID)
+			p.Box = ct.Boxes.GetColumn(ctx, *token.BoxID, false)
 		}
 		table = append(table, p)
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

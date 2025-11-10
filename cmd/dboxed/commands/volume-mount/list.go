@@ -14,9 +14,11 @@ import (
 )
 
 type ListCmd struct {
+	flags.ListFlags
 }
 
 type PrintVolumeMount struct {
+	ID        string `col:"ID" id:"true"`
 	MountName string `col:"Mount Name"`
 	Volume    string `col:"Volume"`
 	Workspace string `col:"Workspace"`
@@ -44,16 +46,17 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintVolumeMount
 	for _, v := range volumes {
 		p := PrintVolumeMount{
+			ID:        v.Volume.ID,
 			MountName: v.MountName,
-			Volume:    fmt.Sprintf("%s (id=%s)", v.Volume.Name, v.Volume.ID),
-			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace),
+			Volume:    v.Volume.Name,
+			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace, false),
 		}
 		if v.Volume != nil {
 			if v.Volume.MountId != nil {
 				p.MountId = *v.Volume.MountId
 				if v.Volume.MountStatus != nil {
 					if v.Volume.MountStatus.BoxId != nil {
-						p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.MountStatus.BoxId)
+						p.Box = ct.Boxes.GetColumn(ctx, *v.Volume.MountStatus.BoxId, false)
 					}
 					p.MountTime = v.Volume.MountStatus.MountTime.String()
 				}
@@ -66,7 +69,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		table = append(table, p)
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

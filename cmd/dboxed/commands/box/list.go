@@ -9,10 +9,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type ListCmd struct{}
+type ListCmd struct {
+	flags.ListFlags
+}
 
 type PrintBox struct {
-	ID            string `col:"ID"`
+	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
 	Network       string `col:"Network"`
 	DesiredState  string `col:"Desired State"`
@@ -55,12 +57,12 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		}
 
 		if b.Network != nil {
-			p.Network = ct.Networks.GetColumn(ctx, *b.Network)
+			p.Network = ct.Networks.GetColumn(ctx, *b.Network, cmd.ShowIds)
 		}
 		table = append(table, p)
 	}
 
-	err = commandutils.PrintTable(os.Stdout, table)
+	err = commandutils.PrintTable(os.Stdout, table, cmd.ShowIds)
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@ type clientTool struct {
 	VolumeProviders cache[models.VolumeProvider]
 	Boxes           cache[models.Box]
 	S3Buckets       cache[models.S3Bucket]
+	Volumes         cache[models.Volume]
 }
 
 func NewClientTool(c *baseclient.Client) *clientTool {
@@ -57,6 +58,12 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 		entityName: "s3bucket",
 		nameField:  "Bucket",
 	}
+	ct.Volumes = cache[models.Volume]{
+		getById: func(ctx context.Context, id string) (*models.Volume, error) {
+			return (&clients.VolumesClient{Client: c}).GetVolumeById(ctx, id)
+		},
+		entityName: "volume",
+	}
 
 	return ct
 }
@@ -68,7 +75,11 @@ type cache[T any] struct {
 	getById    func(ctx context.Context, id string) (*T, error)
 }
 
-func (c *cache[T]) GetColumn(ctx context.Context, id string) string {
+func (c *cache[T]) GetColumn(ctx context.Context, id string, showIds bool) string {
+	if showIds {
+		return id
+	}
+
 	if c.cache == nil {
 		c.cache = map[string]*T{}
 	}
@@ -91,9 +102,9 @@ func (c *cache[T]) GetColumn(ctx context.Context, id string) string {
 		}
 		nameField := vv.FieldByName(n)
 		name := nameField.String()
-		ret = fmt.Sprintf("%s (id=%s)", name, id)
+		ret = name
 	} else {
-		ret = fmt.Sprintf("<unknown> (id=%s)", id)
+		ret = fmt.Sprintf("%s (not found)", id)
 	}
 
 	return ret
