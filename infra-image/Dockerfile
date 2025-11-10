@@ -28,7 +28,7 @@ RUN mkdir -p /etc/dboxed \
 RUN mkdir /var/lib/docker && ln -s /var/lib/dboxed/containers /var/lib/docker/containers
 
 # rustic
-ENV RUSTIC_VERSION=0.10.0
+ENV RUSTIC_VERSION=0.10.1
 RUN mkdir /tmp/rustic && cd /tmp/rustic  \
     && wget -O rustic.tar.gz https://github.com/rustic-rs/rustic/releases/download/v${RUSTIC_VERSION}/rustic-v${RUSTIC_VERSION}-$(uname -m)-unknown-linux-musl.tar.gz \
     && tar xzf rustic.tar.gz \
