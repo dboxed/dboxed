@@ -3,6 +3,9 @@
 # rootfs
 FROM docker:28.4.0-dind AS rootfs
 
+# Some extra tools we need
+RUN apk --no-cache add coreutils procps iproute2
+
 ENV S6_OVERLAY_VERSION=3.2.1.0
 
 ADD infra-image/s6-overlay.sha256 /tmp/s6-overlay/
@@ -36,7 +39,7 @@ RUN mkdir /tmp/rustic && cd /tmp/rustic  \
     && cd / && rm -rf /tmp/rustic
 
 # extra tools we need for dboxed volumes
-RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools procps
+RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools
 
 # cleanup
 RUN apk --no-cache del git openssh-client
