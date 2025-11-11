@@ -24,7 +24,7 @@ RUN cd /tmp/s6-overlay \
 RUN rm -rf /tmp/s6-overlay
 
 RUN mkdir -p /etc/dboxed \
-    && mkdir -p /var/lib/dboxed \
+    && mkdir -p /var/lib/dboxed && chmod 0700 /var/lib/dboxed \
     && mkdir -p /var/lib/dboxed/logs \
     && mkdir -p /var/lib/dboxed/containers \
     && mkdir -p /run/netns
