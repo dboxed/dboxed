@@ -76,6 +76,12 @@ func (rn *Sandbox) buildSandboxContainerMounts() []*configs.Mount {
 			Flags:       unix.MS_BIND,
 		},
 		{
+			Destination: consts.NetbirdDir,
+			Device:      "bind",
+			Source:      filepath.Join(rn.SandboxDir, "netbird"),
+			Flags:       unix.MS_BIND,
+		},
+		{
 			Destination: consts.VolumesDir,
 			Device:      "rbind",
 			Source:      filepath.Join(rn.SandboxDir, "volumes"),

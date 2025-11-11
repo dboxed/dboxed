@@ -1,0 +1,3 @@
+#!/bin/sh
+mkdir -p /var/lib/dboxed/logs/s6/netbird
+exec s6-log n10 s1000000 /var/lib/dboxed/logs/s6/netbird

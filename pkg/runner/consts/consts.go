@@ -15,6 +15,8 @@ const NetworkConfFile = DboxedDataDir + "/network.yaml"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 const HostResolvConfFile = DboxedDataDir + "/host-resolv.conf"
 
+const NetbirdDir = DboxedDataDir + "/netbird"
+
 const ContainersDir = DboxedDataDir + "/containers"
 const LogsDir = DboxedDataDir + "/logs"
 const LogsTailDbFilename = "multitail.db"

@@ -29,6 +29,11 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.reconcileNetwork(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = rn.reconcileVolumes(ctx, composeProjects, rn.BoxSpec.Volumes, true)
 	if err != nil {
 		return err

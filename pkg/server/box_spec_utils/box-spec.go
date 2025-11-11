@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -13,6 +14,7 @@ import (
 
 func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (*boxspec.BoxSpec, error) {
 	q := querier.GetQuerier(c)
+	cfg := config.GetConfig(c)
 
 	boxSpec := &boxspec.BoxSpec{
 		ID:              box.ID,
@@ -34,11 +36,17 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 	}
 
 	if network != nil && box.NetworkType != nil {
+		boxSpec.Network = &boxspec.BoxNetwork{}
+
 		switch global.NetworkType(*box.NetworkType) {
 		case global.NetworkNetbird:
-			err = addNetbirdComposeProject(c, box, network, boxSpec)
-			if err != nil {
-				return nil, err
+			if box.Netbird.SetupKey == nil {
+				return nil, fmt.Errorf("box %s has no setup key", box.ID)
+			}
+			boxSpec.Network.Netbird = &boxspec.BoxNetworkNetbird{
+				ManagementUrl: network.Netbird.ApiUrl.V,
+				SetupKey:      *box.Netbird.SetupKey,
+				Hostname:      fmt.Sprintf("%s-%s", cfg.InstanceName, box.ID),
 			}
 		default:
 			return nil, huma.Error400BadRequest(fmt.Sprintf("unknown network type %s", *box.NetworkType))

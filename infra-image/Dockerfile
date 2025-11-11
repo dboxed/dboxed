@@ -2,6 +2,7 @@
 
 # rootfs
 FROM docker:28.4.0-dind AS rootfs
+ARG TARGETARCH
 
 # Some extra tools we need
 RUN apk --no-cache add coreutils procps iproute2
@@ -29,6 +30,16 @@ RUN mkdir -p /etc/dboxed \
     && mkdir -p /run/netns
 
 RUN mkdir /var/lib/docker && ln -s /var/lib/dboxed/containers /var/lib/docker/containers
+
+# Netbird
+ENV NETBIRD_VERSION=0.59.12
+RUN mkdir /tmp/netbird && cd /tmp/netbird  \
+    && wget -O netbird.tar.gz https://github.com/netbirdio/netbird/releases/download/v${NETBIRD_VERSION}/netbird_${NETBIRD_VERSION}_linux_${TARGETARCH}.tar.gz \
+    && tar xzf netbird.tar.gz \
+    && cp netbird /usr/bin/ \
+    && cd / && rm -rf /tmp/netbird
+
+RUN mkdir /var/lib/dboxed/netbird && ln -s /var/lib/dboxed/netbird /var/lib/netbird
 
 # rustic
 ENV RUSTIC_VERSION=0.10.1

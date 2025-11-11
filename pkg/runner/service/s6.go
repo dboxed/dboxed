@@ -81,7 +81,7 @@ func (s *S6Service) Install(ctx context.Context) error {
 	}
 
 	// initially disable it
-	err = os.WriteFile(filepath.Join(serviceDir, "down"), nil, 0644)
+	err = s.s6Helper.SetDownMarker(s.ServiceName, true)
 	if err != nil {
 		return err
 	}
@@ -130,8 +130,7 @@ func (s *S6Service) Enable(ctx context.Context) error {
 		return err
 	}
 
-	serviceDir := filepath.Join(s.s6Helper.Rootfs, s.s6Helper.ServicesDir, s.ServiceName)
-	_ = os.Remove(filepath.Join(serviceDir, "down"))
+	_ = s.s6Helper.SetDownMarker(s.ServiceName, false)
 
 	return nil
 }
@@ -289,4 +288,28 @@ func (s *S6Helper) S6SvcExists(serviceName string) bool {
 		return false
 	}
 	return true
+}
+
+func (s *S6Helper) SetDownMarker(serviceName string, down bool) error {
+	err := s.detectS6Dirs()
+	if err != nil {
+		return err
+	}
+
+	serviceDir := filepath.Join(s.Rootfs, s.ServicesDir, serviceName)
+	markerFile := filepath.Join(serviceDir, serviceName)
+
+	if down {
+		err := os.WriteFile(markerFile, nil, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to write down marker: %s", err)
+		}
+		return nil
+	} else {
+		err := os.Remove(markerFile)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove down marker: %s", err)
+		}
+		return nil
+	}
 }
