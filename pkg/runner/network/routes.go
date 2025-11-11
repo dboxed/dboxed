@@ -10,33 +10,40 @@ import (
 	"os"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 )
 
 type RoutesMirror struct {
-	NamesAndIps NamesAndIps
+	NetworkConfig *boxspec.NetworkConfig
+	HostNamespace netns.NsHandle
 
-	sandboxNamespace netns.NsHandle
+	namesAndIps    NamesAndIps
+	hostNetlink    *netlink.Handle
+	sandboxNetlink *netlink.Handle
 }
 
 func (n *RoutesMirror) Start(ctx context.Context) error {
 	slog.InfoContext(ctx, "starting routes mirror")
 
 	var err error
-	n.sandboxNamespace, err = netns.GetFromName(n.NamesAndIps.SandboxNamespaceName)
+	n.namesAndIps, err = NewNamesAndIPs(n.NetworkConfig.SandboxName, n.NetworkConfig.VethNetworkCidr)
 	if err != nil {
 		return err
 	}
 
-	var peerLink netlink.Link
-	err = util.RunInNetNs(n.sandboxNamespace, func() error {
-		var err error
-		peerLink, err = netlink.LinkByName(n.NamesAndIps.VethNamePeer)
+	n.hostNetlink, err = netlink.NewHandleAt(n.HostNamespace)
+	if err != nil {
 		return err
-	})
+	}
+	n.sandboxNetlink, err = netlink.NewHandle()
+	if err != nil {
+		return err
+	}
+
+	peerLink, err := n.sandboxNetlink.LinkByName(n.namesAndIps.VethNamePeer)
 	if err != nil {
 		return err
 	}
@@ -55,6 +62,7 @@ func (n *RoutesMirror) Start(ctx context.Context) error {
 func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink netlink.Link) error {
 	routeUpdateChan := make(chan netlink.RouteUpdate)
 	err := netlink.RouteSubscribeWithOptions(routeUpdateChan, ctx.Done(), netlink.RouteSubscribeOptions{
+		Namespace:    &n.HostNamespace,
 		ListExisting: true,
 		ErrorCallback: func(err error) {
 			slog.ErrorContext(ctx, "error in RouteSubscribeWithOptions", slog.Any("error", err))
@@ -93,10 +101,10 @@ func (n *RoutesMirror) startWatchAndUpdateRoutes(ctx context.Context, peerLink n
 
 func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, peerLink netlink.Link) error {
 	isInternalIp := func(ip net.IP) bool {
-		if n.NamesAndIps.HostAddr.IP.Equal(ip) {
+		if n.namesAndIps.HostAddr.IP.Equal(ip) {
 			return true
 		}
-		if n.NamesAndIps.PeerAddr.IP.Equal(ip) {
+		if n.namesAndIps.PeerAddr.IP.Equal(ip) {
 			return true
 		}
 		return false
@@ -119,9 +127,9 @@ func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, 
 		}
 	}
 
-	hostIP := n.NamesAndIps.HostAddr.IP
+	hostIP := n.namesAndIps.HostAddr.IP
 
-	hostLinks, err := netlink.LinkList()
+	hostLinks, err := n.hostNetlink.LinkList()
 	if err != nil {
 		return err
 	}
@@ -157,9 +165,7 @@ func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, 
 			Gw:        hostIP,
 			MTU:       mtu,
 		}
-		err := util.RunInNetNs(n.sandboxNamespace, func() error {
-			return netlink.RouteAdd(&newRoute)
-		})
+		err := n.sandboxNetlink.RouteAdd(&newRoute)
 		if err != nil {
 			return err
 		}
@@ -176,9 +182,7 @@ func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, 
 			Gw:        hostIP,
 			//MTU:       getMtu(l),
 		}
-		err := util.RunInNetNs(n.sandboxNamespace, func() error {
-			return netlink.RouteDel(&delRoute)
-		})
+		err := n.sandboxNetlink.RouteDel(&delRoute)
 		if err != nil {
 			return err
 		}

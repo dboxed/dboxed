@@ -27,8 +27,7 @@ type Sandbox struct {
 
 	VethNetworkCidr string
 
-	network      *network2.Network
-	routesMirror network2.RoutesMirror
+	network *network2.Network
 }
 
 func (rn *Sandbox) Destroy(ctx context.Context) error {
@@ -125,14 +124,6 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 	}
 
 	err = rn.writeDnsProxyResolvConf()
-	if err != nil {
-		return err
-	}
-
-	rn.routesMirror = network2.RoutesMirror{
-		NamesAndIps: rn.network.NamesAndIps,
-	}
-	err = rn.routesMirror.Start(ctx)
 	if err != nil {
 		return err
 	}

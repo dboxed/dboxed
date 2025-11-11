@@ -33,6 +33,7 @@ type RunInSandbox struct {
 	sandboxInfo *sandbox.SandboxInfo
 
 	networkConfig *boxspec.NetworkConfig
+	routesMirror  network.RoutesMirror
 	dnsProxy      *dns_proxy.DnsProxy
 
 	logsPublisher logs.LogsPublisher
@@ -47,9 +48,9 @@ type RunInSandbox struct {
 	dockerPSSent      []byte
 	statusMutex       sync.Mutex
 
-	sendStatusStopCh chan struct{}
-	sendStatusDoneCh chan struct{}
-	hostNetNsFd      netns.NsHandle
+	sendStatusStopCh     chan struct{}
+	sendStatusDoneCh     chan struct{}
+	hostNetworkNamespace netns.NsHandle
 }
 
 func (rn *RunInSandbox) Run(ctx context.Context) error {
@@ -104,7 +105,16 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		return false, err
 	}
 
-	rn.hostNetNsFd = netns.NsHandle(hostNetNsFd)
+	rn.hostNetworkNamespace = netns.NsHandle(hostNetNsFd)
+
+	rn.routesMirror = network.RoutesMirror{
+		NetworkConfig: rn.networkConfig,
+		HostNamespace: rn.hostNetworkNamespace,
+	}
+	err = rn.routesMirror.Start(ctx)
+	if err != nil {
+		return false, err
+	}
 
 	// dns proxy must start as early as possible, as otherwise things will fail
 	err = rn.startDnsProxy(ctx)
