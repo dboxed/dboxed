@@ -15,6 +15,8 @@ const NetworkConfFile = DboxedDataDir + "/network.yaml"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 const HostResolvConfFile = DboxedDataDir + "/host-resolv.conf"
 
+const NetNsUnixSocket = DboxedDataDir + "/netns.socket"
+
 const NetbirdDir = DboxedDataDir + "/netbird"
 
 const ContainersDir = DboxedDataDir + "/containers"

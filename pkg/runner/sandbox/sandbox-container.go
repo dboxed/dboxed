@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/util"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -230,10 +231,30 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
+	process.Stdout = os.Stdout
+	process.Stderr = os.Stderr
+
+	ul, err := network.ListenSCMSocket(filepath.Join(rn.GetSandboxRoot(), consts.NetNsUnixSocket))
+	if err != nil {
+		return err
+	}
+	defer ul.Close()
+
 	err = c.Run(process)
 	if err != nil {
 		return err
 	}
+
+	err = network.SendFD(ul, int(rn.network.HostNetworkNamespace))
+	if err != nil {
+		return err
+	}
+
+	err = ul.Close()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

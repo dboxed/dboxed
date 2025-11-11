@@ -17,11 +17,13 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
+	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
+	"github.com/vishvananda/netns"
 )
 
 type RunInSandbox struct {
@@ -47,6 +49,7 @@ type RunInSandbox struct {
 
 	sendStatusStopCh chan struct{}
 	sendStatusDoneCh chan struct{}
+	hostNetNsFd      netns.NsHandle
 }
 
 func (rn *RunInSandbox) Run(ctx context.Context) error {
@@ -94,6 +97,14 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	if err != nil {
 		return false, err
 	}
+
+	slog.InfoContext(ctx, "reading host netns handle")
+	hostNetNsFd, err := network.ReadFD(consts.NetNsUnixSocket)
+	if err != nil {
+		return false, err
+	}
+
+	rn.hostNetNsFd = netns.NsHandle(hostNetNsFd)
 
 	// dns proxy must start as early as possible, as otherwise things will fail
 	err = rn.startDnsProxy(ctx)
