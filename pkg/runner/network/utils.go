@@ -21,8 +21,8 @@ func isLinkNotFoundError(err error) bool {
 	return false
 }
 
-func setSingleAddress(ctx context.Context, link netlink.Link, addr netlink.Addr) error {
-	addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+func setSingleAddress(ctx context.Context, netlinkHandle *netlink.Handle, link netlink.Link, addr netlink.Addr) error {
+	addrs, err := netlinkHandle.AddrList(link, netlink.FAMILY_V4)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func setSingleAddress(ctx context.Context, link netlink.Link, addr netlink.Addr)
 		}
 
 		slog.InfoContext(ctx, fmt.Sprintf("adding address %s to link %s", addr.String(), link.Attrs().Name))
-		err = netlink.AddrAdd(link, &addr)
+		err = netlinkHandle.AddrAdd(link, &addr)
 		if err != nil {
 			return err
 		}

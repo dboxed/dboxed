@@ -33,14 +33,23 @@ func (n *Network) Setup(ctx context.Context) error {
 		slog.Any("peerAddr", n.NamesAndIps.PeerAddr.String()),
 	)
 
-	hostLink, _, err := n.setupVethPair(ctx)
+	hostNetlink, err := netlink.NewHandleAt(n.HostNetworkNamespace)
+	if err != nil {
+		return err
+	}
+	sandboxNetlink, err := netlink.NewHandleAt(n.NetworkNamespace)
+	if err != nil {
+		return err
+	}
+
+	hostLink, _, err := n.setupVethPair(ctx, hostNetlink, sandboxNetlink)
 	if err != nil {
 		return err
 	}
 
 	// route the peer veth IP into the host veth interface
 	slog.InfoContext(ctx, "setting up route into namespace")
-	err = netlink.RouteAdd(&netlink.Route{
+	err = hostNetlink.RouteAdd(&netlink.Route{
 		Dst: &net.IPNet{
 			IP:   n.NamesAndIps.PeerAddr.IP,
 			Mask: net.CIDRMask(32, 32),
@@ -56,6 +65,7 @@ func (n *Network) Setup(ctx context.Context) error {
 	ipt := Iptables{
 		InfraContainerRoot: n.InfraContainerRoot,
 		NamesAndIps:        n.NamesAndIps,
+		Namespace:          n.HostNetworkNamespace,
 	}
 
 	err = ipt.setupIptables(ctx)
@@ -72,15 +82,10 @@ func (n *Network) Setup(ctx context.Context) error {
 	return nil
 }
 
-func (n *Network) SetupNamespaces(ctx context.Context) error {
+func (n *Network) SetupSandboxNamespace(ctx context.Context) error {
 	slog.InfoContext(ctx, "setting up network namespace", slog.Any("namespaceName", n.NamesAndIps.SandboxNamespaceName))
 
 	var err error
-	n.HostNetworkNamespace, err = netns.Get()
-	if err != nil {
-		return err
-	}
-
 	n.NetworkNamespace, err = netns.GetFromName(n.NamesAndIps.SandboxNamespaceName)
 	if err == nil {
 		slog.InfoContext(ctx, "network namespace already exists")
@@ -97,13 +102,13 @@ func (n *Network) SetupNamespaces(ctx context.Context) error {
 	return nil
 }
 
-func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link, error) {
+func (n *Network) setupVethPair(ctx context.Context, hostNetlink *netlink.Handle, sandboxNetlink *netlink.Handle) (netlink.Link, netlink.Link, error) {
 	slog.InfoContext(ctx, "setting up veth pair",
 		slog.Any("nameHost", n.NamesAndIps.VethNameHost),
 		slog.Any("namePeer", n.NamesAndIps.VethNamePeer),
 	)
 
-	hostLink, err := netlink.LinkByName(n.NamesAndIps.VethNameHost)
+	hostLink, err := hostNetlink.LinkByName(n.NamesAndIps.VethNameHost)
 	if err == nil {
 		slog.InfoContext(ctx, "veth pair already exists")
 	} else {
@@ -119,24 +124,24 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 			PeerName:      n.NamesAndIps.VethNamePeer,
 			PeerNamespace: netlink.NsFd(n.NetworkNamespace),
 		}
-		err = netlink.LinkAdd(veth)
+		err = hostNetlink.LinkAdd(veth)
 		if err != nil {
 			return nil, nil, err
 		}
-		hostLink, err = netlink.LinkByName(n.NamesAndIps.VethNameHost)
+		hostLink, err = hostNetlink.LinkByName(n.NamesAndIps.VethNameHost)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	err = setSingleAddress(ctx, hostLink, n.NamesAndIps.HostAddr)
+	err = setSingleAddress(ctx, hostNetlink, hostLink, n.NamesAndIps.HostAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if hostLink.Attrs().Flags&net.FlagUp == 0 {
 		slog.InfoContext(ctx, "bringing veth host link up")
-		err = netlink.LinkSetUp(hostLink)
+		err = hostNetlink.LinkSetUp(hostLink)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -144,38 +149,30 @@ func (n *Network) setupVethPair(ctx context.Context) (netlink.Link, netlink.Link
 		slog.InfoContext(ctx, "veth host link is already up")
 	}
 
-	var peerLink netlink.Link
-	err = util.RunInNetNs(n.NetworkNamespace, func() error {
-		slog.InfoContext(ctx, "bringing lo link up")
-
-		loLink, err := netlink.LinkByName("lo")
+	slog.InfoContext(ctx, "bringing lo link up")
+	loLink, err := sandboxNetlink.LinkByName("lo")
+	if err != nil {
+		return nil, nil, err
+	}
+	if loLink.Attrs().Flags&net.FlagUp == 0 {
+		err = sandboxNetlink.LinkSetUp(loLink)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
-		if loLink.Attrs().Flags&net.FlagUp == 0 {
-			err = netlink.LinkSetUp(loLink)
-			if err != nil {
-				return err
-			}
-		}
+	}
 
-		peerLink, err = netlink.LinkByName(n.NamesAndIps.VethNamePeer)
-		if err != nil {
-			return err
-		}
+	peerLink, err := sandboxNetlink.LinkByName(n.NamesAndIps.VethNamePeer)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		err = setSingleAddress(ctx, peerLink, n.NamesAndIps.PeerAddr)
-		if err != nil {
-			return err
-		}
+	err = setSingleAddress(ctx, sandboxNetlink, peerLink, n.NamesAndIps.PeerAddr)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		slog.InfoContext(ctx, "bringing veth peer link up")
-		err = netlink.LinkSetUp(peerLink)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	slog.InfoContext(ctx, "bringing veth peer link up")
+	err = sandboxNetlink.LinkSetUp(peerLink)
 	if err != nil {
 		return nil, nil, err
 	}

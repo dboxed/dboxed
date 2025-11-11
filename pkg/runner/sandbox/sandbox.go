@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	network2 "github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/vishvananda/netns"
 )
 
 type Sandbox struct {
@@ -106,6 +107,10 @@ func (rn *Sandbox) PrepareNetworkingConfig() error {
 		InfraContainerRoot: rn.GetSandboxRoot(),
 		Config:             networkConfig,
 	}
+	rn.network.HostNetworkNamespace, err = netns.Get()
+	if err != nil {
+		return err
+	}
 	err = rn.network.InitNamesAndIPs()
 	if err != nil {
 		return err
@@ -113,12 +118,8 @@ func (rn *Sandbox) PrepareNetworkingConfig() error {
 	return nil
 }
 
-func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
-	err := rn.network.SetupNamespaces(ctx)
-	if err != nil {
-		return err
-	}
-	err = rn.network.Setup(ctx)
+func (rn *Sandbox) SetupNetworkNamespaces(ctx context.Context) error {
+	err := rn.network.SetupSandboxNamespace(ctx)
 	if err != nil {
 		return err
 	}

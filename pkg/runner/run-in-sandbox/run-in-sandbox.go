@@ -33,8 +33,10 @@ type RunInSandbox struct {
 	sandboxInfo *sandbox.SandboxInfo
 
 	networkConfig *boxspec.NetworkConfig
-	routesMirror  network.RoutesMirror
-	dnsProxy      *dns_proxy.DnsProxy
+	network       *network.Network
+
+	routesMirror network.RoutesMirror
+	dnsProxy     *dns_proxy.DnsProxy
 
 	logsPublisher logs.LogsPublisher
 
@@ -106,6 +108,25 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	}
 
 	rn.hostNetworkNamespace = netns.NsHandle(hostNetNsFd)
+	sandboxNetworkNamespace, err := netns.Get()
+	if err != nil {
+		return false, err
+	}
+
+	rn.network = &network.Network{
+		Config:               rn.networkConfig,
+		InfraContainerRoot:   "/",
+		HostNetworkNamespace: rn.hostNetworkNamespace,
+		NetworkNamespace:     sandboxNetworkNamespace,
+	}
+	err = rn.network.InitNamesAndIPs()
+	if err != nil {
+		return false, err
+	}
+	err = rn.network.Setup(ctx)
+	if err != nil {
+		return false, err
+	}
 
 	err = rn.writeDnsProxyResolvConf()
 	if err != nil {

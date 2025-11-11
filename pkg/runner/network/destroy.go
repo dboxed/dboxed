@@ -45,6 +45,7 @@ func (n *Network) Destroy(ctx context.Context) error {
 	ipt := Iptables{
 		InfraContainerRoot: n.InfraContainerRoot,
 		NamesAndIps:        n.NamesAndIps,
+		Namespace:          n.HostNetworkNamespace,
 	}
 	err = ipt.runPurgeOldRules(ctx)
 	if err != nil {

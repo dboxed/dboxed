@@ -11,6 +11,9 @@ import (
 	"os/exec"
 	"syscall"
 	"text/template"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/vishvananda/netns"
 )
 
 // we can't rely on the host iptables binary to be present or functioning, so we enter the sandbox
@@ -26,6 +29,7 @@ mount -t sysfs none /sys
 type Iptables struct {
 	InfraContainerRoot string
 	NamesAndIps        NamesAndIps
+	Namespace          netns.NsHandle
 }
 
 func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
@@ -42,7 +46,9 @@ func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Unshareflags: syscall.CLONE_NEWNS}
-	err := cmd.Run()
+	err := util.RunInNetNs(n.Namespace, func() error {
+		return cmd.Run()
+	})
 	if err != nil {
 		return err
 	}

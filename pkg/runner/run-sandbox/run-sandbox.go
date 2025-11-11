@@ -184,7 +184,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		return err
 	}
 
-	err = rn.sandbox.SetupNetworking(ctx)
+	err = rn.sandbox.SetupNetworkNamespaces(ctx)
 	if err != nil {
 		return err
 	}
