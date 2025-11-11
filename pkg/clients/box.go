@@ -238,3 +238,40 @@ func (c *BoxClient) StreamLogs(ctx context.Context, boxId string, logId string, 
 		}
 	})
 }
+
+func (c *BoxClient) ListPortForwards(ctx context.Context, boxId string) ([]models.BoxPortForward, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "port-forwards")
+	if err != nil {
+		return nil, err
+	}
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.BoxPortForward]](ctx, c.Client, "GET", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return l.Items, err
+}
+
+func (c *BoxClient) CreatePortForward(ctx context.Context, boxId string, req models.CreateBoxPortForward) (*models.BoxPortForward, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "port-forwards")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.BoxPortForward](ctx, c.Client, "POST", p, req)
+}
+
+func (c *BoxClient) UpdatePortForward(ctx context.Context, boxId string, portForwardId string, req models.UpdateBoxPortForward) (*models.BoxPortForward, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "port-forwards", portForwardId)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.BoxPortForward](ctx, c.Client, "PATCH", p, req)
+}
+
+func (c *BoxClient) DeletePortForward(ctx context.Context, boxId string, portForwardId string) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "port-forwards", portForwardId)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
+	return err
+}

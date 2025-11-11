@@ -19,5 +19,10 @@ type BoxCommands struct {
 	AttachVolume AttachVolumeCmd `cmd:"" help:"Attach a volume to a box" group:"volume"`
 	DetachVolume DetachVolumeCmd `cmd:"" help:"Detach a volume from a box" group:"volume"`
 	UpdateUpdate UpdateVolumeCmd `cmd:"" help:"Update volume attachment settings" group:"volume"`
-	ListVolume   ListVolumesCmd  `cmd:"" help:"List attached volumes" aliases:"ls-volumes" group:"volume"`
+	ListVolumes  ListVolumesCmd  `cmd:"" help:"List attached volumes" aliases:"ls-volumes" group:"volume"`
+
+	AddPortForward    AddPortForwardCmd    `cmd:"" help:"Add a port forward" group:"port-forward"`
+	RemovePortForward RemovePortForwardCmd `cmd:"" help:"Remove a port forward" group:"port-forward" aliases:"rm-port-forward,delete-port-forward"`
+	UpdatePortForward UpdatePortForwardCmd `cmd:"" help:"Update a port forward" group:"port-forward"`
+	ListPortForwards  ListPortForwardsCmd  `cmd:"" help:"List port forwards" aliases:"ls-port-forwards" group:"port-forward"`
 }

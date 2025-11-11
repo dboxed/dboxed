@@ -3,9 +3,9 @@ package boxspec
 type PortForward struct {
 	IP string `json:"ip"`
 
-	FromPort int    `json:"fromPort"`
-	ToPort   int    `json:"toPort"`
-	Protocol string `json:"protocol"`
+	Protocol      string `json:"protocol"`
+	HostFirstPort int    `json:"hostFirstPort"`
+	HostLastPort  int    `json:"hostLastPort"`
 
-	DestinationPort int `json:"destinationPort"`
+	SandboxPort int `json:"sandboxPort"`
 }

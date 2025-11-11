@@ -65,6 +65,19 @@ type BoxComposeProject struct {
 	ComposeProject string `db:"compose_project"`
 }
 
+type BoxPortForward struct {
+	ID querier2.NullForJoin[string] `db:"id"`
+	Times
+
+	BoxID       string  `db:"box_id"`
+	Description *string `db:"description"`
+
+	Protocol      string `db:"protocol"`
+	HostPortFirst int    `db:"host_port_first"`
+	HostPortLast  int    `db:"host_port_last"`
+	SandboxPort   int    `db:"sandbox_port"`
+}
+
 func (v *Box) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
@@ -196,4 +209,49 @@ func (v *BoxComposeProject) UpdateComposeProject(q *querier2.Querier, composePro
 		"box_id": v.BoxID,
 		"name":   v.Name,
 	}, v, "compose_project")
+}
+
+func (v *BoxPortForward) Create(q *querier2.Querier) error {
+	return querier2.Create(q, v)
+}
+
+func ListBoxPortForwards(q *querier2.Querier, boxId string) ([]BoxPortForward, error) {
+	return querier2.GetMany[BoxPortForward](q, map[string]any{
+		"box_id": boxId,
+	}, nil)
+}
+
+func GetBoxPortForward(q *querier2.Querier, boxId string, id string) (*BoxPortForward, error) {
+	return querier2.GetOne[BoxPortForward](q, map[string]any{
+		"box_id": boxId,
+		"id":     id,
+	})
+}
+
+func (v *BoxPortForward) Update(q *querier2.Querier, description *string, protocol *string, hostPortFirst *int, hostPortLast *int, sandboxPort *int) error {
+	var fields []string
+	if description != nil {
+		v.Description = description
+		fields = append(fields, "description")
+	}
+	if protocol != nil {
+		v.Protocol = *protocol
+		fields = append(fields, "protocol")
+	}
+	if hostPortFirst != nil {
+		v.HostPortFirst = *hostPortFirst
+		fields = append(fields, "host_port_first")
+	}
+	if hostPortLast != nil {
+		v.HostPortLast = *hostPortLast
+		fields = append(fields, "host_port_last")
+	}
+	if sandboxPort != nil {
+		v.SandboxPort = *sandboxPort
+		fields = append(fields, "sandbox_port")
+	}
+	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
+		"box_id": v.BoxID,
+		"id":     v.ID.V,
+	}, v, fields...)
 }

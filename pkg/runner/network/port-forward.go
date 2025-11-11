@@ -23,10 +23,6 @@ func (n *PortForwards) SetupPortForwards(ctx context.Context, pfs []boxspec.Port
 	defer n.portforwardMutex.Unlock()
 
 	pfs = append([]boxspec.PortForward{}, pfs...) //clone
-	pfs = append(pfs, boxspec.PortForward{
-		Protocol: "udp",
-		FromPort: 51820,
-	})
 
 	n.portForwardsIptablesCnt++
 	newChain := fmt.Sprintf("${NAME_PREFIX}-%d", (n.portForwardsIptablesCnt%2)+1)
@@ -45,16 +41,11 @@ func (n *PortForwards) SetupPortForwards(ctx context.Context, pfs []boxspec.Port
 			l += fmt.Sprintf(" -d %s", pf.IP)
 		}
 
-		dport := fmt.Sprintf("%d", pf.FromPort)
-		if pf.ToPort != 0 {
-			dport += fmt.Sprintf(":%d", pf.ToPort)
-		}
+		dport := fmt.Sprintf("%d:%d", pf.HostFirstPort, pf.HostLastPort)
 		l += fmt.Sprintf(" --dport %s", dport)
 
 		dest := n.NamesAndIps.PeerAddr.IP.String()
-		if pf.DestinationPort != 0 {
-			dest += fmt.Sprintf(":%d", pf.DestinationPort)
-		}
+		dest += fmt.Sprintf(":%d-%d", pf.SandboxPort, pf.SandboxPort+(pf.HostLastPort-pf.HostFirstPort))
 		l += fmt.Sprintf(" --to-destination %s", dest)
 
 		script += l + "\n"

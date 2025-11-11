@@ -51,6 +51,12 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restUpdateAttachedVolume)
 	huma.Delete(workspacesGroup, "/boxes/{id}/volumes/{volumeId}", s.restDetachVolume)
 
+	// port forwards
+	huma.Get(workspacesGroup, "/boxes/{id}/port-forwards", s.restListPortForwards, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/boxes/{id}/port-forwards", s.restCreatePortForward)
+	huma.Patch(workspacesGroup, "/boxes/{id}/port-forwards/{portForwardId}", s.restUpdatePortForward)
+	huma.Delete(workspacesGroup, "/boxes/{id}/port-forwards/{portForwardId}", s.restDeletePortForward)
+
 	// run status
 	huma.Get(workspacesGroup, "/boxes/{id}/sandbox-status", s.restGetSandboxStatus, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}/sandbox-status", s.restUpdateSandboxStatus, allowBoxTokenModifier)

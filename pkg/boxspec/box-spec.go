@@ -12,6 +12,8 @@ type BoxSpec struct {
 
 type BoxNetwork struct {
 	Netbird *BoxNetworkNetbird `json:"netbird,omitempty"`
+
+	PortForwards []PortForward `json:"portForwards,omitempty"`
 }
 
 type BoxNetworkNetbird struct {

@@ -61,3 +61,17 @@ create table box_compose_project
 
     primary key (box_id, name)
 );
+
+create table box_port_forward
+(
+    id              TYPES_UUID_PRIMARY_KEY,
+    created_at      TYPES_DATETIME not null default current_timestamp,
+
+    box_id          text           not null references box (id) on delete cascade,
+    description     text,
+
+    protocol        text           not null,
+    host_port_first int            not null,
+    host_port_last  int            not null,
+    sandbox_port    int            not null
+);
