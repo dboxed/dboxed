@@ -107,6 +107,11 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 
 	rn.hostNetworkNamespace = netns.NsHandle(hostNetNsFd)
 
+	err = rn.writeDnsProxyResolvConf()
+	if err != nil {
+		return false, err
+	}
+
 	rn.routesMirror = network.RoutesMirror{
 		NetworkConfig: rn.networkConfig,
 		HostNamespace: rn.hostNetworkNamespace,

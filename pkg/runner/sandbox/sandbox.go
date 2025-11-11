@@ -123,11 +123,6 @@ func (rn *Sandbox) SetupNetworking(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.writeDnsProxyResolvConf()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
