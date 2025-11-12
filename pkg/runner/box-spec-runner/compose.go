@@ -35,7 +35,7 @@ func (rn *BoxSpecRunner) writeComposeFiles(dir string, composeProjects map[strin
 func (rn *BoxSpecRunner) listRunningComposeProjects(ctx context.Context) ([]dockercli.DockerComposeListEntry, error) {
 	cmd := util.CommandHelper{
 		Command: "docker",
-		Args:    []string{"compose", "ls", "--format", "json"},
+		Args:    []string{"compose", "ls", "-a", "--format", "json"},
 		Logger:  rn.Log,
 	}
 	var l []dockercli.DockerComposeListEntry
