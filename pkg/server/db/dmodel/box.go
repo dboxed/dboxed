@@ -11,7 +11,8 @@ type Box struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Name string `db:"name"`
+	Name    string `db:"name"`
+	BoxType string `db:"box_type"`
 
 	NetworkID   *string `db:"network_id"`
 	NetworkType *string `db:"network_type"`
@@ -66,7 +67,7 @@ type BoxComposeProject struct {
 }
 
 type BoxPortForward struct {
-	ID querier2.NullForJoin[string] `db:"id"`
+	ID querier2.NullForJoin[string] `db:"id" uuid:"true"`
 	Times
 
 	BoxID       string  `db:"box_id"`

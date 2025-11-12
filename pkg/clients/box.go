@@ -275,3 +275,40 @@ func (c *BoxClient) DeletePortForward(ctx context.Context, boxId string, portFor
 	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
 	return err
 }
+
+func (c *BoxClient) ListBoxIngresses(ctx context.Context, boxId string) ([]models.BoxIngress, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses")
+	if err != nil {
+		return nil, err
+	}
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.BoxIngress]](ctx, c.Client, "GET", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return l.Items, err
+}
+
+func (c *BoxClient) CreateBoxIngress(ctx context.Context, boxId string, req models.CreateBoxIngress) (*models.BoxIngress, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.BoxIngress](ctx, c.Client, "POST", p, req)
+}
+
+func (c *BoxClient) UpdateBoxIngress(ctx context.Context, boxId string, ingressId string, req models.UpdateBoxIngress) (*models.BoxIngress, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses", ingressId)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.BoxIngress](ctx, c.Client, "PATCH", p, req)
+}
+
+func (c *BoxClient) DeleteBoxIngress(ctx context.Context, boxId string, ingressId string) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses", ingressId)
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
+	return err
+}

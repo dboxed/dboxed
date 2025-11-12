@@ -59,6 +59,9 @@ func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInp
 	if err != nil {
 		return nil, err
 	}
+	if err = s.checkNormalBoxMod(box); err != nil {
+		return nil, err
+	}
 
 	err = boxes_utils.AttachVolume(c, box, i.Body)
 	if err != nil {
@@ -85,6 +88,9 @@ func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateA
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
+		return nil, err
+	}
+	if err = s.checkNormalBoxMod(box); err != nil {
 		return nil, err
 	}
 
@@ -133,6 +139,9 @@ func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInp
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
+		return nil, err
+	}
+	if err = s.checkNormalBoxMod(box); err != nil {
 		return nil, err
 	}
 

@@ -53,6 +53,9 @@ func (s *BoxesServer) restCreatePortForward(c context.Context, i *restCreatePort
 	if err != nil {
 		return nil, err
 	}
+	if err = s.checkNormalBoxMod(box); err != nil {
+		return nil, err
+	}
 
 	// Validate port forward params
 	err = s.validatePortForwardParams(&i.Body.Protocol, &i.Body.HostPortFirst, &i.Body.HostPortLast, &i.Body.SandboxPort)
@@ -104,6 +107,9 @@ func (s *BoxesServer) restUpdatePortForward(c context.Context, i *restUpdatePort
 	if err != nil {
 		return nil, err
 	}
+	if err = s.checkNormalBoxMod(box); err != nil {
+		return nil, err
+	}
 
 	portForward, err := dmodel.GetBoxPortForward(q, box.ID, i.PortForwardId)
 	if err != nil {
@@ -146,6 +152,9 @@ func (s *BoxesServer) restDeletePortForward(c context.Context, i *restDeletePort
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
+		return nil, err
+	}
+	if err = s.checkNormalBoxMod(box); err != nil {
 		return nil, err
 	}
 

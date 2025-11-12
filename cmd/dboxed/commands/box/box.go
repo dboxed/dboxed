@@ -25,4 +25,9 @@ type BoxCommands struct {
 	RemovePortForward RemovePortForwardCmd `cmd:"" help:"Remove a port forward" group:"port-forward" aliases:"rm-port-forward,delete-port-forward"`
 	UpdatePortForward UpdatePortForwardCmd `cmd:"" help:"Update a port forward" group:"port-forward"`
 	ListPortForwards  ListPortForwardsCmd  `cmd:"" help:"List port forwards" aliases:"ls-port-forwards" group:"port-forward"`
+
+	AddIngress    AddIngressCmd    `cmd:"" help:"Add an ingress" group:"ingress"`
+	RemoveIngress RemoveIngressCmd `cmd:"" help:"Remove an ingress" group:"ingress" aliases:"rm-ingress,delete-ingress"`
+	UpdateIngress UpdateIngressCmd `cmd:"" help:"Update an ingress" group:"ingress"`
+	ListIngresses ListIngressesCmd `cmd:"" help:"List ingresses" aliases:"ls-ingresses" group:"ingress"`
 }

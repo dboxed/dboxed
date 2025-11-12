@@ -10,7 +10,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func CreateBox(c context.Context, body models.CreateBox) (*dmodel.Box, string, error) {
+func CreateBox(c context.Context, body models.CreateBox, boxType global.BoxType) (*dmodel.Box, string, error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -35,7 +35,8 @@ func CreateBox(c context.Context, body models.CreateBox) (*dmodel.Box, string, e
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Name: body.Name,
+		Name:    body.Name,
+		BoxType: string(boxType),
 
 		DboxedVersion: "nightly",
 		DesiredState:  "up",
@@ -84,6 +85,11 @@ func CreateBox(c context.Context, body models.CreateBox) (*dmodel.Box, string, e
 		if err != nil {
 			return nil, "", err
 		}
+	}
+
+	err = dmodel.AddChangeTracking(q, box)
+	if err != nil {
+		return nil, "", err
 	}
 
 	return box, "", nil

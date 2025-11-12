@@ -16,7 +16,8 @@ type Box struct {
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
 
-	Name string `json:"name"`
+	Name    string         `json:"name"`
+	BoxType global.BoxType `json:"boxType"`
 
 	Machine *string `json:"machine"`
 
@@ -87,7 +88,8 @@ func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, erro
 		Status:        s.ReconcileStatus.ReconcileStatus.V,
 		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
-		Name: s.Name,
+		Name:    s.Name,
+		BoxType: global.BoxType(s.BoxType),
 
 		Machine: s.MachineID,
 

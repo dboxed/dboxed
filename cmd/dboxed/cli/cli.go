@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
+	ingress_proxy "github.com/dboxed/dboxed/cmd/dboxed/commands/ingress-proxy"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/network"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/s3-bucket"
@@ -32,6 +33,8 @@ type Cli struct {
 	Workspace workspace.WorkspaceCommands `cmd:"" help:"manage workspaces"`
 
 	Network network.NetworkCommands `cmd:"" help:"manage networks"`
+
+	IngressProxy ingress_proxy.IngressProxyCommands `cmd:"" help:"manage ingress proxies"`
 
 	S3Bucket s3_bucket.S3BucketCommands `cmd:"" name:"s3-bucket" aliases:"s3bucket,s3" help:"manage S3 bucket configurations"`
 

@@ -1,0 +1,21 @@
+name: caddy
+services:
+  caddy:
+    image: caddy:{{ .CaddyVersion }}-alpine
+    restart: unless-stopped
+    command:
+      - caddy
+      - run
+      - --config=/etc/caddy/Caddyfile
+      - --adapter=caddyfile
+      - --watch
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - type: content
+        target: /etc/caddy/Caddyfile
+        x-content: {{ .Caddyfile }}

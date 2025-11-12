@@ -2,6 +2,7 @@ package boxes
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -88,9 +89,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 }
 
 func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[models.CreateBox]) (*huma_utils.JsonBody[models.Box], error) {
-	q := querier2.GetQuerier(c)
-
-	box, inputErr, err := boxes_utils.CreateBox(c, i.Body)
+	box, inputErr, err := boxes_utils.CreateBox(c, i.Body, global.BoxTypeNormal)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +98,6 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 	}
 
 	ret, err := models.BoxFromDB(*box, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dmodel.AddChangeTracking(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +202,9 @@ func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*
 	if err != nil {
 		return nil, err
 	}
+	if err = s.checkNormalBoxMod(box); err != nil {
+		return nil, err
+	}
 
 	err = s.doUpdateBox(c, box, i.Body)
 	if err != nil {
@@ -255,6 +252,10 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	if err != nil {
 		return nil, err
 	}
+	if err = s.checkNormalBoxMod(box); err != nil {
+		return nil, err
+	}
+
 	v, err := dmodel.ListVolumesByMountBoxId(q, &w.ID, box.ID, false) // we must also include deleted volumes
 	if err != nil {
 		return nil, err
@@ -280,4 +281,11 @@ func (s *BoxesServer) postprocessBox(box dmodel.Box, sandboxStatus *dmodel.BoxSa
 	}
 
 	return ret, nil
+}
+
+func (s *BoxesServer) checkNormalBoxMod(box *dmodel.Box) error {
+	if box.BoxType != string(global.BoxTypeNormal) {
+		return huma.Error400BadRequest(fmt.Sprintf("modifications on %s boxes not allowed", box.BoxType))
+	}
+	return nil
 }

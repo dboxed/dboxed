@@ -52,6 +52,9 @@ func (s *BoxesServer) restCreateComposeProject(c context.Context, i *restCreateC
 	if err != nil {
 		return nil, err
 	}
+	if err = s.checkNormalBoxMod(box); err != nil {
+		return nil, err
+	}
 
 	err = boxes_utils.CreateComposeProject(c, box, i.Body)
 	if err != nil {
@@ -78,6 +81,10 @@ func (s *BoxesServer) restUpdateComposeProject(c context.Context, i *restUpdateC
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = s.checkNormalBoxMod(box); err != nil {
 		return nil, err
 	}
 
@@ -115,6 +122,9 @@ func (s *BoxesServer) restDeleteComposeProject(c context.Context, i *restDeleteC
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
+		return nil, err
+	}
+	if err = s.checkNormalBoxMod(box); err != nil {
 		return nil, err
 	}
 

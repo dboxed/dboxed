@@ -13,6 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes"
 	"github.com/dboxed/dboxed/pkg/server/resources/healthz"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
+	"github.com/dboxed/dboxed/pkg/server/resources/ingress_proxies"
 	"github.com/dboxed/dboxed/pkg/server/resources/machine_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
@@ -50,6 +51,7 @@ type DboxedServer struct {
 	volumes          *volumes.VolumeServer
 	boxes            *boxes.BoxesServer
 	machines         *machines.MachinesServer
+	ingressProxies   *ingress_proxies.IngressProxyServer
 }
 
 func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, error) {
@@ -77,6 +79,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.volumes = volumes.New(config)
 	s.boxes = boxes.New(config)
 	s.machines = machines.New(config)
+	s.ingressProxies = ingress_proxies.New(config)
 
 	return s, nil
 }
@@ -154,6 +157,10 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		return err
 	}
 	err = s.machines.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
+	err = s.ingressProxies.Init(s.api, workspacesGroup)
 	if err != nil {
 		return err
 	}

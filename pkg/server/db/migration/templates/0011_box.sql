@@ -10,6 +10,7 @@ create table box
     reconcile_status_details text           not null default '',
 
     name                     text           not null,
+    box_type                 text           not null default 'normal',
 
     network_id               text references network (id) on delete restrict,
     network_type             text,
