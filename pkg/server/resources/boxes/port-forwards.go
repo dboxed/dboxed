@@ -10,7 +10,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/google/uuid"
+	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 )
 
 func (s *BoxesServer) restListPortForwards(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.BoxPortForward], error) {
@@ -62,12 +62,7 @@ func (s *BoxesServer) restCreatePortForward(c context.Context, i *restCreatePort
 
 	slog.InfoContext(c, "creating port forward for box", slog.Any("boxId", box.ID))
 
-	newId, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
-	}
 	portForward := &dmodel.BoxPortForward{
-		ID:            querier2.N(newId.String()),
 		BoxID:         box.ID,
 		Description:   i.Body.Description,
 		Protocol:      i.Body.Protocol,
@@ -81,7 +76,7 @@ func (s *BoxesServer) restCreatePortForward(c context.Context, i *restCreatePort
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box, false)
+	err = boxes_utils.ValidateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +121,7 @@ func (s *BoxesServer) restUpdatePortForward(c context.Context, i *restUpdatePort
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box, false)
+	err = boxes_utils.ValidateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +157,7 @@ func (s *BoxesServer) restDeletePortForward(c context.Context, i *restDeletePort
 		return nil, err
 	}
 
-	err = s.validateBoxSpec(c, box, false)
+	err = boxes_utils.ValidateBoxSpec(c, box, false)
 	if err != nil {
 		return nil, err
 	}

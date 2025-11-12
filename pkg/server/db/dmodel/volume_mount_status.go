@@ -8,7 +8,7 @@ import (
 
 type VolumeMountStatus struct {
 	VolumeId querier2.NullForJoin[string] `db:"volume_id"`
-	MountId  querier2.NullForJoin[string] `db:"mount_id"`
+	MountId  querier2.NullForJoin[string] `db:"mount_id" uuid:"true"`
 	BoxId    *string                      `db:"box_id"`
 
 	MountTime     querier2.NullForJoin[time.Time] `db:"mount_time"`

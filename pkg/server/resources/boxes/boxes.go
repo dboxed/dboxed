@@ -14,8 +14,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
+	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
-	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type BoxesServer struct {
@@ -57,6 +57,12 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/port-forwards/{portForwardId}", s.restUpdatePortForward)
 	huma.Delete(workspacesGroup, "/boxes/{id}/port-forwards/{portForwardId}", s.restDeletePortForward)
 
+	// ingresses
+	huma.Get(workspacesGroup, "/boxes/{id}/ingresses", s.restListBoxIngresses, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/boxes/{id}/ingresses", s.restCreateBoxIngress)
+	huma.Patch(workspacesGroup, "/boxes/{id}/ingresses/{ingressId}", s.restUpdateBoxIngress)
+	huma.Delete(workspacesGroup, "/boxes/{id}/ingresses/{ingressId}", s.restDeleteBoxIngress)
+
 	// run status
 	huma.Get(workspacesGroup, "/boxes/{id}/sandbox-status", s.restGetSandboxStatus, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}/sandbox-status", s.restUpdateSandboxStatus, allowBoxTokenModifier)
@@ -84,7 +90,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[models.CreateBox]) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 
-	box, inputErr, err := s.createBox(c, i.Body)
+	box, inputErr, err := boxes_utils.CreateBox(c, i.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -103,85 +109,6 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 	}
 
 	return huma_utils.NewJsonBody(*ret), nil
-}
-
-func (s *BoxesServer) createBox(c context.Context, body models.CreateBox) (*dmodel.Box, string, error) {
-	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
-
-	err := util.CheckName(body.Name)
-	if err != nil {
-		return nil, err.Error(), nil
-	}
-
-	var networkId *string
-	var networkType *string
-	if body.Network != nil {
-		var network *dmodel.Network
-		network, err = dmodel.GetNetworkById(q, &w.ID, *body.Network, true)
-		if err != nil {
-			return nil, "", err
-		}
-		networkId = &network.ID
-		networkType = &network.Type
-	}
-
-	box := &dmodel.Box{
-		OwnedByWorkspace: dmodel.OwnedByWorkspace{
-			WorkspaceID: w.ID,
-		},
-		Name: body.Name,
-
-		DboxedVersion: "nightly",
-		DesiredState:  "up",
-
-		NetworkID:   networkId,
-		NetworkType: networkType,
-	}
-
-	err = box.Create(q)
-	if err != nil {
-		return nil, "", err
-	}
-
-	sandboxStatus := dmodel.BoxSandboxStatus{
-		ID: querier2.N(box.ID),
-	}
-	err = sandboxStatus.Create(q)
-	if err != nil {
-		return nil, "", err
-	}
-
-	if networkId != nil {
-		switch global.NetworkType(*networkType) {
-		case global.NetworkNetbird:
-			box.Netbird = &dmodel.BoxNetbird{
-				ID: querier2.N(box.ID),
-			}
-			err = box.Netbird.Create(q)
-			if err != nil {
-				return nil, "", err
-			}
-		default:
-			return nil, "unknown network type", nil
-		}
-	}
-
-	for _, va := range body.VolumeAttachments {
-		err = s.attachVolume(c, box, va)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	for _, cp := range body.ComposeProjects {
-		err = s.createComposeProject(c, box, cp)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	return box, "", nil
 }
 
 func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils.List[models.Box], error) {

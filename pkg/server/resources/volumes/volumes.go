@@ -19,7 +19,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
 	"github.com/dustin/go-humanize"
-	"github.com/google/uuid"
 )
 
 type VolumeServer struct {
@@ -325,16 +324,10 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 
 	log.Info("mounting volume")
 
-	mountId2, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
-	}
-	mountId := mountId2.String()
 	mountTime := time.Now()
 
 	mountStatus := &dmodel.VolumeMountStatus{
 		VolumeId:      querier.N(v.ID),
-		MountId:       querier.N(mountId),
 		BoxId:         i.Body.BoxId,
 		ForceReleased: querier.N(false),
 		MountTime:     querier.N(mountTime),
@@ -345,7 +338,7 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 		return nil, err
 	}
 
-	err = v.UpdateMountId(q, &mountId)
+	err = v.UpdateMountId(q, &mountStatus.MountId.V)
 	if err != nil {
 		return nil, err
 	}
