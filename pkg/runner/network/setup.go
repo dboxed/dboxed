@@ -75,7 +75,9 @@ func (n *Network) Setup(ctx context.Context) error {
 	}
 
 	slog.InfoContext(ctx, "enabling ip forwarding")
-	err = os.WriteFile("/proc/sys/net/ipv4/ip_forward", []byte("1"), 0600)
+	err = util.RunInNetNs(n.HostNetworkNamespace, func() error {
+		return os.WriteFile("/proc/sys/net/ipv4/ip_forward", []byte("1"), 0600)
+	})
 	if err != nil {
 		return err
 	}
