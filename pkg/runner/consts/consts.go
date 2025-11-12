@@ -14,6 +14,7 @@ const SandboxEnvironmentFile = DboxedDataDir + "/sandbox.env"
 const NetworkConfFile = DboxedDataDir + "/network.yaml"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 const HostResolvConfFile = DboxedDataDir + "/host-resolv.conf"
+const SandboxDnsProxyIp = "127.1.0.53"
 
 const NetNsInitialUnixSocket = DboxedDataDir + "/netns-initial.socket"
 const NetNsHolderUnixSocket = DboxedDataDir + "/netns-holder.socket"

@@ -150,14 +150,9 @@ func (rn *Sandbox) buildNetworkConfig() (*boxspec.NetworkConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	namesAndIps, err := network2.NewNamesAndIPs(rn.SandboxName, cidr)
-	if err != nil {
-		return nil, err
-	}
 	cfg := &boxspec.NetworkConfig{
 		SandboxName:     rn.SandboxName,
 		VethNetworkCidr: cidr,
-		DnsProxyIP:      namesAndIps.PeerAddr.IP.String(),
 	}
 
 	return cfg, nil

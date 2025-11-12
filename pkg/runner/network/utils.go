@@ -21,7 +21,7 @@ func isLinkNotFoundError(err error) bool {
 	return false
 }
 
-func setSingleAddress(ctx context.Context, netlinkHandle *netlink.Handle, link netlink.Link, addr netlink.Addr) error {
+func addAddress(ctx context.Context, netlinkHandle *netlink.Handle, link netlink.Link, addr netlink.Addr, allowOnlyOne bool) error {
 	addrs, err := netlinkHandle.AddrList(link, netlink.FAMILY_V4)
 	if err != nil {
 		return err
@@ -29,7 +29,7 @@ func setSingleAddress(ctx context.Context, netlinkHandle *netlink.Handle, link n
 	if !slices.ContainsFunc(addrs, func(addr netlink.Addr) bool {
 		return addr.Equal(addr)
 	}) {
-		if len(addrs) != 0 {
+		if allowOnlyOne && len(addrs) != 0 {
 			return fmt.Errorf("link %s already contains an IP address that does not belong to dboxed", link.Attrs().Name)
 		}
 

@@ -63,6 +63,7 @@ COPY infra-image/lvm.conf /etc/lvm/lvm.conf
 
 RUN mkdir /etc/docker
 COPY infra-image/daemon.json /etc/docker/
+COPY infra-image/resolv.conf /etc/resolv.conf
 
 ENV S6_LOGGING_SCRIPT="n10 s10000000"
 ENV S6_KEEP_ENV=1

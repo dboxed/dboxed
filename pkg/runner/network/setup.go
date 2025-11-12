@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
@@ -134,7 +135,7 @@ func (n *Network) setupVethPair(ctx context.Context, hostNetlink *netlink.Handle
 		}
 	}
 
-	err = setSingleAddress(ctx, hostNetlink, hostLink, n.NamesAndIps.HostAddr)
+	err = addAddress(ctx, hostNetlink, hostLink, n.NamesAndIps.HostAddr, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,6 +155,14 @@ func (n *Network) setupVethPair(ctx context.Context, hostNetlink *netlink.Handle
 	if err != nil {
 		return nil, nil, err
 	}
+	dnsAddr, err := netlink.ParseAddr(fmt.Sprintf("%s/8", consts.SandboxDnsProxyIp))
+	if err != nil {
+		return nil, nil, err
+	}
+	err = addAddress(ctx, sandboxNetlink, loLink, *dnsAddr, false)
+	if err != nil {
+		return nil, nil, err
+	}
 	if loLink.Attrs().Flags&net.FlagUp == 0 {
 		err = sandboxNetlink.LinkSetUp(loLink)
 		if err != nil {
@@ -166,7 +175,7 @@ func (n *Network) setupVethPair(ctx context.Context, hostNetlink *netlink.Handle
 		return nil, nil, err
 	}
 
-	err = setSingleAddress(ctx, sandboxNetlink, peerLink, n.NamesAndIps.PeerAddr)
+	err = addAddress(ctx, sandboxNetlink, peerLink, n.NamesAndIps.PeerAddr, true)
 	if err != nil {
 		return nil, nil, err
 	}
