@@ -35,9 +35,22 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 		boxSpec.ComposeProjects[bcp.Name] = bcp.ComposeProject
 	}
 
-	if network != nil && box.NetworkType != nil {
-		boxSpec.Network = &boxspec.BoxNetwork{}
+	portForwards, err := dmodel.ListBoxPortForwards(q, box.ID)
+	if err != nil {
+		return nil, err
+	}
 
+	boxSpec.Network = &boxspec.BoxNetwork{}
+	for _, pf := range portForwards {
+		boxSpec.Network.PortForwards = append(boxSpec.Network.PortForwards, boxspec.PortForward{
+			Protocol:      pf.Protocol,
+			HostFirstPort: pf.HostPortFirst,
+			HostLastPort:  pf.HostPortLast,
+			SandboxPort:   pf.SandboxPort,
+		})
+	}
+
+	if network != nil && box.NetworkType != nil {
 		switch global.NetworkType(*box.NetworkType) {
 		case global.NetworkNetbird:
 			if box.Netbird.SetupKey == nil {

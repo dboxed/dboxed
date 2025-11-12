@@ -134,6 +134,16 @@ func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, 
 		return err
 	}
 
+	var hostVethLink netlink.Link
+	for _, l := range hostLinks {
+		if l.Attrs().Name == n.namesAndIps.VethNameHost {
+			hostVethLink = l
+		}
+	}
+	if hostVethLink == nil {
+		return fmt.Errorf("link %s not found in host netns", n.namesAndIps.VethNameHost)
+	}
+
 	findLink := func(idx int) netlink.Link {
 		for _, l := range hostLinks {
 			if l.Attrs().Index == idx {
@@ -144,9 +154,10 @@ func (n *RoutesMirror) updateRoute(ctx context.Context, ru netlink.RouteUpdate, 
 	}
 	getMtu := func(l netlink.Link) int {
 		mtu := l.Attrs().MTU
-		if ru.MTU > 0 && ru.MTU < mtu {
-			mtu = ru.MTU
+		if ru.MTU > 0 {
+			mtu = min(mtu, ru.MTU)
 		}
+		mtu = min(mtu, hostVethLink.Attrs().MTU)
 		return mtu
 	}
 

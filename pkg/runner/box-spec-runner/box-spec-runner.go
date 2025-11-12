@@ -8,13 +8,14 @@ import (
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
+	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type BoxSpecRunner struct {
-	WorkDir string
-	BoxSpec *boxspec.BoxSpec
-	Log     *slog.Logger
+	WorkDir      string
+	BoxSpec      *boxspec.BoxSpec
+	PortForwards *network.PortForwards
 	Log          *slog.Logger
 }
 
@@ -30,6 +31,10 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 
+	err = rn.reconcilePortForwards(ctx)
+	if err != nil {
+		return err
+	}
 	err = rn.reconcileNetwork(ctx)
 	if err != nil {
 		return err

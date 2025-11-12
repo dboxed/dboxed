@@ -34,6 +34,7 @@ type RunInSandbox struct {
 
 	networkConfig *boxspec.NetworkConfig
 	network       *network.Network
+	portForwards  *network.PortForwards
 
 	routesMirror network.RoutesMirror
 	dnsProxy     *dns_proxy.DnsProxy
@@ -126,7 +127,6 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 
 	rn.network = &network.Network{
 		Config:               rn.networkConfig,
-		InfraContainerRoot:   "/",
 		HostNetworkNamespace: rn.hostNetworkNamespace,
 		NetworkNamespace:     sandboxNetworkNamespace,
 	}
@@ -138,10 +138,9 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	if err != nil {
 		return false, err
 	}
-
-	err = rn.writeDnsProxyResolvConf()
-	if err != nil {
-		return false, err
+	rn.portForwards = &network.PortForwards{
+		NamesAndIps:          rn.network.NamesAndIps,
+		HostNetworkNamespace: rn.hostNetworkNamespace,
 	}
 
 	rn.routesMirror = network.RoutesMirror{
@@ -259,9 +258,10 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
 
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
-		WorkDir: rn.WorkDir,
-		BoxSpec: boxSpec,
-		Log:     rn.reconcileLogger,
+		WorkDir:      rn.WorkDir,
+		PortForwards: rn.portForwards,
+		BoxSpec:      boxSpec,
+		Log:          rn.reconcileLogger,
 	}
 	err := boxSpecRunner.Reconcile(ctx)
 	if err != nil {
@@ -282,9 +282,10 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 
 	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
-			WorkDir: rn.WorkDir,
-			BoxSpec: rn.lastBoxSpec,
-			Log:     rn.reconcileLogger,
+			WorkDir:      rn.WorkDir,
+			PortForwards: rn.portForwards,
+			BoxSpec:      rn.lastBoxSpec,
+			Log:          rn.reconcileLogger,
 		}
 
 		rn.reconcileLogger.InfoContext(ctx, "shutting down compose projects")

@@ -43,7 +43,7 @@ func (n *Network) Setup(ctx context.Context) error {
 		return err
 	}
 
-	hostLink, _, err := n.setupVethPair(ctx, hostNetlink, sandboxNetlink)
+	hostLink, _, err := n.setupInterfaces(ctx, hostNetlink, sandboxNetlink)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (n *Network) SetupSandboxNamespace(ctx context.Context) error {
 	return nil
 }
 
-func (n *Network) setupVethPair(ctx context.Context, hostNetlink *netlink.Handle, sandboxNetlink *netlink.Handle) (netlink.Link, netlink.Link, error) {
+func (n *Network) setupInterfaces(ctx context.Context, hostNetlink *netlink.Handle, sandboxNetlink *netlink.Handle) (netlink.Link, netlink.Link, error) {
 	slog.InfoContext(ctx, "setting up veth pair",
 		slog.Any("nameHost", n.NamesAndIps.VethNameHost),
 		slog.Any("namePeer", n.NamesAndIps.VethNamePeer),

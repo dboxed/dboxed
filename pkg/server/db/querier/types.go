@@ -19,3 +19,12 @@ type SortField struct {
 	Field     string
 	Direction SortOrder
 }
+
+func SortBySingleField(fieldName string, dir SortOrder) []SortField {
+	return []SortField{
+		{
+			Field:     fieldName,
+			Direction: dir,
+		},
+	}
+}

@@ -218,7 +218,9 @@ func (v *BoxPortForward) Create(q *querier2.Querier) error {
 func ListBoxPortForwards(q *querier2.Querier, boxId string) ([]BoxPortForward, error) {
 	return querier2.GetMany[BoxPortForward](q, map[string]any{
 		"box_id": boxId,
-	}, nil)
+	}, &querier2.SortAndPage{
+		Sort: querier2.SortBySingleField("id", querier2.SortOrderAsc),
+	})
 }
 
 func GetBoxPortForward(q *querier2.Querier, boxId string, id string) (*BoxPortForward, error) {
