@@ -12,7 +12,9 @@ import (
 )
 
 func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
-	s6 := &service.S6Helper{}
+	s6 := &service.S6Helper{
+		Log: rn.Log,
+	}
 
 	if rn.BoxSpec.Network == nil {
 		err := s6.S6SvcDown(ctx, "netbird")

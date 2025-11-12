@@ -15,6 +15,7 @@ type BoxSpecRunner struct {
 	WorkDir string
 	BoxSpec *boxspec.BoxSpec
 	Log     *slog.Logger
+	Log          *slog.Logger
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {

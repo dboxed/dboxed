@@ -25,7 +25,7 @@ type S6Service struct {
 }
 
 func (s *S6Service) Install(ctx context.Context) error {
-	err := s.s6Helper.detectS6Dirs()
+	err := s.s6Helper.init()
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (s *S6Service) Install(ctx context.Context) error {
 }
 
 func (s *S6Service) Uninstall(ctx context.Context) error {
-	err := s.s6Helper.detectS6Dirs()
+	err := s.s6Helper.init()
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (s *S6Service) Uninstall(ctx context.Context) error {
 }
 
 func (s *S6Service) Enable(ctx context.Context) error {
-	err := s.s6Helper.detectS6Dirs()
+	err := s.s6Helper.init()
 	if err != nil {
 		return err
 	}
@@ -160,18 +160,23 @@ type S6Helper struct {
 
 	Rootfs string
 
+	Log *slog.Logger
+
 	detectOnce sync.Once
 	detectErr  error
 }
 
-func (s *S6Helper) detectS6Dirs() error {
+func (s *S6Helper) init() error {
 	s.detectOnce.Do(func() {
-		s.detectErr = s.doDetectS6Dirs()
+		s.detectErr = s.detectS6Dirs()
+		if s.Log == nil {
+			s.Log = slog.Default()
+		}
 	})
 	return s.detectErr
 }
 
-func (s *S6Helper) doDetectS6Dirs() error {
+func (s *S6Helper) detectS6Dirs() error {
 	if s.Container != nil {
 		s.Rootfs = s.Container.Config().Rootfs
 	}
@@ -212,7 +217,7 @@ func (s *S6Helper) doDetectS6Dirs() error {
 }
 
 func (s *S6Helper) S6svc(ctx context.Context, serviceName string, args ...string) error {
-	err := s.detectS6Dirs()
+	err := s.init()
 	if err != nil {
 		return err
 	}
@@ -230,6 +235,7 @@ func (s *S6Helper) S6svc(ctx context.Context, serviceName string, args ...string
 		},
 		Command: "s6-svc",
 		Args:    args2,
+		Logger:  s.Log,
 		LogCmd:  true,
 	}
 	err = cmd.Run(ctx)
@@ -240,7 +246,7 @@ func (s *S6Helper) S6svc(ctx context.Context, serviceName string, args ...string
 }
 
 func (s *S6Helper) S6svscanctl(ctx context.Context, servicesDir string) error {
-	slog.InfoContext(ctx, "scanning s6 services dir")
+	s.Log.InfoContext(ctx, "scanning s6 services dir")
 	cmd := util.CommandHelper{
 		ContainerHolder: util.ContainerHolder{
 			Container:   s.Container,
@@ -248,6 +254,7 @@ func (s *S6Helper) S6svscanctl(ctx context.Context, servicesDir string) error {
 		},
 		Command: "s6-svscanctl",
 		Args:    []string{"-h", servicesDir},
+		Logger:  s.Log,
 		LogCmd:  true,
 	}
 	err := cmd.Run(ctx)
@@ -277,7 +284,7 @@ func (s *S6Helper) S6SvcRestart(ctx context.Context, serviceName string) error {
 }
 
 func (s *S6Helper) S6SvcExists(serviceName string) bool {
-	err := s.detectS6Dirs()
+	err := s.init()
 	if err != nil {
 		return false
 	}
@@ -291,7 +298,7 @@ func (s *S6Helper) S6SvcExists(serviceName string) bool {
 }
 
 func (s *S6Helper) SetDownMarker(serviceName string, down bool) error {
-	err := s.detectS6Dirs()
+	err := s.init()
 	if err != nil {
 		return err
 	}
