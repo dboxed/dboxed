@@ -16,12 +16,14 @@ import (
 	"github.com/vishvananda/netns"
 )
 
+const baseScript = `
+set -e
+`
+
 // we can't rely on the host iptables binary to be present or functioning, so we enter the sandbox
 // via unshare+chroot, mount some necessary stuff and then perform the iptables inside the sandbox.
 // this will NOT change the network NS, so we actually modify the host iptables
-const baseScript = `
-set -e
-
+const baseScriptMounts = `
 mount -t proc none /proc
 mount -t sysfs none /sys
 `
@@ -34,18 +36,28 @@ type Iptables struct {
 
 func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 	script2 := baseScript
+	if n.InfraContainerRoot != "" {
+		script2 += baseScriptMounts
+	}
 	script2 += fmt.Sprintf("export NAME_BASE='%s'", n.NamesAndIps.Base) + "\n"
 	script2 += script
 
 	slog.DebugContext(ctx, "running iptables script:\n"+script2+"\n")
 
-	cmd := exec.CommandContext(ctx, "chroot", n.InfraContainerRoot, "/bin/sh", "-c", script2)
-	cmd.Env = []string{
-		"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+	var cmd *exec.Cmd
+
+	if n.InfraContainerRoot != "" {
+		cmd = exec.CommandContext(ctx, "chroot", n.InfraContainerRoot, "/bin/sh", "-c", script2)
+		cmd.Env = []string{
+			"PATH=/sbin:/bin:/usr/sbin:/usr/bin",
+		}
+		cmd.SysProcAttr = &syscall.SysProcAttr{Unshareflags: syscall.CLONE_NEWNS}
+	} else {
+		cmd = exec.CommandContext(ctx, "/bin/sh", "-c", script2)
 	}
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{Unshareflags: syscall.CLONE_NEWNS}
 	err := util.RunInNetNs(n.Namespace, func() error {
 		return cmd.Run()
 	})
