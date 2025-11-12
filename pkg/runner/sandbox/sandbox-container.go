@@ -24,7 +24,7 @@ import (
 )
 
 func (rn *Sandbox) GetSandboxRoot() string {
-	return filepath.Join(rn.SandboxDir, "sandbox-rootfs")
+	return filepath.Join(rn.SandboxDir, "rootfs")
 }
 
 func (rn *Sandbox) GetInfraImageConfigPath() string {
@@ -234,7 +234,7 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
 
-	ul, err := network.ListenSCMSocket(filepath.Join(rn.GetSandboxRoot(), consts.NetNsUnixSocket))
+	ul, err := network.ListenSCMSocket(filepath.Join(rn.GetSandboxRoot(), consts.NetNsInitialUnixSocket))
 	if err != nil {
 		return err
 	}
@@ -245,11 +245,22 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
-	err = network.SendFD(ul, int(rn.network.HostNetworkNamespace))
+	uc, err := ul.AcceptUnix()
+	if err != nil {
+		return err
+	}
+	defer uc.Close()
+
+	slog.InfoContext(ctx, "sending host netns handle")
+	err = network.SendFD(uc, int(rn.network.HostNetworkNamespace))
 	if err != nil {
 		return err
 	}
 
+	err = uc.Close()
+	if err != nil {
+		return err
+	}
 	err = ul.Close()
 	if err != nil {
 		return err

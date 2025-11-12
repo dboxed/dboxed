@@ -23,6 +23,7 @@ func ListenSCMSocket(unixPath string) (*net.UnixListener, error) {
 	if err != nil {
 		return nil, err
 	}
+	ul.SetUnlinkOnClose(true)
 
 	return ul, nil
 }
@@ -76,13 +77,7 @@ func ReadFD(unixPath string) (int, error) {
 	return fd, nil
 }
 
-func SendFD(ul *net.UnixListener, fd int) error {
-	uc, err := ul.AcceptUnix()
-	if err != nil {
-		return err
-	}
-	defer uc.Close()
-
+func SendFD(uc *net.UnixConn, fd int) error {
 	rights := syscall.UnixRights(fd)
 	dummyByte := []byte{0}
 	n, oobn, err := uc.WriteMsgUnix(dummyByte, rights, nil)
@@ -92,10 +87,5 @@ func SendFD(ul *net.UnixListener, fd int) error {
 	if n != 1 || oobn != len(rights) {
 		return fmt.Errorf("unexpected result from WriteMsgUnix: n=%d, oobn=%d", n, oobn)
 	}
-	err = uc.Close()
-	if err != nil {
-		return fmt.Errorf("conn close failed: %w", err)
-	}
-
 	return nil
 }

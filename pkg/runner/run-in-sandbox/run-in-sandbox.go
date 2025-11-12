@@ -101,8 +101,19 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		return false, err
 	}
 
+	slog.InfoContext(ctx, "waiting for "+consts.NetNsHolderUnixSocket)
+	for {
+		_, err = os.Stat(consts.NetNsHolderUnixSocket)
+		if err == nil {
+			break
+		}
+		if !util.SleepWithContext(ctx, 100*time.Millisecond) {
+			return false, ctx.Err()
+		}
+	}
+
 	slog.InfoContext(ctx, "reading host netns handle")
-	hostNetNsFd, err := network.ReadFD(consts.NetNsUnixSocket)
+	hostNetNsFd, err := network.ReadFD(consts.NetNsHolderUnixSocket)
 	if err != nil {
 		return false, err
 	}

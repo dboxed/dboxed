@@ -1,0 +1,5 @@
+#!/bin/sh
+mkdir -p /var/lib/dboxed/logs/s6/netns-holder
+echo "slog-json" > /var/lib/dboxed/logs/s6/netns-holder/log-format
+
+exec s6-log n20 s1000000 /var/lib/dboxed/logs/s6/netns-holder
