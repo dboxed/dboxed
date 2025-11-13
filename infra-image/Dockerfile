@@ -42,7 +42,7 @@ RUN mkdir /tmp/netbird && cd /tmp/netbird  \
 RUN mkdir /var/lib/dboxed/netbird && ln -s /var/lib/dboxed/netbird /var/lib/netbird
 
 # rustic
-ENV RUSTIC_VERSION=0.10.2
+ENV RUSTIC_VERSION=0.10.1
 RUN mkdir /tmp/rustic && cd /tmp/rustic  \
     && wget -O rustic.tar.gz https://github.com/rustic-rs/rustic/releases/download/v${RUSTIC_VERSION}/rustic-v${RUSTIC_VERSION}-$(uname -m)-unknown-linux-musl.tar.gz \
     && tar xzf rustic.tar.gz \
