@@ -34,7 +34,9 @@ create table box_sandbox_status
     stop_time   TYPES_DATETIME,
 
     -- gzip compressed json
-    docker_ps   TYPES_BYTES
+    docker_ps   TYPES_BYTES,
+
+    network_ip4 text
 );
 
 --{{ if eq .DbType "postgres" }}

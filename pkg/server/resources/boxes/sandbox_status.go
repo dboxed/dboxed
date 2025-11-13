@@ -67,6 +67,13 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 				return nil, err
 			}
 		}
+
+		if i.Body.SandboxStatus.NetworkIp4 != nil {
+			err = box.SandboxStatus.UpdateNetworkIp4(q, i.Body.SandboxStatus.NetworkIp4)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if i.Body.DockerPs != nil {

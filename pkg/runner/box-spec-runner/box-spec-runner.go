@@ -7,6 +7,7 @@ import (
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	dns_proxy "github.com/dboxed/dboxed/pkg/runner/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -16,7 +17,10 @@ type BoxSpecRunner struct {
 	WorkDir      string
 	BoxSpec      *boxspec.BoxSpec
 	PortForwards *network.PortForwards
+	DnsProxy     *dns_proxy.DnsProxy
 	Log          *slog.Logger
+
+	NetworkIp4 *string
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {

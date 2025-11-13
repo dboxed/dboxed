@@ -14,7 +14,7 @@ import (
 	"github.com/netbirdio/netbird/shared/management/http/api"
 )
 
-func (r *Reconciler) queryNetbirdPeers(ctx context.Context) base.ReconcileResult {
+func (r *Reconciler) querySetupKeys(ctx context.Context) base.ReconcileResult {
 	l, err := r.netbirdClient.SetupKeys.List(ctx)
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed to list Netbird setup keys: %s", err.Error())
@@ -24,6 +24,20 @@ func (r *Reconciler) queryNetbirdPeers(ctx context.Context) base.ReconcileResult
 		r.setupKeysById[sk.Id] = &sk
 	}
 	r.usedSetupKeys = map[string]struct{}{}
+	return base.ReconcileResult{}
+}
+
+func (r *Reconciler) queryPeers(ctx context.Context) base.ReconcileResult {
+	l, err := r.netbirdClient.Peers.List(ctx)
+	if err != nil {
+		return base.ErrorWithMessage(err, "failed to list Netbird peers: %s", err.Error())
+	}
+	r.peersById = map[string]*api.Peer{}
+	r.peersByName = map[string]*api.Peer{}
+	for _, peer := range l {
+		r.peersById[peer.Id] = &peer
+		r.peersByName[peer.Name] = &peer
+	}
 	return base.ReconcileResult{}
 }
 
@@ -93,10 +107,11 @@ func (r *Reconciler) doReconcileBox(ctx context.Context, box *dmodel.Box) base.R
 		name := fmt.Sprintf("%s-%s-%s", config.InstanceName, r.n.Name, box.Name)
 		log.InfoContext(ctx, "creating netbird setup key", "name", name)
 		sk, err := r.netbirdClient.SetupKeys.Create(ctx, api.CreateSetupKeyRequest{
-			Ephemeral:  util.Ptr(true),
-			Name:       name,
-			Type:       "reusable",
-			AutoGroups: autoGroups,
+			AllowExtraDnsLabels: util.Ptr(true),
+			Ephemeral:           util.Ptr(true),
+			Name:                name,
+			Type:                "reusable",
+			AutoGroups:          autoGroups,
 		})
 		if err != nil {
 			return base.ErrorWithMessage(err, "failed to create Netbird setup key %s: %s", name, err.Error())

@@ -18,6 +18,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 
 	boxSpec := &boxspec.BoxSpec{
 		ID:              box.ID,
+		Name:            box.Name,
 		DesiredState:    box.DesiredState,
 		ComposeProjects: map[string]string{},
 	}
@@ -40,7 +41,13 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 		return nil, err
 	}
 
-	boxSpec.Network = &boxspec.BoxNetwork{}
+	boxSpec.Network = &boxspec.BoxNetwork{
+		ID: box.NetworkID,
+	}
+	if network != nil {
+		boxSpec.Network.Name = &network.Name
+	}
+
 	for _, pf := range portForwards {
 		boxSpec.Network.PortForwards = append(boxSpec.Network.PortForwards, boxspec.PortForward{
 			Protocol:      pf.Protocol,
@@ -50,7 +57,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 		})
 	}
 
-	if network != nil && box.NetworkType != nil {
+	if network != nil {
 		switch global.NetworkType(*box.NetworkType) {
 		case global.NetworkNetbird:
 			if box.Netbird.SetupKey == nil {
@@ -63,6 +70,10 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 			}
 		default:
 			return nil, huma.Error400BadRequest(fmt.Sprintf("unknown network type %s", *box.NetworkType))
+		}
+		boxSpec.Network.NetworkHosts, err = listNetworkHosts(c, network)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -97,4 +108,36 @@ func buildAttachedVolumes(ctx context.Context, box *dmodel.Box, boxSpec *boxspec
 		})
 	}
 	return nil
+}
+
+func listNetworkHosts(c context.Context, network *dmodel.Network) ([]boxspec.NetworkHost, error) {
+	q := querier.GetQuerier(c)
+
+	var ret []boxspec.NetworkHost
+	boxes, err := dmodel.ListBoxesForNetwork(q, network.ID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, box := range boxes {
+		ip4 := ""
+		switch *box.NetworkType {
+		case global.NetworkNetbird:
+			if box.SandboxStatus.NetworkIP4 != nil {
+				ip4 = *box.SandboxStatus.NetworkIP4
+			}
+		default:
+			return nil, fmt.Errorf("unsupported network")
+		}
+		if ip4 == "" {
+			continue
+		}
+
+		ret = append(ret, boxspec.NetworkHost{
+			Name: box.Name,
+			IP4:  ip4,
+		})
+	}
+
+	return ret, nil
 }

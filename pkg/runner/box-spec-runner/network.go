@@ -47,6 +47,15 @@ func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
 		}
 	}
 
+	staticHosts := map[string]string{}
+	for _, nh := range rn.BoxSpec.Network.NetworkHosts {
+		fqdn := fmt.Sprintf("%s.dboxed.", nh.Name)
+		staticHosts[fqdn] = nh.IP4
+	}
+	rn.Log.InfoContext(ctx, "new static hosts map", "map", staticHosts)
+
+	rn.DnsProxy.SetStaticHostsMap(staticHosts)
+
 	return nil
 }
 
@@ -76,6 +85,7 @@ func (rn *BoxSpecRunner) runNetbirdUp(ctx context.Context) error {
 			"up",
 			"--disable-dns",
 			"--hostname", rn.BoxSpec.Network.Netbird.Hostname,
+			"--extra-dns-labels", fmt.Sprintf("%s.%s", rn.BoxSpec.Name, *rn.BoxSpec.Network.Name),
 			"--setup-key-file", filepath.Join(consts.NetbirdDir, "netbird.setup-key"),
 		},
 		Logger: rn.Log,

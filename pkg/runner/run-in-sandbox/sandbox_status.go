@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"log/slog"
+	"net"
+	"os"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/clients"
@@ -44,9 +47,9 @@ func (rn *RunInSandbox) startUpdateSandboxStatusLoop(ctx context.Context) {
 	rn.sendSandboxStatus(ctx, true)
 
 	rn.sendStatusStopCh = make(chan struct{})
-	rn.sendStatusDoneCh = make(chan struct{})
+	rn.sendStatusDone.Add(2)
 	go func() {
-		defer close(rn.sendStatusDoneCh)
+		defer rn.sendStatusDone.Done()
 		for {
 			select {
 			case <-rn.sendStatusStopCh:
@@ -59,12 +62,29 @@ func (rn *RunInSandbox) startUpdateSandboxStatusLoop(ctx context.Context) {
 			}
 		}
 	}()
+	go func() {
+		defer rn.sendStatusDone.Done()
+		for {
+			err := rn.runNetbirdStatus(ctx)
+			if err != nil {
+				slog.Error("netbird status failed", "error", err)
+			}
+			select {
+			case <-rn.sendStatusStopCh:
+				return
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second * 10):
+				continue
+			}
+		}
+	}()
 }
 
 func (rn *RunInSandbox) stopUpdateSandboxStatusLoop() {
 	if rn.sendStatusStopCh != nil {
 		close(rn.sendStatusStopCh)
-		<-rn.sendStatusDoneCh
+		rn.sendStatusDone.Wait()
 	}
 }
 
@@ -143,4 +163,34 @@ func (rn *RunInSandbox) runDockerPS(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	return b, nil
+}
+
+func (rn *RunInSandbox) runNetbirdStatus(ctx context.Context) error {
+	if _, err := os.Stat("/var/run/netbird.sock"); err != nil {
+		return nil
+	}
+
+	cmd := util.CommandHelper{
+		Command: "netbird",
+		Args:    []string{"status", "--json"},
+	}
+
+	var status models.NetbirdPeerStatus
+	err := cmd.RunStdoutJson(ctx, &status)
+	if err != nil {
+		return err
+	}
+
+	ip, _, err := net.ParseCIDR(status.NetbirdIp)
+	if err != nil {
+		return err
+	}
+
+	rn.statusMutex.Lock()
+	defer rn.statusMutex.Unlock()
+
+	rn.sandboxStatus.NetworkIp4 = util.Ptr(ip.String())
+	rn.sendSandboxStatus(ctx, false)
+
+	return nil
 }

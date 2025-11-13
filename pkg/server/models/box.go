@@ -51,6 +51,8 @@ type BoxSandboxStatus struct {
 
 	// compressed json
 	DockerPs []byte `json:"dockerPs,omitempty"`
+
+	NetworkIp4 *string `json:"networkIp4,omitempty"`
 }
 
 type UpdateBoxSandboxStatus struct {
@@ -64,6 +66,8 @@ type UpdateBoxSandboxStatus2 struct {
 	RunStatus *string    `json:"runStatus,omitempty"`
 	StartTime *time.Time `json:"startTime,omitempty"`
 	StopTime  *time.Time `json:"stopTime,omitempty"`
+
+	NetworkIp4 *string `json:"networkIp4,omitempty"`
 }
 
 func BoxSandboxStatusFromDB(s dmodel.BoxSandboxStatus) *BoxSandboxStatus {
@@ -73,6 +77,7 @@ func BoxSandboxStatusFromDB(s dmodel.BoxSandboxStatus) *BoxSandboxStatus {
 		StartTime:  s.StartTime,
 		StopTime:   s.StopTime,
 		DockerPs:   s.DockerPs,
+		NetworkIp4: s.NetworkIP4,
 	}
 }
 

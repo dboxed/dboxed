@@ -5,7 +5,6 @@ package network
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"sync"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
@@ -36,7 +35,6 @@ func (n *PortForwards) SetupPortForwards(ctx context.Context, pfs []boxspec.Port
 	if err != nil {
 		return err
 	}
-	slog.InfoContext(ctx, "hostLinks", "hostLinks", hostLinks)
 
 	n.portForwardsIptablesCnt++
 	newChain := fmt.Sprintf("${NAME_BASE}-pf-%d", (n.portForwardsIptablesCnt%2)+1)

@@ -36,6 +36,8 @@ type BoxSandboxStatus struct {
 	StopTime  *time.Time `db:"stop_time"`
 
 	DockerPs []byte `db:"docker_ps"`
+
+	NetworkIP4 *string `db:"network_ip4"`
 }
 
 type BoxWithSandboxStatus struct {
@@ -127,8 +129,8 @@ func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId str
 	}, nil)
 }
 
-func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool) ([]Box, error) {
-	return querier2.GetMany[Box](q, map[string]any{
+func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
+	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
 		"network_id": networkId,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
@@ -175,6 +177,15 @@ func (v *BoxSandboxStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) 
 	return querier2.UpdateOneFromStruct(q, v,
 		"status_time",
 		"docker_ps",
+	)
+}
+
+func (v *BoxSandboxStatus) UpdateNetworkIp4(q *querier2.Querier, ip4 *string) error {
+	v.StatusTime = util.Ptr(time.Now())
+	v.NetworkIP4 = ip4
+	return querier2.UpdateOneFromStruct(q, v,
+		"status_time",
+		"network_ip4",
 	)
 }
 

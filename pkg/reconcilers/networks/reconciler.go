@@ -67,7 +67,7 @@ func (r *networkReconciler) Reconcile(ctx context.Context, n *dmodel.Network, lo
 	}
 
 	for _, box := range boxes {
-		sr.ReconcileBox(ctx, log, &box)
+		sr.ReconcileBox(ctx, log, &box.Box)
 	}
 
 	result = sr.Cleanup(ctx)

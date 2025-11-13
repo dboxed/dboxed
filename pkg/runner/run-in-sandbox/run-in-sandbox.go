@@ -52,7 +52,7 @@ type RunInSandbox struct {
 	statusMutex       sync.Mutex
 
 	sendStatusStopCh     chan struct{}
-	sendStatusDoneCh     chan struct{}
+	sendStatusDone       sync.WaitGroup
 	hostNetworkNamespace netns.NsHandle
 }
 
@@ -259,8 +259,9 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
 		WorkDir:      rn.WorkDir,
-		PortForwards: rn.portForwards,
 		BoxSpec:      boxSpec,
+		PortForwards: rn.portForwards,
+		DnsProxy:     rn.dnsProxy,
 		Log:          rn.reconcileLogger,
 	}
 	err := boxSpecRunner.Reconcile(ctx)
@@ -283,8 +284,9 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
 			WorkDir:      rn.WorkDir,
-			PortForwards: rn.portForwards,
 			BoxSpec:      rn.lastBoxSpec,
+			PortForwards: rn.portForwards,
+			DnsProxy:     rn.dnsProxy,
 			Log:          rn.reconcileLogger,
 		}
 

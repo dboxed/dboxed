@@ -22,6 +22,8 @@ type Reconciler struct {
 	nbGroupsByName   map[string]*api.Group
 	nbPoliciesByName map[string]*api.Policy
 	setupKeysById    map[string]*api.SetupKey
+	peersById        map[string]*api.Peer
+	peersByName      map[string]*api.Peer
 	usedSetupKeys    map[string]struct{}
 
 	netbirdClient *rest.Client
@@ -36,7 +38,11 @@ func (r *Reconciler) queryNetbirdResources(ctx context.Context) base.ReconcileRe
 	if result.Error != nil {
 		return result
 	}
-	result = r.queryNetbirdPeers(ctx)
+	result = r.querySetupKeys(ctx)
+	if result.Error != nil {
+		return result
+	}
+	result = r.queryPeers(ctx)
 	if result.Error != nil {
 		return result
 	}
@@ -99,11 +105,7 @@ func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileR
 
 	networkGroupId, ok := r.nbGroupsByName[fmt.Sprintf("%s-network-%s", config.InstanceName, r.n.ID)]
 	if ok {
-		peers, err := r.netbirdClient.Peers.List(ctx)
-		if err != nil {
-			return base.ErrorFromMessage("failed to list Netbird peers: %s", err.Error())
-		}
-		for _, p := range peers {
+		for _, p := range r.peersById {
 			if !slices.ContainsFunc(p.Groups, func(g api.GroupMinimum) bool {
 				return g.Id == networkGroupId.Id
 			}) {
@@ -113,17 +115,13 @@ func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileR
 				slog.Any("peerId", p.Id),
 				slog.Any("peerName", p.Name),
 			)
-			err = r.netbirdClient.Peers.Delete(ctx, p.Id)
+			err := r.netbirdClient.Peers.Delete(ctx, p.Id)
 			if err != nil {
 				return base.ErrorFromMessage("failed to delete Netbird peer %s: %s", p.Id, err.Error())
 			}
 		}
 
-		setupKeys, err := r.netbirdClient.SetupKeys.List(ctx)
-		if err != nil {
-			return base.ErrorFromMessage("failed to list Netbird setup keys: %s", err.Error())
-		}
-		for _, sk := range setupKeys {
+		for _, sk := range r.setupKeysById {
 			if !slices.Contains(sk.AutoGroups, networkGroupId.Id) {
 				continue
 			}
@@ -131,7 +129,7 @@ func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileR
 				slog.Any("keyId", sk.Id),
 				slog.Any("keyName", sk.Name),
 			)
-			err = r.netbirdClient.SetupKeys.Delete(ctx, sk.Id)
+			err := r.netbirdClient.SetupKeys.Delete(ctx, sk.Id)
 			if err != nil {
 				return base.ErrorFromMessage("failed to delete Netbird setup key %s: %s", sk.Id, err.Error())
 			}
