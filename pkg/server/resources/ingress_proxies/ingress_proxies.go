@@ -146,6 +146,14 @@ func (s *IngressProxyServer) restDeleteIngressProxy(c context.Context, i *huma_u
 		return nil, err
 	}
 
+	ingresses, err := dmodel.ListBoxIngressesForProxy(q, proxy.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(ingresses) != 0 {
+		return nil, huma.Error400BadRequest("can't delete ingress proxies with active ingresses")
+	}
+
 	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.IngressProxy](q, &proxy.WorkspaceID, proxy.ID)
 	if err != nil {
 		return nil, err
