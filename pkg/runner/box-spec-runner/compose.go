@@ -47,7 +47,7 @@ func (rn *BoxSpecRunner) listRunningComposeProjects(ctx context.Context) ([]dock
 }
 
 func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
-	composeProjects, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
+	composeProjects, _, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -128,25 +128,26 @@ func (rn *BoxSpecRunner) runComposeDownByNames(ctx context.Context, names []stri
 	return nil
 }
 
-func (rn *BoxSpecRunner) loadAndWriteComposeProjects(ctx context.Context) (map[string]*ctypes.Project, string, error) {
-	getMount := func(volumeId string) string {
-		return rn.getVolumeMountDir(volumeId)
-	}
-	composeProjects, err := rn.BoxSpec.LoadComposeProjects(ctx, getMount)
+func (rn *BoxSpecRunner) loadAndWriteComposeProjects(ctx context.Context) (map[string]*ctypes.Project, map[string]*ctypes.Project, string, error) {
+	composeProjects, err := rn.BoxSpec.LoadComposeProjects(ctx, rn.updateServiceVolume)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
+	}
+	composeProjectsOrig, err := rn.BoxSpec.LoadComposeProjects(ctx, nil)
+	if err != nil {
+		return nil, nil, "", err
 	}
 
 	tmpDir, err := os.MkdirTemp("", "dboxed-docker-compose-")
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	err = rn.writeComposeFiles(tmpDir, composeProjects)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
-	return composeProjects, tmpDir, nil
+	return composeProjects, composeProjectsOrig, tmpDir, nil
 }
 
 func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, composeBaseDir string, projectName string, cmdEnv []string, args ...string) error {

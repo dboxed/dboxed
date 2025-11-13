@@ -232,10 +232,10 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 				return false, err
 			}
 			if newHash != rn.lastBoxSpecHash {
-				slog.InfoContext(ctx, "a new box spec was received")
+				rn.reconcileLogger.InfoContext(ctx, "a new box spec was received")
 				err = rn.reconcileBoxSpec(ctx, boxSpec)
 				if err != nil {
-					slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
+					rn.reconcileLogger.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 				}
 				rn.lastBoxSpecHash = newHash
 				rn.lastBoxSpec = boxSpec

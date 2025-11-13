@@ -20,11 +20,66 @@ func (rn *BoxSpecRunner) getVolumeWorkDir(id string) string {
 	return filepath.Join(rn.WorkDir, "volumes", id)
 }
 
-func (rn *BoxSpecRunner) getVolumeMountDir(id string) string {
+func (rn *BoxSpecRunner) getDboxedVolumeMountDir(id string) string {
 	return filepath.Join(rn.getVolumeWorkDir(id), "mount")
 }
 
-func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects map[string]*ctypes.Project, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
+func (rn *BoxSpecRunner) getContentFilePath(target string) string {
+	h := util.Sha256Sum([]byte(target))
+	return filepath.Join(rn.WorkDir, "content-volumes", h)
+}
+
+func (rn *BoxSpecRunner) updateServiceVolume(volume *ctypes.ServiceVolumeConfig) error {
+	if volume.Type == "dboxed" {
+		for _, v := range rn.BoxSpec.Volumes {
+			if v.Name == volume.Source {
+				volume.Type = ctypes.VolumeTypeBind
+				volume.Source = rn.getDboxedVolumeMountDir(v.ID)
+				return nil
+			}
+		}
+		return fmt.Errorf("dboxed volume with name %s not found", volume.Source)
+	} else if volume.Type == "content" {
+		volume.Type = ctypes.VolumeTypeBind
+		volume.Source = rn.getContentFilePath(volume.Target)
+		volume.ReadOnly = true
+		return nil
+	} else {
+		return nil
+	}
+}
+
+func (rn *BoxSpecRunner) reconcileContentVolumes(composeProjects map[string]*ctypes.Project) error {
+	err := os.MkdirAll(filepath.Join(rn.WorkDir, "content-volumes"), 0700)
+	if err != nil {
+		return err
+	}
+
+	for _, cp := range composeProjects {
+		for _, s := range cp.Services {
+			for _, v := range s.Volumes {
+				if v.Type == "content" {
+					pth := rn.getContentFilePath(v.Target)
+					var content string
+					ok, err := v.Extensions.Get("x-content", &content)
+					if err != nil {
+						return fmt.Errorf("error retrieving content from service volume for target %s: %w", v.Target, err)
+					}
+					if !ok {
+						return fmt.Errorf("missing content in service volume for target %s", v.Target)
+					}
+					err = os.WriteFile(pth, []byte(content), 0400)
+					if err != nil {
+						return fmt.Errorf("failed writing volume content for target %s: %w", v.Target, err)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, composeProjects map[string]*ctypes.Project, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
 	oldVolumesByName := map[string]*volume_serve.VolumeState{}
 	newVolumeByName := map[string]*boxspec.DboxedVolume{}
 
@@ -58,7 +113,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 	}
 	for _, newVolume := range newVolumeByName {
 		if oldVolume, ok := oldVolumesByName[newVolume.ID]; ok {
-			mountDir := rn.getVolumeMountDir(oldVolume.Volume.ID)
+			mountDir := rn.getDboxedVolumeMountDir(oldVolume.Volume.ID)
 
 			mounted, err := mountinfo.Mounted(mountDir)
 			if err != nil {
@@ -105,7 +160,7 @@ func (rn *BoxSpecRunner) reconcileVolumes(ctx context.Context, composeProjects m
 		}
 	}
 	for _, v := range newVolumes {
-		mountDir := rn.getVolumeMountDir(v.ID)
+		mountDir := rn.getDboxedVolumeMountDir(v.ID)
 		err = rn.fixVolumePermissions(v, mountDir)
 		if err != nil {
 			return err

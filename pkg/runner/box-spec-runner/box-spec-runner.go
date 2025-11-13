@@ -20,7 +20,7 @@ type BoxSpecRunner struct {
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
-	composeProjects, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
+	composeProjects, composeProjectsOrig, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,12 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.reconcileVolumes(ctx, composeProjects, rn.BoxSpec.Volumes, true)
+	err = rn.reconcileContentVolumes(composeProjectsOrig)
+	if err != nil {
+		return err
+	}
+
+	err = rn.reconcileDboxedVolumes(ctx, composeProjects, rn.BoxSpec.Volumes, true)
 	if err != nil {
 		return err
 	}
@@ -77,7 +82,7 @@ func (rn *BoxSpecRunner) downDeletedComposeProjects(ctx context.Context, compose
 }
 
 func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreComposeErrors bool) error {
-	composeProjects, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
+	composeProjects, _, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,7 +151,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 	}
 
 	rn.Log.InfoContext(ctx, "releasing dboxed volumes")
-	err = rn.reconcileVolumes(ctx, composeProjects, nil, false)
+	err = rn.reconcileDboxedVolumes(ctx, composeProjects, nil, false)
 	if err != nil {
 		return err
 	}

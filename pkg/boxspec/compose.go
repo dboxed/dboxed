@@ -10,14 +10,20 @@ import (
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 )
 
-type GetMountFunc func(volumeId string) string
+type UpdateServiceVolumeFunc func(volume *ctypes.ServiceVolumeConfig) error
 
-func (s *BoxSpec) LoadComposeProjects(ctx context.Context, getMount GetMountFunc) (map[string]*ctypes.Project, error) {
+func (s *BoxSpec) LoadComposeProjects(ctx context.Context, updateServiceVolume UpdateServiceVolumeFunc) (map[string]*ctypes.Project, error) {
 	ret := map[string]*ctypes.Project{}
 	for name, str := range s.ComposeProjects {
-		p, err := s.loadAndSetupComposeProject(ctx, name, str, getMount)
+		p, err := s.loadComposeProject(ctx, name, str, false)
 		if err != nil {
 			return nil, err
+		}
+		if updateServiceVolume != nil {
+			err = s.setupDboxedVolumesForProject(p, updateServiceVolume)
+			if err != nil {
+				return nil, err
+			}
 		}
 		ret[name] = p
 	}
@@ -34,13 +40,13 @@ func (s *BoxSpec) ValidateComposeProjects(ctx context.Context) error {
 	return nil
 }
 
-func (s *BoxSpec) loadAndSetupComposeProject(ctx context.Context, name string, composeStr string, getMount GetMountFunc) (*ctypes.Project, error) {
+func (s *BoxSpec) loadAndSetupComposeProject(ctx context.Context, name string, composeStr string, updateServiceVolume UpdateServiceVolumeFunc) (*ctypes.Project, error) {
 	cp, err := s.loadComposeProject(ctx, name, composeStr, false)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.setupVolumes(cp, getMount)
+	err = s.setupDboxedVolumesForProject(cp, updateServiceVolume)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +55,16 @@ func (s *BoxSpec) loadAndSetupComposeProject(ctx context.Context, name string, c
 }
 
 func (s *BoxSpec) ValidateComposeProject(ctx context.Context, name string, composeStr string) error {
-	getMount := func(volumeId string) string {
-		return "/dummy"
+	updateServiceVolume := func(volume *ctypes.ServiceVolumeConfig) error {
+		volume.Type = ctypes.VolumeTypeBind
+		volume.Source = "/dummy"
+		return nil
 	}
-	cp, err := s.loadAndSetupComposeProject(ctx, name, composeStr, getMount)
+	cp, err := s.loadComposeProject(ctx, name, composeStr, false)
+	if err != nil {
+		return err
+	}
+	err = s.setupDboxedVolumesForProject(cp, updateServiceVolume)
 	if err != nil {
 		return err
 	}
@@ -115,27 +127,13 @@ func (s *BoxSpec) loadComposeProject(ctx context.Context, name string, str strin
 	return x, nil
 }
 
-func (s *BoxSpec) setupVolumes(compose *ctypes.Project, getMount GetMountFunc) error {
-	volumesByName := map[string]*DboxedVolume{}
-	for _, vol := range s.Volumes {
-		volumesByName[vol.Name] = &vol
-	}
-
+func (s *BoxSpec) setupDboxedVolumesForProject(compose *ctypes.Project, updateServiceVolume UpdateServiceVolumeFunc) error {
 	for _, service := range compose.Services {
 		for i, _ := range service.Volumes {
 			volume := &service.Volumes[i]
-			if volume.Type == "dboxed" {
-				vol, ok := volumesByName[volume.Source]
-				if !ok {
-					return fmt.Errorf("volume with name %s not found", volume.Source)
-				}
-
-				volume.Type = ctypes.VolumeTypeBind
-				if getMount != nil {
-					volume.Source = getMount(vol.ID)
-				} else {
-					volume.Source = "/dummy"
-				}
+			err := updateServiceVolume(volume)
+			if err != nil {
+				return err
 			}
 		}
 	}
