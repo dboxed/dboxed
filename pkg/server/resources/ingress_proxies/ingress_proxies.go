@@ -30,6 +30,7 @@ func (s *IngressProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) 
 	huma.Post(workspacesGroup, "/ingress-proxies", s.restCreateIngressProxy)
 	huma.Get(workspacesGroup, "/ingress-proxies", s.restListIngressProxies)
 	huma.Get(workspacesGroup, "/ingress-proxies/{id}", s.restGetIngressProxy)
+	huma.Patch(workspacesGroup, "/ingress-proxies/{id}", s.restUpdateIngressProxy)
 	huma.Delete(workspacesGroup, "/ingress-proxies/{id}", s.restDeleteIngressProxy)
 
 	return nil
@@ -129,6 +130,59 @@ func (s *IngressProxyServer) restGetIngressProxy(c context.Context, i *huma_util
 	w := global.GetWorkspace(c)
 
 	proxy, err := dmodel.GetIngressProxyById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := models.IngressProxyFromDB(*proxy)
+	return huma_utils.NewJsonBody(*ret), nil
+}
+
+type restUpdateIngressProxyInput struct {
+	huma_utils.IdByPath
+	huma_utils.JsonBody[models.UpdateIngressProxy]
+}
+
+func (s *IngressProxyServer) restUpdateIngressProxy(c context.Context, i *restUpdateIngressProxyInput) (*huma_utils.JsonBody[models.IngressProxy], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	proxy, err := dmodel.GetIngressProxyById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate port ranges
+	if i.Body.HttpPort != nil {
+		if *i.Body.HttpPort < 1 || *i.Body.HttpPort > 65535 {
+			return nil, huma.Error400BadRequest("http_port must be between 1 and 65535", nil)
+		}
+	}
+	if i.Body.HttpsPort != nil {
+		if *i.Body.HttpsPort < 1 || *i.Body.HttpsPort > 65535 {
+			return nil, huma.Error400BadRequest("https_port must be between 1 and 65535", nil)
+		}
+	}
+
+	// Check that ports are not the same
+	httpPort := proxy.HttpPort
+	httpsPort := proxy.HttpsPort
+	if i.Body.HttpPort != nil {
+		httpPort = *i.Body.HttpPort
+	}
+	if i.Body.HttpsPort != nil {
+		httpsPort = *i.Body.HttpsPort
+	}
+	if httpPort == httpsPort {
+		return nil, huma.Error400BadRequest("http_port and https_port can't be the same", nil)
+	}
+
+	err = proxy.Update(q, i.Body.HttpPort, i.Body.HttpsPort)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.AddChangeTracking(q, proxy)
 	if err != nil {
 		return nil, err
 	}

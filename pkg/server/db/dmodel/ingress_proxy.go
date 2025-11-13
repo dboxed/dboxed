@@ -39,6 +39,22 @@ func (v *IngressProxy) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
+func (v *IngressProxy) Update(q *querier2.Querier, httpPort *int, httpsPort *int) error {
+	var fields []string
+	if httpPort != nil {
+		v.HttpPort = *httpPort
+		fields = append(fields, "http_port")
+	}
+	if httpsPort != nil {
+		v.HttpsPort = *httpsPort
+		fields = append(fields, "https_port")
+	}
+	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
+		"workspace_id": v.WorkspaceID,
+		"id":           v.ID,
+	}, v, fields...)
+}
+
 func GetIngressProxyById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*IngressProxy, error) {
 	return querier2.GetOne[IngressProxy](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),

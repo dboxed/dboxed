@@ -40,6 +40,14 @@ func (c *IngressProxyClient) GetIngressProxyById(ctx context.Context, id string)
 	return baseclient.RequestApi[models.IngressProxy](ctx, c.Client, "GET", p, struct{}{})
 }
 
+func (c *IngressProxyClient) UpdateIngressProxy(ctx context.Context, id string, req models.UpdateIngressProxy) (*models.IngressProxy, error) {
+	p, err := c.Client.BuildApiPath(true, "ingress-proxies", id)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.IngressProxy](ctx, c.Client, "PATCH", p, req)
+}
+
 func (c *IngressProxyClient) DeleteIngressProxy(ctx context.Context, id string) error {
 	p, err := c.Client.BuildApiPath(true, "ingress-proxies", id)
 	if err != nil {

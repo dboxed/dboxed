@@ -30,6 +30,11 @@ type CreateIngressProxy struct {
 	HttpsPort int                     `json:"httpsPort"`
 }
 
+type UpdateIngressProxy struct {
+	HttpPort  *int `json:"httpPort,omitempty"`
+	HttpsPort *int `json:"httpsPort,omitempty"`
+}
+
 func IngressProxyFromDB(p dmodel.IngressProxy) *IngressProxy {
 	return &IngressProxy{
 		ID:            p.ID,

@@ -116,3 +116,25 @@ func GetS3Bucket(ctx context.Context, c *baseclient.Client, s3Bucket string) (*m
 		return s, nil
 	}
 }
+
+func GetIngressProxy(ctx context.Context, c *baseclient.Client, proxy string) (*models.IngressProxy, error) {
+	c2 := clients.IngressProxyClient{Client: c}
+	if uuid.Validate(proxy) == nil {
+		p, err := c2.GetIngressProxyById(ctx, proxy)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
+	} else {
+		l, err := c2.ListIngressProxies(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range l {
+			if p.Name == proxy {
+				return &p, nil
+			}
+		}
+		return nil, fmt.Errorf("ingress proxy not found: %s", proxy)
+	}
+}
