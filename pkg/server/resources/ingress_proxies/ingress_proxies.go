@@ -2,7 +2,6 @@ package ingress_proxies
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -12,7 +11,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -49,28 +47,7 @@ func (s *IngressProxyServer) restCreateIngressProxy(c context.Context, i *huma_u
 		return nil, huma.Error400BadRequest("invalid proxy_type, must be 'caddy'", nil)
 	}
 
-	boxName := fmt.Sprintf("ingress-proxy-%s", i.Body.Name)
-
-	log := slog.With("proxyName", i.Body.Name, "boxName", boxName)
-
-	network, err := dmodel.GetNetworkById(q, &w.ID, i.Body.Network, true)
-	if err != nil {
-		return nil, err
-	}
-
-	log.InfoContext(c, "creating box for ingress proxy")
-	box, inputErr, err := boxes_utils.CreateBox(c, models.CreateBox{
-		Name:    boxName,
-		Network: &network.ID,
-	}, global.BoxTypeIngressProxy)
-	if err != nil {
-		return nil, err
-	}
-	if inputErr != "" {
-		return nil, huma.Error400BadRequest(inputErr)
-	}
-
-	slog.InfoContext(c, "creating ingress proxy", slog.Any("name", i.Body.Name), slog.Any("boxId", box.ID))
+	slog.InfoContext(c, "creating ingress proxy", slog.Any("name", i.Body.Name))
 
 	// Validate port ranges
 	if i.Body.HttpPort < 1 || i.Body.HttpPort > 65535 {
@@ -83,15 +60,25 @@ func (s *IngressProxyServer) restCreateIngressProxy(c context.Context, i *huma_u
 		return nil, huma.Error400BadRequest("http_port and https_port can't be the same", nil)
 	}
 
+	if i.Body.Replicas < 0 || i.Body.Replicas > 10 {
+		return nil, huma.Error400BadRequest("replicas must be between 0 and 10", nil)
+	}
+
+	network, err := dmodel.GetNetworkById(q, &w.ID, i.Body.Network, true)
+	if err != nil {
+		return nil, err
+	}
+
 	proxy := &dmodel.IngressProxy{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		BoxID:     box.ID,
 		Name:      i.Body.Name,
 		ProxyType: string(i.Body.ProxyType),
+		NetworkId: network.ID,
 		HttpPort:  i.Body.HttpPort,
 		HttpsPort: i.Body.HttpsPort,
+		Replicas:  i.Body.Replicas,
 	}
 
 	err = proxy.Create(q)
@@ -164,6 +151,13 @@ func (s *IngressProxyServer) restUpdateIngressProxy(c context.Context, i *restUp
 		}
 	}
 
+	// Validate replicas
+	if i.Body.Replicas != nil {
+		if *i.Body.Replicas < 0 || *i.Body.Replicas > 10 {
+			return nil, huma.Error400BadRequest("replicas must be between 0 and 10", nil)
+		}
+	}
+
 	// Check that ports are not the same
 	httpPort := proxy.HttpPort
 	httpsPort := proxy.HttpsPort
@@ -177,7 +171,7 @@ func (s *IngressProxyServer) restUpdateIngressProxy(c context.Context, i *restUp
 		return nil, huma.Error400BadRequest("http_port and https_port can't be the same", nil)
 	}
 
-	err = proxy.Update(q, i.Body.HttpPort, i.Body.HttpsPort)
+	err = proxy.Update(q, i.Body.HttpPort, i.Body.HttpsPort, i.Body.Replicas)
 	if err != nil {
 		return nil, err
 	}

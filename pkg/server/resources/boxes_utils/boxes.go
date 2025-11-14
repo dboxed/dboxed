@@ -10,9 +10,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func CreateBox(c context.Context, body models.CreateBox, boxType global.BoxType) (*dmodel.Box, string, error) {
+func CreateBox(c context.Context, workspaceId string, body models.CreateBox, boxType global.BoxType) (*dmodel.Box, string, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
@@ -23,7 +22,7 @@ func CreateBox(c context.Context, body models.CreateBox, boxType global.BoxType)
 	var networkType *string
 	if body.Network != nil {
 		var network *dmodel.Network
-		network, err = dmodel.GetNetworkById(q, &w.ID, *body.Network, true)
+		network, err = dmodel.GetNetworkById(q, &workspaceId, *body.Network, true)
 		if err != nil {
 			return nil, "", err
 		}
@@ -33,7 +32,7 @@ func CreateBox(c context.Context, body models.CreateBox, boxType global.BoxType)
 
 	box := &dmodel.Box{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
-			WorkspaceID: w.ID,
+			WorkspaceID: workspaceId,
 		},
 		Name:    body.Name,
 		BoxType: string(boxType),

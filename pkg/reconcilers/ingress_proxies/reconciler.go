@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type reconciler struct {
@@ -29,33 +28,32 @@ func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.IngressPro
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, proxy *dmodel.IngressProxy, log *slog.Logger) base.ReconcileResult {
-	q := querier.GetQuerier(ctx)
-
 	log = log.With(
 		slog.Any("name", proxy.Name),
 	)
 
-	box, err := dmodel.GetBoxById(q, nil, proxy.BoxID, false)
-	if err != nil {
-		if !querier.IsSqlNotFoundError(err) {
-			return base.InternalError(err)
-		}
-		// Box already deleted, nothing to do
-		return base.ReconcileResult{}
-	}
-
 	if proxy.GetDeletedAt() != nil {
-		return r.reconcileDelete(ctx, proxy, log, box)
+		return r.reconcileDelete(ctx, proxy, log)
 	}
 
-	result := r.reconcileBoxPortForwards(ctx, proxy, box, log)
+	result := r.reconcileBoxReplicas(ctx, proxy, log)
 	if result.Error != nil {
 		return result
 	}
 
-	switch global.IngressProxyType(proxy.ProxyType) {
-	case global.IngressProxyCaddy:
-		result := r.reconcileProxyCaddy(ctx, proxy, box, log)
+	return base.ReconcileResult{}
+}
+
+func (r *reconciler) reconcileDelete(ctx context.Context, proxy *dmodel.IngressProxy, log *slog.Logger) base.ReconcileResult {
+	q := querier.GetQuerier(ctx)
+
+	existingReplicas, err := dmodel.ListIngressProxyBoxesForProxy(q, proxy.ID)
+	if err != nil {
+		return base.InternalError(err)
+	}
+
+	for _, replica := range existingReplicas {
+		result := r.softDeleteReplica(ctx, proxy, replica.BoxId, log)
 		if result.Error != nil {
 			return result
 		}
@@ -64,20 +62,34 @@ func (r *reconciler) Reconcile(ctx context.Context, proxy *dmodel.IngressProxy, 
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) reconcileDelete(ctx context.Context, proxy *dmodel.IngressProxy, log *slog.Logger, box *dmodel.Box) base.ReconcileResult {
-	q := querier.GetQuerier(ctx)
-
-	if box.GetDeletedAt() == nil {
-		log.InfoContext(ctx, "cascading delete to ingress proxy box")
-		err := dmodel.SoftDeleteByStruct(q, box)
+func (r *reconciler) softDeleteReplica(ctx context.Context, proxy *dmodel.IngressProxy, boxId string, log *slog.Logger) base.ReconcileResult {
+	return base.Transaction(ctx, func(ctx context.Context) base.ReconcileResult {
+		q := querier.GetQuerier(ctx)
+		box, err := dmodel.GetBoxById(q, nil, boxId, false)
 		if err != nil {
 			return base.InternalError(err)
 		}
-		err = dmodel.AddChangeTracking(q, box)
+
+		err = querier.DeleteOneByFields[dmodel.IngressProxyBox](q, map[string]any{
+			"ingress_proxy_id": proxy.ID,
+			"box_id":           box.ID,
+		})
 		if err != nil {
 			return base.InternalError(err)
 		}
-	}
 
-	return base.ReconcileResult{}
+		if box.GetDeletedAt() == nil {
+			log.InfoContext(ctx, "cascading delete to ingress proxy box", "boxId", box.ID, "boxName", box.Name)
+			err := dmodel.SoftDeleteByStruct(q, box)
+			if err != nil {
+				return base.InternalError(err)
+			}
+			err = dmodel.AddChangeTracking(q, box)
+			if err != nil {
+				return base.InternalError(err)
+			}
+		}
+
+		return base.ReconcileResult{}
+	})
 }

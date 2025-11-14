@@ -15,11 +15,12 @@ type IngressProxy struct {
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
 
-	BoxID     string                  `json:"boxId"`
 	Name      string                  `json:"name"`
 	ProxyType global.IngressProxyType `json:"proxyType"`
+	Network   string                  `json:"network"`
 	HttpPort  int                     `json:"httpPort"`
 	HttpsPort int                     `json:"httpsPort"`
+	Replicas  int                     `json:"replicas"`
 }
 
 type CreateIngressProxy struct {
@@ -28,11 +29,13 @@ type CreateIngressProxy struct {
 	Network   string                  `json:"network"`
 	HttpPort  int                     `json:"httpPort"`
 	HttpsPort int                     `json:"httpsPort"`
+	Replicas  int                     `json:"replicas,omitempty"`
 }
 
 type UpdateIngressProxy struct {
 	HttpPort  *int `json:"httpPort,omitempty"`
 	HttpsPort *int `json:"httpsPort,omitempty"`
+	Replicas  *int `json:"replicas,omitempty"`
 }
 
 func IngressProxyFromDB(p dmodel.IngressProxy) *IngressProxy {
@@ -42,11 +45,12 @@ func IngressProxyFromDB(p dmodel.IngressProxy) *IngressProxy {
 		CreatedAt:     p.CreatedAt,
 		Status:        p.ReconcileStatus.ReconcileStatus.V,
 		StatusDetails: p.ReconcileStatus.ReconcileStatusDetails.V,
-		BoxID:         p.BoxID,
 		Name:          p.Name,
 		ProxyType:     global.IngressProxyType(p.ProxyType),
+		Network:       p.NetworkId,
 		HttpPort:      p.HttpPort,
 		HttpsPort:     p.HttpsPort,
+		Replicas:      p.Replicas,
 	}
 }
 

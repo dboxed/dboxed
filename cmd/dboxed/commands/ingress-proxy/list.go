@@ -16,8 +16,9 @@ type ListCmd struct {
 type PrintIngressProxy struct {
 	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
-	BoxID         string `col:"Box ID"`
+	Network       string `col:"Network"`
 	ProxyType     string `col:"Proxy Type"`
+	Replicas      int    `col:"Replicas"`
 	Status        string `col:"Status"`
 	StatusDetails string `col:"Status Detail"`
 }
@@ -31,6 +32,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	c2 := &clients.IngressProxyClient{Client: c}
+	ct := commandutils.NewClientTool(c)
 
 	proxies, err := c2.ListIngressProxies(ctx)
 	if err != nil {
@@ -42,8 +44,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		table = append(table, PrintIngressProxy{
 			ID:            p.ID,
 			Name:          p.Name,
-			BoxID:         p.BoxID,
+			Network:       ct.Networks.GetColumn(ctx, p.Network, cmd.ShowIds),
 			ProxyType:     string(p.ProxyType),
+			Replicas:      p.Replicas,
 			Status:        p.Status,
 			StatusDetails: p.StatusDetails,
 		})

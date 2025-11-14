@@ -8,13 +8,19 @@ type IngressProxy struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	BoxID string `db:"box_id"`
-
 	Name      string `db:"name"`
 	ProxyType string `db:"proxy_type"`
+	NetworkId string `db:"network_id"`
 
 	HttpPort  int `db:"http_port"`
 	HttpsPort int `db:"https_port"`
+
+	Replicas int `db:"replicas"`
+}
+
+type IngressProxyBox struct {
+	IngressProxyId string `db:"ingress_proxy_id"`
+	BoxId          string `db:"box_id"`
 }
 
 type BoxIngress struct {
@@ -39,7 +45,7 @@ func (v *IngressProxy) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func (v *IngressProxy) Update(q *querier2.Querier, httpPort *int, httpsPort *int) error {
+func (v *IngressProxy) Update(q *querier2.Querier, httpPort *int, httpsPort *int, replicas *int) error {
 	var fields []string
 	if httpPort != nil {
 		v.HttpPort = *httpPort
@@ -48,6 +54,10 @@ func (v *IngressProxy) Update(q *querier2.Querier, httpPort *int, httpsPort *int
 	if httpsPort != nil {
 		v.HttpsPort = *httpsPort
 		fields = append(fields, "https_port")
+	}
+	if replicas != nil {
+		v.Replicas = *replicas
+		fields = append(fields, "replicas")
 	}
 	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
 		"workspace_id": v.WorkspaceID,
@@ -119,4 +129,16 @@ func (v *BoxIngress) Update(q *querier2.Querier, description *string, hostname *
 		"box_id": v.BoxID,
 		"id":     v.ID,
 	}, v, fields...)
+}
+
+func (v *IngressProxyBox) Create(q *querier2.Querier) error {
+	return querier2.Create(q, v)
+}
+
+func ListIngressProxyBoxesForProxy(q *querier2.Querier, proxyId string) ([]IngressProxyBox, error) {
+	return querier2.GetMany[IngressProxyBox](q, map[string]any{
+		"ingress_proxy_id": proxyId,
+	}, &querier2.SortAndPage{
+		Sort: querier2.SortBySingleField("box_id", querier2.SortOrderAsc),
+	})
 }

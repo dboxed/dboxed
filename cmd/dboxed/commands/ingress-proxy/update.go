@@ -14,6 +14,7 @@ type UpdateCmd struct {
 	Proxy     string `help:"Ingress proxy (ID or name)" required:"" arg:""`
 	HttpPort  *int   `help:"HTTP port"`
 	HttpsPort *int   `help:"HTTPS port"`
+	Replicas  *int   `help:"Number of replicas"`
 }
 
 func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
@@ -34,6 +35,7 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 	req := models.UpdateIngressProxy{
 		HttpPort:  cmd.HttpPort,
 		HttpsPort: cmd.HttpsPort,
+		Replicas:  cmd.Replicas,
 	}
 
 	proxy, err = c2.UpdateIngressProxy(ctx, proxy.ID, req)

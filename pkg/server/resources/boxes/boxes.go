@@ -89,7 +89,8 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 }
 
 func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[models.CreateBox]) (*huma_utils.JsonBody[models.Box], error) {
-	box, inputErr, err := boxes_utils.CreateBox(c, i.Body, global.BoxTypeNormal)
+	w := global.GetWorkspace(c)
+	box, inputErr, err := boxes_utils.CreateBox(c, w.ID, i.Body, global.BoxTypeNormal)
 	if err != nil {
 		return nil, err
 	}

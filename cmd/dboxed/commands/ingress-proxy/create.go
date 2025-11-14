@@ -15,8 +15,9 @@ type CreateCmd struct {
 	Name      string `help:"Proxy name" required:""`
 	ProxyType string `help:"Proxy type" default:"caddy" enum:"caddy"`
 	Network   string `help:"Attach proxy to specified network (ID or name)." required:"true"`
-	HttpPort  int    `help:"HTTP port (default: 80)" default:"80"`
-	HttpsPort int    `help:"HTTPS port (default: 443)" default:"443"`
+	HttpPort  int    `help:"HTTP port" default:"80"`
+	HttpsPort int    `help:"HTTPS port" default:"443"`
+	Replicas  int    `help:"Number of replicas" default:"1"`
 }
 
 func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
@@ -40,6 +41,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		Network:   network.ID,
 		HttpPort:  cmd.HttpPort,
 		HttpsPort: cmd.HttpsPort,
+		Replicas:  cmd.Replicas,
 	}
 
 	proxy, err := c2.CreateIngressProxy(ctx, req)
