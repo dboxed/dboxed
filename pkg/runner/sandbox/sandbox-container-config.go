@@ -122,7 +122,7 @@ func (rn *Sandbox) buildSandboxContainerConfig(image *v1.Image) (*configs.Config
 		{Type: configs.NEWIPC},
 		{Type: configs.NEWPID},
 		{Type: configs.NEWCGROUP},
-		{Type: configs.NEWNET, Path: filepath.Join("/run/netns", rn.network.NamesAndIps.SandboxNamespaceName)},
+		{Type: configs.NEWNET, Path: filepath.Join("/run/netns", rn.NetworkNamespaceName)},
 	}
 
 	mounts := rn.buildSandboxContainerMounts()

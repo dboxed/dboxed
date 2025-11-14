@@ -85,7 +85,7 @@ func (n *PortForwards) SetupPortForwards(ctx context.Context, pfs []boxspec.Port
 	ipt := Iptables{
 		InfraContainerRoot: n.InfraContainerRoot,
 		NamesAndIps:        n.NamesAndIps,
-		Namespace:          n.HostNetworkNamespace,
+		Namespace:          &n.HostNetworkNamespace,
 	}
 
 	return ipt.runIptablesScript(ctx, script)

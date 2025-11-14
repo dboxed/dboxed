@@ -31,7 +31,7 @@ mount -t sysfs none /sys
 type Iptables struct {
 	InfraContainerRoot string
 	NamesAndIps        NamesAndIps
-	Namespace          netns.NsHandle
+	Namespace          *netns.NsHandle
 }
 
 func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
@@ -58,7 +58,7 @@ func (n *Iptables) runIptablesScript(ctx context.Context, script string) error {
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := util.RunInNetNs(n.Namespace, func() error {
+	err := util.RunInNetNsOptional(n.Namespace, func() error {
 		return cmd.Run()
 	})
 	if err != nil {

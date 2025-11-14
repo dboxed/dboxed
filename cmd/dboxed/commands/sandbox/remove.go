@@ -11,6 +11,7 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/runner/network"
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/opencontainers/runc/libcontainer"
@@ -36,11 +37,10 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 		sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxName)
 
 		s := sandbox.Sandbox{
-			Debug:           g.Debug,
-			HostWorkDir:     g.WorkDir,
-			SandboxName:     si.SandboxName,
-			SandboxDir:      sandboxDir,
-			VethNetworkCidr: si.VethNetworkCidr,
+			Debug:       g.Debug,
+			HostWorkDir: g.WorkDir,
+			SandboxName: si.SandboxName,
+			SandboxDir:  sandboxDir,
 		}
 
 		cs, err := s.GetSandboxContainerStatus()
@@ -70,11 +70,12 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 			}
 		}
 
-		err = s.PrepareNetworkingConfig()
+		namesAndIps, err := network.NewNamesAndIPs(si.SandboxName, si.VethNetworkCidr)
 		if err != nil {
 			return err
 		}
-		err = s.DestroyNetworking(ctx)
+
+		err = network.Destroy(ctx, nil, namesAndIps, s.GetSandboxRoot())
 		if err != nil {
 			slog.WarnContext(ctx,
 				"destroying networking failed, but you might be able to ignore this failure",

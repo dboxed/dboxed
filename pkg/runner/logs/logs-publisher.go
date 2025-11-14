@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
@@ -18,9 +19,9 @@ type LogsPublisher struct {
 	mt *multitail.MultiTail
 }
 
-func (lp *LogsPublisher) Stop(cancel bool) {
+func (lp *LogsPublisher) Stop(cancelAfter *time.Duration) {
 	if lp.mt != nil {
-		lp.mt.StopAndWait(cancel)
+		lp.mt.StopAndWait(cancelAfter)
 	}
 }
 

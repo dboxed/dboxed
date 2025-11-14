@@ -78,7 +78,7 @@ func NewMultiTail(ctx context.Context, tailDbFile string, opts MultiTailOptions)
 	}, nil
 }
 
-func (mt *MultiTail) StopAndWait(cancel bool) {
+func (mt *MultiTail) StopAndWait(cancelAfter *time.Duration) {
 	mt.m.Lock()
 	if mt.stopped {
 		mt.m.Unlock()
@@ -95,8 +95,11 @@ func (mt *MultiTail) StopAndWait(cancel bool) {
 	}
 	mt.m.Unlock()
 
-	if cancel {
-		close(mt.cancelCh)
+	if cancelAfter != nil {
+		go func() {
+			time.Sleep(*cancelAfter)
+			close(mt.cancelCh)
+		}()
 	}
 
 	slog.Info("multitail: waiting for routines to finish")

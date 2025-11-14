@@ -21,7 +21,7 @@ type GlobalFlags struct {
 	WorkDir string `help:"dboxed work dir" default:"/var/lib/dboxed" group:"Global:"`
 }
 
-func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, error) {
+func (f *GlobalFlags) BuildClient(ctx context.Context, opts ...baseclient.ClientOpt) (*baseclient.Client, error) {
 	clientAuth, err := baseclient.ReadClientAuth(f.ClientAuthFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -30,7 +30,7 @@ func (f *GlobalFlags) BuildClient(ctx context.Context) (*baseclient.Client, erro
 		clientAuth = &baseclient.ClientAuth{}
 	}
 
-	c, err := baseclient.New(f.ClientAuthFile, clientAuth, true)
+	c, err := baseclient.New(f.ClientAuthFile, clientAuth, true, opts...)
 	if err != nil {
 		return nil, err
 	}

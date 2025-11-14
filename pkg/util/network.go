@@ -12,6 +12,7 @@ func NewNetNsWithoutEnter(name string) (netns.NsHandle, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer origns.Close()
 
 	ns, err := netns.NewNamed(name)
 	if err != nil {
@@ -32,10 +33,7 @@ func RunInNetNs(ns netns.NsHandle, fn func() error) error {
 	if err != nil {
 		return err
 	}
-
-	if o == ns {
-		return fn()
-	}
+	defer o.Close()
 
 	err = netns.Set(ns)
 	if err != nil {

@@ -11,12 +11,12 @@ import (
 )
 
 func (rn *RunInSandbox) initLogsPublishing(ctx context.Context) error {
-	if rn.Client == nil {
+	if rn.client == nil {
 		slog.InfoContext(ctx, "skipping logs publishing (only supported with dboxed api)")
 		return nil
 	}
 
-	tta, err := logs.NewTailToApi(ctx, rn.Client, filepath.Join(consts.LogsDir, consts.LogsTailDbFilename), rn.sandboxInfo.Box.ID)
+	tta, err := logs.NewTailToApi(ctx, rn.client, filepath.Join(consts.LogsDir, consts.LogsTailDbFilename), rn.sandboxInfo.Box.ID)
 	if err != nil {
 		return err
 	}

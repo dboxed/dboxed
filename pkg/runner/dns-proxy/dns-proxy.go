@@ -13,12 +13,13 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/miekg/dns"
+	"github.com/vishvananda/netns"
 )
 
 type DnsProxy struct {
-	ListenIP net.IP
-
-	HostResolvConfFile string
+	ListenIP             string
+	HostResolvConfFile   string
+	HostNetworkNamespace netns.NsHandle
 
 	staticHostsMapMutex sync.Mutex
 	staticHostsMap      map[string]string
@@ -106,9 +107,12 @@ func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
 }
 
 func (d *DnsProxy) runRequestsThread(ctx context.Context) {
-	for r := range d.requests {
-		d.handleRequest(ctx, r)
-	}
+	_ = util.RunInNetNs(d.HostNetworkNamespace, func() error {
+		for r := range d.requests {
+			d.handleRequest(ctx, r)
+		}
+		return nil
+	})
 }
 
 func (d *DnsProxy) getResolver() (string, error) {
@@ -242,7 +246,7 @@ func (d *DnsProxy) startListen(ctx context.Context, dnsNet string) (*dns.Server,
 	})
 
 	dnsServer := &dns.Server{
-		Addr:    net.JoinHostPort(d.ListenIP.String(), "53"),
+		Addr:    net.JoinHostPort(d.ListenIP, "53"),
 		Net:     dnsNet,
 		Handler: mux,
 	}

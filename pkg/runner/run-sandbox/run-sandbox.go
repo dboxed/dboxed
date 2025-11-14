@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
+	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
@@ -90,13 +92,18 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	}
 	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr))
 
+	namesAndIps, err := network.NewNamesAndIPs(rn.SandboxName, rn.acquiredVethNetworkCidr)
+	if err != nil {
+		return err
+	}
+
 	rn.sandbox = &sandbox.Sandbox{
-		Debug:           rn.Debug,
-		InfraImage:      rn.InfraImage,
-		HostWorkDir:     rn.WorkDir,
-		SandboxName:     rn.SandboxName,
-		SandboxDir:      sandboxDir,
-		VethNetworkCidr: rn.acquiredVethNetworkCidr,
+		Debug:                rn.Debug,
+		InfraImage:           rn.InfraImage,
+		HostWorkDir:          rn.WorkDir,
+		SandboxName:          rn.SandboxName,
+		SandboxDir:           sandboxDir,
+		NetworkNamespaceName: namesAndIps.SandboxNamespaceName,
 	}
 
 	needDestroy := false
@@ -131,11 +138,6 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		}
 	}
 
-	err = rn.sandbox.PrepareNetworkingConfig()
-	if err != nil {
-		return err
-	}
-
 	if needDestroy {
 		err = rn.sandbox.StopOrKillSandboxContainer(ctx, time.Second*30, time.Second*10)
 		if err != nil {
@@ -153,7 +155,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 			return err
 		}
 		// we must run this after Prepare as it will need networking tools in rootfs
-		err = rn.sandbox.DestroyNetworking(ctx)
+		err = network.Destroy(ctx, nil, namesAndIps, rn.sandbox.GetSandboxRoot())
 		if err != nil {
 			return err
 		}
@@ -184,7 +186,7 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		return err
 	}
 
-	err = rn.sandbox.SetupNetworkNamespaces(ctx)
+	err = network.SetupSandboxNamespace(ctx, namesAndIps)
 	if err != nil {
 		return err
 	}
@@ -379,6 +381,15 @@ func (rn *RunSandbox) writeDboxedConfFiles(ctx context.Context) error {
 		rn.Client.GetClientAuth(true),
 		0600,
 	)
+	if err != nil {
+		return err
+	}
+
+	networkConfig := boxspec.NetworkConfig{
+		SandboxName:     rn.SandboxName,
+		VethNetworkCidr: rn.acquiredVethNetworkCidr,
+	}
+	err = util.AtomicWriteFileYaml(filepath.Join(rn.sandbox.GetSandboxRoot(), consts.NetworkConfFile), networkConfig, 0644)
 	if err != nil {
 		return err
 	}

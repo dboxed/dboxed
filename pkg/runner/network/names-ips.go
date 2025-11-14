@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	net2 "github.com/dboxed/dboxed/pkg/util/net"
 	"github.com/vishvananda/netlink"
@@ -20,7 +21,12 @@ type NamesAndIps struct {
 	PeerAddr             netlink.Addr
 }
 
-func NewNamesAndIPs(sandboxName string, vethCidr *net.IPNet) (n NamesAndIps, err error) {
+func NewNamesAndIPs(sandboxName string, vethCidrStr string) (n NamesAndIps, err error) {
+	_, vethCidr, err := net.ParseCIDR(vethCidrStr)
+	if err != nil {
+		return NamesAndIps{}, err
+	}
+
 	n.Base = n.buildNameBase(sandboxName)
 	n.SandboxNamespaceName = n.Base
 	n.VethNameHost = fmt.Sprintf("%s-host", n.Base)
@@ -53,5 +59,5 @@ func (n *NamesAndIps) buildNameBase(sandboxName string) string {
 	h := util.Sha256Sum([]byte(sandboxName))
 	h = h[:6]
 
-	return fmt.Sprintf("%s-%s", namePrefix, h)
+	return fmt.Sprintf("%s-%s", consts.SandboxShortPrefix, h)
 }

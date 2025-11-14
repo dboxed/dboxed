@@ -2,7 +2,6 @@ package run_in_sandbox
 
 import (
 	"context"
-	"net"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
@@ -10,8 +9,9 @@ import (
 
 func (rn *RunInSandbox) startDnsProxy(ctx context.Context) error {
 	rn.dnsProxy = &dns_proxy.DnsProxy{
-		ListenIP:           net.ParseIP(consts.SandboxDnsProxyIp),
-		HostResolvConfFile: consts.HostResolvConfFile,
+		ListenIP:             consts.SandboxDnsProxyIp,
+		HostResolvConfFile:   consts.HostResolvConfFile,
+		HostNetworkNamespace: rn.hostNetworkNamespace,
 	}
 
 	err := rn.dnsProxy.Start(ctx)

@@ -1,12 +1,8 @@
 package boxspec
 
-import (
-	"net"
-)
-
 type NetworkConfig struct {
-	SandboxName     string     `json:"sandboxName"`
-	VethNetworkCidr *net.IPNet `json:"vethNetworkCidr"`
+	SandboxName     string `json:"sandboxName"`
+	VethNetworkCidr string `json:"vethNetworkCidr"`
 }
 
 type NetworkHost struct {

@@ -15,12 +15,11 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/util"
+	_ "github.com/opencontainers/cgroups/devices"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
-	"sigs.k8s.io/yaml"
-
-	_ "github.com/opencontainers/cgroups/devices"
 )
 
 func (rn *Sandbox) GetSandboxRoot() string {
@@ -206,15 +205,6 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
-	b, err := yaml.Marshal(rn.network.Config)
-	if err != nil {
-		return err
-	}
-	err = util.AtomicWriteFile(filepath.Join(rn.GetSandboxRoot(), consts.NetworkConfFile), b, 0644)
-	if err != nil {
-		return err
-	}
-
 	config, err := rn.buildSandboxContainerConfig(imageConfig)
 	if err != nil {
 		return err
@@ -252,7 +242,13 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 	defer uc.Close()
 
 	slog.InfoContext(ctx, "sending host netns handle")
-	err = network.SendFD(uc, int(rn.network.HostNetworkNamespace))
+	hostNetworkNs, err := netns.Get()
+	if err != nil {
+		return err
+	}
+	defer hostNetworkNs.Close()
+	
+	err = network.SendFD(uc, int(hostNetworkNs))
 	if err != nil {
 		return err
 	}

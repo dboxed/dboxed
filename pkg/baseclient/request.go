@@ -91,7 +91,7 @@ func requestApiResponse[RequestBody any](ctx context.Context, c *Client, method 
 		}
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

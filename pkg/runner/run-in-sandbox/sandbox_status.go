@@ -97,7 +97,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 		return
 	}
 
-	boxesClient := clients.BoxClient{Client: rn.Client}
+	boxesClient := clients.BoxClient{Client: rn.client}
 	err := boxesClient.UpdateSandboxStatus(ctx, rn.sandboxInfo.Box.ID, models.UpdateBoxSandboxStatus{
 		SandboxStatus: &rn.sandboxStatus,
 	})
@@ -143,7 +143,7 @@ func (rn *RunInSandbox) doSendSandboxStatusDockerPs(ctx context.Context, b []byt
 		return err
 	}
 
-	boxesClient := clients.BoxClient{Client: rn.Client}
+	boxesClient := clients.BoxClient{Client: rn.client}
 	err = boxesClient.UpdateSandboxStatus(ctx, rn.sandboxInfo.Box.ID, models.UpdateBoxSandboxStatus{
 		DockerPs: buf.Bytes(),
 	})

@@ -6,15 +6,11 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/boxspec"
-	network2 "github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/vishvananda/netns"
 )
 
 type Sandbox struct {
@@ -26,9 +22,7 @@ type Sandbox struct {
 	SandboxName string
 	SandboxDir  string
 
-	VethNetworkCidr string
-
-	network *network2.Network
+	NetworkNamespaceName string
 }
 
 func (rn *Sandbox) Destroy(ctx context.Context) error {
@@ -98,44 +92,6 @@ func (rn *Sandbox) CopyBinaries(ctx context.Context) error {
 	return nil
 }
 
-func (rn *Sandbox) PrepareNetworkingConfig() error {
-	networkConfig, err := rn.buildNetworkConfig()
-	if err != nil {
-		return err
-	}
-	rn.network = &network2.Network{
-		InfraContainerRoot: rn.GetSandboxRoot(),
-		Config:             networkConfig,
-	}
-	rn.network.HostNetworkNamespace, err = netns.Get()
-	if err != nil {
-		return err
-	}
-	err = rn.network.InitNamesAndIPs()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rn *Sandbox) SetupNetworkNamespaces(ctx context.Context) error {
-	err := rn.network.SetupSandboxNamespace(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (rn *Sandbox) DestroyNetworking(ctx context.Context) error {
-	err := rn.network.Destroy(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (rn *Sandbox) Start(ctx context.Context) error {
 	err := rn.createAndStartSandboxContainer(ctx)
 	if err != nil {
@@ -143,17 +99,4 @@ func (rn *Sandbox) Start(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (rn *Sandbox) buildNetworkConfig() (*boxspec.NetworkConfig, error) {
-	_, cidr, err := net.ParseCIDR(rn.VethNetworkCidr)
-	if err != nil {
-		return nil, err
-	}
-	cfg := &boxspec.NetworkConfig{
-		SandboxName:     rn.SandboxName,
-		VethNetworkCidr: cidr,
-	}
-
-	return cfg, nil
 }

@@ -28,12 +28,12 @@ import (
 
 type RunInSandbox struct {
 	WorkDir string
-	Client  *baseclient.Client
+	client  *baseclient.Client
 
 	sandboxInfo *sandbox.SandboxInfo
 
 	networkConfig *boxspec.NetworkConfig
-	network       *network.Network
+	namesAndIps   network.NamesAndIps
 	portForwards  *network.PortForwards
 
 	routesMirror network.RoutesMirror
@@ -64,7 +64,7 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	}()
 
 	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
-	defer rn.logsPublisher.Stop(false)
+	defer rn.logsPublisher.Stop(util.Ptr(time.Second * 5))
 	defer rn.stopUpdateSandboxStatusLoop()
 
 	shutdown, err := rn.doRun(ctx, sigs)
@@ -101,6 +101,10 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	if err != nil {
 		return false, err
 	}
+	rn.namesAndIps, err = network.NewNamesAndIPs(rn.networkConfig.SandboxName, rn.networkConfig.VethNetworkCidr)
+	if err != nil {
+		return false, err
+	}
 
 	slog.InfoContext(ctx, "waiting for "+consts.NetNsHolderUnixSocket)
 	for {
@@ -120,32 +124,19 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	}
 
 	rn.hostNetworkNamespace = netns.NsHandle(hostNetNsFd)
-	sandboxNetworkNamespace, err := netns.Get()
-	if err != nil {
-		return false, err
-	}
 
-	rn.network = &network.Network{
-		Config:               rn.networkConfig,
-		HostNetworkNamespace: rn.hostNetworkNamespace,
-		NetworkNamespace:     sandboxNetworkNamespace,
-	}
-	err = rn.network.InitNamesAndIPs()
-	if err != nil {
-		return false, err
-	}
-	err = rn.network.Setup(ctx)
+	err = network.SetupInSandbox(ctx, rn.hostNetworkNamespace, rn.namesAndIps, consts.SandboxDnsProxyIp)
 	if err != nil {
 		return false, err
 	}
 	rn.portForwards = &network.PortForwards{
-		NamesAndIps:          rn.network.NamesAndIps,
+		NamesAndIps:          rn.namesAndIps,
 		HostNetworkNamespace: rn.hostNetworkNamespace,
 	}
 
 	rn.routesMirror = network.RoutesMirror{
-		NetworkConfig: rn.networkConfig,
-		HostNamespace: rn.hostNetworkNamespace,
+		NamesAndIps:          rn.namesAndIps,
+		HostNetworkNamespace: rn.hostNetworkNamespace,
 	}
 	err = rn.routesMirror.Start(ctx)
 	if err != nil {
@@ -173,6 +164,17 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 			slog.InfoContext(ctx, "received signal, exiting now", slog.Any("signal", s.String()))
 			return true, nil
 		}
+	}
+
+	// this will respect DBOXED_SANDBOX=1
+	clientAuth, err := baseclient.ReadClientAuth(nil)
+	if err != nil {
+		return false, err
+	}
+	// this client will use the host namespace
+	rn.client, err = baseclient.New(nil, clientAuth, false, baseclient.WithNetworkNamespace(nil, &rn.hostNetworkNamespace))
+	if err != nil {
+		return false, err
 	}
 
 	var reconcileLogWriter io.WriteCloser
@@ -211,13 +213,13 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
 
 	for {
-		boxesClient := clients.BoxClient{Client: rn.Client}
+		boxesClient := clients.BoxClient{Client: rn.client}
 		boxSpec, err := boxesClient.GetBoxSpecById(ctx, rn.sandboxInfo.Box.ID)
 		if err != nil {
 			if baseclient.IsNotFound(err) || baseclient.IsUnauthorized(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
 				// if the box got deleted, we won't be able to upload remaining logs, so we cancel immediately to avoid spamming local logs
-				rn.logsPublisher.Stop(true)
+				rn.logsPublisher.Stop(util.Ptr(time.Second * 1))
 				return true, nil
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
@@ -315,6 +317,12 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	// ensure we don't restart the sandbox
 	rn.reconcileLogger.InfoContext(ctx, "running s6 halt")
 	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
+	if err != nil {
+		return err
+	}
+
+	rn.reconcileLogger.InfoContext(ctx, "shutting down network")
+	err = network.Destroy(ctx, &rn.hostNetworkNamespace, rn.namesAndIps, "")
 	if err != nil {
 		return err
 	}

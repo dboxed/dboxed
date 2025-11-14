@@ -43,10 +43,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintSandbox
 	for _, si := range sandboxInfos {
 		s := sandbox.Sandbox{
-			Debug:           g.Debug,
-			HostWorkDir:     g.WorkDir,
-			SandboxDir:      filepath.Join(sandboxBaseDir, si.Box.ID),
-			VethNetworkCidr: si.VethNetworkCidr,
+			Debug:       g.Debug,
+			HostWorkDir: g.WorkDir,
+			SandboxDir:  filepath.Join(sandboxBaseDir, si.Box.ID),
 		}
 
 		statusStr := "unknown"
