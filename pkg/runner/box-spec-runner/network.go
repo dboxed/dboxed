@@ -52,10 +52,11 @@ func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
 		fqdn := fmt.Sprintf("%s.dboxed.", nh.Name)
 		staticHosts[fqdn] = nh.IP4
 	}
-	rn.Log.InfoContext(ctx, "new static hosts map", "map", staticHosts)
-
-	rn.DnsProxy.SetStaticHostsMap(staticHosts)
-
+	rn.Log.InfoContext(ctx, "writing new static hosts map", "map", staticHosts)
+	err := util.AtomicWriteFileYaml(consts.SandboxDnsStaticMapFile, staticHosts, 0600)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

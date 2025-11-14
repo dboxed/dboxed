@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/miekg/dns"
 	"github.com/vishvananda/netns"
@@ -21,8 +22,7 @@ type DnsProxy struct {
 	HostResolvConfFile   string
 	HostNetworkNamespace netns.NsHandle
 
-	staticHostsMapMutex sync.Mutex
-	staticHostsMap      map[string]string
+	staticHostsMap atomic.Pointer[map[string]string]
 
 	udpServer *dns.Server
 	tcpServer *dns.Server
@@ -42,10 +42,9 @@ type dnsRequest struct {
 }
 
 func (d *DnsProxy) Start(ctx context.Context) error {
-	d.staticHostsMap = map[string]string{}
 	d.requests = make(chan dnsRequest)
 
-	err := d.readHostResolvConf(ctx)
+	err := d.readStuff(ctx)
 	if err != nil {
 		return err
 	}
@@ -77,8 +76,8 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		util.LoopWithPrintErr(ctx, "readHostResolvConf", 5*time.Second, func() error {
-			return d.readHostResolvConf(ctx)
+		util.LoopWithPrintErr(ctx, "readStuff", 5*time.Second, func() error {
+			return d.readStuff(ctx)
 		})
 	}()
 	for d.resolveConf.Load() == nil {
@@ -93,7 +92,7 @@ func (d *DnsProxy) Start(ctx context.Context) error {
 	return nil
 }
 
-func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
+func (d *DnsProxy) readStuff(ctx context.Context) error {
 	c, err := dns.ClientConfigFromFile(d.HostResolvConfFile)
 	if err != nil {
 		return err
@@ -103,6 +102,19 @@ func (d *DnsProxy) readHostResolvConf(ctx context.Context) error {
 	if !reflect.DeepEqual(old, c) {
 		slog.InfoContext(ctx, "using host nameservers", slog.Any("nameservers", d.resolveConf.Load().Servers), slog.Any("port", d.resolveConf.Load().Port))
 	}
+
+	newStaticMap, err := util.UnmarshalYamlFile[map[string]string](consts.SandboxDnsStaticMapFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	oldStaticMap := d.staticHostsMap.Swap(newStaticMap)
+	if !reflect.DeepEqual(oldStaticMap, newStaticMap) {
+		slog.InfoContext(ctx, "using static hosts map", newStaticMap)
+	}
+
 	return nil
 }
 
@@ -196,18 +208,13 @@ func (d *DnsProxy) handleRequest(ctx context.Context, r dnsRequest) {
 	}
 }
 
-func (d *DnsProxy) SetStaticHostsMap(m map[string]string) {
-	d.staticHostsMapMutex.Lock()
-	defer d.staticHostsMapMutex.Unlock()
-
-	d.staticHostsMap = m
-}
-
 func (d *DnsProxy) resolveStaticHost(name string) *dns.Msg {
-	d.staticHostsMapMutex.Lock()
-	defer d.staticHostsMapMutex.Unlock()
+	m := d.staticHostsMap.Load()
+	if m == nil {
+		return nil
+	}
 
-	ip := d.staticHostsMap[name]
+	ip := (*m)[name]
 	if ip == "" {
 		return nil
 	}

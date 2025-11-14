@@ -1,11 +1,17 @@
 package network
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"syscall"
+	"time"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/vishvananda/netns"
 )
 
 func ListenSCMSocket(unixPath string) (*net.UnixListener, error) {
@@ -52,7 +58,20 @@ func readFD(uc *net.UnixConn) (int, error) {
 	return fds[0], nil
 }
 
-func ReadFD(unixPath string) (int, error) {
+func ReadNetNsFD(ctx context.Context, unixPath string) (netns.NsHandle, error) {
+	slog.InfoContext(ctx, "waiting for "+unixPath)
+	for {
+		_, err := os.Stat(unixPath)
+		if err == nil {
+			break
+		}
+		if !util.SleepWithContext(ctx, 100*time.Millisecond) {
+			return 0, ctx.Err()
+		}
+	}
+
+	slog.InfoContext(ctx, "reading host netns handle")
+
 	conn, err := net.Dial("unix", unixPath)
 	if err != nil {
 		return 0, fmt.Errorf("dial unix socket failed: %w", err)
@@ -74,11 +93,11 @@ func ReadFD(unixPath string) (int, error) {
 		return 0, err
 	}
 
-	return fd, nil
+	return netns.NsHandle(fd), nil
 }
 
-func SendFD(uc *net.UnixConn, fd int) error {
-	rights := syscall.UnixRights(fd)
+func SendNetNsFD(uc *net.UnixConn, fd netns.NsHandle) error {
+	rights := syscall.UnixRights(int(fd))
 	dummyByte := []byte{0}
 	n, oobn, err := uc.WriteMsgUnix(dummyByte, rights, nil)
 	if err != nil {

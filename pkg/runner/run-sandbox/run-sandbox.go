@@ -217,6 +217,11 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		if err != nil {
 			return err
 		}
+
+		err = s6.S6SvcRestart(ctx, "dns-proxy")
+		if err != nil {
+			return err
+		}
 		err = s6.S6SvcUp(ctx, "run-in-sandbox")
 		if err != nil {
 			return err

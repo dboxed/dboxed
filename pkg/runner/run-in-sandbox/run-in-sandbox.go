@@ -15,7 +15,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/box-spec-runner"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
@@ -37,7 +36,6 @@ type RunInSandbox struct {
 	portForwards  *network.PortForwards
 
 	routesMirror network.RoutesMirror
-	dnsProxy     *dns_proxy.DnsProxy
 
 	logsPublisher logs.LogsPublisher
 
@@ -106,26 +104,15 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		return false, err
 	}
 
-	slog.InfoContext(ctx, "waiting for "+consts.NetNsHolderUnixSocket)
-	for {
-		_, err = os.Stat(consts.NetNsHolderUnixSocket)
-		if err == nil {
-			break
-		}
-		if !util.SleepWithContext(ctx, 100*time.Millisecond) {
-			return false, ctx.Err()
-		}
-	}
-
-	slog.InfoContext(ctx, "reading host netns handle")
-	hostNetNsFd, err := network.ReadFD(consts.NetNsHolderUnixSocket)
+	hostNetNsFd, err := network.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
 	if err != nil {
 		return false, err
 	}
+	defer hostNetNsFd.Close()
 
-	rn.hostNetworkNamespace = netns.NsHandle(hostNetNsFd)
+	rn.hostNetworkNamespace = hostNetNsFd
 
-	err = network.SetupInSandbox(ctx, rn.hostNetworkNamespace, rn.namesAndIps, consts.SandboxDnsProxyIp)
+	err = network.SetupInSandbox(ctx, rn.hostNetworkNamespace, rn.namesAndIps)
 	if err != nil {
 		return false, err
 	}
@@ -139,12 +126,6 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		HostNetworkNamespace: rn.hostNetworkNamespace,
 	}
 	err = rn.routesMirror.Start(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	// dns proxy must start as early as possible, as otherwise things will fail
-	err = rn.startDnsProxy(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -263,7 +244,6 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 		WorkDir:      rn.WorkDir,
 		BoxSpec:      boxSpec,
 		PortForwards: rn.portForwards,
-		DnsProxy:     rn.dnsProxy,
 		Log:          rn.reconcileLogger,
 	}
 	err := boxSpecRunner.Reconcile(ctx)
@@ -288,7 +268,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 			WorkDir:      rn.WorkDir,
 			BoxSpec:      rn.lastBoxSpec,
 			PortForwards: rn.portForwards,
-			DnsProxy:     rn.dnsProxy,
 			Log:          rn.reconcileLogger,
 		}
 

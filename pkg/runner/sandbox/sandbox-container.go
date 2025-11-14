@@ -247,8 +247,8 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 		return err
 	}
 	defer hostNetworkNs.Close()
-	
-	err = network.SendFD(uc, int(hostNetworkNs))
+
+	err = network.SendNetNsFD(uc, hostNetworkNs)
 	if err != nil {
 		return err
 	}

@@ -20,22 +20,29 @@ func SetupSandboxNamespace(ctx context.Context, namesAndIps NamesAndIps) error {
 
 	ns, err := netns.GetFromName(namesAndIps.SandboxNamespaceName)
 	if err == nil {
-		defer ns.Close()
 		slog.InfoContext(ctx, "sandbox netns already exists")
+		defer ns.Close()
 	} else {
 		if !os.IsNotExist(err) {
 			return err
 		}
 		slog.InfoContext(ctx, fmt.Sprintf("creating sandbox netns %s", namesAndIps.SandboxNamespaceName))
-		_, err = util.NewNetNsWithoutEnter(namesAndIps.SandboxNamespaceName)
+		ns, err = util.NewNetNsWithoutEnter(namesAndIps.SandboxNamespaceName)
 		if err != nil {
 			return err
 		}
+		defer ns.Close()
 	}
+
+	err = setupSandboxLoopDevice(ctx, ns)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func SetupInSandbox(ctx context.Context, hostNetworkNamespace netns.NsHandle, namesAndIps NamesAndIps, dnsProxyIp string) error {
+func SetupInSandbox(ctx context.Context, hostNetworkNamespace netns.NsHandle, namesAndIps NamesAndIps) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -44,12 +51,7 @@ func SetupInSandbox(ctx context.Context, hostNetworkNamespace netns.NsHandle, na
 		slog.Any("peerAddr", namesAndIps.PeerAddr.String()),
 	)
 
-	err := setupSandboxLoopDevice(ctx, dnsProxyIp)
-	if err != nil {
-		return err
-	}
-
-	err = setupVethInterfaces(ctx, hostNetworkNamespace, namesAndIps)
+	err := setupVethInterfaces(ctx, hostNetworkNamespace, namesAndIps)
 	if err != nil {
 		return err
 	}
@@ -174,11 +176,8 @@ func setupVethInterfaces(ctx context.Context, hostNetworkNamespace netns.NsHandl
 	return nil
 }
 
-func setupSandboxLoopDevice(ctx context.Context, dnsProxyIp string) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	sandboxNetlink, err := netlink.NewHandle()
+func setupSandboxLoopDevice(ctx context.Context, sandboxNamespace netns.NsHandle) error {
+	sandboxNetlink, err := netlink.NewHandleAt(sandboxNamespace)
 	if err != nil {
 		return err
 	}
@@ -188,6 +187,26 @@ func setupSandboxLoopDevice(ctx context.Context, dnsProxyIp string) error {
 	if err != nil {
 		return err
 	}
+	if loLink.Attrs().Flags&net.FlagUp == 0 {
+		err = sandboxNetlink.LinkSetUp(loLink)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func SetupSandboxDnsProxyIp(ctx context.Context, dnsProxyIp string) error {
+	sandboxNetlink, err := netlink.NewHandle()
+	if err != nil {
+		return err
+	}
+
+	loLink, err := sandboxNetlink.LinkByName("lo")
+	if err != nil {
+		return err
+	}
+
 	dnsAddr, err := netlink.ParseAddr(fmt.Sprintf("%s/8", dnsProxyIp))
 	if err != nil {
 		return err
@@ -195,12 +214,6 @@ func setupSandboxLoopDevice(ctx context.Context, dnsProxyIp string) error {
 	err = addAddress(ctx, sandboxNetlink, loLink, *dnsAddr, false)
 	if err != nil {
 		return err
-	}
-	if loLink.Attrs().Flags&net.FlagUp == 0 {
-		err = sandboxNetlink.LinkSetUp(loLink)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
