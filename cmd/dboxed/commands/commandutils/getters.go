@@ -117,24 +117,24 @@ func GetS3Bucket(ctx context.Context, c *baseclient.Client, s3Bucket string) (*m
 	}
 }
 
-func GetIngressProxy(ctx context.Context, c *baseclient.Client, proxy string) (*models.IngressProxy, error) {
-	c2 := clients.IngressProxyClient{Client: c}
-	if uuid.Validate(proxy) == nil {
-		p, err := c2.GetIngressProxyById(ctx, proxy)
+func GetLoadBalancer(ctx context.Context, c *baseclient.Client, lb string) (*models.LoadBalancer, error) {
+	c2 := clients.LoadBalancerClient{Client: c}
+	if uuid.Validate(lb) == nil {
+		p, err := c2.GetLoadBalancerById(ctx, lb)
 		if err != nil {
 			return nil, err
 		}
 		return p, nil
 	} else {
-		l, err := c2.ListIngressProxies(ctx)
+		l, err := c2.ListLoadBalancers(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, p := range l {
-			if p.Name == proxy {
+			if p.Name == lb {
 				return &p, nil
 			}
 		}
-		return nil, fmt.Errorf("ingress proxy not found: %s", proxy)
+		return nil, fmt.Errorf("load balancer not found: %s", lb)
 	}
 }

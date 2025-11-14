@@ -1,7 +1,7 @@
 package global
 
-type IngressProxyType string
+type LoadBalancerType string
 
 const (
-	IngressProxyCaddy IngressProxyType = "caddy"
+	LoadBalancerTypeCaddy LoadBalancerType = "caddy"
 )

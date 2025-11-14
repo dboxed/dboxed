@@ -276,36 +276,36 @@ func (c *BoxClient) DeletePortForward(ctx context.Context, boxId string, portFor
 	return err
 }
 
-func (c *BoxClient) ListBoxIngresses(ctx context.Context, boxId string) ([]models.BoxIngress, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses")
+func (c *BoxClient) ListLoadBalancerServices(ctx context.Context, boxId string) ([]models.LoadBalancerService, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "load-balancer-services")
 	if err != nil {
 		return nil, err
 	}
-	l, err := baseclient.RequestApi[huma_utils.ListBody[models.BoxIngress]](ctx, c.Client, "GET", p, struct{}{})
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.LoadBalancerService]](ctx, c.Client, "GET", p, struct{}{})
 	if err != nil {
 		return nil, err
 	}
 	return l.Items, err
 }
 
-func (c *BoxClient) CreateBoxIngress(ctx context.Context, boxId string, req models.CreateBoxIngress) (*models.BoxIngress, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses")
+func (c *BoxClient) CreateLoadBalancerService(ctx context.Context, boxId string, req models.CreateLoadBalancerService) (*models.LoadBalancerService, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "load-balancer-services")
 	if err != nil {
 		return nil, err
 	}
-	return baseclient.RequestApi[models.BoxIngress](ctx, c.Client, "POST", p, req)
+	return baseclient.RequestApi[models.LoadBalancerService](ctx, c.Client, "POST", p, req)
 }
 
-func (c *BoxClient) UpdateBoxIngress(ctx context.Context, boxId string, ingressId string, req models.UpdateBoxIngress) (*models.BoxIngress, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses", ingressId)
+func (c *BoxClient) UpdateLoadBalancerService(ctx context.Context, boxId string, lbServiceId string, req models.UpdateLoadBalancerService) (*models.LoadBalancerService, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "load-balancer-services", lbServiceId)
 	if err != nil {
 		return nil, err
 	}
-	return baseclient.RequestApi[models.BoxIngress](ctx, c.Client, "PATCH", p, req)
+	return baseclient.RequestApi[models.LoadBalancerService](ctx, c.Client, "PATCH", p, req)
 }
 
-func (c *BoxClient) DeleteBoxIngress(ctx context.Context, boxId string, ingressId string) error {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "ingresses", ingressId)
+func (c *BoxClient) DeleteLoadBalancerService(ctx context.Context, boxId string, lbServiceId string) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "load-balancer-services", lbServiceId)
 	if err != nil {
 		return err
 	}

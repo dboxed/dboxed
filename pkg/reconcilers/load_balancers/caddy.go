@@ -1,4 +1,4 @@
-package ingress_proxies
+package load_balancers
 
 import (
 	"context"
@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
-	"github.com/dboxed/dboxed/pkg/reconcilers/ingress_proxies/files"
+	"github.com/dboxed/dboxed/pkg/reconcilers/load_balancers/files"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
 
-func (r *reconciler) reconcileProxyCaddy(ctx context.Context, proxy *dmodel.IngressProxy, box *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.LoadBalancer, box *dmodel.Box, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
-	composeFile, result := r.buildCaddyCompose(ctx, proxy, box, log)
+	composeFile, result := r.buildCaddyCompose(ctx, lb, box, log)
 	if result.Error != nil {
 		return result
 	}
@@ -50,8 +50,8 @@ func (r *reconciler) reconcileProxyCaddy(ctx context.Context, proxy *dmodel.Ingr
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) buildCaddyCompose(ctx context.Context, proxy *dmodel.IngressProxy, proxyBox *dmodel.Box, log *slog.Logger) (string, base.ReconcileResult) {
-	cf, result := r.buildCaddyfile(ctx, proxy, log)
+func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalancer, proxyBox *dmodel.Box, log *slog.Logger) (string, base.ReconcileResult) {
+	cf, result := r.buildCaddyfile(ctx, lb, log)
 	if result.Error != nil {
 		return "", result
 	}
@@ -68,19 +68,19 @@ func (r *reconciler) buildCaddyCompose(ctx context.Context, proxy *dmodel.Ingres
 	return ret, base.ReconcileResult{}
 }
 
-func (r *reconciler) buildCaddyfile(ctx context.Context, proxy *dmodel.IngressProxy, log *slog.Logger) (string, base.ReconcileResult) {
+func (r *reconciler) buildCaddyfile(ctx context.Context, lb *dmodel.LoadBalancer, log *slog.Logger) (string, base.ReconcileResult) {
 	q := querier.GetQuerier(ctx)
 
 	cf := "#caddyfile\n"
 
-	boxIngresses, err := dmodel.ListBoxIngressesForProxy(q, proxy.ID)
+	lbServices, err := dmodel.ListLoadBalancerServicesForLoadBalancer(q, lb.ID)
 	if err != nil {
 		return "", base.InternalError(err)
 	}
 
 	boxes := map[string]*dmodel.Box{}
 
-	for _, bi := range boxIngresses {
+	for _, bi := range lbServices {
 		box, ok := boxes[bi.BoxID]
 		if !ok {
 			box, err = dmodel.GetBoxById(q, nil, bi.BoxID, true)

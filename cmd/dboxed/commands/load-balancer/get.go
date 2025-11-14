@@ -1,16 +1,16 @@
-package ingress_proxy
+package load_balancer
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/clients"
 )
 
 type GetCmd struct {
-	Id string `help:"Ingress proxy ID" required:"" arg:""`
+	LoadBalancer string `help:"Specify the load balancer" required:"" arg:""`
 }
 
 func (cmd *GetCmd) Run(g *flags.GlobalFlags) error {
@@ -20,15 +20,13 @@ func (cmd *GetCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
-
-	c2 := &clients.IngressProxyClient{Client: c}
-
-	proxy, err := c2.GetIngressProxyById(ctx, cmd.Id)
+	
+	lb, err := commandutils.GetLoadBalancer(ctx, c, cmd.LoadBalancer)
 	if err != nil {
 		return err
 	}
 
-	b, err := json.MarshalIndent(proxy, "", "  ")
+	b, err := json.MarshalIndent(lb, "", "  ")
 	if err != nil {
 		return err
 	}

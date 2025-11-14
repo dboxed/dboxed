@@ -4,13 +4,13 @@ import (
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 )
 
-type IngressProxy struct {
+type LoadBalancer struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Name      string `db:"name"`
-	ProxyType string `db:"proxy_type"`
-	NetworkId string `db:"network_id"`
+	Name             string `db:"name"`
+	LoadBalancerType string `db:"load_balancer_type"`
+	NetworkId        string `db:"network_id"`
 
 	HttpPort  int `db:"http_port"`
 	HttpsPort int `db:"https_port"`
@@ -18,17 +18,17 @@ type IngressProxy struct {
 	Replicas int `db:"replicas"`
 }
 
-type IngressProxyBox struct {
-	IngressProxyId string `db:"ingress_proxy_id"`
+type LoadBalancerBox struct {
+	LoadBalancerId string `db:"load_balancer_id"`
 	BoxId          string `db:"box_id"`
 }
 
-type BoxIngress struct {
+type LoadBalancerService struct {
 	ID string `db:"id" uuid:"true"`
 	Times
 
-	ProxyID string `db:"proxy_id"`
-	BoxID   string `db:"box_id"`
+	LoadBalancerId string `db:"load_balancer_id"`
+	BoxID          string `db:"box_id"`
 
 	Description *string `db:"description"`
 
@@ -37,15 +37,15 @@ type BoxIngress struct {
 	Port       int    `db:"port"`
 }
 
-func (v BoxIngress) GetId() string {
+func (v LoadBalancerService) GetId() string {
 	return v.ID
 }
 
-func (v *IngressProxy) Create(q *querier2.Querier) error {
+func (v *LoadBalancer) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func (v *IngressProxy) Update(q *querier2.Querier, httpPort *int, httpsPort *int, replicas *int) error {
+func (v *LoadBalancer) Update(q *querier2.Querier, httpPort *int, httpsPort *int, replicas *int) error {
 	var fields []string
 	if httpPort != nil {
 		v.HttpPort = *httpPort
@@ -65,49 +65,49 @@ func (v *IngressProxy) Update(q *querier2.Querier, httpPort *int, httpsPort *int
 	}, v, fields...)
 }
 
-func GetIngressProxyById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*IngressProxy, error) {
-	return querier2.GetOne[IngressProxy](q, map[string]any{
+func GetLoadBalancerById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*LoadBalancer, error) {
+	return querier2.GetOne[LoadBalancer](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListIngressProxiesForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]IngressProxy, error) {
-	return querier2.GetMany[IngressProxy](q, map[string]any{
+func ListLoadBalancersForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]LoadBalancer, error) {
+	return querier2.GetMany[LoadBalancer](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func (v *BoxIngress) Create(q *querier2.Querier) error {
+func (v *LoadBalancerService) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListBoxIngresses(q *querier2.Querier, boxId string) ([]BoxIngress, error) {
-	return querier2.GetMany[BoxIngress](q, map[string]any{
+func ListLoadBalancerServices(q *querier2.Querier, boxId string) ([]LoadBalancerService, error) {
+	return querier2.GetMany[LoadBalancerService](q, map[string]any{
 		"box_id": boxId,
 	}, &querier2.SortAndPage{
 		Sort: querier2.SortBySingleField("id", querier2.SortOrderAsc),
 	})
 }
 
-func ListBoxIngressesForProxy(q *querier2.Querier, proxyId string) ([]BoxIngress, error) {
-	return querier2.GetMany[BoxIngress](q, map[string]any{
-		"proxy_id": proxyId,
+func ListLoadBalancerServicesForLoadBalancer(q *querier2.Querier, loadBalancerId string) ([]LoadBalancerService, error) {
+	return querier2.GetMany[LoadBalancerService](q, map[string]any{
+		"load_balancer_id": loadBalancerId,
 	}, &querier2.SortAndPage{
 		Sort: querier2.SortBySingleField("id", querier2.SortOrderAsc),
 	})
 }
 
-func GetBoxIngress(q *querier2.Querier, boxId string, id string) (*BoxIngress, error) {
-	return querier2.GetOne[BoxIngress](q, map[string]any{
+func GetLoadBalancerService(q *querier2.Querier, boxId string, id string) (*LoadBalancerService, error) {
+	return querier2.GetOne[LoadBalancerService](q, map[string]any{
 		"box_id": boxId,
 		"id":     id,
 	})
 }
 
-func (v *BoxIngress) Update(q *querier2.Querier, description *string, hostname *string, pathPrefix *string, port *int) error {
+func (v *LoadBalancerService) Update(q *querier2.Querier, description *string, hostname *string, pathPrefix *string, port *int) error {
 	var fields []string
 	if description != nil {
 		v.Description = description
@@ -131,13 +131,13 @@ func (v *BoxIngress) Update(q *querier2.Querier, description *string, hostname *
 	}, v, fields...)
 }
 
-func (v *IngressProxyBox) Create(q *querier2.Querier) error {
+func (v *LoadBalancerBox) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListIngressProxyBoxesForProxy(q *querier2.Querier, proxyId string) ([]IngressProxyBox, error) {
-	return querier2.GetMany[IngressProxyBox](q, map[string]any{
-		"ingress_proxy_id": proxyId,
+func ListLoadBalancerBoxesForLoadBalancer(q *querier2.Querier, loadBalancerId string) ([]LoadBalancerBox, error) {
+	return querier2.GetMany[LoadBalancerBox](q, map[string]any{
+		"load_balancer_id": loadBalancerId,
 	}, &querier2.SortAndPage{
 		Sort: querier2.SortBySingleField("box_id", querier2.SortOrderAsc),
 	})

@@ -10,16 +10,16 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-type AddIngressCmd struct {
+type UpdateLbServiceCmd struct {
 	Box         string  `help:"Box ID or name" required:"" arg:""`
-	ProxyID     string  `help:"Ingress proxy ID" required:""`
-	Hostname    string  `help:"Hostname for ingress" required:""`
-	PathPrefix  string  `help:"Path prefix" default:"/"`
-	Port        int     `help:"Container port" required:""`
-	Description *string `help:"Description of the ingress"`
+	LbServiceId string  `help:"Load Balancer Service ID" required:"" arg:""`
+	Description *string `help:"Description of the load balancer service"`
+	Hostname    *string `help:"Hostname for load balancer service"`
+	PathPrefix  *string `help:"Path prefix"`
+	Port        *int    `help:"Container port"`
 }
 
-func (cmd *AddIngressCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *UpdateLbServiceCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
@@ -34,20 +34,19 @@ func (cmd *AddIngressCmd) Run(g *flags.GlobalFlags) error {
 
 	c2 := &clients.BoxClient{Client: c}
 
-	req := models.CreateBoxIngress{
-		ProxyID:     cmd.ProxyID,
+	req := models.UpdateLoadBalancerService{
 		Description: cmd.Description,
 		Hostname:    cmd.Hostname,
 		PathPrefix:  cmd.PathPrefix,
 		Port:        cmd.Port,
 	}
 
-	ing, err := c2.CreateBoxIngress(ctx, b.ID, req)
+	ing, err := c2.UpdateLoadBalancerService(ctx, b.ID, cmd.LbServiceId, req)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("Created box ingress", slog.Any("id", ing.ID))
+	slog.Info("Updated load balancer service", slog.Any("id", ing.ID))
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package ingress_proxies
+package load_balancers
 
 import (
 	"context"
@@ -14,27 +14,27 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-type IngressProxyServer struct {
+type LoadBalancerServer struct {
 	config config.Config
 }
 
-func New(config config.Config) *IngressProxyServer {
-	return &IngressProxyServer{
+func New(config config.Config) *LoadBalancerServer {
+	return &LoadBalancerServer{
 		config: config,
 	}
 }
 
-func (s *IngressProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
-	huma.Post(workspacesGroup, "/ingress-proxies", s.restCreateIngressProxy)
-	huma.Get(workspacesGroup, "/ingress-proxies", s.restListIngressProxies)
-	huma.Get(workspacesGroup, "/ingress-proxies/{id}", s.restGetIngressProxy)
-	huma.Patch(workspacesGroup, "/ingress-proxies/{id}", s.restUpdateIngressProxy)
-	huma.Delete(workspacesGroup, "/ingress-proxies/{id}", s.restDeleteIngressProxy)
+func (s *LoadBalancerServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	huma.Post(workspacesGroup, "/load-balancers", s.restCreateLoadBalancer)
+	huma.Get(workspacesGroup, "/load-balancers", s.restListLoadBalancers)
+	huma.Get(workspacesGroup, "/load-balancers/{id}", s.restGetLoadBalancer)
+	huma.Patch(workspacesGroup, "/load-balancers/{id}", s.restUpdateLoadBalancer)
+	huma.Delete(workspacesGroup, "/load-balancers/{id}", s.restDeleteLoadBalancer)
 
 	return nil
 }
 
-func (s *IngressProxyServer) restCreateIngressProxy(c context.Context, i *huma_utils.JsonBody[models.CreateIngressProxy]) (*huma_utils.JsonBody[models.IngressProxy], error) {
+func (s *LoadBalancerServer) restCreateLoadBalancer(c context.Context, i *huma_utils.JsonBody[models.CreateLoadBalancer]) (*huma_utils.JsonBody[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -43,11 +43,11 @@ func (s *IngressProxyServer) restCreateIngressProxy(c context.Context, i *huma_u
 		return nil, huma.Error400BadRequest(err.Error(), nil)
 	}
 
-	if i.Body.ProxyType != "caddy" {
-		return nil, huma.Error400BadRequest("invalid proxy_type, must be 'caddy'", nil)
+	if i.Body.LoadBalancerType != "caddy" {
+		return nil, huma.Error400BadRequest("invalid load_balancer_type, must be 'caddy'", nil)
 	}
 
-	slog.InfoContext(c, "creating ingress proxy", slog.Any("name", i.Body.Name))
+	slog.InfoContext(c, "creating load balancer", slog.Any("name", i.Body.Name))
 
 	// Validate port ranges
 	if i.Body.HttpPort < 1 || i.Body.HttpPort > 65535 {
@@ -69,72 +69,72 @@ func (s *IngressProxyServer) restCreateIngressProxy(c context.Context, i *huma_u
 		return nil, err
 	}
 
-	proxy := &dmodel.IngressProxy{
+	lb := &dmodel.LoadBalancer{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Name:      i.Body.Name,
-		ProxyType: string(i.Body.ProxyType),
-		NetworkId: network.ID,
-		HttpPort:  i.Body.HttpPort,
-		HttpsPort: i.Body.HttpsPort,
-		Replicas:  i.Body.Replicas,
+		Name:             i.Body.Name,
+		LoadBalancerType: string(i.Body.LoadBalancerType),
+		NetworkId:        network.ID,
+		HttpPort:         i.Body.HttpPort,
+		HttpsPort:        i.Body.HttpsPort,
+		Replicas:         i.Body.Replicas,
 	}
 
-	err = proxy.Create(q)
+	err = lb.Create(q)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, proxy)
+	err = dmodel.AddChangeTracking(q, lb)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := models.IngressProxyFromDB(*proxy)
+	ret := models.LoadBalancerFromDB(*lb)
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-func (s *IngressProxyServer) restListIngressProxies(c context.Context, i *struct{}) (*huma_utils.List[models.IngressProxy], error) {
+func (s *LoadBalancerServer) restListLoadBalancers(c context.Context, i *struct{}) (*huma_utils.List[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	proxies, err := dmodel.ListIngressProxiesForWorkspace(q, w.ID, true)
+	proxies, err := dmodel.ListLoadBalancersForWorkspace(q, w.ID, true)
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []models.IngressProxy
+	var ret []models.LoadBalancer
 	for _, p := range proxies {
-		ret = append(ret, *models.IngressProxyFromDB(p))
+		ret = append(ret, *models.LoadBalancerFromDB(p))
 	}
 
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *IngressProxyServer) restGetIngressProxy(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.IngressProxy], error) {
+func (s *LoadBalancerServer) restGetLoadBalancer(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	proxy, err := dmodel.GetIngressProxyById(q, &w.ID, i.Id, true)
+	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := models.IngressProxyFromDB(*proxy)
+	ret := models.LoadBalancerFromDB(*lb)
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-type restUpdateIngressProxyInput struct {
+type restUpdateLoadBalancerInput struct {
 	huma_utils.IdByPath
-	huma_utils.JsonBody[models.UpdateIngressProxy]
+	huma_utils.JsonBody[models.UpdateLoadBalancer]
 }
 
-func (s *IngressProxyServer) restUpdateIngressProxy(c context.Context, i *restUpdateIngressProxyInput) (*huma_utils.JsonBody[models.IngressProxy], error) {
+func (s *LoadBalancerServer) restUpdateLoadBalancer(c context.Context, i *restUpdateLoadBalancerInput) (*huma_utils.JsonBody[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	proxy, err := dmodel.GetIngressProxyById(q, &w.ID, i.Id, true)
+	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +159,8 @@ func (s *IngressProxyServer) restUpdateIngressProxy(c context.Context, i *restUp
 	}
 
 	// Check that ports are not the same
-	httpPort := proxy.HttpPort
-	httpsPort := proxy.HttpsPort
+	httpPort := lb.HttpPort
+	httpsPort := lb.HttpsPort
 	if i.Body.HttpPort != nil {
 		httpPort = *i.Body.HttpPort
 	}
@@ -171,43 +171,43 @@ func (s *IngressProxyServer) restUpdateIngressProxy(c context.Context, i *restUp
 		return nil, huma.Error400BadRequest("http_port and https_port can't be the same", nil)
 	}
 
-	err = proxy.Update(q, i.Body.HttpPort, i.Body.HttpsPort, i.Body.Replicas)
+	err = lb.Update(q, i.Body.HttpPort, i.Body.HttpsPort, i.Body.Replicas)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, proxy)
+	err = dmodel.AddChangeTracking(q, lb)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := models.IngressProxyFromDB(*proxy)
+	ret := models.LoadBalancerFromDB(*lb)
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-func (s *IngressProxyServer) restDeleteIngressProxy(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
+func (s *LoadBalancerServer) restDeleteLoadBalancer(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
-	proxy, err := dmodel.GetIngressProxyById(q, &w.ID, i.Id, true)
+	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
-	ingresses, err := dmodel.ListBoxIngressesForProxy(q, proxy.ID)
+	lbServices, err := dmodel.ListLoadBalancerServicesForLoadBalancer(q, lb.ID)
 	if err != nil {
 		return nil, err
 	}
-	if len(ingresses) != 0 {
-		return nil, huma.Error400BadRequest("can't delete ingress proxies with active ingresses")
+	if len(lbServices) != 0 {
+		return nil, huma.Error400BadRequest("can't delete load balancers with active services")
 	}
 
-	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.IngressProxy](q, &proxy.WorkspaceID, proxy.ID)
+	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.LoadBalancer](q, &lb.WorkspaceID, lb.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, proxy)
+	err = dmodel.AddChangeTracking(q, lb)
 	if err != nil {
 		return nil, err
 	}

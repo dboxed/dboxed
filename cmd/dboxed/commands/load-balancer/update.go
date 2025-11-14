@@ -1,4 +1,4 @@
-package ingress_proxy
+package load_balancer
 
 import (
 	"context"
@@ -11,10 +11,10 @@ import (
 )
 
 type UpdateCmd struct {
-	Proxy     string `help:"Ingress proxy (ID or name)" required:"" arg:""`
-	HttpPort  *int   `help:"HTTP port"`
-	HttpsPort *int   `help:"HTTPS port"`
-	Replicas  *int   `help:"Number of replicas"`
+	LoadBalancer string `help:"Specify the load balancer" required:"" arg:""`
+	HttpPort     *int   `help:"HTTP port"`
+	HttpsPort    *int   `help:"HTTPS port"`
+	Replicas     *int   `help:"Number of replicas"`
 }
 
 func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
@@ -25,25 +25,25 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	proxy, err := commandutils.GetIngressProxy(ctx, c, cmd.Proxy)
+	lb, err := commandutils.GetLoadBalancer(ctx, c, cmd.LoadBalancer)
 	if err != nil {
 		return err
 	}
 
-	c2 := &clients.IngressProxyClient{Client: c}
+	c2 := &clients.LoadBalancerClient{Client: c}
 
-	req := models.UpdateIngressProxy{
+	req := models.UpdateLoadBalancer{
 		HttpPort:  cmd.HttpPort,
 		HttpsPort: cmd.HttpsPort,
 		Replicas:  cmd.Replicas,
 	}
 
-	proxy, err = c2.UpdateIngressProxy(ctx, proxy.ID, req)
+	lb, err = c2.UpdateLoadBalancer(ctx, lb.ID, req)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("Updated ingress proxy", slog.Any("id", proxy.ID), slog.Any("name", proxy.Name))
+	slog.Info("Updated load balancer", slog.Any("id", lb.ID), slog.Any("name", lb.Name))
 
 	return nil
 }

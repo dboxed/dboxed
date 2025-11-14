@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/boxes"
-	"github.com/dboxed/dboxed/pkg/reconcilers/ingress_proxies"
+	"github.com/dboxed/dboxed/pkg/reconcilers/load_balancers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks"
@@ -50,7 +50,7 @@ var reconcilerFuncs = []initRunFunc{
 	runReconcilerNetworks,
 	runReconcilerS3Buckets,
 	runReconcilerVolumeProviders,
-	runReconcilerIngressProxies,
+	runReconcilerLoadBalancers,
 	runReconcilerBoxes,
 	runReconcilerMachines,
 }
@@ -244,8 +244,8 @@ func runReconcilerBoxes(ctx context.Context, config config2.Config) (runFunc, er
 	return r.Run, nil
 }
 
-func runReconcilerIngressProxies(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := ingress_proxies.NewIngressProxiesReconciler(config)
+func runReconcilerLoadBalancers(ctx context.Context, config config2.Config) (runFunc, error) {
+	r := load_balancers.NewLoadBalancersReconciler(config)
 	return r.Run, nil
 }
 

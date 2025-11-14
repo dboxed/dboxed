@@ -20,6 +20,7 @@ type clientTool struct {
 	Boxes           cache[models.Box]
 	S3Buckets       cache[models.S3Bucket]
 	Volumes         cache[models.Volume]
+	LoadBalancers   cache[models.LoadBalancer]
 }
 
 func NewClientTool(c *baseclient.Client) *clientTool {
@@ -63,6 +64,12 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 			return (&clients.VolumesClient{Client: c}).GetVolumeById(ctx, id)
 		},
 		entityName: "volume",
+	}
+	ct.LoadBalancers = cache[models.LoadBalancer]{
+		getById: func(ctx context.Context, id string) (*models.LoadBalancer, error) {
+			return (&clients.LoadBalancerClient{Client: c}).GetLoadBalancerById(ctx, id)
+		},
+		entityName: "load balancer",
 	}
 
 	return ct

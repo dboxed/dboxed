@@ -58,11 +58,11 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/port-forwards/{portForwardId}", s.restUpdatePortForward)
 	huma.Delete(workspacesGroup, "/boxes/{id}/port-forwards/{portForwardId}", s.restDeletePortForward)
 
-	// ingresses
-	huma.Get(workspacesGroup, "/boxes/{id}/ingresses", s.restListBoxIngresses, allowBoxTokenModifier)
-	huma.Post(workspacesGroup, "/boxes/{id}/ingresses", s.restCreateBoxIngress)
-	huma.Patch(workspacesGroup, "/boxes/{id}/ingresses/{ingressId}", s.restUpdateBoxIngress)
-	huma.Delete(workspacesGroup, "/boxes/{id}/ingresses/{ingressId}", s.restDeleteBoxIngress)
+	// load-balancer-services
+	huma.Get(workspacesGroup, "/boxes/{id}/load-balancer-services", s.restListLoadBalancerServices, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/boxes/{id}/load-balancer-services", s.restCreateLoadBalancerService)
+	huma.Patch(workspacesGroup, "/boxes/{id}/load-balancer-services/{loadBalancerServiceId}", s.restUpdateLoadBalancerService)
+	huma.Delete(workspacesGroup, "/boxes/{id}/load-balancer-services/{loadBalancerServiceId}", s.restDeleteLoadBalancerService)
 
 	// run status
 	huma.Get(workspacesGroup, "/boxes/{id}/sandbox-status", s.restGetSandboxStatus, allowBoxTokenModifier)

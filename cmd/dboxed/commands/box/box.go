@@ -26,8 +26,8 @@ type BoxCommands struct {
 	UpdatePortForward UpdatePortForwardCmd `cmd:"" help:"Update a port forward" group:"port-forward"`
 	ListPortForwards  ListPortForwardsCmd  `cmd:"" help:"List port forwards" aliases:"ls-port-forwards" group:"port-forward"`
 
-	AddIngress    AddIngressCmd    `cmd:"" help:"Add an ingress" group:"ingress"`
-	RemoveIngress RemoveIngressCmd `cmd:"" help:"Remove an ingress" group:"ingress" aliases:"rm-ingress,delete-ingress"`
-	UpdateIngress UpdateIngressCmd `cmd:"" help:"Update an ingress" group:"ingress"`
-	ListIngresses ListIngressesCmd `cmd:"" help:"List ingresses" aliases:"ls-ingresses" group:"ingress"`
+	AddLbService    AddLbServiceCmd    `cmd:"" help:"Add a load balancer service" group:"lb-services"`
+	RemoveLbService RemoveLbServiceCmd `cmd:"" help:"Remove a load balancer service" group:"lb-services" aliases:"rm-lb-service,delete-lb-service"`
+	UpdateLbService UpdateLbServiceCmd `cmd:"" help:"Update a load balancer service" group:"lb-services"`
+	ListLbServices  ListLbServicesCmd  `cmd:"" help:"List load balancer services" aliases:"ls-lb-services" group:"lb-services"`
 }

@@ -9,12 +9,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type RemoveIngressCmd struct {
-	Box       string `help:"Box ID or name" required:"" arg:""`
-	IngressId string `help:"Ingress ID" required:"" arg:""`
+type RemoveLbServiceCmd struct {
+	Box         string `help:"Box ID or name" required:"" arg:""`
+	LbServiceId string `help:"Load Balancer Service ID" required:"" arg:""`
 }
 
-func (cmd *RemoveIngressCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *RemoveLbServiceCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
@@ -29,12 +29,12 @@ func (cmd *RemoveIngressCmd) Run(g *flags.GlobalFlags) error {
 
 	c2 := &clients.BoxClient{Client: c}
 
-	err = c2.DeleteBoxIngress(ctx, b.ID, cmd.IngressId)
+	err = c2.DeleteLoadBalancerService(ctx, b.ID, cmd.LbServiceId)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("Removed box ingress", slog.Any("id", cmd.IngressId))
+	slog.Info("Removed load balancer service", slog.Any("id", cmd.LbServiceId))
 
 	return nil
 }

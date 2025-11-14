@@ -4,5 +4,5 @@ type BoxType string
 
 const (
 	BoxTypeNormal       BoxType = "normal"
-	BoxTypeIngressProxy BoxType = "ingress-proxy"
+	BoxTypeLoadBalancer BoxType = "load-balancer"
 )

@@ -1,4 +1,4 @@
-package ingress_proxy
+package load_balancer
 
 import (
 	"context"
@@ -12,9 +12,9 @@ import (
 )
 
 type CreateCmd struct {
-	Name      string `help:"Proxy name" required:""`
-	ProxyType string `help:"Proxy type" default:"caddy" enum:"caddy"`
-	Network   string `help:"Attach proxy to specified network (ID or name)." required:"true"`
+	Name      string `help:"Load balancer name" required:""`
+	Type      string `help:"Load balancer type" default:"caddy" enum:"caddy"`
+	Network   string `help:"Attach load balancer to specified network (ID or name)." required:"true"`
 	HttpPort  int    `help:"HTTP port" default:"80"`
 	HttpsPort int    `help:"HTTPS port" default:"443"`
 	Replicas  int    `help:"Number of replicas" default:"1"`
@@ -33,23 +33,23 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.IngressProxyClient{Client: c}
+	c2 := &clients.LoadBalancerClient{Client: c}
 
-	req := models.CreateIngressProxy{
-		Name:      cmd.Name,
-		ProxyType: global.IngressProxyType(cmd.ProxyType),
-		Network:   network.ID,
-		HttpPort:  cmd.HttpPort,
-		HttpsPort: cmd.HttpsPort,
-		Replicas:  cmd.Replicas,
+	req := models.CreateLoadBalancer{
+		Name:             cmd.Name,
+		LoadBalancerType: global.LoadBalancerType(cmd.Type),
+		Network:          network.ID,
+		HttpPort:         cmd.HttpPort,
+		HttpsPort:        cmd.HttpsPort,
+		Replicas:         cmd.Replicas,
 	}
 
-	proxy, err := c2.CreateIngressProxy(ctx, req)
+	lb, err := c2.CreateLoadBalancer(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("Created ingress proxy", slog.Any("id", proxy.ID), slog.Any("name", proxy.Name))
+	slog.Info("Created load balancer", slog.Any("id", lb.ID), slog.Any("name", lb.Name))
 
 	return nil
 }

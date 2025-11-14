@@ -13,7 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 )
 
-func (s *BoxesServer) restListBoxIngresses(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.BoxIngress], error) {
+func (s *BoxesServer) restListLoadBalancerServices(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.LoadBalancerService], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -27,25 +27,25 @@ func (s *BoxesServer) restListBoxIngresses(c context.Context, i *huma_utils.IdBy
 		return nil, err
 	}
 
-	ingresses, err := dmodel.ListBoxIngresses(q, box.ID)
+	lbServices, err := dmodel.ListLoadBalancerServices(q, box.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	var ret []models.BoxIngress
-	for _, ing := range ingresses {
-		ret = append(ret, *models.BoxIngressFromDB(ing))
+	var ret []models.LoadBalancerService
+	for _, ing := range lbServices {
+		ret = append(ret, *models.LoadBalancerServiceFromDB(ing))
 	}
 
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-type restCreateBoxIngressInput struct {
+type restCreateLoadBalancerServiceInput struct {
 	huma_utils.IdByPath
-	huma_utils.JsonBody[models.CreateBoxIngress]
+	huma_utils.JsonBody[models.CreateLoadBalancerService]
 }
 
-func (s *BoxesServer) restCreateBoxIngress(c context.Context, i *restCreateBoxIngressInput) (*huma_utils.JsonBody[models.BoxIngress], error) {
+func (s *BoxesServer) restCreateLoadBalancerService(c context.Context, i *restCreateLoadBalancerServiceInput) (*huma_utils.JsonBody[models.LoadBalancerService], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -57,28 +57,28 @@ func (s *BoxesServer) restCreateBoxIngress(c context.Context, i *restCreateBoxIn
 		return nil, err
 	}
 
-	proxy, err := dmodel.GetIngressProxyById(q, &w.ID, i.Body.ProxyID, true)
+	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Body.LoadBalancerID, true)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.validateBoxIngressParams(&i.Body.Hostname, &i.Body.PathPrefix, &i.Body.Port)
+	err = s.validateLoadBalancerServiceParams(&i.Body.Hostname, &i.Body.PathPrefix, &i.Body.Port)
 	if err != nil {
 		return nil, err
 	}
 
-	slog.InfoContext(c, "creating box ingress", slog.Any("boxId", box.ID), slog.Any("proxyId", proxy.ID))
+	slog.InfoContext(c, "creating load balancer service", slog.Any("boxId", box.ID), slog.Any("loadBalancerId", lb.ID))
 
-	ingress := &dmodel.BoxIngress{
-		ProxyID:     proxy.ID,
-		BoxID:       box.ID,
-		Description: i.Body.Description,
-		Hostname:    i.Body.Hostname,
-		PathPrefix:  i.Body.PathPrefix,
-		Port:        i.Body.Port,
+	sbService := &dmodel.LoadBalancerService{
+		LoadBalancerId: lb.ID,
+		BoxID:          box.ID,
+		Description:    i.Body.Description,
+		Hostname:       i.Body.Hostname,
+		PathPrefix:     i.Body.PathPrefix,
+		Port:           i.Body.Port,
 	}
 
-	err = ingress.Create(q)
+	err = sbService.Create(q)
 	if err != nil {
 		return nil, err
 	}
@@ -93,17 +93,17 @@ func (s *BoxesServer) restCreateBoxIngress(c context.Context, i *restCreateBoxIn
 		return nil, err
 	}
 
-	ret := models.BoxIngressFromDB(*ingress)
+	ret := models.LoadBalancerServiceFromDB(*sbService)
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-type restUpdateBoxIngressInput struct {
+type restUpdateLoadBalancerServiceInput struct {
 	huma_utils.IdByPath
-	IngressId string `path:"ingressId"`
-	huma_utils.JsonBody[models.UpdateBoxIngress]
+	LoadBalancerServiceId string `path:"loadBalancerServiceId"`
+	huma_utils.JsonBody[models.UpdateLoadBalancerService]
 }
 
-func (s *BoxesServer) restUpdateBoxIngress(c context.Context, i *restUpdateBoxIngressInput) (*huma_utils.JsonBody[models.BoxIngress], error) {
+func (s *BoxesServer) restUpdateLoadBalancerService(c context.Context, i *restUpdateLoadBalancerServiceInput) (*huma_utils.JsonBody[models.LoadBalancerService], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -115,17 +115,17 @@ func (s *BoxesServer) restUpdateBoxIngress(c context.Context, i *restUpdateBoxIn
 		return nil, err
 	}
 
-	ingress, err := dmodel.GetBoxIngress(q, box.ID, i.IngressId)
+	lbService, err := dmodel.GetLoadBalancerService(q, box.ID, i.LoadBalancerServiceId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.validateBoxIngressParams(i.Body.Hostname, i.Body.PathPrefix, i.Body.Port)
+	err = s.validateLoadBalancerServiceParams(i.Body.Hostname, i.Body.PathPrefix, i.Body.Port)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ingress.Update(q, i.Body.Description, i.Body.Hostname, i.Body.PathPrefix, i.Body.Port)
+	err = lbService.Update(q, i.Body.Description, i.Body.Hostname, i.Body.PathPrefix, i.Body.Port)
 	if err != nil {
 		return nil, err
 	}
@@ -140,16 +140,16 @@ func (s *BoxesServer) restUpdateBoxIngress(c context.Context, i *restUpdateBoxIn
 		return nil, err
 	}
 
-	ret := models.BoxIngressFromDB(*ingress)
+	ret := models.LoadBalancerServiceFromDB(*lbService)
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
-type restDeleteBoxIngressInput struct {
+type restDeleteLoadBalancerServiceInput struct {
 	huma_utils.IdByPath
-	IngressId string `path:"ingressId"`
+	LoadBalancerServiceId string `path:"loadBalancerServiceId"`
 }
 
-func (s *BoxesServer) restDeleteBoxIngress(c context.Context, i *restDeleteBoxIngressInput) (*huma_utils.Empty, error) {
+func (s *BoxesServer) restDeleteLoadBalancerService(c context.Context, i *restDeleteLoadBalancerServiceInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -161,9 +161,9 @@ func (s *BoxesServer) restDeleteBoxIngress(c context.Context, i *restDeleteBoxIn
 		return nil, err
 	}
 
-	err = querier2.DeleteOneByFields[dmodel.BoxIngress](q, map[string]any{
+	err = querier2.DeleteOneByFields[dmodel.LoadBalancerService](q, map[string]any{
 		"box_id": box.ID,
-		"id":     i.IngressId,
+		"id":     i.LoadBalancerServiceId,
 	})
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ func (s *BoxesServer) restDeleteBoxIngress(c context.Context, i *restDeleteBoxIn
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *BoxesServer) validateBoxIngressParams(hostname *string, pathPrefix *string, port *int) error {
+func (s *BoxesServer) validateLoadBalancerServiceParams(hostname *string, pathPrefix *string, port *int) error {
 	if hostname != nil {
 		if len(*hostname) == 0 {
 			return huma.Error400BadRequest("hostname cannot be empty", nil)
