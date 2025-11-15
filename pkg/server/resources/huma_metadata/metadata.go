@@ -12,6 +12,7 @@ const AllowTokensWithWorkspace = "allow-tokens-with-workspace"
 
 const AllowWorkspaceToken = "allow-workspace-token"
 const AllowBoxToken = "allow-box-token"
+const AllowLoadBalancerToken = "allow-load-balancer-token"
 
 const SkipWorkspace = "skip-workspace"
 

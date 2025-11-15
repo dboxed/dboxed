@@ -10,8 +10,9 @@ type Token struct {
 	Name  string `db:"name"`
 	Token string `db:"token"`
 
-	ForWorkspace bool    `db:"for_workspace"`
-	BoxID        *string `db:"box_id"`
+	ForWorkspace   bool    `db:"for_workspace"`
+	BoxID          *string `db:"box_id"`
+	LoadBalancerId *string `db:"load_balancer_id"`
 }
 
 func (v *Token) Create(q *querier.Querier) error {

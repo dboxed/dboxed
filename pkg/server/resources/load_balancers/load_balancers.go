@@ -11,6 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -25,11 +26,21 @@ func New(config config.Config) *LoadBalancerServer {
 }
 
 func (s *LoadBalancerServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	allowLoadBalancerTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowLoadBalancerToken, true)
+
 	huma.Post(workspacesGroup, "/load-balancers", s.restCreateLoadBalancer)
 	huma.Get(workspacesGroup, "/load-balancers", s.restListLoadBalancers)
 	huma.Get(workspacesGroup, "/load-balancers/{id}", s.restGetLoadBalancer)
 	huma.Patch(workspacesGroup, "/load-balancers/{id}", s.restUpdateLoadBalancer)
 	huma.Delete(workspacesGroup, "/load-balancers/{id}", s.restDeleteLoadBalancer)
+
+	huma.Put(workspacesGroup, "/load-balancers/{id}/certmagic/locks/*key", s.restPutCertmagicLock, allowLoadBalancerTokenModifier)
+	huma.Delete(workspacesGroup, "/load-balancers/{id}/certmagic/locks/*key", s.restDeleteCertmagicLock, allowLoadBalancerTokenModifier)
+
+	huma.Head(workspacesGroup, "/load-balancers/{id}/certmagic/objects/*key", s.restHeadCertmagicObject, allowLoadBalancerTokenModifier)
+	huma.Get(workspacesGroup, "/load-balancers/{id}/certmagic/objects/*key", s.restGetCertmagicObject, allowLoadBalancerTokenModifier)
+	huma.Put(workspacesGroup, "/load-balancers/{id}/certmagic/objects/*key", s.restPutCertmagicObject, allowLoadBalancerTokenModifier)
+	huma.Delete(workspacesGroup, "/load-balancers/{id}/certmagic/objects/*key", s.restDeleteCertmagicObject, allowLoadBalancerTokenModifier)
 
 	return nil
 }

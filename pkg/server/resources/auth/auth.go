@@ -218,6 +218,9 @@ func (s *AuthHandler) checkDboxedToken(ctx huma.Context, authz string) (*models.
 	if t.BoxID != nil && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowBoxToken) {
 		return nil, fmt.Errorf("box token not allowed")
 	}
+	if t.LoadBalancerId != nil && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowLoadBalancerToken) {
+		return nil, fmt.Errorf("load balancer token not allowed")
+	}
 
 	m := models.TokenFromDB(*t, false)
 	return &m, nil

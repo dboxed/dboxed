@@ -36,7 +36,8 @@ func (s *TokenServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 }
 
 func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBody[models.CreateToken]) (*huma_utils.JsonBody[models.Token], error) {
-	ret, err := CreateToken(ctx, i.Body, true, false)
+	w := global.GetWorkspace(ctx)
+	ret, err := CreateToken(ctx, w.ID, i.Body, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -107,16 +108,15 @@ func (s *TokenServer) restDeleteToken(c context.Context, i *huma_utils.IdByPath)
 	return &huma_utils.Empty{}, nil
 }
 
-func CreateToken(ctx context.Context, ct models.CreateToken, returnSecret bool, internal bool) (*models.Token, error) {
+func CreateToken(ctx context.Context, workspaceId string, ct models.CreateToken, returnSecret bool, internal bool) (*models.Token, error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
 
 	err := util.CheckName(ct.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = dmodel.GetTokenByName(q, w.ID, ct.Name)
+	_, err = dmodel.GetTokenByName(q, workspaceId, ct.Name)
 	if err != nil {
 		if !querier.IsSqlNotFoundError(err) {
 			return nil, err
@@ -133,7 +133,7 @@ func CreateToken(ctx context.Context, ct models.CreateToken, returnSecret bool, 
 	}
 
 	t := dmodel.Token{
-		WorkspaceID: w.ID,
+		WorkspaceID: workspaceId,
 		Name:        ct.Name,
 		Token:       auth.TokenPrefix + util.RandomString(16),
 	}
@@ -141,11 +141,17 @@ func CreateToken(ctx context.Context, ct models.CreateToken, returnSecret bool, 
 	if ct.ForWorkspace {
 		t.ForWorkspace = true
 	} else if ct.BoxID != nil {
-		box, err := dmodel.GetBoxById(q, &w.ID, *ct.BoxID, true)
+		box, err := dmodel.GetBoxById(q, &workspaceId, *ct.BoxID, true)
 		if err != nil {
 			return nil, err
 		}
 		t.BoxID = &box.ID
+	} else if ct.LoadBalancerId != nil {
+		lb, err := dmodel.GetLoadBalancerById(q, &workspaceId, *ct.LoadBalancerId, true)
+		if err != nil {
+			return nil, err
+		}
+		t.LoadBalancerId = &lb.ID
 	} else {
 		return nil, huma.Error400BadRequest("missing details")
 	}

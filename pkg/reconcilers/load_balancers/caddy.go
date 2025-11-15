@@ -2,21 +2,22 @@ package load_balancers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/load_balancers/files"
+	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.LoadBalancer, box *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.LoadBalancer, box *dmodel.Box, token *models.Token, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
-	composeFile, result := r.buildCaddyCompose(ctx, lb, box, log)
+	composeFile, result := r.buildCaddyCompose(ctx, lb, box, token, log)
 	if result.Error != nil {
 		return result
 	}
@@ -50,17 +51,13 @@ func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalancer, proxyBox *dmodel.Box, log *slog.Logger) (string, base.ReconcileResult) {
-	cf, result := r.buildCaddyfile(ctx, lb, log)
+func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalancer, proxyBox *dmodel.Box, token *models.Token, log *slog.Logger) (string, base.ReconcileResult) {
+	cf, result := r.buildCaddyfile(ctx, lb, token, log)
 	if result.Error != nil {
 		return "", result
 	}
-	cfj, err := json.Marshal(cf)
-	if err != nil {
-		return "", base.InternalError(err)
-	}
 
-	ret, err := files.GetCaddyComposeFile("2.10", string(cfj))
+	ret, err := files.GetCaddyComposeFile("nightly", cf)
 	if err != nil {
 		return "", base.InternalError(err)
 	}
@@ -68,10 +65,14 @@ func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalan
 	return ret, base.ReconcileResult{}
 }
 
-func (r *reconciler) buildCaddyfile(ctx context.Context, lb *dmodel.LoadBalancer, log *slog.Logger) (string, base.ReconcileResult) {
+func (r *reconciler) buildCaddyfile(ctx context.Context, lb *dmodel.LoadBalancer, token *models.Token, log *slog.Logger) (string, base.ReconcileResult) {
 	q := querier.GetQuerier(ctx)
+	cfg := config.GetConfig(ctx)
 
-	cf := "#caddyfile\n"
+	cf, err := files.GetCaddyfile(cfg.Server.BaseUrl, *token.Token, lb.WorkspaceID, lb.ID)
+	if err != nil {
+		return "", base.InternalError(err)
+	}
 
 	lbServices, err := dmodel.ListLoadBalancerServicesForLoadBalancer(q, lb.ID)
 	if err != nil {

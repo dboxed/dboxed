@@ -13,7 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 )
 
-func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBalancer, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBalancer, token *models.Token, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	network, err := dmodel.GetNetworkById(q, nil, lb.NetworkId, true)
@@ -70,7 +70,7 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 		if err != nil {
 			return base.InternalError(err)
 		}
-		result := r.reconcileBoxReplica(ctx, lb, box, log)
+		result := r.reconcileBoxReplica(ctx, lb, box, token, log)
 		if result.Error != nil {
 			return result
 		}
@@ -79,7 +79,7 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) reconcileBoxReplica(ctx context.Context, lb *dmodel.LoadBalancer, box *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileBoxReplica(ctx context.Context, lb *dmodel.LoadBalancer, box *dmodel.Box, token *models.Token, log *slog.Logger) base.ReconcileResult {
 	log = log.With("boxId", box.ID, "boxName", box.Name)
 
 	result := r.reconcileBoxPortForwards(ctx, lb, box, log)
@@ -89,7 +89,7 @@ func (r *reconciler) reconcileBoxReplica(ctx context.Context, lb *dmodel.LoadBal
 
 	switch global.LoadBalancerType(lb.LoadBalancerType) {
 	case global.LoadBalancerTypeCaddy:
-		result = r.reconcileLoadBalancerCaddy(ctx, lb, box, log)
+		result = r.reconcileLoadBalancerCaddy(ctx, lb, box, token, log)
 		if result.Error != nil {
 			return result
 		}

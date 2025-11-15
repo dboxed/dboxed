@@ -1,7 +1,10 @@
 name: caddy
 services:
   caddy:
-    image: caddy:{{ .CaddyVersion }}-alpine
+    image: ghcr.io/dboxed/dboxed-lb-caddy:{{ .CaddyVersion }}
+    {{- if or (eq .CaddyVersion "nightly") (eq .CaddyVersion "latest") }}
+    pull_policy: always
+    {{- end }}
     restart: unless-stopped
     command:
       - caddy
@@ -18,4 +21,5 @@ services:
     volumes:
       - type: content
         target: /etc/caddy/Caddyfile
-        x-content: {{ .Caddyfile }}
+        x-content: |
+          {{- .Caddyfile | nindent 10 }}

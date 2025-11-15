@@ -40,3 +40,12 @@ create table load_balancer_service
     path_prefix      text           not null,
     port             int            not null
 );
+
+create table load_balancer_certmagic
+(
+    load_balancer_id text           not null references load_balancer (id) on delete cascade,
+    key              text           not null,
+    value            TYPES_BYTES    not null,
+    last_modified    TYPES_DATETIME not null,
+    unique (load_balancer_id, key)
+);

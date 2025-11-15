@@ -67,6 +67,25 @@ dockers_v2:
     dockerfile: infra-image/Dockerfile
     extra_files:
       - infra-image
+  - id: caddy
+    images:
+      - ghcr.io/dboxed/dboxed-lb-caddy
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    build_args:
+      CADDY_VERSION: "2.10"
+    labels:
+      "org.opencontainers.image.description": "Dboxed caddy"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    dockerfile: caddy/Dockerfile
+    extra_files:
+      - caddy
 
 changelog:
   sort: asc
