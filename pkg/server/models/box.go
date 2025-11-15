@@ -40,9 +40,6 @@ type CreateBox struct {
 	ComposeProjects   []CreateBoxComposeProject `json:"composeProjects,omitempty"`
 }
 
-type UpdateBox struct {
-	DesiredState *string `json:"desiredState,omitempty"`
-}
 type BoxSandboxStatus struct {
 	StatusTime *time.Time `json:"statusTime,omitempty"`
 	RunStatus  *string    `json:"runStatus,omitempty"`

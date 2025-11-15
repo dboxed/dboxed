@@ -68,26 +68,20 @@ func (c *BoxClient) DeleteBox(ctx context.Context, id string) error {
 	return err
 }
 
-func (c *BoxClient) UpdateBox(ctx context.Context, id string, req models.UpdateBox) (*models.Box, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", id)
+func (c *BoxClient) StartBox(ctx context.Context, id string) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id, "start")
 	if err != nil {
 		return nil, err
 	}
-	return baseclient.RequestApi[models.Box](ctx, c.Client, "PATCH", p, req)
-}
-
-func (c *BoxClient) StartBox(ctx context.Context, id string) (*models.Box, error) {
-	desiredState := "up"
-	return c.UpdateBox(ctx, id, models.UpdateBox{
-		DesiredState: &desiredState,
-	})
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, struct{}{})
 }
 
 func (c *BoxClient) StopBox(ctx context.Context, id string) (*models.Box, error) {
-	desiredState := "down"
-	return c.UpdateBox(ctx, id, models.UpdateBox{
-		DesiredState: &desiredState,
-	})
+	p, err := c.Client.BuildApiPath(true, "boxes", id, "stop")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, struct{}{})
 }
 
 func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId string) (*models.BoxSandboxStatus, error) {

@@ -37,7 +37,8 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/by-name/{name}", s.restGetBoxByName, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}/box-spec", s.restGetBoxSpec, allowBoxTokenModifier)
-	huma.Patch(workspacesGroup, "/boxes/{id}", s.restUpdateBox)
+	huma.Post(workspacesGroup, "/boxes/{id}/start", s.restStartBox)
+	huma.Post(workspacesGroup, "/boxes/{id}/stop", s.restStopBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
 
 	// compose-projects
@@ -190,12 +191,7 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 	return s.getBoxHelper(c, box)
 }
 
-type restUpdateBoxInput struct {
-	huma_utils.IdByPath
-	huma_utils.JsonBody[models.UpdateBox]
-}
-
-func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*huma_utils.JsonBody[models.Box], error) {
+func (s *BoxesServer) restStartBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
 
@@ -203,16 +199,8 @@ func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*
 	if err != nil {
 		return nil, err
 	}
-	if err = s.checkNormalBoxMod(box); err != nil {
-		return nil, err
-	}
 
-	err = s.doUpdateBox(c, box, i.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := s.postprocessBox(*box, nil)
+	err = box.UpdateDesiredState(q, "up")
 	if err != nil {
 		return nil, err
 	}
@@ -222,27 +210,39 @@ func (s *BoxesServer) restUpdateBox(c context.Context, i *restUpdateBoxInput) (*
 		return nil, err
 	}
 
+	m, err := s.postprocessBox(*box, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return huma_utils.NewJsonBody(*m), nil
 }
 
-func (s *BoxesServer) doUpdateBox(c context.Context, box *dmodel.Box, body models.UpdateBox) error {
+func (s *BoxesServer) restStopBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
 
-	if body.DesiredState != nil {
-		// Validate desired state
-		desiredState := *body.DesiredState
-		if desiredState != "up" && desiredState != "down" {
-			return huma.Error400BadRequest("desiredState must be either 'up' or 'down'")
-		}
-
-		// Update the desired state
-		err := box.UpdateDesiredState(q, desiredState)
-		if err != nil {
-			return err
-		}
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	err = box.UpdateDesiredState(q, "down")
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.AddChangeTracking(q, box)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := s.postprocessBox(*box, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return huma_utils.NewJsonBody(*m), nil
 }
 
 func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
