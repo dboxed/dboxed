@@ -16,3 +16,12 @@ type DboxedVolume struct {
 }
 
 const AllowedModeMask = os.ModePerm
+
+func (s *BoxSpec) GetVolumeByName(name string) *DboxedVolume {
+	for _, v := range s.Volumes {
+		if v.Name == name {
+			return &v
+		}
+	}
+	return nil
+}

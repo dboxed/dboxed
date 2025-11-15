@@ -31,14 +31,13 @@ func (rn *BoxSpecRunner) getContentFilePath(target string) string {
 
 func (rn *BoxSpecRunner) updateServiceVolume(volume *ctypes.ServiceVolumeConfig) error {
 	if volume.Type == "dboxed" {
-		for _, v := range rn.BoxSpec.Volumes {
-			if v.Name == volume.Source {
-				volume.Type = ctypes.VolumeTypeBind
-				volume.Source = rn.getDboxedVolumeMountDir(v.ID)
-				return nil
-			}
+		dv := rn.BoxSpec.GetVolumeByName(volume.Source)
+		if dv == nil {
+			return fmt.Errorf("dboxed volume with name %s not found", volume.Source)
 		}
-		return fmt.Errorf("dboxed volume with name %s not found", volume.Source)
+		volume.Type = ctypes.VolumeTypeBind
+		volume.Source = rn.getDboxedVolumeMountDir(dv.ID)
+		return nil
 	} else if volume.Type == "content" {
 		volume.Type = ctypes.VolumeTypeBind
 		volume.Source = rn.getContentFilePath(volume.Target)

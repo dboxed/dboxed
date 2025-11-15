@@ -56,6 +56,12 @@ func (s *BoxSpec) loadAndSetupComposeProject(ctx context.Context, name string, c
 
 func (s *BoxSpec) ValidateComposeProject(ctx context.Context, name string, composeStr string) error {
 	updateServiceVolume := func(volume *ctypes.ServiceVolumeConfig) error {
+		if volume.Type == "dboxed" {
+			if s.GetVolumeByName(volume.Source) == nil {
+				return fmt.Errorf("dboxed volume with name %s not found", volume.Source)
+			}
+		}
+
 		volume.Type = ctypes.VolumeTypeBind
 		volume.Source = "/dummy"
 		return nil
