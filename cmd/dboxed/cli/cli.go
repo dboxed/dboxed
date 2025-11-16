@@ -33,7 +33,7 @@ type Cli struct {
 	Workspace workspace.WorkspaceCommands `cmd:"" help:"manage workspaces"`
 
 	Network      network.NetworkCommands            `cmd:"" help:"manage networks"`
-	LoadBalancer load_balancer.LoadBalancerCommands `cmd:"" help:"manage load balancers"`
+	LoadBalancer load_balancer.LoadBalancerCommands `cmd:"" aliases:"lb" help:"manage load balancers"`
 
 	S3Bucket s3_bucket.S3BucketCommands `cmd:"" name:"s3-bucket" aliases:"s3bucket,s3" help:"manage S3 bucket configurations"`
 
