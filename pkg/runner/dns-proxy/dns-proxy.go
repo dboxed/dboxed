@@ -112,7 +112,7 @@ func (d *DnsProxy) readStuff(ctx context.Context) error {
 
 	oldStaticMap := d.staticHostsMap.Swap(newStaticMap)
 	if !reflect.DeepEqual(oldStaticMap, newStaticMap) {
-		slog.InfoContext(ctx, "using static hosts map", newStaticMap)
+		slog.InfoContext(ctx, "using static hosts map", "newStaticMap", newStaticMap)
 	}
 
 	return nil
