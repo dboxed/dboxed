@@ -54,6 +54,10 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		sandboxStatus, err := c2.GetSandboxStatus(ctx, b.ID)
 		if err == nil && sandboxStatus.RunStatus != nil {
 			p.SandboxStatus = *sandboxStatus.RunStatus
+
+			if b.Status == "Stale" {
+				p.SandboxStatus += " (stale)"
+			}
 		}
 
 		if b.Network != nil {

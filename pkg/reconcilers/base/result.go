@@ -11,9 +11,14 @@ import (
 )
 
 type ReconcileResult struct {
+	Status      string
 	Error       error
 	UserMessage string
 	Retry       bool
+}
+
+func StatusWithMessage(status string, message string) ReconcileResult {
+	return ReconcileResult{Status: status, UserMessage: message}
 }
 
 func InternalError(err error) ReconcileResult {
@@ -34,6 +39,11 @@ func SetReconcileResult[T dmodel.HasReconcileStatus](ctx context.Context, log *s
 	if result.Error != nil {
 		log.ErrorContext(ctx, "error in reconcile", "error", result.Error, "userMessage", result.UserMessage)
 		err := SetReconcileStatus(ctx, v, "Error", result.UserMessage)
+		if err != nil && !querier2.IsSqlNotFoundError(err) {
+			log.ErrorContext(ctx, "error in setReconcileStatus", "error", err)
+		}
+	} else if result.Status != "" {
+		err := SetReconcileStatus(ctx, v, result.Status, result.UserMessage)
 		if err != nil && !querier2.IsSqlNotFoundError(err) {
 			log.ErrorContext(ctx, "error in setReconcileStatus", "error", err)
 		}

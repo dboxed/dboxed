@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -46,6 +47,8 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 	if err != nil {
 		return nil, err
 	}
+
+	oldStatusTime := box.SandboxStatus.StatusTime
 
 	if i.Body.SandboxStatus != nil {
 		if i.Body.SandboxStatus.RunStatus != nil {
@@ -96,6 +99,17 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 		err = box.SandboxStatus.UpdateDockerPs(q, i.Body.DockerPs)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	if oldStatusTime != nil && box.SandboxStatus.StatusTime != nil {
+		// if we didn't update status for some time, do immediate reconciliation so that the overall box status gets
+		// updates asap
+		if box.SandboxStatus.StatusTime.Sub(*oldStatusTime) >= time.Second*30 {
+			err = dmodel.AddChangeTracking(q, box)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
