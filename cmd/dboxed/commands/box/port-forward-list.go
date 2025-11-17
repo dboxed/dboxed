@@ -16,7 +16,7 @@ type ListPortForwardsCmd struct {
 }
 
 type PrintPortForward struct {
-	ID            string `col:"ID" id:"true"`
+	ID            string `col:"ID"` // do not set id:true here as the user will actually need the ID to update/remove the port-forward
 	Description   string `col:"Description"`
 	Protocol      string `col:"Protocol"`
 	HostPortRange string `col:"Host Port"`

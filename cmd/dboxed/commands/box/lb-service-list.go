@@ -15,7 +15,7 @@ type ListLbServicesCmd struct {
 }
 
 type PrintLoadBalancerService struct {
-	ID           string `col:"ID" id:"true"`
+	ID           string `col:"ID"` // do not set id:true here as the user will actually need the ID to update/remove the port-forward
 	Description  string `col:"Description"`
 	LoadBalancer string `col:"Load Balancer"`
 	Hostname     string `col:"Hostname"`
