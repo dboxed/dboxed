@@ -55,8 +55,13 @@ func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_ut
 	}
 
 	var ret []models.Token
-	for _, r := range l {
-		mm := models.TokenFromDB(r, false)
+	for _, token := range l {
+		hasInternalPrefix := strings.HasPrefix(token.Name, InternalTokenNamePrefix)
+		if hasInternalPrefix {
+			continue
+		}
+
+		mm := models.TokenFromDB(token, false)
 		ret = append(ret, mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
@@ -69,6 +74,11 @@ func (s *TokenServer) restGetToken(c context.Context, i *huma_utils.IdByPath) (*
 	t, err := dmodel.GetTokenById(q, &w.ID, i.Id)
 	if err != nil {
 		return nil, err
+	}
+
+	hasInternalPrefix := strings.HasPrefix(t.Name, InternalTokenNamePrefix)
+	if hasInternalPrefix {
+		return nil, huma.Error403Forbidden("getting internal tokens is not allowed")
 	}
 
 	m := models.TokenFromDB(*t, false)
@@ -88,6 +98,11 @@ func (s *TokenServer) restGetTokenByName(c context.Context, i *TokenName) (*huma
 		return nil, err
 	}
 
+	hasInternalPrefix := strings.HasPrefix(t.Name, InternalTokenNamePrefix)
+	if hasInternalPrefix {
+		return nil, huma.Error403Forbidden("getting internal tokens is not allowed")
+	}
+
 	m := models.TokenFromDB(*t, false)
 	return huma_utils.NewJsonBody(m), nil
 }
@@ -100,6 +115,12 @@ func (s *TokenServer) restDeleteToken(c context.Context, i *huma_utils.IdByPath)
 	if err != nil {
 		return nil, err
 	}
+
+	hasInternalPrefix := strings.HasPrefix(t.Name, InternalTokenNamePrefix)
+	if hasInternalPrefix {
+		return nil, huma.Error403Forbidden("deleting internal tokens is not allowed")
+	}
+
 	err = querier.DeleteOneById[dmodel.Token](q, t.ID)
 	if err != nil {
 		return nil, err
