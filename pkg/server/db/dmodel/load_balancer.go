@@ -59,6 +59,9 @@ func (v *LoadBalancer) Update(q *querier2.Querier, httpPort *int, httpsPort *int
 		v.Replicas = *replicas
 		fields = append(fields, "replicas")
 	}
+	if len(fields) == 0 {
+		return nil
+	}
 	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
 		"workspace_id": v.WorkspaceID,
 		"id":           v.ID,
