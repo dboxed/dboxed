@@ -2,6 +2,7 @@ package box
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
@@ -12,6 +13,7 @@ import (
 
 type UpdateComposeCmd struct {
 	Box         string `help:"Box ID or name" required:"" arg:""`
+	ComposeName string `help:"Compose project name" required:"" arg:""`
 	ComposeFile string `help:"Path to docker-compose.yml file" required:"" short:"f"`
 }
 
@@ -28,7 +30,7 @@ func (cmd *UpdateComposeCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	name, content, err := LoadComposeFileForBox(cmd.ComposeFile)
+	name, content, err := LoadComposeFileForBox(fmt.Sprintf("%s=%s", cmd.ComposeName, cmd.ComposeFile))
 	if err != nil {
 		return err
 	}
