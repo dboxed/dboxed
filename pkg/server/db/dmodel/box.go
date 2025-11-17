@@ -270,6 +270,9 @@ func (v *BoxPortForward) Update(q *querier2.Querier, description *string, protoc
 		v.SandboxPort = *sandboxPort
 		fields = append(fields, "sandbox_port")
 	}
+	if len(fields) == 0 {
+		return nil
+	}
 	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
 		"box_id": v.BoxID,
 		"id":     v.ID.V,

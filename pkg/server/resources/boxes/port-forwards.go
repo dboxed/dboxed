@@ -186,11 +186,17 @@ func (s *BoxesServer) validatePortForwardParams(protocol *string, hostPortFirst 
 		}
 	}
 	if hostPortFirst != nil {
+		if hostPortLast == nil {
+			return huma.Error400BadRequest("host_port_first and host_port_last must always be specified together", nil)
+		}
 		if *hostPortFirst < 1 || *hostPortFirst > 65535 {
 			return huma.Error400BadRequest("invalid host_port_first, must be between 1 and 65535", nil)
 		}
 	}
 	if hostPortLast != nil {
+		if hostPortFirst == nil {
+			return huma.Error400BadRequest("host_port_first and host_port_last must always be specified together", nil)
+		}
 		if *hostPortLast < 1 || *hostPortLast > 65535 {
 			return huma.Error400BadRequest("invalid host_port_last, must be between 1 and 65535", nil)
 		}

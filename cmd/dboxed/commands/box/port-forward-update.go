@@ -35,11 +35,18 @@ func (cmd *UpdatePortForwardCmd) Run(g *flags.GlobalFlags) error {
 
 	c2 := &clients.BoxClient{Client: c}
 
+	hostPortLast := cmd.HostPortLast
+	if cmd.HostPortFirst != nil {
+		if hostPortLast == nil {
+			hostPortLast = cmd.HostPortFirst
+		}
+	}
+
 	req := models.UpdateBoxPortForward{
 		Description:   cmd.Description,
 		Protocol:      cmd.Protocol,
 		HostPortFirst: cmd.HostPortFirst,
-		HostPortLast:  cmd.HostPortLast,
+		HostPortLast:  hostPortLast,
 		SandboxPort:   cmd.SandboxPort,
 	}
 
