@@ -17,10 +17,11 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 	cfg := config.GetConfig(c)
 
 	boxSpec := &boxspec.BoxSpec{
-		ID:              box.ID,
-		Name:            box.Name,
-		DesiredState:    box.DesiredState,
-		ComposeProjects: map[string]string{},
+		ID:                   box.ID,
+		Name:                 box.Name,
+		DesiredState:         box.DesiredState,
+		ReconcileRequestedAt: box.ReconcileRequestedAt,
+		ComposeProjects:      map[string]string{},
 	}
 
 	err := buildAttachedVolumes(c, box, boxSpec)

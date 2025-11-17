@@ -1,9 +1,13 @@
 package boxspec
 
+import "time"
+
 type BoxSpec struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
 	DesiredState string `json:"desiredState"`
+
+	ReconcileRequestedAt *time.Time `json:"reconcileRequestedAt,omitempty"`
 
 	Network *BoxNetwork    `json:"network,omitempty"`
 	Volumes []DboxedVolume `json:"volumes,omitempty"`

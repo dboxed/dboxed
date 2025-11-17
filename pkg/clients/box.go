@@ -84,6 +84,14 @@ func (c *BoxClient) StopBox(ctx context.Context, id string) (*models.Box, error)
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, struct{}{})
 }
 
+func (c *BoxClient) ReconcileBox(ctx context.Context, id string) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id, "reconcile")
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, struct{}{})
+}
+
 func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId string) (*models.BoxSandboxStatus, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
 	if err != nil {

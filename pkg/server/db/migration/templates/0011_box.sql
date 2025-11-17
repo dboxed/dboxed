@@ -19,6 +19,7 @@ create table box
     machine_id               text           references machine (id) on delete set null,
 
     desired_state            text           not null default 'up',
+    reconcile_requested_at   TYPES_DATETIME,
 
     unique (workspace_id, name)
 );

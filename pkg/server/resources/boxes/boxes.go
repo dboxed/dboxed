@@ -39,6 +39,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Get(workspacesGroup, "/boxes/{id}/box-spec", s.restGetBoxSpec, allowBoxTokenModifier)
 	huma.Post(workspacesGroup, "/boxes/{id}/start", s.restStartBox)
 	huma.Post(workspacesGroup, "/boxes/{id}/stop", s.restStopBox)
+	huma.Post(workspacesGroup, "/boxes/{id}/reconcile", s.restReconcileBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
 
 	// compose-projects
@@ -228,6 +229,33 @@ func (s *BoxesServer) restStopBox(c context.Context, i *huma_utils.IdByPath) (*h
 	}
 
 	err = box.UpdateDesiredState(q, "down")
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.AddChangeTracking(q, box)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := s.postprocessBox(*box, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return huma_utils.NewJsonBody(*m), nil
+}
+
+func (s *BoxesServer) restReconcileBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
+	q := querier2.GetQuerier(c)
+	w := global.GetWorkspace(c)
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = box.RequestReconcile(q)
 	if err != nil {
 		return nil, err
 	}

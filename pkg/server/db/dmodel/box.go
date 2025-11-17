@@ -21,7 +21,8 @@ type Box struct {
 
 	MachineID *string `db:"machine_id"`
 
-	DesiredState string `db:"desired_state"`
+	DesiredState         string     `db:"desired_state"`
+	ReconcileRequestedAt *time.Time `db:"reconcile_requested_at"`
 
 	Netbird *BoxNetbird `join:"true"`
 }
@@ -88,6 +89,11 @@ func (v *Box) Create(q *querier2.Querier) error {
 func (v *Box) UpdateDesiredState(q *querier2.Querier, desiredState string) error {
 	v.DesiredState = desiredState
 	return querier2.UpdateOneFromStruct(q, v, "desired_state")
+}
+
+func (v *Box) RequestReconcile(q *querier2.Querier) error {
+	v.ReconcileRequestedAt = util.Ptr(time.Now())
+	return querier2.UpdateOneFromStruct(q, v, "reconcile_requested_at")
 }
 
 func (v *BoxNetbird) Create(q *querier2.Querier) error {
