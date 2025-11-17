@@ -2,6 +2,7 @@ package load_balancers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -46,7 +47,8 @@ func (r *reconciler) Reconcile(ctx context.Context, lb *dmodel.LoadBalancer, log
 		return result
 	}
 
-	return base.ReconcileResult{}
+	// Calculate and set status based on box replicas
+	return r.calculateStatus(ctx, lb, log)
 }
 
 func (r *reconciler) reconcileDelete(ctx context.Context, lb *dmodel.LoadBalancer, log *slog.Logger) base.ReconcileResult {
@@ -97,4 +99,89 @@ func (r *reconciler) softDeleteReplica(ctx context.Context, lb *dmodel.LoadBalan
 
 		return base.ReconcileResult{}
 	})
+}
+
+func (r *reconciler) calculateStatus(ctx context.Context, lb *dmodel.LoadBalancer, log *slog.Logger) base.ReconcileResult {
+	q := querier.GetQuerier(ctx)
+
+	// Get all box replicas for this load balancer
+	replicas, err := dmodel.ListLoadBalancerBoxesForLoadBalancer(q, lb.ID)
+	if err != nil {
+		return base.InternalError(err)
+	}
+
+	if len(replicas) == 0 {
+		return base.StatusWithMessage("NoReplicas", "Load balancer has no box replicas")
+	}
+
+	// Track box statuses
+	totalBoxes := len(replicas)
+	readyBoxes := 0
+	staleBoxes := 0
+	errorBoxes := 0
+	deletedBoxes := 0
+
+	for _, replica := range replicas {
+		// Get box details
+		box, err := dmodel.GetBoxWithSandboxStatusById(q, nil, replica.BoxId, false)
+		if err != nil {
+			if querier.IsSqlNotFoundError(err) {
+				deletedBoxes++
+				continue
+			}
+			return base.InternalError(err)
+		}
+
+		// Skip deleted boxes
+		if box.GetDeletedAt() != nil {
+			deletedBoxes++
+			continue
+		}
+
+		// Check box reconcile status
+		if box.ReconcileStatus.ReconcileStatus.V == "Error" {
+			errorBoxes++
+			continue
+		}
+
+		// Check if status is stale
+		if box.SandboxStatus.StatusTime != nil {
+			statusAge := time.Since(*box.SandboxStatus.StatusTime)
+			if statusAge > 60*time.Second {
+				staleBoxes++
+				continue
+			}
+		}
+
+		// Check if box is running
+		if box.SandboxStatus.RunStatus != nil && *box.SandboxStatus.RunStatus == "running" {
+			readyBoxes++
+		}
+	}
+
+	// Calculate overall status
+	activeBoxes := totalBoxes - deletedBoxes
+
+	if activeBoxes == 0 {
+		return base.StatusWithMessage("NoActiveReplicas", "All box replicas have been deleted")
+	}
+
+	if errorBoxes > 0 {
+		return base.StatusWithMessage("Degraded", fmt.Sprintf("%d/%d replicas in error state", errorBoxes, activeBoxes))
+	}
+
+	if readyBoxes == 0 {
+		return base.StatusWithMessage("Unavailable", "No replicas are running")
+	}
+
+	if staleBoxes > 0 {
+		return base.StatusWithMessage("Degraded", fmt.Sprintf("%d/%d replicas ready, %d stale", readyBoxes, activeBoxes, staleBoxes))
+	}
+
+	if readyBoxes < activeBoxes {
+		return base.StatusWithMessage("Degraded", fmt.Sprintf("%d/%d replicas ready", readyBoxes, activeBoxes))
+	}
+
+	// All replicas are ready
+	return base.StatusWithMessage("Ready", fmt.Sprintf("All %d replicas ready", readyBoxes))
 }
