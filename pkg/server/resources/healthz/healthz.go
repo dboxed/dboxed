@@ -4,20 +4,16 @@ import (
 	"context"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 )
 
 type HealthzServer struct {
-	config config.Config
 }
 
-func New(config config.Config) *HealthzServer {
-	return &HealthzServer{
-		config: config,
-	}
+func New() *HealthzServer {
+	return &HealthzServer{}
 }
 
 func (s *HealthzServer) Init(rootGroup huma.API) error {

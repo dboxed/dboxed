@@ -6,6 +6,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -38,6 +39,8 @@ type DboxedServer struct {
 	api        huma.API
 	humaConfig huma.Config
 
+	authMiddleware *auth_middleware.AuthMiddleware
+
 	healthz          *healthz.HealthzServer
 	auth             *auth.AuthHandler
 	users            *users.Users
@@ -59,14 +62,16 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 		config: config,
 	}
 
-	authInfo, oidcProvider, err := auth.BuildAuthProvider(ctx, config)
+	authInfo, oidcProvider, err := auth_middleware.BuildAuthProvider(ctx, config.Auth)
 	if err != nil {
 		return nil, err
 	}
 	s.authInfo = authInfo
 	s.oidcProvider = oidcProvider
 
-	s.healthz = healthz.New(config)
+	s.authMiddleware = auth_middleware.NewAuthMiddleware(*authInfo, oidcProvider)
+
+	s.healthz = healthz.New()
 	s.auth = auth.NewAuthHandler(*authInfo, oidcProvider)
 	s.users = users.New()
 	s.tokens = tokens.New()
@@ -87,14 +92,14 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 func (s *DboxedServer) InitApi(ctx context.Context) error {
 	var err error
 
-	s.api.UseMiddleware(s.auth.AuthMiddleware)
+	s.api.UseMiddleware(s.authMiddleware.AuthMiddleware(s.api))
 
 	err = s.healthz.Init(s.api)
 	if err != nil {
 		return err
 	}
 
-	err = s.auth.Init(ctx, s.api)
+	err = s.auth.Init(s.api)
 	if err != nil {
 		return err
 	}

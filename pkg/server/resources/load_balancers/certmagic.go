@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
-	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 )
 
 type lock struct {
@@ -319,7 +319,7 @@ func (s *LoadBalancerServer) getCertmagicValue(c context.Context, lbId string, k
 }
 
 func (s *LoadBalancerServer) checkLoadBalancerToken(c context.Context, lbId string) error {
-	token := auth.GetToken(c)
+	token := auth_middleware.GetToken(c)
 
 	if token != nil && token.LoadBalancerId != nil {
 		if *token.LoadBalancerId != lbId {

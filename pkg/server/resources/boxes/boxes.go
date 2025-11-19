@@ -8,13 +8,13 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/sse"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 )
@@ -111,7 +111,7 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils.List[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := global.GetWorkspace(c)
-	token := auth.GetToken(c)
+	token := auth_middleware.GetToken(c)
 
 	var l []dmodel.BoxWithSandboxStatus
 	if token != nil && token.BoxID != nil {
@@ -140,7 +140,7 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 }
 
 func (s *BoxesServer) checkBoxToken(c context.Context, boxId string) error {
-	token := auth.GetToken(c)
+	token := auth_middleware.GetToken(c)
 
 	if token != nil && token.BoxID != nil {
 		if *token.BoxID != boxId {

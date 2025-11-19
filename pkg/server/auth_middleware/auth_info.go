@@ -1,4 +1,4 @@
-package auth
+package auth_middleware
 
 import (
 	"context"
@@ -9,16 +9,16 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-func BuildAuthProvider(ctx context.Context, c config.Config) (*models.AuthInfo, *oidc.Provider, error) {
+func BuildAuthProvider(ctx context.Context, c config.AuthConfig) (*models.AuthInfo, *oidc.Provider, error) {
 	var ret models.AuthInfo
 	var oidcProvider *oidc.Provider
 
-	if c.Auth.Oidc != nil {
-		ret.OidcIssuerUrl = c.Auth.Oidc.IssuerUrl
-		ret.OidcClientId = c.Auth.Oidc.ClientId
+	if c.Oidc != nil {
+		ret.OidcIssuerUrl = c.Oidc.IssuerUrl
+		ret.OidcClientId = c.Oidc.ClientId
 
 		var err error
-		oidcProvider, err = oidc.NewProvider(ctx, c.Auth.Oidc.IssuerUrl)
+		oidcProvider, err = oidc.NewProvider(ctx, c.Oidc.IssuerUrl)
 		if err != nil {
 			return nil, nil, fmt.Errorf("creating oidc provider failed: %w", err)
 		}

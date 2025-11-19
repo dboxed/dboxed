@@ -7,12 +7,12 @@ import (
 	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 )
@@ -45,7 +45,7 @@ func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.Json
 	q := querier2.GetQuerier(ctx)
 	config := config2.GetConfig(ctx)
 
-	user := auth.MustGetUser(ctx)
+	user := auth_middleware.MustGetUser(ctx)
 
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
@@ -90,8 +90,8 @@ func (s *Workspaces) restAdminListWorkspaces(ctx context.Context, i *struct{}) (
 
 func (s *Workspaces) doRestListWorkspaces(ctx context.Context, asAdmin bool) (*huma_utils.List[models.Workspace], error) {
 	q := querier2.GetQuerier(ctx)
-	user := auth.GetUser(ctx)
-	token := auth.GetToken(ctx)
+	user := auth_middleware.GetUser(ctx)
+	token := auth_middleware.GetToken(ctx)
 
 	var workspaces []dmodel.Workspace
 	if user != nil {
@@ -154,8 +154,8 @@ func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.Workspac
 
 func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id string, onlyWorkspaceToken bool) (*dmodel.Workspace, error) {
 	q := querier2.GetQuerier(ctx)
-	user := auth.GetUser(ctx)
-	token := auth.GetToken(ctx)
+	user := auth_middleware.GetUser(ctx)
+	token := auth_middleware.GetToken(ctx)
 
 	w, err := dmodel.GetWorkspaceById(q, id, true)
 	if err != nil {

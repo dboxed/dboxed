@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 )
 
@@ -42,7 +42,7 @@ func (s *Users) restListUsers(ctx context.Context, i *struct{}) (*huma_utils.Lis
 	var ret []models.User
 	for _, u := range l {
 		um := models.UserFromDB(u)
-		um.IsAdmin = auth.IsAdminUser(ctx, &um)
+		um.IsAdmin = auth_middleware.IsAdminUser(ctx, &um)
 		ret = append(ret, um)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
@@ -56,6 +56,6 @@ func (s *Users) restGetUser(ctx context.Context, i *huma_utils.IdByPath) (*huma_
 		return nil, err
 	}
 	um := models.UserFromDB(*v)
-	um.IsAdmin = auth.IsAdminUser(ctx, &um)
+	um.IsAdmin = auth_middleware.IsAdminUser(ctx, &um)
 	return huma_utils.NewJsonBody(um), nil
 }

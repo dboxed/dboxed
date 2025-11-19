@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
@@ -284,7 +284,7 @@ func (s *VolumeServer) restGetMountStatus(ctx context.Context, i *huma_utils.IdB
 func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.VolumeMountRequest]) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
 	w := global.GetWorkspace(ctx)
-	token := auth.GetToken(ctx)
+	token := auth_middleware.GetToken(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -464,7 +464,7 @@ func (s *VolumeServer) restForceReleaseMount(ctx context.Context, i *huma_utils.
 
 func (s *VolumeServer) checkBoxToken(ctx context.Context, volume *dmodel.Volume, attachment *dmodel.BoxVolumeAttachment) error {
 	q := querier.GetQuerier(ctx)
-	token := auth.GetToken(ctx)
+	token := auth_middleware.GetToken(ctx)
 
 	if token == nil || token.BoxID != nil {
 		// not a box token
