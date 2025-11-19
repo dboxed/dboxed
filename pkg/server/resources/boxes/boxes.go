@@ -91,7 +91,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 }
 
 func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[models.CreateBox]) (*huma_utils.JsonBody[models.Box], error) {
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 	box, inputErr, err := boxes_utils.CreateBox(c, w.ID, i.Body, global.BoxTypeNormal)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 
 func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils.List[models.Box], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 	token := auth_middleware.GetToken(c)
 
 	var l []dmodel.BoxWithSandboxStatus
@@ -166,7 +166,7 @@ func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.BoxWithSandbox
 
 func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -182,7 +182,7 @@ type BoxName struct {
 
 func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxWithSandboxStatusByName(q, w.ID, i.BoxName, true)
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 
 func (s *BoxesServer) restStartBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -221,7 +221,7 @@ func (s *BoxesServer) restStartBox(c context.Context, i *huma_utils.IdByPath) (*
 
 func (s *BoxesServer) restStopBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -248,7 +248,7 @@ func (s *BoxesServer) restStopBox(c context.Context, i *huma_utils.IdByPath) (*h
 
 func (s *BoxesServer) restReconcileBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -275,7 +275,7 @@ func (s *BoxesServer) restReconcileBox(c context.Context, i *huma_utils.IdByPath
 
 func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {

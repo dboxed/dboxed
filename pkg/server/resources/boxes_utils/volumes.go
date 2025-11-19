@@ -7,15 +7,15 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
 func AttachVolume(c context.Context, box *dmodel.Box, req models.AttachVolumeRequest) error {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	volume, err := dmodel.GetVolumeById(q, &w.ID, req.VolumeId, true)
 	if err != nil {

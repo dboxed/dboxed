@@ -12,7 +12,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 )
 
@@ -87,7 +86,7 @@ func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutC
 
 func (s *LoadBalancerServer) restDeleteCertmagicLock(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkLoadBalancerToken(c, i.Id)
 	if err != nil {
@@ -212,7 +211,7 @@ type restPutCertmagicInput struct {
 
 func (s *LoadBalancerServer) restPutCertmagicObject(c context.Context, i *restPutCertmagicInput) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkLoadBalancerToken(c, i.Id)
 	if err != nil {
@@ -246,7 +245,7 @@ func (s *LoadBalancerServer) restPutCertmagicObject(c context.Context, i *restPu
 
 func (s *LoadBalancerServer) restDeleteCertmagicObject(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkLoadBalancerToken(c, i.Id)
 	if err != nil {
@@ -277,7 +276,7 @@ func (s *LoadBalancerServer) restDeleteCertmagicObject(c context.Context, i *hum
 
 func (s *LoadBalancerServer) listCertmagicKeys(c context.Context, lbId string, prefix string) ([]string, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, lbId, true)
 	if err != nil {
@@ -303,7 +302,7 @@ func (s *LoadBalancerServer) getCertmagicKey(c context.Context) (string, error) 
 
 func (s *LoadBalancerServer) getCertmagicValue(c context.Context, lbId string, key string) (*dmodel.LoadBalancer, *dmodel.LoadBalancerCertmagic, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, lbId, true)
 	if err != nil {

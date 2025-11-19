@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -34,7 +35,7 @@ func (s *NetworksServer) Init(rootGroup huma.API, workspacesGroup huma.API) erro
 
 func (s *NetworksServer) restCreateNetwork(c context.Context, i *huma_utils.JsonBody[models.CreateNetwork]) (*huma_utils.JsonBody[models.Network], error) {
 	q := querier.GetQuerier(c)
-	workspace := global.GetWorkspace(c)
+	workspace := auth_middleware.GetWorkspace(c)
 
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
@@ -85,7 +86,7 @@ func (s *NetworksServer) restCreateNetwork(c context.Context, i *huma_utils.Json
 
 func (s *NetworksServer) restListNetworks(c context.Context, i *struct{}) (*huma_utils.List[models.Network], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	l, err := dmodel.ListNetworksForWorkspace(q, w.ID, true)
 	if err != nil {
@@ -105,7 +106,7 @@ func (s *NetworksServer) restListNetworks(c context.Context, i *struct{}) (*huma
 
 func (s *NetworksServer) restGetNetwork(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Network], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	n, err := dmodel.GetNetworkById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -125,7 +126,7 @@ type NetworkName struct {
 
 func (s *NetworksServer) restGetNetworkByName(c context.Context, i *NetworkName) (*huma_utils.JsonBody[models.Network], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	n, err := dmodel.GetNetworkByName(q, w.ID, i.NetworkName, true)
 	if err != nil {
@@ -146,7 +147,7 @@ type restUpdateNetworkInput struct {
 
 func (s *NetworksServer) restUpdateNetwork(c context.Context, i *restUpdateNetworkInput) (*huma_utils.JsonBody[models.Network], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	n, err := dmodel.GetNetworkById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -192,7 +193,7 @@ func (s *NetworksServer) doUpdateNetwork(c context.Context, n *dmodel.Network, b
 
 func (s *NetworksServer) restDeleteNetwork(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Network](q, &w.ID, i.Id)
 	if err != nil {

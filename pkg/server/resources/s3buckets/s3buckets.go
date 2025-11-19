@@ -8,9 +8,9 @@ import (
 	"regexp"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
@@ -40,7 +40,7 @@ func (s *S3BucketsServer) Init(rootGroup huma.API, workspacesGroup huma.API) err
 
 func (s *S3BucketsServer) restCreateS3Bucket(ctx context.Context, i *huma_utils.JsonBody[models.CreateS3Bucket]) (*huma_utils.JsonBody[models.S3Bucket], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	r := &dmodel.S3Bucket{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
@@ -72,7 +72,7 @@ func (s *S3BucketsServer) restCreateS3Bucket(ctx context.Context, i *huma_utils.
 
 func (s *S3BucketsServer) restListS3Buckets(ctx context.Context, i *struct{}) (*huma_utils.List[models.S3Bucket], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	l, err := dmodel.ListS3Buckets(q, &w.ID, true)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *S3BucketsServer) restListS3Buckets(ctx context.Context, i *struct{}) (*
 
 func (s *S3BucketsServer) restGetS3Bucket(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.S3Bucket], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	r, err := dmodel.GetS3BucketById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -105,7 +105,7 @@ type BucketName struct {
 
 func (s *S3BucketsServer) restGetS3BucketByBucketName(c context.Context, i *BucketName) (*huma_utils.JsonBody[models.S3Bucket], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	r, err := dmodel.GetS3BucketByBucketName(q, w.ID, i.Bucket, true)
 	if err != nil {
@@ -125,7 +125,7 @@ type restUpdateS3BucketInput struct {
 
 func (s *S3BucketsServer) restUpdateS3Bucket(c context.Context, i *restUpdateS3BucketInput) (*huma_utils.JsonBody[models.S3Bucket], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	r, err := dmodel.GetS3BucketById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -176,7 +176,7 @@ func (s *S3BucketsServer) doUpdateS3Bucket(c context.Context, r *dmodel.S3Bucket
 
 func (s *S3BucketsServer) restDeleteS3Bucket(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.S3Bucket](q, &w.ID, i.Id)
 	if err != nil {

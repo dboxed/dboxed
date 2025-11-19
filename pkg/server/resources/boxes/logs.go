@@ -9,9 +9,9 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/sse"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -19,7 +19,7 @@ import (
 
 func (s *BoxesServer) putLogMetadata(c context.Context, boxId string, logMetadata boxspec.LogMetadata) (*dmodel.LogMetadata, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	var metadataBytes []byte
 	if logMetadata.Metadata != nil {
@@ -54,7 +54,7 @@ func (s *BoxesServer) putLogMetadata(c context.Context, boxId string, logMetadat
 
 func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJsonBody[models.PostLogs]) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkBoxToken(c, i.Id)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJ
 
 func (s *BoxesServer) restListLogs(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.LogMetadataModel], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkBoxToken(c, i.Id)
 	if err != nil {
@@ -168,7 +168,7 @@ func (s *BoxesServer) sseLogsStream(c context.Context, i *sseLogsStreamInput, se
 
 func (s *BoxesServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput, send sse.Sender) error {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	lm, err := dmodel.GetLogMetadataById(q, &w.ID, i.LogId, true)
 	if err != nil {

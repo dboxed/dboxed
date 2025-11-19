@@ -3,9 +3,9 @@ package boxes
 import (
 	"context"
 
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
@@ -13,7 +13,7 @@ import (
 
 func (s *BoxesServer) restListAttachedVolumes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.VolumeAttachment], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkBoxToken(c, i.Id)
 	if err != nil {
@@ -53,7 +53,7 @@ type restAttachVolumeInput struct {
 
 func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -84,7 +84,7 @@ type restUpdateAttachedVolumeInput struct {
 
 func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateAttachedVolumeInput) (*huma_utils.JsonBody[models.VolumeAttachment], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -135,7 +135,7 @@ type restDetachVolumeInput struct {
 
 func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {

@@ -5,9 +5,9 @@ import (
 	"log/slog"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
@@ -15,7 +15,7 @@ import (
 
 func (s *BoxesServer) restListPortForwards(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.BoxPortForward], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkBoxToken(c, i.Id)
 	if err != nil {
@@ -47,7 +47,7 @@ type restCreatePortForwardInput struct {
 
 func (s *BoxesServer) restCreatePortForward(c context.Context, i *restCreatePortForwardInput) (*huma_utils.JsonBody[models.BoxPortForward], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -101,7 +101,7 @@ type restUpdatePortForwardInput struct {
 
 func (s *BoxesServer) restUpdatePortForward(c context.Context, i *restUpdatePortForwardInput) (*huma_utils.JsonBody[models.BoxPortForward], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -148,7 +148,7 @@ type restDeletePortForwardInput struct {
 
 func (s *BoxesServer) restDeletePortForward(c context.Context, i *restDeletePortForwardInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {

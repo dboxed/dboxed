@@ -12,7 +12,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
@@ -74,7 +73,7 @@ func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonB
 
 func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolume) (*dmodel.Volume, string, error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
@@ -140,7 +139,7 @@ func (s *VolumeServer) createVolumeRustic(ctx context.Context, v *dmodel.Volume,
 
 func (s *VolumeServer) restListVolumes(ctx context.Context, i *struct{}) (*huma_utils.List[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	l, err := dmodel.ListVolumesForWorkspace(q, w.ID, true)
 	if err != nil {
@@ -162,7 +161,7 @@ func (s *VolumeServer) restListVolumes(ctx context.Context, i *struct{}) (*huma_
 
 func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -189,7 +188,7 @@ type VolumeName struct {
 
 func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	v, err := dmodel.GetVolumeByName(q, w.ID, i.VolumeName, true)
 	if err != nil {
@@ -215,7 +214,7 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 
 func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -261,7 +260,7 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 
 func (s *VolumeServer) restGetMountStatus(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.VolumeMountStatus], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -283,7 +282,7 @@ func (s *VolumeServer) restGetMountStatus(ctx context.Context, i *huma_utils.IdB
 
 func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.VolumeMountRequest]) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 	token := auth_middleware.GetToken(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
@@ -354,7 +353,7 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 
 func (s *VolumeServer) restRefreshMount(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.VolumeRefreshMountRequest]) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -394,7 +393,7 @@ type restReleaseVolume struct {
 
 func (s *VolumeServer) restReleaseMount(ctx context.Context, i *restReleaseVolume) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -429,7 +428,7 @@ func (s *VolumeServer) restReleaseMount(ctx context.Context, i *restReleaseVolum
 
 func (s *VolumeServer) restForceReleaseMount(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Volume], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
@@ -58,7 +59,7 @@ func (s *MachinesServer) restCreateMachine(c context.Context, i *huma_utils.Json
 
 func (s *MachinesServer) createMachine(c context.Context, body models.CreateMachine) (*dmodel.Machine, string, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
@@ -183,7 +184,7 @@ func (s *MachinesServer) createMachineAws(c context.Context, machine *dmodel.Mac
 
 func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma_utils.List[models.Machine], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	l, err := dmodel.ListMachinesForWorkspace(q, w.ID, true)
 	if err != nil {
@@ -203,7 +204,7 @@ func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma
 
 func (s *MachinesServer) restGetMachine(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Machine], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	m, err := dmodel.GetMachineById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -224,7 +225,7 @@ type restUpdateMachineInput struct {
 
 func (s *MachinesServer) restUpdateMachine(c context.Context, i *restUpdateMachineInput) (*huma_utils.JsonBody[models.Machine], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	m, err := dmodel.GetMachineById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -247,7 +248,7 @@ func (s *MachinesServer) restUpdateMachine(c context.Context, i *restUpdateMachi
 
 func (s *MachinesServer) restDeleteMachine(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Machine](q, &w.ID, i.Id)
 	if err != nil {

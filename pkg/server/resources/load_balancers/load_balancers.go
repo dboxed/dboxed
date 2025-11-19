@@ -5,10 +5,10 @@ import (
 	"log/slog"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
@@ -47,7 +47,7 @@ func (s *LoadBalancerServer) Init(rootGroup huma.API, workspacesGroup huma.API) 
 
 func (s *LoadBalancerServer) restCreateLoadBalancer(c context.Context, i *huma_utils.JsonBody[models.CreateLoadBalancer]) (*huma_utils.JsonBody[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
@@ -108,7 +108,7 @@ func (s *LoadBalancerServer) restCreateLoadBalancer(c context.Context, i *huma_u
 
 func (s *LoadBalancerServer) restListLoadBalancers(c context.Context, i *struct{}) (*huma_utils.List[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	proxies, err := dmodel.ListLoadBalancersForWorkspace(q, w.ID, true)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *LoadBalancerServer) restListLoadBalancers(c context.Context, i *struct{
 
 func (s *LoadBalancerServer) restGetLoadBalancer(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -143,7 +143,7 @@ type restUpdateLoadBalancerInput struct {
 
 func (s *LoadBalancerServer) restUpdateLoadBalancer(c context.Context, i *restUpdateLoadBalancerInput) (*huma_utils.JsonBody[models.LoadBalancer], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -198,7 +198,7 @@ func (s *LoadBalancerServer) restUpdateLoadBalancer(c context.Context, i *restUp
 
 func (s *LoadBalancerServer) restDeleteLoadBalancer(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
 	if err != nil {

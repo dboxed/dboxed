@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
@@ -36,7 +36,7 @@ func (s *TokenServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 }
 
 func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBody[models.CreateToken]) (*huma_utils.JsonBody[models.Token], error) {
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 	ret, err := CreateToken(ctx, w.ID, i.Body, true, false)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (s *TokenServer) restCreateToken(ctx context.Context, i *huma_utils.JsonBod
 
 func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_utils.List[models.Token], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	l, err := dmodel.ListTokensForWorkspace(q, w.ID)
 	if err != nil {
@@ -69,7 +69,7 @@ func (s *TokenServer) restListTokens(ctx context.Context, i *struct{}) (*huma_ut
 
 func (s *TokenServer) restGetToken(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Token], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	t, err := dmodel.GetTokenById(q, &w.ID, i.Id)
 	if err != nil {
@@ -91,7 +91,7 @@ type TokenName struct {
 
 func (s *TokenServer) restGetTokenByName(c context.Context, i *TokenName) (*huma_utils.JsonBody[models.Token], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	t, err := dmodel.GetTokenByName(q, w.ID, i.TokenName)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *TokenServer) restGetTokenByName(c context.Context, i *TokenName) (*huma
 
 func (s *TokenServer) restDeleteToken(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	t, err := dmodel.GetTokenById(q, &w.ID, i.Id)
 	if err != nil {

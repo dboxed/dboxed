@@ -2,9 +2,6 @@ package workspaces
 
 import (
 	"context"
-	"errors"
-	"net/http"
-	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
@@ -17,15 +14,21 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-type Workspaces struct {
+type WorkspacesServer struct {
 	api huma.API
+
+	Middleware *auth_middleware.WorkspaceMiddleware
 }
 
-func New() *Workspaces {
-	return &Workspaces{}
+func New() *WorkspacesServer {
+	s := &WorkspacesServer{}
+	s.Middleware = &auth_middleware.WorkspaceMiddleware{
+		GetWorkspace: s.getWorkspaceById,
+	}
+	return s
 }
 
-func (s *Workspaces) Init(api huma.API) error {
+func (s *WorkspacesServer) Init(api huma.API) error {
 	s.api = api
 
 	skipWorkspaceModifier := huma_utils.MetadataModifier(huma_metadata.SkipWorkspace, true)
@@ -41,7 +44,7 @@ func (s *Workspaces) Init(api huma.API) error {
 	return nil
 }
 
-func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.JsonBody[models.CreateWorkspace]) (*huma_utils.JsonBody[models.Workspace], error) {
+func (s *WorkspacesServer) restCreateWorkspace(ctx context.Context, i *huma_utils.JsonBody[models.CreateWorkspace]) (*huma_utils.JsonBody[models.Workspace], error) {
 	q := querier2.GetQuerier(ctx)
 	config := config2.GetConfig(ctx)
 
@@ -80,15 +83,15 @@ func (s *Workspaces) restCreateWorkspace(ctx context.Context, i *huma_utils.Json
 	return huma_utils.NewJsonBody(models.WorkspaceFromDB(*w)), nil
 }
 
-func (s *Workspaces) restListWorkspaces(ctx context.Context, i *struct{}) (*huma_utils.List[models.Workspace], error) {
+func (s *WorkspacesServer) restListWorkspaces(ctx context.Context, i *struct{}) (*huma_utils.List[models.Workspace], error) {
 	return s.doRestListWorkspaces(ctx, false)
 }
 
-func (s *Workspaces) restAdminListWorkspaces(ctx context.Context, i *struct{}) (*huma_utils.List[models.Workspace], error) {
+func (s *WorkspacesServer) restAdminListWorkspaces(ctx context.Context, i *struct{}) (*huma_utils.List[models.Workspace], error) {
 	return s.doRestListWorkspaces(ctx, true)
 }
 
-func (s *Workspaces) doRestListWorkspaces(ctx context.Context, asAdmin bool) (*huma_utils.List[models.Workspace], error) {
+func (s *WorkspacesServer) doRestListWorkspaces(ctx context.Context, asAdmin bool) (*huma_utils.List[models.Workspace], error) {
 	q := querier2.GetQuerier(ctx)
 	user := auth_middleware.GetUser(ctx)
 	token := auth_middleware.GetToken(ctx)
@@ -122,18 +125,18 @@ func (s *Workspaces) doRestListWorkspaces(ctx context.Context, asAdmin bool) (*h
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *Workspaces) restGetWorkspace(ctx context.Context, i *models.WorkspaceIdByPath) (*huma_utils.JsonBody[models.Workspace], error) {
-	w, err := s.checkWorkspaceAccess(ctx, i.WorkspaceId, false)
+func (s *WorkspacesServer) restGetWorkspace(ctx context.Context, i *models.WorkspaceIdByPath) (*huma_utils.JsonBody[models.Workspace], error) {
+	w, err := s.Middleware.CheckWorkspaceAccess(ctx, i.WorkspaceId, false)
 	if err != nil {
 		return nil, err
 	}
-	return huma_utils.NewJsonBody(models.WorkspaceFromDB(*w)), nil
+	return huma_utils.NewJsonBody(*w), nil
 }
 
-func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.WorkspaceIdByPath) (*huma_utils.Empty, error) {
+func (s *WorkspacesServer) restDeleteWorkspace(ctx context.Context, i *models.WorkspaceIdByPath) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(ctx)
 
-	w, err := s.checkWorkspaceAccess(ctx, i.WorkspaceId, true)
+	w, err := s.Middleware.CheckWorkspaceAccess(ctx, i.WorkspaceId, true)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +147,7 @@ func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.Workspac
 	if err != nil {
 		return nil, err
 	}
-	err = dmodel.AddChangeTracking(q, w)
+	err = dmodel.AddChangeTrackingForId[*dmodel.Workspace](q, w.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -152,11 +155,8 @@ func (s *Workspaces) restDeleteWorkspace(ctx context.Context, i *models.Workspac
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id string, onlyWorkspaceToken bool) (*dmodel.Workspace, error) {
+func (s *WorkspacesServer) getWorkspaceById(ctx context.Context, id string) (*models.Workspace, error) {
 	q := querier2.GetQuerier(ctx)
-	user := auth_middleware.GetUser(ctx)
-	token := auth_middleware.GetToken(ctx)
-
 	w, err := dmodel.GetWorkspaceById(q, id, true)
 	if err != nil {
 		if querier2.IsSqlNotFoundError(err) {
@@ -164,54 +164,6 @@ func (s *Workspaces) checkWorkspaceAccess(ctx context.Context, id string, onlyWo
 		}
 		return nil, err
 	}
-
-	if user != nil {
-		if !user.IsAdmin {
-			if !slices.ContainsFunc(w.Access, func(access dmodel.WorkspaceAccess) bool {
-				return access.UserId == user.ID
-			}) {
-				return nil, huma.Error403Forbidden("access to workspace not allowed")
-			}
-		}
-	} else if token != nil {
-		if onlyWorkspaceToken && !token.ForWorkspace {
-			return nil, huma.Error403Forbidden("access to workspace not allowed")
-		}
-		if token.Workspace != id {
-			return nil, huma.Error403Forbidden("access to workspace not allowed")
-		}
-	} else {
-		return nil, huma.Error403Forbidden("access to workspace not allowed")
-	}
-
-	return w, nil
-}
-
-func (s *Workspaces) WorkspaceMiddleware(ctx huma.Context, next func(huma.Context)) {
-	if huma_utils.HasMetadataTrue(ctx, huma_metadata.SkipWorkspace) ||
-		huma_utils.HasMetadataTrue(ctx, huma_metadata.SkipAuth) {
-		next(ctx)
-		return
-	}
-
-	workspaceId := ctx.Param("workspaceId")
-	if workspaceId == "" {
-		huma.WriteErr(s.api, ctx, http.StatusBadRequest, "missing workspace id")
-		return
-	}
-
-	w, err := s.checkWorkspaceAccess(ctx.Context(), workspaceId, false)
-	if err != nil {
-		var err2 huma.StatusError
-		if errors.As(err, &err2) {
-			huma.WriteErr(s.api, ctx, err2.GetStatus(), err.Error(), err)
-		} else {
-			huma.WriteErr(s.api, ctx, http.StatusForbidden, err.Error(), err)
-		}
-		return
-	}
-
-	ctx = huma.WithValue(ctx, "workspace", w)
-
-	next(ctx)
+	m := models.WorkspaceFromDB(*w)
+	return &m, nil
 }

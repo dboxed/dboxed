@@ -6,9 +6,9 @@ import (
 	"regexp"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -35,7 +35,7 @@ func (s *VolumeProviderServer) Init(rootGroup huma.API, workspacesGroup huma.API
 
 func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *huma_utils.JsonBody[models.CreateVolumeProvider]) (*huma_utils.JsonBody[models.VolumeProvider], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 
 func (s *VolumeProviderServer) restListVolumeProviders(ctx context.Context, i *struct{}) (*huma_utils.List[models.VolumeProvider], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	l, err := dmodel.ListVolumeProviders(q, &w.ID, true)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *VolumeProviderServer) restListVolumeProviders(ctx context.Context, i *s
 
 func (s *VolumeProviderServer) restGetVolumeProvider(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.VolumeProvider], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	r, err := dmodel.GetVolumeProviderById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -156,7 +156,7 @@ type VolumeProviderName struct {
 
 func (s *VolumeProviderServer) restGetVolumeProviderByName(c context.Context, i *VolumeProviderName) (*huma_utils.JsonBody[models.VolumeProvider], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	r, err := dmodel.GetVolumeProviderByName(q, w.ID, i.VolumeProviderName, true)
 	if err != nil {
@@ -174,7 +174,7 @@ type restUpdateVolumeProviderInput struct {
 
 func (s *VolumeProviderServer) restUpdateVolumeProvider(c context.Context, i *restUpdateVolumeProviderInput) (*huma_utils.JsonBody[models.VolumeProvider], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	r, err := dmodel.GetVolumeProviderById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -235,7 +235,7 @@ func (s *VolumeProviderServer) doUpdateVolumeProvider(c context.Context, r *dmod
 
 func (s *VolumeProviderServer) restDeleteVolumeProvider(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.VolumeProvider](q, &w.ID, i.Id)
 	if err != nil {

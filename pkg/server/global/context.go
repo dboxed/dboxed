@@ -2,8 +2,6 @@ package global
 
 import (
 	"context"
-
-	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 )
 
 func GetPtr[T any](c context.Context, key string) *T {
@@ -30,8 +28,4 @@ func MustGet[T any](c context.Context, key string) T {
 		panic("invalid value in context")
 	}
 	return v2
-}
-
-func GetWorkspace(c context.Context) *dmodel.Workspace {
-	return MustGet[*dmodel.Workspace](c, "workspace")
 }

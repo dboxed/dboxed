@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dustin/go-humanize"
@@ -18,7 +18,7 @@ import (
 
 func (s *BoxesServer) restGetSandboxStatus(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.BoxSandboxStatus], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -36,7 +36,7 @@ func (s *BoxesServer) restGetSandboxStatus(c context.Context, i *huma_utils.IdBy
 
 func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.IdByPathAndJsonBody[models.UpdateBoxSandboxStatus]) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {

@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
 func (s *VolumeServer) restCreateSnapshot(ctx context.Context, i *huma_utils.IdByPathAndJsonBody[models.CreateVolumeSnapshot]) (*huma_utils.JsonBody[models.VolumeSnapshot], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *VolumeServer) restCreateSnapshot(ctx context.Context, i *huma_utils.IdB
 
 func (s *VolumeServer) restListSnapshots(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.VolumeSnapshot], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -130,7 +130,7 @@ type snapshotIdByPath struct {
 
 func (s *VolumeServer) restGetSnapshot(ctx context.Context, i *snapshotIdByPath) (*huma_utils.JsonBody[models.VolumeSnapshot], error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *VolumeServer) restGetSnapshot(ctx context.Context, i *snapshotIdByPath)
 
 func (s *VolumeServer) restDeleteSnapshot(ctx context.Context, i *snapshotIdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 
 	_, err := dmodel.GetVolumeSnapshotById(q, &w.ID, &i.Id, i.SnapshotId, true)
 	if err != nil {

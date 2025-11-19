@@ -45,7 +45,7 @@ type DboxedServer struct {
 	auth             *auth.AuthHandler
 	users            *users.Users
 	tokens           *tokens.TokenServer
-	workspaces       *workspaces.Workspaces
+	workspaces       *workspaces.WorkspacesServer
 	machineProviders *machine_providers.MachineProviderServer
 	s3BucketsServer  *s3buckets.S3BucketsServer
 	volumeProviders  *volume_providers.VolumeProviderServer
@@ -115,7 +115,7 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 	}
 
 	workspacesGroup := huma.NewGroup(s.api, "/v1/workspaces/{workspaceId}")
-	workspacesGroup.UseMiddleware(s.workspaces.WorkspaceMiddleware)
+	workspacesGroup.UseMiddleware(s.workspaces.Middleware.WorkspaceMiddleware(s.api))
 	workspacesGroup.UseSimpleModifier(huma_utils.MetadataModifier(huma_metadata.AllowWorkspaceToken, true))
 	workspacesGroup.UseModifier(func(o *huma.Operation, next func(*huma.Operation)) {
 		o.Parameters = append(o.Parameters, &huma.Param{

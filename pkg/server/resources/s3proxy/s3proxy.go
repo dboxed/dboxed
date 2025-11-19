@@ -11,7 +11,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
@@ -47,7 +46,7 @@ func (s *S3ProxyServer) Init(rootGroup huma.API, workspacesGroup huma.API) error
 
 func (s *S3ProxyServer) handleBase(ctx context.Context, bucketId string) (*dmodel.S3Bucket, *minio.Client, error) {
 	q := querier.GetQuerier(ctx)
-	w := global.GetWorkspace(ctx)
+	w := auth_middleware.GetWorkspace(ctx)
 	token := auth_middleware.GetToken(ctx)
 
 	if token != nil {

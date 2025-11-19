@@ -3,9 +3,9 @@ package boxes
 import (
 	"context"
 
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
@@ -13,7 +13,7 @@ import (
 
 func (s *BoxesServer) restListComposeProjects(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.BoxComposeProject], error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := s.checkBoxToken(c, i.Id)
 	if err != nil {
@@ -46,7 +46,7 @@ type restCreateComposeProjectInput struct {
 
 func (s *BoxesServer) restCreateComposeProject(c context.Context, i *restCreateComposeProjectInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -77,7 +77,7 @@ type restUpdateComposeProjectInput struct {
 
 func (s *BoxesServer) restUpdateComposeProject(c context.Context, i *restUpdateComposeProjectInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -118,7 +118,7 @@ type restDeleteComposeProjectInput struct {
 
 func (s *BoxesServer) restDeleteComposeProject(c context.Context, i *restDeleteComposeProjectInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {

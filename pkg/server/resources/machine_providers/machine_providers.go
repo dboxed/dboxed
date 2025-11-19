@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -45,7 +46,7 @@ func (s *MachineProviderServer) Init(rootGroup huma.API, workspacesGroup huma.AP
 
 func (s *MachineProviderServer) restCreateMachineProvider(c context.Context, i *huma_utils.JsonBody[models.CreateMachineProvider]) (*huma_utils.JsonBody[models.MachineProvider], error) {
 	q := querier.GetQuerier(c)
-	workspace := global.GetWorkspace(c)
+	workspace := auth_middleware.GetWorkspace(c)
 
 	err := util.CheckName(i.Body.Name)
 	if err != nil {
@@ -112,7 +113,7 @@ func (s *MachineProviderServer) restCreateMachineProvider(c context.Context, i *
 
 func (s *MachineProviderServer) restListMachineProviders(c context.Context, i *struct{}) (*huma_utils.List[models.MachineProvider], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	l, err := dmodel.ListMachineProviders(q, w.ID, true)
 	if err != nil {
@@ -132,7 +133,7 @@ func (s *MachineProviderServer) restListMachineProviders(c context.Context, i *s
 
 func (s *MachineProviderServer) restGetMachineProvider(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.MachineProvider], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	mp, err := dmodel.GetMachineProviderById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -153,7 +154,7 @@ type restUpdateMachineProviderInput struct {
 
 func (s *MachineProviderServer) restUpdateMachineProvider(c context.Context, i *restUpdateMachineProviderInput) (*huma_utils.JsonBody[models.MachineProvider], error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	mp, err := dmodel.GetMachineProviderById(q, &w.ID, i.Id, true)
 	if err != nil {
@@ -218,7 +219,7 @@ func (s *MachineProviderServer) doUpdateMachineProvider(c context.Context, mp *d
 
 func (s *MachineProviderServer) restDeleteMachineProvider(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := global.GetWorkspace(c)
+	w := auth_middleware.GetWorkspace(c)
 
 	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.MachineProvider](q, &w.ID, i.Id)
 	if err != nil {
