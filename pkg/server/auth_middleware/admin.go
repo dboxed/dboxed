@@ -1,16 +1,12 @@
 package auth_middleware
 
 import (
-	"context"
-
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
-func IsAdminUser(ctx context.Context, u *models.User) bool {
-	cfg := config.GetConfig(ctx)
-
-	for _, au := range cfg.Auth.Oidc.AdminUsers {
+func IsAdminUser(authConfig config.AuthConfig, u *models.User) bool {
+	for _, au := range authConfig.Oidc.AdminUsers {
 		if au.ID != nil && *au.ID == u.ID {
 			return true
 		}

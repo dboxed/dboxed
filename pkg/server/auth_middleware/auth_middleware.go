@@ -23,14 +23,18 @@ import (
 const TokenPrefix = "dt_"
 
 type AuthMiddleware struct {
+	authConfig   config.AuthConfig
 	authInfo     models.AuthInfo
 	oidcProvider *oidc.Provider
+	enableDbUser bool
 }
 
-func NewAuthMiddleware(authInfo models.AuthInfo, oidcProvider *oidc.Provider) *AuthMiddleware {
+func NewAuthMiddleware(authConfig config.AuthConfig, authInfo models.AuthInfo, oidcProvider *oidc.Provider, enableDbUser bool) *AuthMiddleware {
 	h := &AuthMiddleware{
+		authConfig:   authConfig,
 		authInfo:     authInfo,
 		oidcProvider: oidcProvider,
+		enableDbUser: enableDbUser,
 	}
 
 	return h
@@ -61,8 +65,6 @@ func getClaimValue[T any](m jwt.MapClaims, n string, missingOk bool) (*T, error)
 }
 
 func (s *AuthMiddleware) buildUserFromIDToken(ctx context.Context, idToken *oidc.IDToken) (*models.User, error) {
-	cfg := config.GetConfig(ctx)
-
 	var claims jwt.MapClaims
 	err := idToken.Claims(&claims)
 	if err != nil {
@@ -74,9 +76,9 @@ func (s *AuthMiddleware) buildUserFromIDToken(ctx context.Context, idToken *oidc
 		return nil, err
 	}
 
-	usernameClaim := cfg.Auth.Oidc.UsernameClaim
-	emailClaim := cfg.Auth.Oidc.EMailClaim
-	fullNameClaim := cfg.Auth.Oidc.FullNameClaim
+	usernameClaim := s.authConfig.Oidc.UsernameClaim
+	emailClaim := s.authConfig.Oidc.EMailClaim
+	fullNameClaim := s.authConfig.Oidc.FullNameClaim
 
 	if usernameClaim == "" {
 		usernameClaim = "email"
@@ -113,7 +115,7 @@ func (s *AuthMiddleware) buildUserFromIDToken(ctx context.Context, idToken *oidc
 		FullName: name,
 		Avatar:   avatar,
 	}
-	u.IsAdmin = IsAdminUser(ctx, u)
+	u.IsAdmin = IsAdminUser(s.authConfig, u)
 
 	return u, nil
 }
@@ -208,6 +210,10 @@ func (s *AuthMiddleware) checkIdToken(ctx huma.Context, authz string) (*models.U
 }
 
 func (s *AuthMiddleware) updateDBUser(ctx huma.Context, user *models.User) error {
+	if !s.enableDbUser {
+		return nil
+	}
+
 	q := querier2.GetQuerier(ctx.Context())
 
 	newDbUser := dmodel.User{
@@ -227,7 +233,7 @@ func (s *AuthMiddleware) updateDBUser(ctx huma.Context, user *models.User) error
 		needUpdate = true
 	} else {
 		um := models.UserFromDB(*dbUser)
-		um.IsAdmin = IsAdminUser(ctx.Context(), &um)
+		um.IsAdmin = IsAdminUser(s.authConfig, &um)
 		needUpdate = !reflect.DeepEqual(um, *user)
 	}
 	if !needUpdate {

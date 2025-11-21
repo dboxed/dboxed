@@ -5,6 +5,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
+	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
@@ -33,6 +34,7 @@ func (s *Users) Init(api huma.API) error {
 
 func (s *Users) restListUsers(ctx context.Context, i *struct{}) (*huma_utils.List[models.User], error) {
 	q := querier.GetQuerier(ctx)
+	cfg := config.GetConfig(ctx)
 
 	l, err := dmodel.ListAllUsers(q)
 	if err != nil {
@@ -42,7 +44,7 @@ func (s *Users) restListUsers(ctx context.Context, i *struct{}) (*huma_utils.Lis
 	var ret []models.User
 	for _, u := range l {
 		um := models.UserFromDB(u)
-		um.IsAdmin = auth_middleware.IsAdminUser(ctx, &um)
+		um.IsAdmin = auth_middleware.IsAdminUser(cfg.Auth, &um)
 		ret = append(ret, um)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
@@ -50,12 +52,13 @@ func (s *Users) restListUsers(ctx context.Context, i *struct{}) (*huma_utils.Lis
 
 func (s *Users) restGetUser(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.User], error) {
 	q := querier.GetQuerier(ctx)
+	cfg := config.GetConfig(ctx)
 
 	v, err := dmodel.GetUserById(q, i.Id)
 	if err != nil {
 		return nil, err
 	}
 	um := models.UserFromDB(*v)
-	um.IsAdmin = auth_middleware.IsAdminUser(ctx, &um)
+	um.IsAdmin = auth_middleware.IsAdminUser(cfg.Auth, &um)
 	return huma_utils.NewJsonBody(um), nil
 }

@@ -69,7 +69,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.authInfo = authInfo
 	s.oidcProvider = oidcProvider
 
-	s.authMiddleware = auth_middleware.NewAuthMiddleware(*authInfo, oidcProvider)
+	s.authMiddleware = auth_middleware.NewAuthMiddleware(config.Auth, *authInfo, oidcProvider, true)
 
 	s.healthz = healthz.New()
 	s.auth = auth.NewAuthHandler(*authInfo, oidcProvider)
