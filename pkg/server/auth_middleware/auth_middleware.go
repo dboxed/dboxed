@@ -132,11 +132,13 @@ func (s *AuthMiddleware) authMiddleware(api huma.API, ctx huma.Context, next fun
 		return
 	}
 
-	authz, err := GetAuthorizationToken(ctx)
+	authz, err := GetAuthorizationTokenFromHuma(ctx)
 	if err != nil {
 		_ = huma.WriteErr(api, ctx, http.StatusUnauthorized, err.Error(), err)
 		return
 	}
+
+	ctx = huma.WithValue(ctx, "authorizationToken", authz)
 
 	if strings.HasPrefix(authz, TokenPrefix) {
 		if huma_utils.HasMetadataTrue(ctx, huma_metadata.NeedAdmin) {
@@ -246,6 +248,18 @@ func (s *AuthMiddleware) updateDBUser(ctx huma.Context, user *models.User) error
 		return err
 	}
 	return nil
+}
+
+func GetAuthorizationToken(ctx context.Context) *string {
+	tokenI := ctx.Value("authorizationToken")
+	if tokenI == nil {
+		return nil
+	}
+	token, ok := tokenI.(string)
+	if !ok {
+		return nil
+	}
+	return &token
 }
 
 func GetUser(ctx context.Context) *models.User {

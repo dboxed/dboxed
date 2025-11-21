@@ -7,7 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func GetAuthorizationToken(ctx huma.Context) (string, error) {
+func GetAuthorizationTokenFromHuma(ctx huma.Context) (string, error) {
 	tokenString := ctx.Header("Authorization")
 	if tokenString == "" {
 		tokenString = ctx.Query("token")
