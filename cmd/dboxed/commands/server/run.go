@@ -66,9 +66,6 @@ type RunAllCmd struct {
 type RunApiCmd struct {
 }
 
-type RunNatsServicesCmd struct {
-}
-
 type RunReconcilersCmd struct {
 }
 
