@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/aws"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/hetzner"
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -18,9 +17,8 @@ import (
 type reconciler struct {
 }
 
-func NewMachineProvidersReconciler(config config.Config) *base.Reconciler[*dmodel.MachineProvider] {
+func NewMachineProvidersReconciler() *base.Reconciler[*dmodel.MachineProvider] {
 	return base.NewReconciler(base.Config[*dmodel.MachineProvider]{
-		ServerConfig:          config,
 		ReconcilerName:        "machine_providers",
 		FullReconcileInterval: 5 * time.Second,
 		Impl:                  &reconciler{},

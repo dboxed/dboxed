@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"k8s.io/client-go/util/workqueue"
@@ -19,12 +18,11 @@ type ReconcileImpl[T dmodel.HasReconcileStatusAndSoftDelete] interface {
 }
 
 type Config[T dmodel.HasReconcileStatusAndSoftDelete] struct {
-	ServerConfig config.Config
-
 	ReconcilerName string
 
 	ChangeCheckInterval   time.Duration
 	FullReconcileInterval time.Duration
+	ErrorRetryTine        time.Duration
 	Parallel              int
 
 	Impl ReconcileImpl[T]
@@ -35,7 +33,7 @@ type Reconciler[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 
 	tableName  string
 	didInitial bool
-	workQueue  *workqueue.Typed[workQueueItem]
+	workQueue  workqueue.TypedDelayingInterface[workQueueItem]
 
 	lastChangeId int64
 
@@ -50,13 +48,16 @@ func NewReconciler[T dmodel.HasReconcileStatusAndSoftDelete](config Config[T]) *
 	if config.ChangeCheckInterval == 0 {
 		config.ChangeCheckInterval = time.Second * 1
 	}
+	if config.ErrorRetryTine == 0 {
+		config.ErrorRetryTine = time.Second * 15
+	}
 	if config.Parallel == 0 {
 		config.Parallel = 4
 	}
 
 	r := &Reconciler[T]{
 		config:       config,
-		workQueue:    workqueue.NewTyped[workQueueItem](),
+		workQueue:    workqueue.NewTypedDelayingQueue[workQueueItem](),
 		lastChangeId: -1,
 		log:          slog.With(slog.Any("reconciler", config.ReconcilerName)),
 	}
@@ -70,15 +71,8 @@ func (r *Reconciler[T]) Run(ctx context.Context) error {
 		go r.runQueue(ctx)
 	}
 
-	nextFullCheck := time.Now().Add(r.config.FullReconcileInterval)
 	for {
-		fullCheck := false
-		if r.config.FullReconcileInterval != 0 && time.Now().After(nextFullCheck) {
-			fullCheck = true
-			nextFullCheck = time.Now().Add(r.config.FullReconcileInterval)
-		}
-
-		r.findChanges(ctx, fullCheck)
+		r.findChanges(ctx)
 
 		select {
 		case <-ctx.Done():
@@ -89,43 +83,49 @@ func (r *Reconciler[T]) Run(ctx context.Context) error {
 	}
 }
 
-func (r *Reconciler[T]) findChanges(ctx context.Context, fullCheck bool) {
+func (r *Reconciler[T]) findChangesInitial(ctx context.Context) {
 	q := querier2.GetQuerier(ctx)
 
+	maxId, err := dmodel.GetMaxChangeTrackingId[T](q)
+	if err != nil {
+		if !querier2.IsSqlNotFoundError(err) {
+			slog.ErrorContext(ctx, "error in GetMaxChangeTrackingId", slog.Any("error", err))
+			return
+		}
+		maxId = -1
+	}
+	r.lastChangeId = maxId
+
+	allIds, err := dmodel.GetAllIds[T](q)
+	if err != nil {
+		slog.ErrorContext(ctx, "error in GetAllIds", slog.Any("error", err))
+		return
+	}
+	r.didInitial = true
+
+	for _, id := range allIds {
+		wi := workQueueItem{id: id}
+		r.workQueue.Add(wi)
+	}
+}
+
+func (r *Reconciler[T]) findChanges(ctx context.Context) {
+	q := querier2.GetQuerier(ctx)
+
+	if !r.didInitial {
+		r.findChangesInitial(ctx)
+		return
+	}
+
 	toQueue := map[string]workQueueItem{}
-	if !r.didInitial || fullCheck {
-		maxId, err := dmodel.GetMaxChangeTrackingId[T](q)
-		if err != nil {
-			if !querier2.IsSqlNotFoundError(err) {
-				slog.ErrorContext(ctx, "error in GetMaxChangeTrackingId", slog.Any("error", err))
-				return
-			}
-			maxId = -1
-		}
-		r.lastChangeId = maxId
-
-		allIds, err := dmodel.GetAllIds[T](q)
-		if err != nil {
-			slog.ErrorContext(ctx, "error in GetAllIds", slog.Any("error", err))
-			return
-		}
-		r.didInitial = true
-
-		for _, id := range allIds {
-			if _, ok := toQueue[id]; !ok {
-				toQueue[id] = workQueueItem{id: id}
-			}
-		}
-	} else {
-		changedItems, err := dmodel.FindChanges[T](q, r.lastChangeId)
-		if err != nil {
-			slog.ErrorContext(ctx, "error in ListChangeTracking", slog.Any("error", err))
-			return
-		}
-		for _, ci := range changedItems {
-			r.lastChangeId = ci.ID
-			toQueue[ci.EntityID] = workQueueItem{id: ci.EntityID}
-		}
+	changedItems, err := dmodel.FindChanges[T](q, r.lastChangeId)
+	if err != nil {
+		slog.ErrorContext(ctx, "error in ListChangeTracking", slog.Any("error", err))
+		return
+	}
+	for _, ci := range changedItems {
+		r.lastChangeId = ci.ID
+		toQueue[ci.EntityID] = workQueueItem{id: ci.EntityID}
 	}
 
 	for _, wi := range toQueue {
@@ -154,19 +154,18 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 		slog.Any("id", item.id),
 	)
 
+	log.DebugContext(ctx, "reconcile")
+
 	v, err := r.config.Impl.GetItem(ctx, item.id)
 	if err != nil {
 		if !querier2.IsSqlNotFoundError(err) {
 			log.ErrorContext(ctx, "error getting reconcile item", slog.Any("error", err))
+			r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
 		}
 		return true
 	}
 
 	result := r.config.Impl.Reconcile(ctx, v, log)
-	if result.Retry {
-		r.workQueue.Add(item)
-		return true
-	}
 	SetReconcileResult(ctx, log, v, result)
 
 	if result.Error == nil && v.GetDeletedAt() != nil {
@@ -175,7 +174,17 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 			err = querier2.DeleteOneByStruct(q, v)
 			if err != nil {
 				SetReconcileResult(ctx, log, v, InternalError(err))
+				r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+				return true
 			}
+		}
+	}
+
+	if result.Error != nil {
+		r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+	} else {
+		if r.config.FullReconcileInterval != 0 {
+			r.workQueue.AddAfter(item, r.config.FullReconcileInterval)
 		}
 	}
 

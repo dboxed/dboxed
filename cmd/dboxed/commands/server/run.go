@@ -212,41 +212,41 @@ func runApiServer(ctx context.Context, config config2.Config) (runFunc, error) {
 }
 
 func runReconcilerWorkspaces(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := workspaces.NewWorkspacesReconciler(config)
+	r := workspaces.NewWorkspacesReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerMachineProviders(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := machine_providers.NewMachineProvidersReconciler(config)
+	r := machine_providers.NewMachineProvidersReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerNetworks(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := networks.NewNetworksReconciler(config)
+	r := networks.NewNetworksReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerS3Buckets(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := s3buckets.NewS3BucketsReconciler(config)
+	r := s3buckets.NewS3BucketsReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerVolumeProviders(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := volume_providers.NewVolumeProvidersReconciler(config)
+	r := volume_providers.NewVolumeProvidersReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerBoxes(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := boxes.NewBoxesReconciler(config)
+	r := boxes.NewBoxesReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerLoadBalancers(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := load_balancers.NewLoadBalancersReconciler(config)
+	r := load_balancers.NewLoadBalancersReconciler()
 	return r.Run, nil
 }
 
 func runReconcilerMachines(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := machines.NewMachinesReconciler(config)
+	r := machines.NewMachinesReconciler()
 	return r.Run, nil
 }

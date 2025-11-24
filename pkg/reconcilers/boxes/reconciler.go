@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
@@ -14,9 +13,8 @@ import (
 type reconciler struct {
 }
 
-func NewBoxesReconciler(config config.Config) *base.Reconciler[*dmodel.BoxWithSandboxStatus] {
+func NewBoxesReconciler() *base.Reconciler[*dmodel.BoxWithSandboxStatus] {
 	return base.NewReconciler(base.Config[*dmodel.BoxWithSandboxStatus]{
-		ServerConfig:          config,
 		ReconcilerName:        "boxes",
 		FullReconcileInterval: time.Second * 60,
 		Impl:                  &reconciler{},

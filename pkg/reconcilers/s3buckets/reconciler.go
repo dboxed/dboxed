@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
@@ -14,9 +13,8 @@ import (
 type reconciler struct {
 }
 
-func NewS3BucketsReconciler(config config.Config) *base.Reconciler[*dmodel.S3Bucket] {
+func NewS3BucketsReconciler() *base.Reconciler[*dmodel.S3Bucket] {
 	return base.NewReconciler(base.Config[*dmodel.S3Bucket]{
-		ServerConfig:          config,
 		ReconcilerName:        "s3buckets",
 		Impl:                  &reconciler{},
 		FullReconcileInterval: 10 * time.Second,

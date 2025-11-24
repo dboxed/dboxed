@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
@@ -15,9 +14,8 @@ import (
 type reconciler struct {
 }
 
-func NewLoadBalancersReconciler(config config.Config) *base.Reconciler[*dmodel.LoadBalancer] {
+func NewLoadBalancersReconciler() *base.Reconciler[*dmodel.LoadBalancer] {
 	return base.NewReconciler(base.Config[*dmodel.LoadBalancer]{
-		ServerConfig:          config,
 		ReconcilerName:        "load-balancers",
 		FullReconcileInterval: time.Second * 10,
 		Impl:                  &reconciler{},

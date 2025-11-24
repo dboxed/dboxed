@@ -14,7 +14,6 @@ type ReconcileResult struct {
 	Status      string
 	Error       error
 	UserMessage string
-	Retry       bool
 }
 
 func StatusWithMessage(status string, message string) ReconcileResult {

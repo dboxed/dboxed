@@ -8,7 +8,6 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks/netbird"
-	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
@@ -17,9 +16,8 @@ import (
 type networkReconciler struct {
 }
 
-func NewNetworksReconciler(config config.Config) *base.Reconciler[*dmodel.Network] {
+func NewNetworksReconciler() *base.Reconciler[*dmodel.Network] {
 	return base.NewReconciler(base.Config[*dmodel.Network]{
-		ServerConfig:          config,
 		ReconcilerName:        "networks",
 		Impl:                  &networkReconciler{},
 		FullReconcileInterval: 5 * time.Second,
