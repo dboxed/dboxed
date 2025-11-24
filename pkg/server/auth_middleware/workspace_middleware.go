@@ -7,47 +7,41 @@ import (
 	"slices"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 )
 
-type GetWorkspaceFunc func(ctx context.Context, id string) (*models.Workspace, error)
-
 type WorkspaceMiddleware struct {
-	GetWorkspace GetWorkspaceFunc
 }
 
-func (s *WorkspaceMiddleware) CheckWorkspaceAccess(ctx context.Context, id string, onlyWorkspaceToken bool) (*models.Workspace, error) {
+func CheckWorkspaceAccess(ctx context.Context, w *models.Workspace, onlyWorkspaceToken bool) error {
 	user := GetUser(ctx)
 	token := GetToken(ctx)
-
-	w, err := s.GetWorkspace(ctx, id)
-	if err != nil {
-		return nil, err
-	}
 
 	if user != nil {
 		if !user.IsAdmin {
 			if !slices.ContainsFunc(w.Access, func(access models.WorkspaceAccess) bool {
 				return access.User.ID == user.ID
 			}) {
-				return nil, huma.Error403Forbidden("access to workspace not allowed")
+				return huma.Error403Forbidden("access to workspace not allowed")
 			}
 		}
 	} else if token != nil {
 		if onlyWorkspaceToken && !token.ForWorkspace {
-			return nil, huma.Error403Forbidden("access to workspace not allowed")
+			return huma.Error403Forbidden("access to workspace not allowed")
 		}
-		if token.Workspace != id {
-			return nil, huma.Error403Forbidden("access to workspace not allowed")
+		if token.Workspace != w.ID {
+			return huma.Error403Forbidden("access to workspace not allowed")
 		}
 	} else {
-		return nil, huma.Error403Forbidden("access to workspace not allowed")
+		return huma.Error403Forbidden("access to workspace not allowed")
 	}
 
-	return w, nil
+	return nil
 }
 
 func (s *WorkspaceMiddleware) WorkspaceMiddleware(api huma.API) func(ctx huma.Context, next func(huma.Context)) {
@@ -69,7 +63,19 @@ func (s *WorkspaceMiddleware) workspaceMiddleware(api huma.API, ctx huma.Context
 		return
 	}
 
-	w, err := s.CheckWorkspaceAccess(ctx.Context(), workspaceId, false)
+	q := querier2.GetQuerier(ctx.Context())
+	w, err := dmodel.GetWorkspaceById(q, workspaceId, true)
+	if err != nil {
+		if querier2.IsSqlNotFoundError(err) {
+			huma.WriteErr(api, ctx, http.StatusNotFound, "workspace not found")
+		} else {
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+	wm := models.WorkspaceFromDB(*w)
+
+	err = CheckWorkspaceAccess(ctx.Context(), &wm, false)
 	if err != nil {
 		var err2 huma.StatusError
 		if errors.As(err, &err2) {
@@ -80,7 +86,7 @@ func (s *WorkspaceMiddleware) workspaceMiddleware(api huma.API, ctx huma.Context
 		return
 	}
 
-	ctx = huma.WithValue(ctx, "workspace", w)
+	ctx = huma.WithValue(ctx, "workspace", &wm)
 
 	next(ctx)
 }

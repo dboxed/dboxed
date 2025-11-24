@@ -22,9 +22,7 @@ type WorkspacesServer struct {
 
 func New() *WorkspacesServer {
 	s := &WorkspacesServer{}
-	s.Middleware = &auth_middleware.WorkspaceMiddleware{
-		GetWorkspace: s.getWorkspaceById,
-	}
+	s.Middleware = &auth_middleware.WorkspaceMiddleware{}
 	return s
 }
 
@@ -126,17 +124,29 @@ func (s *WorkspacesServer) doRestListWorkspaces(ctx context.Context, asAdmin boo
 }
 
 func (s *WorkspacesServer) restGetWorkspace(ctx context.Context, i *models.WorkspaceIdByPath) (*huma_utils.JsonBody[models.Workspace], error) {
-	w, err := s.Middleware.CheckWorkspaceAccess(ctx, i.WorkspaceId, false)
+	q := querier2.GetQuerier(ctx)
+	w, err := dmodel.GetWorkspaceById(q, i.WorkspaceId, true)
 	if err != nil {
 		return nil, err
 	}
-	return huma_utils.NewJsonBody(*w), nil
+	wm := models.WorkspaceFromDB(*w)
+
+	err = auth_middleware.CheckWorkspaceAccess(ctx, &wm, false)
+	if err != nil {
+		return nil, err
+	}
+	return huma_utils.NewJsonBody(wm), nil
 }
 
 func (s *WorkspacesServer) restDeleteWorkspace(ctx context.Context, i *models.WorkspaceIdByPath) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(ctx)
+	w, err := dmodel.GetWorkspaceById(q, i.WorkspaceId, true)
+	if err != nil {
+		return nil, err
+	}
+	wm := models.WorkspaceFromDB(*w)
 
-	w, err := s.Middleware.CheckWorkspaceAccess(ctx, i.WorkspaceId, true)
+	err = auth_middleware.CheckWorkspaceAccess(ctx, &wm, true)
 	if err != nil {
 		return nil, err
 	}
