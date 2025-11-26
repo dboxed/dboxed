@@ -163,7 +163,7 @@ func (s *VolumeServer) restGetVolume(ctx context.Context, i *huma_utils.IdByPath
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func (s *VolumeServer) restGetMountStatus(ctx context.Context, i *huma_utils.IdB
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 	w := auth_middleware.GetWorkspace(ctx)
 	token := auth_middleware.GetToken(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +355,7 @@ func (s *VolumeServer) restRefreshMount(ctx context.Context, i *huma_utils.IdByP
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +395,7 @@ func (s *VolumeServer) restReleaseMount(ctx context.Context, i *restReleaseVolum
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func (s *VolumeServer) restForceReleaseMount(ctx context.Context, i *huma_utils.
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}

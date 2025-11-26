@@ -16,7 +16,7 @@ func (s *VolumeServer) restCreateSnapshot(ctx context.Context, i *huma_utils.IdB
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (s *VolumeServer) restListSnapshots(ctx context.Context, i *huma_utils.IdBy
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (s *VolumeServer) restGetSnapshot(ctx context.Context, i *snapshotIdByPath)
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	v, err := dmodel.GetVolumeById(q, &w.ID, i.Id, true)
+	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}

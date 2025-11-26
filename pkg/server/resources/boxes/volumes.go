@@ -94,7 +94,7 @@ func (s *BoxesServer) restUpdateAttachedVolume(c context.Context, i *restUpdateA
 		return nil, err
 	}
 
-	volume, err := dmodel.GetVolumeById(q, &w.ID, i.VolumeId, true)
+	volume, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.VolumeId, true)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInp
 		return nil, err
 	}
 
-	volume, err := dmodel.GetVolumeById(q, &w.ID, i.VolumeId, true)
+	volume, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.VolumeId, true)
 	if err != nil {
 		return nil, err
 	}

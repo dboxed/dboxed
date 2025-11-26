@@ -17,7 +17,7 @@ func AttachVolume(c context.Context, box *dmodel.Box, req models.AttachVolumeReq
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	volume, err := dmodel.GetVolumeById(q, &w.ID, req.VolumeId, true)
+	volume, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, req.VolumeId, true)
 	if err != nil {
 		return err
 	}

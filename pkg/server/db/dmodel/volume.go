@@ -78,7 +78,15 @@ func (v *BoxVolumeAttachment) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func GetVolumeById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*VolumeWithJoins, error) {
+func GetVolumeById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*Volume, error) {
+	return querier.GetOne[Volume](q, map[string]any{
+		"workspace_id": querier.OmitIfNull(workspaceId),
+		"id":           id,
+		"deleted_at":   querier.ExcludeNonNull(skipDeleted),
+	})
+}
+
+func GetVolumeWithDetailsById(q *querier.Querier, workspaceId *string, id string, skipDeleted bool) (*VolumeWithJoins, error) {
 	return querier.GetOne[VolumeWithJoins](q, map[string]any{
 		"workspace_id": querier.OmitIfNull(workspaceId),
 		"id":           id,
