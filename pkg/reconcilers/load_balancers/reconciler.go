@@ -18,7 +18,7 @@ func NewLoadBalancersReconciler() *base.Reconciler[*dmodel.LoadBalancer] {
 	return base.NewReconciler(base.Config[*dmodel.LoadBalancer]{
 		ReconcilerName:        "load-balancers",
 		FullReconcileInterval: time.Second * 10,
-		Impl:                  &reconciler{},
+		Reconciler:            &reconciler{},
 	})
 }
 

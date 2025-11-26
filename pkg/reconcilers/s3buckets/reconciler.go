@@ -16,7 +16,7 @@ type reconciler struct {
 func NewS3BucketsReconciler() *base.Reconciler[*dmodel.S3Bucket] {
 	return base.NewReconciler(base.Config[*dmodel.S3Bucket]{
 		ReconcilerName:        "s3buckets",
-		Impl:                  &reconciler{},
+		Reconciler:            &reconciler{},
 		FullReconcileInterval: 10 * time.Second,
 	})
 }

@@ -17,7 +17,7 @@ func NewBoxesReconciler() *base.Reconciler[*dmodel.BoxWithSandboxStatus] {
 	return base.NewReconciler(base.Config[*dmodel.BoxWithSandboxStatus]{
 		ReconcilerName:        "boxes",
 		FullReconcileInterval: time.Second * 60,
-		Impl:                  &reconciler{},
+		Reconciler:            &reconciler{},
 	})
 }
 

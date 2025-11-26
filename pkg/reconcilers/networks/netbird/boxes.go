@@ -71,6 +71,7 @@ func (r *Reconciler) Cleanup(ctx context.Context) base.ReconcileResult {
 
 func (r *Reconciler) ReconcileBox(ctx context.Context, log *slog.Logger, box *dmodel.Box) {
 	result := r.doReconcileBox(ctx, box)
+	base.LogReconcileResultError(ctx, log, result)
 	base.SetReconcileResult(ctx, log, box.Netbird, result)
 }
 

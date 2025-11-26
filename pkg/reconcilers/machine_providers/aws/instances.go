@@ -53,6 +53,7 @@ func (r *Reconciler) queryAwsInstances(ctx context.Context) base.ReconcileResult
 
 func (r *Reconciler) ReconcileMachine(ctx context.Context, log *slog.Logger, m *dmodel.Machine) {
 	result := r.doReconcileMachine(ctx, m)
+	base.LogReconcileResultError(ctx, log, result)
 	base.SetReconcileResult(ctx, log, m.Aws, result)
 }
 

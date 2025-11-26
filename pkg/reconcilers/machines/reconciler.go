@@ -15,7 +15,7 @@ type reconciler struct {
 func NewMachinesReconciler() *base.Reconciler[*dmodel.Machine] {
 	return base.NewReconciler(base.Config[*dmodel.Machine]{
 		ReconcilerName: "machines",
-		Impl:           &reconciler{},
+		Reconciler:     &reconciler{},
 	})
 }
 

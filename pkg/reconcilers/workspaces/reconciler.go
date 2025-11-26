@@ -16,7 +16,7 @@ type reconciler struct {
 func NewWorkspacesReconciler() *base.Reconciler[*dmodel.Workspace] {
 	return base.NewReconciler(base.Config[*dmodel.Workspace]{
 		ReconcilerName:        "workspaces",
-		Impl:                  &reconciler{},
+		Reconciler:            &reconciler{},
 		FullReconcileInterval: 10 * time.Second,
 	})
 }

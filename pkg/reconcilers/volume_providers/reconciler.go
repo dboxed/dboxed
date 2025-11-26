@@ -20,7 +20,7 @@ func NewVolumeProvidersReconciler() *base.Reconciler[*dmodel.VolumeProvider] {
 	return base.NewReconciler(base.Config[*dmodel.VolumeProvider]{
 		ReconcilerName:        "volume_providers",
 		FullReconcileInterval: 5 * time.Second,
-		Impl:                  &reconciler{},
+		Reconciler:            &reconciler{},
 	})
 }
 

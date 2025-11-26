@@ -21,7 +21,7 @@ func NewMachineProvidersReconciler() *base.Reconciler[*dmodel.MachineProvider] {
 	return base.NewReconciler(base.Config[*dmodel.MachineProvider]{
 		ReconcilerName:        "machine_providers",
 		FullReconcileInterval: 5 * time.Second,
-		Impl:                  &reconciler{},
+		Reconciler:            &reconciler{},
 	})
 }
 

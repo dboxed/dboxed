@@ -19,7 +19,7 @@ type networkReconciler struct {
 func NewNetworksReconciler() *base.Reconciler[*dmodel.Network] {
 	return base.NewReconciler(base.Config[*dmodel.Network]{
 		ReconcilerName:        "networks",
-		Impl:                  &networkReconciler{},
+		Reconciler:            &networkReconciler{},
 		FullReconcileInterval: 5 * time.Second,
 	})
 }

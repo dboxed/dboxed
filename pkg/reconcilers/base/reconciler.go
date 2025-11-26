@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/global"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -25,7 +27,12 @@ type Config[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 	ErrorRetryTine        time.Duration
 	Parallel              int
 
-	Impl ReconcileImpl[T]
+	Reconciler            ReconcileImpl[T]
+	NewStatefulReconciler func(ctx context.Context, id string) (ReconcileImpl[T], error)
+
+	NewGlobalState func(ctx context.Context) any
+
+	ObserveOnly bool
 }
 
 type Reconciler[T dmodel.HasReconcileStatusAndSoftDelete] struct {
@@ -34,6 +41,11 @@ type Reconciler[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 	tableName  string
 	didInitial bool
 	workQueue  workqueue.TypedDelayingInterface[workQueueItem]
+
+	statefulReconcilersMutex sync.Mutex
+	statefulReconcilers      map[string]ReconcileImpl[T]
+
+	globalState any
 
 	lastChangeId int64
 
@@ -56,16 +68,21 @@ func NewReconciler[T dmodel.HasReconcileStatusAndSoftDelete](config Config[T]) *
 	}
 
 	r := &Reconciler[T]{
-		config:       config,
-		workQueue:    workqueue.NewTypedDelayingQueue[workQueueItem](),
-		lastChangeId: -1,
-		log:          slog.With(slog.Any("reconciler", config.ReconcilerName)),
+		config:              config,
+		workQueue:           workqueue.NewTypedDelayingQueue[workQueueItem](),
+		statefulReconcilers: map[string]ReconcileImpl[T]{},
+		lastChangeId:        -1,
+		log:                 slog.With(slog.Any("reconciler", config.ReconcilerName)),
 	}
 	return r
 }
 
 func (r *Reconciler[T]) Run(ctx context.Context) error {
 	r.tableName = querier2.GetTableName[T]()
+
+	if r.config.NewGlobalState != nil {
+		r.globalState = r.config.NewGlobalState(ctx)
+	}
 
 	for range r.config.Parallel {
 		go r.runQueue(ctx)
@@ -141,6 +158,26 @@ func (r *Reconciler[T]) runQueue(ctx context.Context) {
 	}
 }
 
+func (r *Reconciler[T]) getReconcilerImpl(ctx context.Context, id string) (ReconcileImpl[T], error) {
+	if r.config.Reconciler != nil {
+		return r.config.Reconciler, nil
+	}
+
+	r.statefulReconcilersMutex.Lock()
+	defer r.statefulReconcilersMutex.Unlock()
+
+	s, ok := r.statefulReconcilers[id]
+	if ok {
+		return s, nil
+	}
+	s, err := r.config.NewStatefulReconciler(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	r.statefulReconcilers[id] = s
+	return s, nil
+}
+
 func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 	q := querier2.GetQuerier(ctx)
 
@@ -154,9 +191,16 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 		slog.Any("id", item.id),
 	)
 
-	log.DebugContext(ctx, "reconcile")
+	log.InfoContext(ctx, "reconcile")
 
-	v, err := r.config.Impl.GetItem(ctx, item.id)
+	impl, err := r.getReconcilerImpl(ctx, item.id)
+	if err != nil {
+		log.ErrorContext(ctx, "error getting/creating reconciler impl", slog.Any("error", err))
+		r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+		return true
+	}
+
+	v, err := impl.GetItem(ctx, item.id)
 	if err != nil {
 		if !querier2.IsSqlNotFoundError(err) {
 			log.ErrorContext(ctx, "error getting reconcile item", slog.Any("error", err))
@@ -165,17 +209,25 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 		return true
 	}
 
-	result := r.config.Impl.Reconcile(ctx, v, log)
-	SetReconcileResult(ctx, log, v, result)
+	if r.globalState != nil {
+		ctx = context.WithValue(ctx, "reconciler-gstate", r.globalState)
+	}
 
-	if result.Error == nil && v.GetDeletedAt() != nil {
-		if len(v.GetFinalizers()) == 0 {
-			log.InfoContext(ctx, fmt.Sprintf("finally deleting %s", r.tableName))
-			err = querier2.DeleteOneByStruct(q, v)
-			if err != nil {
-				SetReconcileResult(ctx, log, v, InternalError(err))
-				r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
-				return true
+	result := impl.Reconcile(ctx, v, log)
+	LogReconcileResultError(ctx, log, result)
+	if !r.config.ObserveOnly {
+		SetReconcileResult(ctx, log, v, result)
+
+		if result.Error == nil && v.GetDeletedAt() != nil {
+			if len(v.GetFinalizers()) == 0 {
+				log.InfoContext(ctx, fmt.Sprintf("finally deleting %s", r.tableName))
+				err = querier2.DeleteOneByStruct(q, v)
+				if err != nil {
+					LogReconcileResultError(ctx, log, result)
+					SetReconcileResult(ctx, log, v, InternalError(err))
+					r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+					return true
+				}
 			}
 		}
 	}
@@ -189,4 +241,8 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 	}
 
 	return true
+}
+
+func GetGlobalState[S any](ctx context.Context) *S {
+	return global.MustGet[*S](ctx, "reconciler-gstate")
 }

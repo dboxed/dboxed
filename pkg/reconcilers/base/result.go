@@ -34,9 +34,14 @@ func ErrorWithMessage(err error, msg string, args ...any) ReconcileResult {
 	return ReconcileResult{Error: err, UserMessage: msg}
 }
 
-func SetReconcileResult[T dmodel.HasReconcileStatus](ctx context.Context, log *slog.Logger, v T, result ReconcileResult) {
+func LogReconcileResultError(ctx context.Context, log *slog.Logger, result ReconcileResult) {
 	if result.Error != nil {
 		log.ErrorContext(ctx, "error in reconcile", "error", result.Error, "userMessage", result.UserMessage)
+	}
+}
+
+func SetReconcileResult[T dmodel.HasReconcileStatus](ctx context.Context, log *slog.Logger, v T, result ReconcileResult) {
+	if result.Error != nil {
 		err := SetReconcileStatus(ctx, v, "Error", result.UserMessage)
 		if err != nil && !querier2.IsSqlNotFoundError(err) {
 			log.ErrorContext(ctx, "error in setReconcileStatus", "error", err)
