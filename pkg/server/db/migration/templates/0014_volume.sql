@@ -1,23 +1,26 @@
 create table volume
 (
-    id                   TYPES_UUID_PRIMARY_KEY,
-    workspace_id         text           not null references workspace (id) on delete restrict,
-    created_at           TYPES_DATETIME not null default current_timestamp,
-    deleted_at           TYPES_DATETIME,
-    finalizers           text           not null default '{}',
+    id                       TYPES_UUID_PRIMARY_KEY,
+    workspace_id             text           not null references workspace (id) on delete restrict,
+    created_at               TYPES_DATETIME not null default current_timestamp,
+    deleted_at               TYPES_DATETIME,
+    finalizers               text           not null default '{}',
 
-    volume_provider_id   text           not null references volume_provider (id) on delete restrict,
-    volume_provider_type text           not null,
+    reconcile_status         text           not null default 'Initializing',
+    reconcile_status_details text           not null default '',
 
-    name                 text           not null,
+    volume_provider_id       text           not null references volume_provider (id) on delete restrict,
+    volume_provider_type     text           not null,
 
-    mount_id             text,
+    name                     text           not null,
+
+    mount_id                 text,
 
     --{{ if eq .DbType "sqlite" }}
-    latest_snapshot_id   text references volume_snapshot (id) on delete restrict,
+    latest_snapshot_id       text references volume_snapshot (id) on delete restrict,
     --{{ else }}
     -- we will later add the constraint
-    latest_snapshot_id   text,
+    latest_snapshot_id       text,
     --{{ end }}
 
     unique (workspace_id, name)

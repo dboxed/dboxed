@@ -6,6 +6,7 @@ import (
 
 type Volume struct {
 	OwnedByWorkspace
+	ReconcileStatus
 
 	Name string `db:"name"`
 
