@@ -191,7 +191,7 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 		slog.Any("id", item.id),
 	)
 
-	log.InfoContext(ctx, "reconcile")
+	log.DebugContext(ctx, "reconcile")
 
 	impl, err := r.getReconcilerImpl(ctx, item.id)
 	if err != nil {
