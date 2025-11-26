@@ -70,7 +70,7 @@ func (s *DboxedServer) InitHuma() error {
 	s.api = humagin.New(s.ginEngine, s.humaConfig)
 
 	huma_utils.SetupHumaGinContext(s.api)
-	huma_utils.SetupTxMiddlewares(s.ginEngine, s.api)
+	huma_utils.SetupTxMiddlewares(s.ginEngine, s.api, "db")
 	huma_utils.InitHumaErrorOverride()
 
 	err := huma_utils.InitHumaDocs(s.ginEngine, s.authInfo.OidcClientId)

@@ -12,7 +12,7 @@ import (
 
 const NoTx = "no-tx"
 
-func SetupTxMiddlewares(ginEngine *gin.Engine, humaApi huma.API) {
+func SetupTxMiddlewares(ginEngine *gin.Engine, humaApi huma.API, dbName string) {
 	humaApi.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		needTx := false
 		switch ctx.Method() {
@@ -28,7 +28,7 @@ func SetupTxMiddlewares(ginEngine *gin.Engine, humaApi huma.API) {
 
 		ginCtx := humagin.Unwrap(ctx)
 
-		db := querier.GetDB(ctx.Context())
+		db := querier.GetNamedDB(ctx.Context(), dbName)
 
 		err := db.Transaction(ctx.Context(), func(tx *sqlx.Tx) (bool, error) {
 			ginCtx.Set("tx", tx)

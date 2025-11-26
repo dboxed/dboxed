@@ -7,7 +7,11 @@ import (
 )
 
 func GetDB(c context.Context) *ReadWriteDB {
-	i := c.Value("db")
+	return GetNamedDB(c, "db")
+}
+
+func GetNamedDB(c context.Context, name string) *ReadWriteDB {
+	i := c.Value(name)
 	if i == nil {
 		panic("context has no db")
 	}
@@ -37,12 +41,16 @@ func getTX(c context.Context, doPanic bool) *sqlx.Tx {
 }
 
 func GetQuerier(c context.Context) *Querier {
+	return GetNamedQuerier(c, "db")
+}
+
+func GetNamedQuerier(c context.Context, name string) *Querier {
 	tx := getTX(c, false)
 	var tx2 *sqlx.Tx
 	if tx != nil {
 		tx2 = tx
 	}
-	return NewQuerier(c, GetDB(c), tx2)
+	return NewQuerier(c, GetNamedDB(c, name), tx2)
 }
 
 func WithForbidAutoTx(ctx context.Context) context.Context {
