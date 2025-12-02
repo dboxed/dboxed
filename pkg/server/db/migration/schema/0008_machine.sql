@@ -1,9 +1,9 @@
 create table machine
 (
-    id                       TYPES_UUID_PRIMARY_KEY,
+    id                       text not null primary key,
     workspace_id             text           not null references workspace (id) on delete restrict,
-    created_at               TYPES_DATETIME not null default current_timestamp,
-    deleted_at               TYPES_DATETIME,
+    created_at               timestamptz not null default current_timestamp,
+    deleted_at               timestamptz,
     finalizers               text           not null default '{}',
 
     reconcile_status         text           not null default 'Initializing',
@@ -13,12 +13,8 @@ create table machine
     machine_provider_id      text references machine_provider (id) on delete restrict,
     machine_provider_type    text,
 
-    --{{ if eq .DbType "sqlite" }}
-    box_id                   text           not null references box (id) on delete restrict,
-    --{{ else }}
     -- we will later add the constraint
     box_id                   text           not null,
-    --{{ end }}
-
+    
     unique (workspace_id, name)
 );

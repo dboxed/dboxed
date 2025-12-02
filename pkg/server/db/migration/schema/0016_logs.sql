@@ -1,9 +1,9 @@
 create table log_metadata
 (
-    id               TYPES_UUID_PRIMARY_KEY,
+    id               text not null primary key,
     workspace_id     text           not null references workspace (id) on delete cascade,
-    created_at       TYPES_DATETIME not null default current_timestamp,
-    deleted_at       TYPES_DATETIME,
+    created_at       timestamptz not null default current_timestamp,
+    deleted_at       timestamptz,
     finalizers       text           not null default '{}',
 
     box_id           text references box (id) on delete cascade,
@@ -13,19 +13,19 @@ create table log_metadata
     metadata         text           not null,
 
     total_line_bytes bigint         not null default 0,
-    last_log_time    TYPES_DATETIME,
+    last_log_time    timestamptz,
 
     unique (box_id, file_name)
 );
 
 create table log_line
 (
-    id           TYPES_INT_PRIMARY_KEY,
+    id           bigserial not null primary key,
     workspace_id text           not null references workspace (id) on delete cascade,
 
     log_id       text           not null references log_metadata (id) on delete cascade,
 
-    time         TYPES_DATETIME not null,
+    time         timestamptz not null,
     line         text           not null
 );
 

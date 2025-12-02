@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"runtime"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -16,7 +15,7 @@ type ReadWriteDB struct {
 	readDB  *sqlx.DB
 }
 
-func OpenReadWriteDB(connUrl string, enableSqliteFKs bool) (*ReadWriteDB, error) {
+func OpenReadWriteDB(connUrl string) (*ReadWriteDB, error) {
 	purl, err := url.Parse(connUrl)
 	if err != nil {
 		return nil, err
@@ -24,44 +23,16 @@ func OpenReadWriteDB(connUrl string, enableSqliteFKs bool) (*ReadWriteDB, error)
 
 	var writeDb *sqlx.DB
 	var readDb *sqlx.DB
-	if purl.Scheme == "sqlite3" {
-		q := purl.Query()
-		if enableSqliteFKs {
-			if !q.Has("_foreign_keys") {
-				q.Set("_foreign_keys", "on")
-			}
-		}
-
-		q.Set("_journal_mode", "WAL")
-		q.Set("_txlock", "immediate")
-		q.Set("_busy_timeout", "5000")
-		q.Set("_synchronous", "NORMAL")
-		q.Set("_cache_size", "1000000000")
-
-		purl.RawQuery = q.Encode()
-
-		dbfile := strings.Replace(purl.String(), "sqlite3://", "", 1)
-
-		readDb, err = sqlx.Open("sqlite3", dbfile)
-		if err != nil {
-			return nil, err
-		}
-		writeDb, err = sqlx.Open("sqlite3", dbfile)
-		if err != nil {
-			return nil, err
-		}
-		writeDb.SetMaxOpenConns(1)
-		readDb.SetMaxOpenConns(max(4, runtime.NumCPU()))
-	} else if purl.Scheme == "postgresql" {
-		writeDb, err = sqlx.Open("pgx", purl.String())
-		if err != nil {
-			return nil, err
-		}
-		readDb = writeDb
-		readDb.SetMaxOpenConns(max(4, runtime.NumCPU()))
-	} else {
+	if purl.Scheme != "postgresql" {
 		return nil, fmt.Errorf("unsupported db url: %s", connUrl)
 	}
+
+	writeDb, err = sqlx.Open("pgx", purl.String())
+	if err != nil {
+		return nil, err
+	}
+	readDb = writeDb
+	readDb.SetMaxOpenConns(max(4, runtime.NumCPU()))
 
 	db := &ReadWriteDB{
 		writeDB: writeDb,

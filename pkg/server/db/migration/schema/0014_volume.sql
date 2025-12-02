@@ -1,9 +1,9 @@
 create table volume
 (
-    id                       TYPES_UUID_PRIMARY_KEY,
+    id                       text not null primary key,
     workspace_id             text           not null references workspace (id) on delete restrict,
-    created_at               TYPES_DATETIME not null default current_timestamp,
-    deleted_at               TYPES_DATETIME,
+    created_at               timestamptz not null default current_timestamp,
+    deleted_at               timestamptz,
     finalizers               text           not null default '{}',
 
     reconcile_status         text           not null default 'Initializing',
@@ -16,19 +16,10 @@ create table volume
 
     mount_id                 text,
 
-    --{{ if eq .DbType "sqlite" }}
-    latest_snapshot_id       text references volume_snapshot (id) on delete restrict,
-    --{{ else }}
     -- we will later add the constraint
     latest_snapshot_id       text,
-    --{{ end }}
 
     unique (workspace_id, name)
-
-    --{{ if eq .DbType "sqlite" }}
-    ,
-    foreign key (id, mount_id) references volume_mount_status (volume_id, mount_id) on delete restrict
-    --{{ end }}
 );
 
 create table volume_rustic
@@ -63,11 +54,11 @@ create table volume_mount_status
     -- we don't use a reference here so that deletion of boxes does not remove the box id
     box_id                    text,
 
-    mount_time                TYPES_DATETIME not null,
-    release_time              TYPES_DATETIME,
+    mount_time                timestamptz not null,
+    release_time              timestamptz,
     force_released            bool           not null,
 
-    status_time               TYPES_DATETIME not null,
+    status_time               timestamptz not null,
 
     volume_total_size         bigint,
     volume_free_size          bigint,
@@ -75,13 +66,11 @@ create table volume_mount_status
     -- we don't use a reference here so that deletion of snapshots does not remove the snapshot id
     last_finished_snapshot_id text,
 
-    snapshot_start_time       TYPES_DATETIME,
-    snapshot_end_time         TYPES_DATETIME,
+    snapshot_start_time       timestamptz,
+    snapshot_end_time         timestamptz,
 
     primary key (volume_id, mount_id)
 );
 
---{{ if eq .DbType "postgres" }}
 alter table volume
     add foreign key (id, mount_id) references volume_mount_status (volume_id, mount_id) on delete restrict;
---{{ end }}

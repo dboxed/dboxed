@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/mattn/go-sqlite3"
 )
 
 type SqlNotFoundError struct {
@@ -37,14 +36,6 @@ func IsSqlConstraintViolationError(err error) bool {
 		if pgErr.Code == "23505" {
 			return true
 		}
-	}
-
-	var sqliteErr sqlite3.Error
-	if errors.As(err, &sqliteErr) {
-		if int(sqliteErr.Code) == int(sqlite3.ErrConstraint) {
-			return true
-		}
-		return true
 	}
 
 	return false

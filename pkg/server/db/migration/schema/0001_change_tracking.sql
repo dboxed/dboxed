@@ -1,9 +1,9 @@
 create table change_tracking
 (
-    id         TYPES_INT_PRIMARY_KEY,
+    id         bigserial not null primary key,
     table_name text           not null,
     entity_id  text           not null,
-    time       TYPES_DATETIME not null default current_timestamp
+    time       timestamptz not null default current_timestamp
 );
 
 create index idx_table_and_id

@@ -1,9 +1,9 @@
 create table load_balancer
 (
-    id                       TYPES_UUID_PRIMARY_KEY,
+    id                       text not null primary key,
     workspace_id             text           not null references workspace (id) on delete cascade,
-    created_at               TYPES_DATETIME not null default current_timestamp,
-    deleted_at               TYPES_DATETIME,
+    created_at               timestamptz not null default current_timestamp,
+    deleted_at               timestamptz,
     finalizers               text           not null default '{}',
 
     reconcile_status         text           not null default 'Initializing',
@@ -28,8 +28,8 @@ create table load_balancer_box
 
 create table load_balancer_service
 (
-    id               TYPES_UUID_PRIMARY_KEY,
-    created_at       TYPES_DATETIME not null default current_timestamp,
+    id               text not null primary key,
+    created_at       timestamptz not null default current_timestamp,
 
     load_balancer_id text           not null references load_balancer (id) on delete restrict,
 
@@ -45,7 +45,7 @@ create table load_balancer_certmagic
 (
     load_balancer_id text           not null references load_balancer (id) on delete cascade,
     key              text           not null,
-    value            TYPES_BYTES    not null,
-    last_modified    TYPES_DATETIME not null,
+    value            bytea    not null,
+    last_modified    timestamptz not null,
     unique (load_balancer_id, key)
 );

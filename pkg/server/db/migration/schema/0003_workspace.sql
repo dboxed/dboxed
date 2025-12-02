@@ -1,8 +1,8 @@
 create table workspace
 (
-    id                       TYPES_UUID_PRIMARY_KEY,
-    created_at               TYPES_DATETIME not null default current_timestamp,
-    deleted_at               TYPES_DATETIME,
+    id                       text not null primary key,
+    created_at               timestamptz not null default current_timestamp,
+    deleted_at               timestamptz,
     finalizers               text           not null default '{}',
 
     reconcile_status         text           not null default 'Initializing',

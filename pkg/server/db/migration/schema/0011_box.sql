@@ -1,9 +1,9 @@
 create table box
 (
-    id                       TYPES_UUID_PRIMARY_KEY,
+    id                       text not null primary key,
     workspace_id             text           not null references workspace (id) on delete restrict,
-    created_at               TYPES_DATETIME not null default current_timestamp,
-    deleted_at               TYPES_DATETIME,
+    created_at               timestamptz not null default current_timestamp,
+    deleted_at               timestamptz,
     finalizers               text           not null default '{}',
 
     reconcile_status         text           not null default 'Initializing',
@@ -19,7 +19,7 @@ create table box
     machine_id               text           references machine (id) on delete set null,
 
     desired_state            text           not null default 'up',
-    reconcile_requested_at   TYPES_DATETIME,
+    reconcile_requested_at   timestamptz,
 
     unique (workspace_id, name)
 );
@@ -28,22 +28,20 @@ create table box_sandbox_status
 (
     id          text not null primary key references box (id) on delete cascade,
 
-    status_time TYPES_DATETIME,
+    status_time timestamptz,
 
     run_status  text,
-    start_time  TYPES_DATETIME,
-    stop_time   TYPES_DATETIME,
+    start_time  timestamptz,
+    stop_time   timestamptz,
 
     -- gzip compressed json
-    docker_ps   TYPES_BYTES,
+    docker_ps   bytea,
 
     network_ip4 text
 );
 
---{{ if eq .DbType "postgres" }}
 alter table machine
     add foreign key (box_id) references box (id) on delete restrict;
---{{ end }}
 
 create table box_netbird
 (
@@ -68,8 +66,8 @@ create table box_compose_project
 
 create table box_port_forward
 (
-    id              TYPES_UUID_PRIMARY_KEY,
-    created_at      TYPES_DATETIME not null default current_timestamp,
+    id              text not null primary key,
+    created_at      timestamptz not null default current_timestamp,
 
     box_id          text           not null references box (id) on delete cascade,
     description     text,

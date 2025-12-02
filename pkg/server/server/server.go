@@ -26,7 +26,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/volumes"
 	"github.com/dboxed/dboxed/pkg/server/resources/workspaces"
 	"github.com/gin-gonic/gin"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type DboxedServer struct {

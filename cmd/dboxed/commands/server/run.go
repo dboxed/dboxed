@@ -19,9 +19,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/workspaces"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
+	"github.com/dboxed/dboxed/pkg/server/db/migration/migrations"
 	"github.com/dboxed/dboxed/pkg/server/db/migration/migrator"
-	"github.com/dboxed/dboxed/pkg/server/db/migration/postgres"
-	"github.com/dboxed/dboxed/pkg/server/db/migration/sqlite"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/server"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -145,12 +144,12 @@ func runMultiple(ctx context.Context, config config2.Config, allowMigrate bool, 
 	return firstErr
 }
 
-func openDB(ctx context.Context, config config2.Config, enableSqliteFKs bool) (*querier.ReadWriteDB, error) {
-	return querier.OpenReadWriteDB(config.DB.Url, enableSqliteFKs)
+func openDB(ctx context.Context, config config2.Config) (*querier.ReadWriteDB, error) {
+	return querier.OpenReadWriteDB(config.DB.Url)
 }
 
 func migrateDB(ctx context.Context, config config2.Config) error {
-	db, err := openDB(ctx, config, false)
+	db, err := openDB(ctx, config)
 	if err != nil {
 		return err
 	}
@@ -159,8 +158,7 @@ func migrateDB(ctx context.Context, config config2.Config) error {
 	}()
 
 	err = migrator.Migrate(ctx, db, map[string]fs.FS{
-		"pgx":     postgres.E,
-		"sqlite3": sqlite.E,
+		"pgx": migrations.E,
 	})
 	if err != nil {
 		return err
@@ -179,7 +177,7 @@ func initDB(ctx context.Context, config config2.Config, allowMigrate bool) (*que
 		}
 	}
 
-	db, err := openDB(ctx, config, true)
+	db, err := openDB(ctx, config)
 	if err != nil {
 		return nil, err
 	}

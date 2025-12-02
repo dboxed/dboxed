@@ -25,7 +25,6 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/klauspost/compress v1.18.0
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/miekg/dns v1.1.68
 	github.com/netbirdio/netbird v0.58.1 // don't forget to update the pion/ice replacement at the bottom
 	github.com/opencontainers/image-spec v1.1.1

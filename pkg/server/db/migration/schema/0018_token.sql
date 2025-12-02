@@ -1,8 +1,8 @@
 create table token
 (
-    id               TYPES_UUID_PRIMARY_KEY,
+    id               text not null primary key,
     workspace_id     text           not null references workspace (id) on delete cascade,
-    created_at       TYPES_DATETIME not null default current_timestamp,
+    created_at       timestamptz not null default current_timestamp,
 
     name             text           not null,
     token            text           not null unique,

@@ -1,9 +1,9 @@
 create table volume_snapshot
 (
-    id                 TYPES_UUID_PRIMARY_KEY,
+    id                 text not null primary key,
     workspace_id       text           not null references workspace (id) on delete restrict,
-    created_at         TYPES_DATETIME not null default current_timestamp,
-    deleted_at         TYPES_DATETIME,
+    created_at         timestamptz not null default current_timestamp,
+    deleted_at         timestamptz,
     finalizers         text           not null default '{}',
 
     volume_provider_id text           not null references volume_provider (id) on delete restrict,
@@ -12,17 +12,15 @@ create table volume_snapshot
     mount_id           text           not null
 );
 
---{{ if eq .DbType "postgres" }}
 alter table volume
     add foreign key (latest_snapshot_id) references volume_snapshot (id) on delete restrict;
---{{ end }}
 
 create table volume_snapshot_rustic
 (
     id                      text           not null primary key references volume_snapshot (id) on delete cascade,
 
     snapshot_id             text           not null unique,
-    snapshot_time           TYPES_DATETIME not null,
+    snapshot_time           timestamptz not null,
     parent_snapshot_id      text,
 
     hostname                text           not null,
@@ -46,8 +44,8 @@ create table volume_snapshot_rustic
     data_added_trees        int            not null,
     data_added_trees_packed int            not null,
 
-    backup_start            TYPES_DATETIME not null,
-    backup_end              TYPES_DATETIME not null,
+    backup_start            timestamptz not null,
+    backup_end              timestamptz not null,
     backup_duration         float4         not null,
     total_duration          float4         not null
 );

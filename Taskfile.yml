@@ -3,26 +3,6 @@
 version: '3'
 
 tasks:
-  generate-migrations-sqlite:
-    deps:
-      - check-migration-name
-    cmds:
-      - rm -rf ./build/migrations/sqlite-schema
-      - go run ./pkg/server/db/migration/templates ./build/migrations/sqlite-schema sqlite
-      - atlas migrate diff --dir="file://pkg/server/db/migration/sqlite?format=goose" --to=file://./build/migrations/sqlite-schema --dev-url "sqlite://file?mode=memory" {{ .MIGRATION_NAME }}
-  generate-migrations-postgres:
-    deps:
-      - check-migration-name
-    cmds:
-      - rm -rf ./build/migrations/postgres-schema
-      - go run ./pkg/server/db/migration/templates ./build/migrations/postgres-schema postgres
-      - atlas migrate diff "--dir=file://pkg/server/db/migration/postgres?format=goose" --to=file://./build/migrations/postgres-schema --dev-url "docker://postgres/17/dev?search_path=public" {{ .MIGRATION_NAME }}
-
-  generate-migrations-hashes:
-    cmds:
-      - atlas migrate hash --dir="file://pkg/server/db/migration/postgres?format=goose"
-      - atlas migrate hash --dir="file://pkg/server/db/migration/sqlite?format=goose"
-
   check-migration-name:
     run: once
     cmds:
@@ -30,10 +10,15 @@ tasks:
       - if [ "{{ .MIGRATION_NAME }}" = "" ]; then echo "please provide MIGRATION_NAME=xxx to the task invocation"; exit 1; fi
 
   generate-migrations:
+    deps:
+      - check-migration-name
     cmds:
       - task: check-migration-name
-      - task: generate-migrations-sqlite
-      - task: generate-migrations-postgres
+      - atlas migrate diff "--dir=file://pkg/server/db/migration/migrations?format=goose" --to=file://./pkg/server/db/migration/schema --dev-url "docker://postgres/17/dev?search_path=public" {{ .MIGRATION_NAME }}
+
+  generate-migrations-hashes:
+    cmds:
+      - atlas migrate hash --dir="file://pkg/server/db/migration/migrations?format=goose"
 
   goreleaser-helper:
     vars:

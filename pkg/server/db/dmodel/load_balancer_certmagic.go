@@ -28,11 +28,6 @@ func DeleteLoadBalancerCertMagic(q *querier2.Querier, lbId string, key string) e
 	})
 }
 
-/*var queryListLoadBalancerCertmagicKeys = map[string]string{
-	"sqlite3": "select key from load_balancer_certmagic where load_balancer_id = :load_balancer_id and starts_with(key, :prefix)",
-	"pgx":     "select key from load_balancer_certmagic where load_balancer_id = :load_balancer_id and key like :prefix || '%'",
-}*/
-
 func ListLoadBalancerCertmagicKeys(q *querier2.Querier, lbId string, prefix string) ([]string, error) {
 	query := "select key from load_balancer_certmagic where load_balancer_id = :load_balancer_id and key like :prefix || '%'"
 

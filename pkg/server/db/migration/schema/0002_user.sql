@@ -1,7 +1,7 @@
 create table "user"
 (
     id         text           not null primary key,
-    created_at TYPES_DATETIME not null default current_timestamp,
+    created_at timestamptz not null default current_timestamp,
 
     username   text,
 
