@@ -14,9 +14,6 @@ type Machine struct {
 	MachineProviderType *string `db:"machine_provider_type"`
 	MachineProvider     *MachineProvider
 
-	BoxID string `db:"box_id"`
-	Box   *Box   `join:"true" join_left_field:"box_id"`
-
 	Aws     *MachineAws     `join:"true"`
 	Hetzner *MachineHetzner `join:"true"`
 }

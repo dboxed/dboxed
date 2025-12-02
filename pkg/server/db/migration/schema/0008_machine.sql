@@ -13,8 +13,5 @@ create table machine
     machine_provider_id      text references machine_provider (id) on delete restrict,
     machine_provider_type    text,
 
-    -- we will later add the constraint
-    box_id                   text        not null,
-
     unique (workspace_id, name)
 );

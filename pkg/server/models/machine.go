@@ -18,8 +18,6 @@ type Machine struct {
 
 	Name string `json:"name"`
 
-	Box string `json:"box"`
-
 	MachineProvider     *string                     `json:"machineProvider,omitempty"`
 	MachineProviderType *global.MachineProviderType `json:"machineProviderType,omitempty"`
 }
@@ -58,8 +56,6 @@ func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Name: s.Name,
-
-		Box: s.BoxID,
 	}
 
 	if s.MachineProviderID != nil {

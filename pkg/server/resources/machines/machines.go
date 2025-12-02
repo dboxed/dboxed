@@ -66,19 +66,11 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 		return nil, err.Error(), nil
 	}
 
-	box, err := dmodel.GetBoxById(q, &w.ID, body.Box, true)
-	if err != nil {
-		return nil, "", err
-	}
-
 	m := &dmodel.Machine{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
 		Name: body.Name,
-
-		BoxID: box.ID,
-		Box:   box,
 	}
 
 	if body.MachineProvider != nil {

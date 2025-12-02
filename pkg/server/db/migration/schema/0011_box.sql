@@ -40,9 +40,6 @@ create table box_sandbox_status
     network_ip4 text
 );
 
-alter table machine
-    add foreign key (box_id) references box (id) on delete restrict;
-
 create table box_netbird
 (
     id                       text not null primary key references box (id) on delete cascade,

@@ -142,6 +142,13 @@ func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool
 	}, nil)
 }
 
+func ListBoxesForMachine(q *querier2.Querier, machineId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
+	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
+		"machine_id": machineId,
+		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
+	}, nil)
+}
+
 func GetSandboxStatus(q *querier2.Querier, boxId string) (*BoxSandboxStatus, error) {
 	return querier2.GetOne[BoxSandboxStatus](q, map[string]any{
 		"id": boxId,
