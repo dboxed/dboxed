@@ -5,6 +5,7 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/global"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type Machine struct {
@@ -19,8 +20,8 @@ type Machine struct {
 
 	Box string `json:"box"`
 
-	MachineProvider     string                     `json:"machineProvider"`
-	MachineProviderType global.MachineProviderType `json:"machineProviderType"`
+	MachineProvider     *string                     `json:"machineProvider,omitempty"`
+	MachineProviderType *global.MachineProviderType `json:"machineProviderType,omitempty"`
 }
 
 type CreateMachine struct {
@@ -28,7 +29,7 @@ type CreateMachine struct {
 
 	Box string `json:"box"`
 
-	MachineProvider string `json:"machineProvider"`
+	MachineProvider *string `json:"machineProvider,omitempty"`
 
 	Hetzner *CreateMachineHetzner `json:"hetzner,omitempty"`
 	Aws     *CreateMachineAws     `json:"aws,omitempty"`
@@ -59,9 +60,11 @@ func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 		Name: s.Name,
 
 		Box: s.BoxID,
+	}
 
-		MachineProvider:     s.MachineProviderID,
-		MachineProviderType: global.MachineProviderType(s.MachineProviderType),
+	if s.MachineProviderID != nil {
+		ret.MachineProvider = s.MachineProviderID
+		ret.MachineProviderType = util.Ptr(global.MachineProviderType(*s.MachineProviderType))
 	}
 
 	return ret, nil

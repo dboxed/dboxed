@@ -71,11 +71,6 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 		return nil, "", err
 	}
 
-	mp, err := dmodel.GetMachineProviderById(q, &w.ID, body.MachineProvider, true)
-	if err != nil {
-		return nil, "", err
-	}
-
 	m := &dmodel.Machine{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
@@ -84,10 +79,16 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 
 		BoxID: box.ID,
 		Box:   box,
+	}
 
-		MachineProviderID:   mp.ID,
-		MachineProviderType: mp.Type,
-		MachineProvider:     mp,
+	if body.MachineProvider != nil {
+		mp, err := dmodel.GetMachineProviderById(q, &w.ID, *body.MachineProvider, true)
+		if err != nil {
+			return nil, "", err
+		}
+		m.MachineProviderID = &mp.ID
+		m.MachineProvider = mp
+		m.MachineProviderType = &mp.Type
 	}
 
 	err = m.Create(q)
@@ -95,25 +96,27 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 		return nil, "", err
 	}
 
-	switch global.MachineProviderType(mp.Type) {
-	case global.MachineProviderHetzner:
-		if body.Hetzner == nil {
-			return nil, "missing hetzner config", nil
+	if body.MachineProvider != nil {
+		switch global.MachineProviderType(*m.MachineProviderType) {
+		case global.MachineProviderHetzner:
+			if body.Hetzner == nil {
+				return nil, "missing hetzner config", nil
+			}
+			err = s.createMachineHetzner(c, m, *body.Hetzner)
+			if err != nil {
+				return nil, "", err
+			}
+		case global.MachineProviderAws:
+			if body.Aws == nil {
+				return nil, "missing aws config", nil
+			}
+			err = s.createMachineAws(c, m, *body.Aws)
+			if err != nil {
+				return nil, "", err
+			}
+		default:
+			return nil, "unknown machine provider type", nil
 		}
-		err = s.createMachineHetzner(c, m, *body.Hetzner)
-		if err != nil {
-			return nil, "", err
-		}
-	case global.MachineProviderAws:
-		if body.Aws == nil {
-			return nil, "missing aws config", nil
-		}
-		err = s.createMachineAws(c, m, *body.Aws)
-		if err != nil {
-			return nil, "", err
-		}
-	default:
-		return nil, "unknown machine provider type", nil
 	}
 
 	return m, "", nil
@@ -155,7 +158,7 @@ func (s *MachinesServer) createMachineAws(c context.Context, machine *dmodel.Mac
 		return huma.Error400BadRequest("root_volume_size must be at least 8 GB")
 	}
 
-	subnet, err := dmodel.GetMachineProviderSubnet(q, machine.MachineProviderID, body.SubnetId)
+	subnet, err := dmodel.GetMachineProviderSubnet(q, *machine.MachineProviderID, body.SubnetId)
 	if err != nil {
 		return err
 	}

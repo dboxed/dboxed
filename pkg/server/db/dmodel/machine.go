@@ -10,8 +10,8 @@ type Machine struct {
 
 	Name string `db:"name"`
 
-	MachineProviderID   string `db:"machine_provider_id"`
-	MachineProviderType string `db:"machine_provider_type"`
+	MachineProviderID   *string `db:"machine_provider_id"`
+	MachineProviderType *string `db:"machine_provider_type"`
 	MachineProvider     *MachineProvider
 
 	BoxID string `db:"box_id"`

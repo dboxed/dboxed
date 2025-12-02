@@ -10,8 +10,8 @@ create table machine
     reconcile_status_details text           not null default '',
 
     name                     text           not null,
-    machine_provider_id      text           not null references machine_provider (id) on delete restrict,
-    machine_provider_type    text           not null,
+    machine_provider_id      text references machine_provider (id) on delete restrict,
+    machine_provider_type    text,
 
     --{{ if eq .DbType "sqlite" }}
     box_id                   text           not null references box (id) on delete restrict,
