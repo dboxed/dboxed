@@ -10,6 +10,9 @@ create table machine
     reconcile_status_details text        not null default '',
 
     name                     text        not null,
+
+    dboxed_version           text        not null,
+
     machine_provider_id      text references machine_provider (id) on delete restrict,
     machine_provider_type    text,
 

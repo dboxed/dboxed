@@ -149,12 +149,8 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 		sshKeyName = util.Ptr(cloud_utils.BuildAwsSshKeyName(ctx, r.mp.Name, r.mp.ID))
 	}
 
-	box, err := dmodel.GetBoxById(q, nil, m.BoxID, true)
-	if err != nil {
-		return base.InternalError(err)
-	}
 	ud := userdata.GetUserdata(
-		box.DboxedVersion,
+		m.DboxedVersion,
 		"dummy",
 	)
 

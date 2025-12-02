@@ -18,14 +18,14 @@ type Machine struct {
 
 	Name string `json:"name"`
 
+	DboxedVersion string `json:"dboxedVersion"`
+
 	MachineProvider     *string                     `json:"machineProvider,omitempty"`
 	MachineProviderType *global.MachineProviderType `json:"machineProviderType,omitempty"`
 }
 
 type CreateMachine struct {
 	Name string `json:"name"`
-
-	Box string `json:"box"`
 
 	MachineProvider *string `json:"machineProvider,omitempty"`
 
@@ -47,6 +47,10 @@ type CreateMachineAws struct {
 type UpdateMachine struct {
 }
 
+type AddBoxToMachineRequest struct {
+	BoxId string `json:"boxId"`
+}
+
 func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 	ret := &Machine{
 		ID:            s.ID,
@@ -55,7 +59,8 @@ func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 		Status:        s.ReconcileStatus.ReconcileStatus.V,
 		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
-		Name: s.Name,
+		Name:          s.Name,
+		DboxedVersion: s.DboxedVersion,
 	}
 
 	if s.MachineProviderID != nil {

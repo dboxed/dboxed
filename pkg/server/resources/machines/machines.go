@@ -31,6 +31,10 @@ func (s *MachinesServer) Init(rootGroup huma.API, workspacesGroup huma.API) erro
 	huma.Patch(workspacesGroup, "/machines/{id}", s.restUpdateMachine)
 	huma.Delete(workspacesGroup, "/machines/{id}", s.restDeleteMachine)
 
+	huma.Get(workspacesGroup, "/machines/{id}/boxes", s.restListBoxes)
+	huma.Post(workspacesGroup, "/machines/{id}/boxes", s.restAddBox)
+	huma.Delete(workspacesGroup, "/machines/{id}/boxes/{boxId}", s.restRemoveBox)
+
 	return nil
 }
 
@@ -70,7 +74,8 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		Name: body.Name,
+		Name:          body.Name,
+		DboxedVersion: "nightly",
 	}
 
 	if body.MachineProvider != nil {

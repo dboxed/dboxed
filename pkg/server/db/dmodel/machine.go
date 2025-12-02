@@ -10,6 +10,8 @@ type Machine struct {
 
 	Name string `db:"name"`
 
+	DboxedVersion string `db:"dboxed_version"`
+
 	MachineProviderID   *string `db:"machine_provider_id"`
 	MachineProviderType *string `db:"machine_provider_type"`
 	MachineProvider     *MachineProvider

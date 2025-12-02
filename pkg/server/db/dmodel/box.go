@@ -17,8 +17,6 @@ type Box struct {
 	NetworkID   *string `db:"network_id"`
 	NetworkType *string `db:"network_type"`
 
-	DboxedVersion string `db:"dboxed_version"`
-
 	MachineID *string `db:"machine_id"`
 
 	DesiredState         string     `db:"desired_state"`
@@ -94,6 +92,11 @@ func (v *Box) UpdateDesiredState(q *querier2.Querier, desiredState string) error
 func (v *Box) RequestReconcile(q *querier2.Querier) error {
 	v.ReconcileRequestedAt = util.Ptr(time.Now())
 	return querier2.UpdateOneFromStruct(q, v, "reconcile_requested_at")
+}
+
+func (v *Box) UpdateMachineID(q *querier2.Querier, machineId *string) error {
+	v.MachineID = machineId
+	return querier2.UpdateOneFromStruct(q, v, "machine_id")
 }
 
 func (v *BoxNetbird) Create(q *querier2.Querier) error {

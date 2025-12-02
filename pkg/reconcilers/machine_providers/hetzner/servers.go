@@ -128,10 +128,8 @@ func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, 
 
 	image := "ubuntu-24.04"
 
-	box := m.Box
-
 	ud := userdata.GetUserdata(
-		box.DboxedVersion,
+		m.DboxedVersion,
 		"dummy",
 	)
 

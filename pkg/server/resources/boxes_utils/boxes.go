@@ -37,8 +37,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		Name:    body.Name,
 		BoxType: string(boxType),
 
-		DboxedVersion: "nightly",
-		DesiredState:  "up",
+		DesiredState: "up",
 
 		NetworkID:   networkId,
 		NetworkType: networkType,

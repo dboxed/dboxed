@@ -14,7 +14,6 @@ create table box
 
     network_id               text references network (id) on delete restrict,
     network_type             text,
-    dboxed_version           text        not null,
 
     machine_id               text        references machine (id) on delete set null,
 
