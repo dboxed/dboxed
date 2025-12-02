@@ -1,24 +1,24 @@
 create table box
 (
-    id                       text not null primary key,
-    workspace_id             text           not null references workspace (id) on delete restrict,
+    id                       text        not null primary key,
+    workspace_id             text        not null references workspace (id) on delete restrict,
     created_at               timestamptz not null default current_timestamp,
     deleted_at               timestamptz,
-    finalizers               text           not null default '{}',
+    finalizers               text        not null default '{}',
 
-    reconcile_status         text           not null default 'Initializing',
-    reconcile_status_details text           not null default '',
+    reconcile_status         text        not null default 'Initializing',
+    reconcile_status_details text        not null default '',
 
-    name                     text           not null,
-    box_type                 text           not null default 'normal',
+    name                     text        not null,
+    box_type                 text        not null default 'normal',
 
     network_id               text references network (id) on delete restrict,
     network_type             text,
-    dboxed_version           text           not null,
+    dboxed_version           text        not null,
 
-    machine_id               text           references machine (id) on delete set null,
+    machine_id               text        references machine (id) on delete set null,
 
-    desired_state            text           not null default 'up',
+    desired_state            text        not null default 'up',
     reconcile_requested_at   timestamptz,
 
     unique (workspace_id, name)
@@ -66,14 +66,14 @@ create table box_compose_project
 
 create table box_port_forward
 (
-    id              text not null primary key,
+    id              text        not null primary key,
     created_at      timestamptz not null default current_timestamp,
 
-    box_id          text           not null references box (id) on delete cascade,
+    box_id          text        not null references box (id) on delete cascade,
     description     text,
 
-    protocol        text           not null,
-    host_port_first int            not null,
-    host_port_last  int            not null,
-    sandbox_port    int            not null
+    protocol        text        not null,
+    host_port_first int         not null,
+    host_port_last  int         not null,
+    sandbox_port    int         not null
 );

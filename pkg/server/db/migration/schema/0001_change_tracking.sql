@@ -1,8 +1,8 @@
 create table change_tracking
 (
-    id         bigserial not null primary key,
-    table_name text           not null,
-    entity_id  text           not null,
+    id         bigserial   not null primary key,
+    table_name text        not null,
+    entity_id  text        not null,
     time       timestamptz not null default current_timestamp
 );
 

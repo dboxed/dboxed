@@ -1,18 +1,18 @@
 create table volume
 (
-    id                       text not null primary key,
-    workspace_id             text           not null references workspace (id) on delete restrict,
+    id                       text        not null primary key,
+    workspace_id             text        not null references workspace (id) on delete restrict,
     created_at               timestamptz not null default current_timestamp,
     deleted_at               timestamptz,
-    finalizers               text           not null default '{}',
+    finalizers               text        not null default '{}',
 
-    reconcile_status         text           not null default 'Initializing',
-    reconcile_status_details text           not null default '',
+    reconcile_status         text        not null default 'Initializing',
+    reconcile_status_details text        not null default '',
 
-    volume_provider_id       text           not null references volume_provider (id) on delete restrict,
-    volume_provider_type     text           not null,
+    volume_provider_id       text        not null references volume_provider (id) on delete restrict,
+    volume_provider_type     text        not null,
 
-    name                     text           not null,
+    name                     text        not null,
 
     mount_id                 text,
 
@@ -48,15 +48,15 @@ create table box_volume_attachment
 
 create table volume_mount_status
 (
-    volume_id                 text           not null references volume (id) on delete cascade,
-    mount_id                  text           not null unique,
+    volume_id                 text        not null references volume (id) on delete cascade,
+    mount_id                  text        not null unique,
 
     -- we don't use a reference here so that deletion of boxes does not remove the box id
     box_id                    text,
 
     mount_time                timestamptz not null,
     release_time              timestamptz,
-    force_released            bool           not null,
+    force_released            bool        not null,
 
     status_time               timestamptz not null,
 

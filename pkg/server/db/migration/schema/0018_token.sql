@@ -1,13 +1,13 @@
 create table token
 (
-    id               text not null primary key,
-    workspace_id     text           not null references workspace (id) on delete cascade,
+    id               text        not null primary key,
+    workspace_id     text        not null references workspace (id) on delete cascade,
     created_at       timestamptz not null default current_timestamp,
 
-    name             text           not null,
-    token            text           not null unique,
+    name             text        not null,
+    token            text        not null unique,
 
-    for_workspace    bool           not null,
+    for_workspace    bool        not null,
     box_id           text references box (id) on delete cascade,
     load_balancer_id text references load_balancer (id) on delete cascade,
 

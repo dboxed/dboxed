@@ -1,14 +1,14 @@
 create table workspace
 (
-    id                       text not null primary key,
+    id                       text        not null primary key,
     created_at               timestamptz not null default current_timestamp,
     deleted_at               timestamptz,
-    finalizers               text           not null default '{}',
+    finalizers               text        not null default '{}',
 
-    reconcile_status         text           not null default 'Initializing',
-    reconcile_status_details text           not null default '',
+    reconcile_status         text        not null default 'Initializing',
+    reconcile_status_details text        not null default '',
 
-    name                     text           not null
+    name                     text        not null
 );
 
 create table workspace_access
