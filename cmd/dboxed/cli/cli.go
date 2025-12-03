@@ -9,6 +9,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/load-balancer"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/machine"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/network"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/s3-bucket"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
@@ -42,6 +43,7 @@ type Cli struct {
 	VolumeMount    volume_mount.VolumeMountCommands       `cmd:"" help:"manage volume mounts"`
 
 	Box     box.BoxCommands         `cmd:"" help:"manage boxes"`
+	Machine machine.MachineCommands `cmd:"" help:"manage machines"`
 	Sandbox sandbox.SandboxCommands `cmd:"" help:"manage sandboxes" aliases:"sb"`
 
 	Version VersionCmd `cmd:"" help:"Print version"`

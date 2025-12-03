@@ -138,3 +138,25 @@ func GetLoadBalancer(ctx context.Context, c *baseclient.Client, lb string) (*mod
 		return nil, fmt.Errorf("load balancer not found: %s", lb)
 	}
 }
+
+func GetMachine(ctx context.Context, c *baseclient.Client, machine string) (*models.Machine, error) {
+	c2 := clients.MachineClient{Client: c}
+	if uuid.Validate(machine) == nil {
+		m, err := c2.GetMachineById(ctx, machine)
+		if err != nil {
+			return nil, err
+		}
+		return m, nil
+	} else {
+		l, err := c2.ListMachines(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range l {
+			if m.Name == machine {
+				return &m, nil
+			}
+		}
+		return nil, fmt.Errorf("machine not found: %s", machine)
+	}
+}
