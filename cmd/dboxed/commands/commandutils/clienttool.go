@@ -17,6 +17,7 @@ type clientTool struct {
 	Workspaces      cache[models.Workspace]
 	Networks        cache[models.Network]
 	VolumeProviders cache[models.VolumeProvider]
+	Machines        cache[models.Machine]
 	Boxes           cache[models.Box]
 	S3Buckets       cache[models.S3Bucket]
 	Volumes         cache[models.Volume]
@@ -45,6 +46,12 @@ func NewClientTool(c *baseclient.Client) *clientTool {
 			return (&clients.VolumeProvidersClient{Client: c}).GetVolumeProviderById(ctx, id)
 		},
 		entityName: "volume provider",
+	}
+	ct.Machines = cache[models.Machine]{
+		getById: func(ctx context.Context, id string) (*models.Machine, error) {
+			return (&clients.MachineClient{Client: c}).GetMachineById(ctx, id)
+		},
+		entityName: "machine",
 	}
 	ct.Boxes = cache[models.Box]{
 		getById: func(ctx context.Context, id string) (*models.Box, error) {

@@ -2,6 +2,7 @@ package machines
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
@@ -9,6 +10,7 @@ import (
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 )
 
 func (s *MachinesServer) restListBoxes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.Box], error) {
@@ -111,6 +113,15 @@ func (s *MachinesServer) restRemoveBox(c context.Context, i *restRemoveBoxInput)
 		return nil, err
 	}
 
+	tokenName := s.buildBoxTokenName(machine.ID, box.ID)
+	err = querier2.DeleteOneByFields[dmodel.Token](q, map[string]any{
+		"workspace_id": w.ID,
+		"name":         tokenName,
+	})
+	if err != nil && !querier2.IsSqlNotFoundError(err) {
+		return nil, err
+	}
+
 	err = dmodel.AddChangeTracking(q, box)
 	if err != nil {
 		return nil, err
@@ -122,4 +133,51 @@ func (s *MachinesServer) restRemoveBox(c context.Context, i *restRemoveBoxInput)
 	}
 
 	return &huma_utils.Empty{}, nil
+}
+
+type restCreateBoxTokenInput struct {
+	Id    string `path:"id"`
+	BoxId string `path:"boxId"`
+}
+
+func (s *MachinesServer) restCreateBoxToken(c context.Context, i *restCreateBoxTokenInput) (*huma_utils.JsonBody[models.Token], error) {
+	q := querier2.GetQuerier(c)
+	w := auth_middleware.GetWorkspace(c)
+
+	machine, err := dmodel.GetMachineById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	box, err := dmodel.GetBoxById(q, &w.ID, i.BoxId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if box.MachineID == nil || *box.MachineID != machine.ID {
+		return nil, huma.Error400BadRequest("box is not assigned to this machine")
+	}
+
+	tokenName := s.buildBoxTokenName(machine.ID, box.ID)
+	err = querier2.DeleteOneByFields[dmodel.Token](q, map[string]any{
+		"workspace_id": w.ID,
+		"name":         tokenName,
+	})
+	if err != nil && !querier2.IsSqlNotFoundError(err) {
+		return nil, err
+	}
+
+	token, err := tokens.CreateToken(c, w.ID, models.CreateToken{
+		Name:  tokenName,
+		BoxID: &box.ID,
+	}, true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return huma_utils.NewJsonBody(*token), nil
+}
+
+func (s *MachinesServer) buildBoxTokenName(machineId string, boxId string) string {
+	return tokens.InternalTokenNamePrefix + fmt.Sprintf("machine_box_%s_%s", machineId, boxId)
 }

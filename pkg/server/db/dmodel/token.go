@@ -11,6 +11,7 @@ type Token struct {
 	Token string `db:"token"`
 
 	ForWorkspace   bool    `db:"for_workspace"`
+	MachineID      *string `db:"machine_id"`
 	BoxID          *string `db:"box_id"`
 	LoadBalancerId *string `db:"load_balancer_id"`
 }

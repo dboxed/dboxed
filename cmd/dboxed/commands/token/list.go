@@ -17,6 +17,7 @@ type PrintToken struct {
 	ID           string `col:"ID" id:"true"`
 	Name         string `col:"Name"`
 	ForWorkspace bool   `col:"For Workspace"`
+	Machine      string `col:"Machine"`
 	Box          string `col:"Box"`
 }
 
@@ -42,6 +43,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			ID:           token.ID,
 			Name:         token.Name,
 			ForWorkspace: token.ForWorkspace,
+		}
+		if token.MachineID != nil {
+			p.Machine = ct.Machines.GetColumn(ctx, *token.MachineID, false)
 		}
 		if token.BoxID != nil {
 			p.Box = ct.Boxes.GetColumn(ctx, *token.BoxID, false)

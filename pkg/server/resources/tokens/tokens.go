@@ -132,7 +132,14 @@ func (s *TokenServer) restDeleteToken(c context.Context, i *huma_utils.IdByPath)
 func CreateToken(ctx context.Context, workspaceId string, ct models.CreateToken, returnSecret bool, internal bool) (*models.Token, error) {
 	q := querier.GetQuerier(ctx)
 
-	err := util.CheckName(ct.Name)
+	maxLen := util.NameMaxLen
+	if internal {
+		maxLen = 256
+	}
+
+	err := util.CheckNameOpts(ct.Name, util.CheckNameOptions{
+		MaxLen: maxLen,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +168,12 @@ func CreateToken(ctx context.Context, workspaceId string, ct models.CreateToken,
 
 	if ct.ForWorkspace {
 		t.ForWorkspace = true
+	} else if ct.MachineID != nil {
+		machine, err := dmodel.GetMachineById(q, &workspaceId, *ct.MachineID, true)
+		if err != nil {
+			return nil, err
+		}
+		t.MachineID = &machine.ID
 	} else if ct.BoxID != nil {
 		box, err := dmodel.GetBoxById(q, &workspaceId, *ct.BoxID, true)
 		if err != nil {

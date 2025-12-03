@@ -11,6 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -25,15 +26,18 @@ func New(config config.Config) *MachinesServer {
 }
 
 func (s *MachinesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	allowMachineTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowMachineToken, true)
+
 	huma.Post(workspacesGroup, "/machines", s.restCreateMachine)
-	huma.Get(workspacesGroup, "/machines", s.restListMachines)
-	huma.Get(workspacesGroup, "/machines/{id}", s.restGetMachine)
+	huma.Get(workspacesGroup, "/machines", s.restListMachines, allowMachineTokenModifier)
+	huma.Get(workspacesGroup, "/machines/{id}", s.restGetMachine, allowMachineTokenModifier)
 	huma.Patch(workspacesGroup, "/machines/{id}", s.restUpdateMachine)
 	huma.Delete(workspacesGroup, "/machines/{id}", s.restDeleteMachine)
 
-	huma.Get(workspacesGroup, "/machines/{id}/boxes", s.restListBoxes)
+	huma.Get(workspacesGroup, "/machines/{id}/boxes", s.restListBoxes, allowMachineTokenModifier)
 	huma.Post(workspacesGroup, "/machines/{id}/boxes", s.restAddBox)
 	huma.Delete(workspacesGroup, "/machines/{id}/boxes/{boxId}", s.restRemoveBox)
+	huma.Post(workspacesGroup, "/machines/{id}/boxes/{boxId}/create-token", s.restCreateBoxToken, allowMachineTokenModifier)
 
 	return nil
 }
@@ -185,10 +189,23 @@ func (s *MachinesServer) createMachineAws(c context.Context, machine *dmodel.Mac
 func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma_utils.List[models.Machine], error) {
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
+	token := auth_middleware.GetToken(c)
 
-	l, err := dmodel.ListMachinesForWorkspace(q, w.ID, true)
-	if err != nil {
-		return nil, err
+	var l []dmodel.Machine
+	if token == nil || token.ForWorkspace {
+		var err error
+		l, err = dmodel.ListMachinesForWorkspace(q, w.ID, true)
+		if err != nil {
+			return nil, err
+		}
+	} else if token.MachineID != nil {
+		b, err := dmodel.GetMachineById(q, &w.ID, *token.MachineID, true)
+		if err != nil {
+			return nil, err
+		}
+		l = append(l, *b)
+	} else {
+		return nil, nil
 	}
 
 	var ret []models.Machine
@@ -200,6 +217,21 @@ func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma
 		ret = append(ret, *mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
+}
+
+func (s *MachinesServer) checkMachineToken(c context.Context, machineId string) error {
+	token := auth_middleware.GetToken(c)
+
+	if token != nil {
+		if token.ForWorkspace {
+			return nil
+		}
+		if token.MachineID == nil || *token.MachineID != machineId {
+			return huma.Error403Forbidden("no access to machine")
+		}
+	}
+
+	return nil
 }
 
 func (s *MachinesServer) restGetMachine(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Machine], error) {

@@ -113,8 +113,12 @@ func renderTokenCreated(token *models.Token) {
 	))
 
 	scope := "Workspace"
-	if token.BoxID != nil {
+	if token.MachineID != nil {
+		scope = fmt.Sprintf("Machine %s", *token.MachineID)
+	} else if token.BoxID != nil {
 		scope = fmt.Sprintf("Box %s", *token.BoxID)
+	} else if token.LoadBalancerId != nil {
+		scope = fmt.Sprintf("Load Balancer %s", *token.LoadBalancerId)
 	}
 	content.WriteString(fmt.Sprintf("%s  %s\n",
 		labelStyle.Render("Scope:"),

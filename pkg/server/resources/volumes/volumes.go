@@ -465,7 +465,7 @@ func (s *VolumeServer) checkBoxToken(ctx context.Context, volume *dmodel.Volume,
 	q := querier.GetQuerier(ctx)
 	token := auth_middleware.GetToken(ctx)
 
-	if token == nil || token.BoxID != nil {
+	if token == nil || token.BoxID == nil {
 		// not a box token
 		return nil
 	}

@@ -320,8 +320,11 @@ func (s *LoadBalancerServer) getCertmagicValue(c context.Context, lbId string, k
 func (s *LoadBalancerServer) checkLoadBalancerToken(c context.Context, lbId string) error {
 	token := auth_middleware.GetToken(c)
 
-	if token != nil && token.LoadBalancerId != nil {
-		if *token.LoadBalancerId != lbId {
+	if token != nil {
+		if token.ForWorkspace {
+			return nil
+		}
+		if token.LoadBalancerId == nil || *token.LoadBalancerId != lbId {
 			return huma.Error403Forbidden("no access to load balancer")
 		}
 	}

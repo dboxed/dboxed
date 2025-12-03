@@ -11,6 +11,7 @@ const NeedAdmin = "need-admin"
 const AllowTokensWithWorkspace = "allow-tokens-with-workspace"
 
 const AllowWorkspaceToken = "allow-workspace-token"
+const AllowMachineToken = "allow-machine-token"
 const AllowBoxToken = "allow-box-token"
 const AllowLoadBalancerToken = "allow-load-balancer-token"
 
