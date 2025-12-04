@@ -35,9 +35,9 @@ func (cmd *ListLogsCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.BoxClient{Client: c}
+	c2 := &clients.LogsClient{Client: c}
 
-	logs, err := c2.ListLogs(ctx, box.ID)
+	logs, err := c2.ListLogs(ctx, "box", box.ID)
 	if err != nil {
 		return err
 	}

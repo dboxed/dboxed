@@ -2,8 +2,6 @@ package clients
 
 import (
 	"context"
-	"encoding/json"
-	"net/url"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/boxspec"
@@ -109,27 +107,6 @@ func (c *BoxClient) UpdateSandboxStatus(ctx context.Context, boxId string, req m
 	return err
 }
 
-func (c *BoxClient) PostLogLines(ctx context.Context, boxId string, req models.PostLogs) error {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs")
-	if err != nil {
-		return err
-	}
-	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "POST", p, req)
-	return err
-}
-
-func (c *BoxClient) ListLogs(ctx context.Context, boxId string) ([]models.LogMetadataModel, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs")
-	if err != nil {
-		return nil, err
-	}
-	l, err := baseclient.RequestApi[huma_utils.ListBody[models.LogMetadataModel]](ctx, c.Client, "GET", p, struct{}{})
-	if err != nil {
-		return nil, err
-	}
-	return l.Items, err
-}
-
 func (c *BoxClient) ListComposeProjects(ctx context.Context, boxId string) ([]models.BoxComposeProject, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects")
 	if err != nil {
@@ -205,40 +182,6 @@ func (c *BoxClient) DetachVolume(ctx context.Context, boxId string, volumeId str
 	}
 	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
 	return err
-}
-
-// StreamLogs streams logs from the specified log ID and calls the callback for each event
-func (c *BoxClient) StreamLogs(ctx context.Context, boxId string, logId string, since string, callback func(interface{}) error) error {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "logs", logId, "stream")
-	if err != nil {
-		return err
-	}
-
-	q := url.Values{}
-	if since != "" {
-		q.Set("since", since)
-	}
-
-	return baseclient.RequestApiSSE(ctx, c.Client, p, q, func(m baseclient.SSEMessage) error {
-		switch m.Event {
-		case "metadata":
-			var x models.LogMetadataModel
-			err := json.Unmarshal([]byte(m.Data), &x)
-			if err != nil {
-				return err
-			}
-			return callback(x)
-		case "logs-batch":
-			var x boxspec.LogsBatch
-			err := json.Unmarshal([]byte(m.Data), &x)
-			if err != nil {
-				return err
-			}
-			return callback(x)
-		default:
-			return nil
-		}
-	})
 }
 
 func (c *BoxClient) ListPortForwards(ctx context.Context, boxId string) ([]models.BoxPortForward, error) {

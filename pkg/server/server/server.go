@@ -15,6 +15,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/healthz"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/server/resources/load_balancers"
+	"github.com/dboxed/dboxed/pkg/server/resources/logs"
 	"github.com/dboxed/dboxed/pkg/server/resources/machine_providers"
 	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
@@ -45,6 +46,7 @@ type DboxedServer struct {
 	users            *users.Users
 	tokens           *tokens.TokenServer
 	workspaces       *workspaces.WorkspacesServer
+	logs             *logs.LogsServer
 	machineProviders *machine_providers.MachineProviderServer
 	s3BucketsServer  *s3buckets.S3BucketsServer
 	volumeProviders  *volume_providers.VolumeProviderServer
@@ -75,6 +77,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.users = users.New()
 	s.tokens = tokens.New()
 	s.workspaces = workspaces.New()
+	s.logs = logs.New()
 	s.machineProviders = machine_providers.New()
 	s.s3BucketsServer = s3buckets.New()
 	s.volumeProviders = volume_providers.New()
@@ -126,6 +129,11 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		})
 		next(o)
 	})
+
+	err = s.logs.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
 
 	err = s.tokens.Init(s.api, workspacesGroup)
 	if err != nil {

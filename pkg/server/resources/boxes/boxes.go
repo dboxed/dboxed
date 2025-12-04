@@ -3,11 +3,8 @@ package boxes
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/sse"
-	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
@@ -69,23 +66,6 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	// run status
 	huma.Get(workspacesGroup, "/boxes/{id}/sandbox-status", s.restGetSandboxStatus, allowBoxTokenModifier)
 	huma.Patch(workspacesGroup, "/boxes/{id}/sandbox-status", s.restUpdateSandboxStatus, allowBoxTokenModifier)
-
-	// logs
-	huma.Post(workspacesGroup, "/boxes/{id}/logs", s.restPostLogs, allowBoxTokenModifier)
-	huma.Get(workspacesGroup, "/boxes/{id}/logs", s.restListLogs, allowBoxTokenModifier)
-	sse.Register(workspacesGroup, huma.Operation{
-		OperationID: "logs-stream",
-		Method:      http.MethodGet,
-		Path:        "/boxes/{id}/logs/{logId}/stream",
-		Metadata: map[string]any{
-			huma_utils.NoTx: true,
-		},
-	}, map[string]any{
-		"metadata":       models.LogMetadataModel{},
-		"logs-batch":     boxspec.LogsBatch{},
-		"end-of-history": endOfHistory{},
-		"error":          models.LogsError{},
-	}, s.sseLogsStream)
 
 	return nil
 }

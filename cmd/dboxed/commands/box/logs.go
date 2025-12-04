@@ -32,10 +32,10 @@ func (cmd *LogsCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.BoxClient{Client: c}
+	c2 := &clients.LogsClient{Client: c}
 
 	if cmd.LogId == nil {
-		logs, err := c2.ListLogs(ctx, box.ID)
+		logs, err := c2.ListLogs(ctx, "box", box.ID)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func (cmd *LogsCmd) Run(g *flags.GlobalFlags) error {
 		return fmt.Sprintf("%s %s\n", line.Time.String(), line.Line)
 	}
 
-	err = c2.StreamLogs(ctx, box.ID, *cmd.LogId, cmd.Since, func(event interface{}) error {
+	err = c2.StreamLogs(ctx, *cmd.LogId, cmd.Since, func(event interface{}) error {
 		switch v := event.(type) {
 		case models.LogMetadataModel:
 			slog.Info("streaming logs",

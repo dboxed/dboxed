@@ -16,10 +16,15 @@ import (
 )
 
 type LogsPublisher struct {
+	BoxId string
+
 	mt *multitail.MultiTail
 }
 
 func (lp *LogsPublisher) Stop(cancelAfter *time.Duration) {
+	if lp == nil {
+		return
+	}
 	if lp.mt != nil {
 		lp.mt.StopAndWait(cancelAfter)
 	}
@@ -44,9 +49,11 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 			format = "raw"
 		}
 		return boxspec.LogMetadata{
-			FileName: fileName,
-			Format:   format,
-			Metadata: map[string]any{},
+			OwnerType: "box",
+			OwnerId:   lp.BoxId,
+			FileName:  fileName,
+			Format:    format,
+			Metadata:  map[string]any{},
 		}, nil
 	}
 
@@ -72,8 +79,10 @@ func (lp *LogsPublisher) PublishS6Logs(dir string) error {
 			logFormat = "raw"
 		}
 		return boxspec.LogMetadata{
-			FileName: filepath.Join("dboxed", serviceName),
-			Format:   logFormat,
+			OwnerType: "box",
+			OwnerId:   lp.BoxId,
+			FileName:  filepath.Join("dboxed", serviceName),
+			Format:    logFormat,
 			Metadata: map[string]any{
 				"service-name": serviceName,
 			},
@@ -110,9 +119,11 @@ func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
 			fileName = filepath.Join("volumes", filepath.Base(volumeDir))
 		}
 		return boxspec.LogMetadata{
-			FileName: fileName,
-			Format:   "slog-json",
-			Metadata: metadata,
+			OwnerType: "box",
+			OwnerId:   lp.BoxId,
+			FileName:  fileName,
+			Format:    "slog-json",
+			Metadata:  metadata,
 		}, nil
 	}
 
@@ -152,8 +163,10 @@ func (lp *LogsPublisher) buildDockerContainerLogMetadata(logPath string) (boxspe
 	}
 
 	return boxspec.LogMetadata{
-		FileName: filepath.Join("containers", config.Name, config.ID),
-		Format:   "docker-logs",
+		OwnerType: "box",
+		OwnerId:   lp.BoxId,
+		FileName:  filepath.Join("containers", config.Name, config.ID),
+		Format:    "docker-logs",
 		Metadata: map[string]any{
 			"container": config,
 		},

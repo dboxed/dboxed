@@ -10,7 +10,8 @@ import (
 type LogMetadata struct {
 	OwnedByWorkspace
 
-	BoxID string `db:"box_id" omitOnConflictUpdate:"true"`
+	MachineID *string `db:"machine_id" omitOnConflictUpdate:"true"`
+	BoxID     *string `db:"box_id" omitOnConflictUpdate:"true"`
 
 	FileName string `db:"file_name" omitOnConflictUpdate:"true"`
 	Format   string `db:"format"`
@@ -30,16 +31,17 @@ type LogLine struct {
 }
 
 func (v *LogMetadata) CreateOrUpdate(q *querier2.Querier) error {
-	return querier2.CreateOrUpdate(q, v, "box_id, file_name")
+	return querier2.CreateOrUpdate(q, v, "machine_id, box_id, file_name")
 }
 
 func (v *LogLine) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListLogMetadataForBox(q *querier2.Querier, workspaceId *string, boxId string, skipDeleted bool) ([]LogMetadata, error) {
+func ListLogMetadataForOwner(q *querier2.Querier, workspaceId *string, machineId *string, boxId *string, skipDeleted bool) ([]LogMetadata, error) {
 	return querier2.GetMany[LogMetadata](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"machine_id":   machineId,
 		"box_id":       boxId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, nil)

@@ -16,16 +16,14 @@ type TailToApi struct {
 	ctx context.Context
 
 	client *baseclient.Client
-	boxId  string
 
 	MultiTail *multitail2.MultiTail
 }
 
-func NewTailToApi(ctx context.Context, c *baseclient.Client, tailDbFile string, boxId string) (*TailToApi, error) {
+func NewTailToApi(ctx context.Context, c *baseclient.Client, tailDbFile string) (*TailToApi, error) {
 	ttn := &TailToApi{
 		ctx:    ctx,
 		client: c,
-		boxId:  boxId,
 	}
 
 	var err error
@@ -53,8 +51,8 @@ func (ttn *TailToApi) handleLineBatch(metadata boxspec.LogMetadata, lines []*mul
 		})
 	}
 
-	c2 := clients.BoxClient{Client: ttn.client}
-	err := c2.PostLogLines(ttn.ctx, ttn.boxId, req)
+	c2 := clients.LogsClient{Client: ttn.client}
+	err := c2.PostLogLines(ttn.ctx, req)
 	if err != nil {
 		return err
 	}

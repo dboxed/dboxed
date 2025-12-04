@@ -3,6 +3,9 @@ package boxspec
 import "time"
 
 type LogMetadata struct {
+	OwnerType string `json:"ownerType"`
+	OwnerId   string `json:"ownerId"`
+
 	FileName string         `json:"fileName"`
 	Format   string         `json:"format"`
 	Metadata map[string]any `json:"metadata,omitempty"`

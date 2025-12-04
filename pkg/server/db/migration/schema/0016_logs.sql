@@ -6,6 +6,7 @@ create table log_metadata
     deleted_at       timestamptz,
     finalizers       text        not null default '{}',
 
+    machine_id       text references machine (id) on delete cascade,
     box_id           text references box (id) on delete cascade,
 
     file_name        text        not null,
@@ -15,7 +16,7 @@ create table log_metadata
     total_line_bytes bigint      not null default 0,
     last_log_time    timestamptz,
 
-    unique (box_id, file_name)
+    unique (machine_id, box_id, file_name)
 );
 
 create table log_line

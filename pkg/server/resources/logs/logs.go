@@ -1,9 +1,11 @@
-package boxes
+package logs
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -14,10 +16,40 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func (s *BoxesServer) putLogMetadata(c context.Context, boxId string, logMetadata boxspec.LogMetadata) (*dmodel.LogMetadata, error) {
+type LogsServer struct {
+}
+
+func New() *LogsServer {
+	return &LogsServer{}
+}
+
+func (s *LogsServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
+	allowBoxTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true)
+
+	huma.Post(workspacesGroup, "/logs", s.restPostLogs, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/logs", s.restListLogs)
+	sse.Register(workspacesGroup, huma.Operation{
+		OperationID: "logs-stream",
+		Method:      http.MethodGet,
+		Path:        "/logs/{logId}/stream",
+		Metadata: map[string]any{
+			huma_utils.NoTx: true,
+		},
+	}, map[string]any{
+		"metadata":       models.LogMetadataModel{},
+		"logs-batch":     boxspec.LogsBatch{},
+		"end-of-history": endOfHistory{},
+		"error":          models.LogsError{},
+	}, s.sseLogsStream)
+
+	return nil
+}
+
+func (s *LogsServer) putLogMetadata(c context.Context, logMetadata boxspec.LogMetadata) (*dmodel.LogMetadata, error) {
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
@@ -36,10 +68,17 @@ func (s *BoxesServer) putLogMetadata(c context.Context, boxId string, logMetadat
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: w.ID,
 		},
-		BoxID:    boxId,
 		FileName: logMetadata.FileName,
 		Format:   logMetadata.Format,
 		Metadata: string(metadataBytes),
+	}
+	switch logMetadata.OwnerType {
+	case "box":
+		lm.BoxID = &logMetadata.OwnerId
+	case "machine":
+		lm.MachineID = &logMetadata.OwnerId
+	default:
+		return nil, huma.Error400BadRequest(fmt.Sprintf("unknown owner type %s", logMetadata.OwnerType))
 	}
 	err := lm.CreateOrUpdate(q)
 	if err != nil {
@@ -52,16 +91,26 @@ func (s *BoxesServer) putLogMetadata(c context.Context, boxId string, logMetadat
 	return &lm, nil
 }
 
-func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJsonBody[models.PostLogs]) (*huma_utils.Empty, error) {
+func (s *LogsServer) restPostLogs(c context.Context, i *huma_utils.JsonBody[models.PostLogs]) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkBoxToken(c, i.Id)
-	if err != nil {
-		return nil, err
+	switch i.Body.Metadata.OwnerType {
+	case "box":
+		err := s.checkBoxToken(c, i.Body.Metadata.OwnerId)
+		if err != nil {
+			return nil, err
+		}
+	case "machine":
+		err := s.checkMachineToken(c, i.Body.Metadata.OwnerId)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, huma.Error400BadRequest(fmt.Sprintf("unknown owner type %s", i.Body.Metadata.OwnerType))
 	}
 
-	lm, err := s.putLogMetadata(c, i.Id, i.Body.Metadata)
+	lm, err := s.putLogMetadata(c, i.Body.Metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -117,16 +166,28 @@ func (s *BoxesServer) restPostLogs(c context.Context, i *huma_utils.IdByPathAndJ
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *BoxesServer) restListLogs(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.LogMetadataModel], error) {
+type restListLogsInput struct {
+	OwnerType string `query:"owner_type"`
+	OwnerId   string `query:"owner_id"`
+}
+
+func (s *LogsServer) restListLogs(c context.Context, i *restListLogsInput) (*huma_utils.List[models.LogMetadataModel], error) {
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkBoxToken(c, i.Id)
-	if err != nil {
-		return nil, err
+	if i.OwnerType == "" || i.OwnerId == "" {
+		return nil, huma.Error400BadRequest("missing owner_type/owner_id")
 	}
 
-	l, err := dmodel.ListLogMetadataForBox(q, &w.ID, i.Id, true)
+	var machineId, boxId *string
+	switch i.OwnerType {
+	case "machine":
+		machineId = &i.OwnerId
+	case "box":
+		boxId = &i.OwnerId
+	}
+
+	l, err := dmodel.ListLogMetadataForOwner(q, &w.ID, machineId, boxId, true)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +214,7 @@ type sseLogsStreamInput struct {
 type endOfHistory struct {
 }
 
-func (s *BoxesServer) sseLogsStream(c context.Context, i *sseLogsStreamInput, send sse.Sender) {
+func (s *LogsServer) sseLogsStream(c context.Context, i *sseLogsStreamInput, send sse.Sender) {
 	err := s.sseLogsStreamErr(c, i, send)
 	if err != nil {
 		slog.ErrorContext(c, "error in sseLogsStreamErr", slog.Any("error", err))
@@ -166,7 +227,7 @@ func (s *BoxesServer) sseLogsStream(c context.Context, i *sseLogsStreamInput, se
 	}
 }
 
-func (s *BoxesServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput, send sse.Sender) error {
+func (s *LogsServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput, send sse.Sender) error {
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
@@ -254,4 +315,34 @@ func (s *BoxesServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput,
 			}
 		}
 	}
+}
+
+func (s *LogsServer) checkMachineToken(c context.Context, machineId string) error {
+	token := auth_middleware.GetToken(c)
+
+	if token != nil {
+		if token.ForWorkspace {
+			return nil
+		}
+		if token.MachineID == nil || *token.MachineID != machineId {
+			return huma.Error403Forbidden("no access to machine logs")
+		}
+	}
+
+	return nil
+}
+
+func (s *LogsServer) checkBoxToken(c context.Context, boxId string) error {
+	token := auth_middleware.GetToken(c)
+
+	if token != nil {
+		if token.ForWorkspace {
+			return nil
+		}
+		if token.BoxID == nil || *token.BoxID != boxId {
+			return huma.Error403Forbidden("no access to box logs")
+		}
+	}
+
+	return nil
 }

@@ -37,7 +37,7 @@ type RunInSandbox struct {
 
 	routesMirror network.RoutesMirror
 
-	logsPublisher logs.LogsPublisher
+	logsPublisher *logs.LogsPublisher
 
 	reconcileLogger *slog.Logger
 	lastBoxSpecHash string

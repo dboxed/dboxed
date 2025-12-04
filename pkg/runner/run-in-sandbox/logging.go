@@ -16,9 +16,13 @@ func (rn *RunInSandbox) initLogsPublishing(ctx context.Context) error {
 		return nil
 	}
 
-	tta, err := logs.NewTailToApi(ctx, rn.client, filepath.Join(consts.LogsDir, consts.LogsTailDbFilename), rn.sandboxInfo.Box.ID)
+	tta, err := logs.NewTailToApi(ctx, rn.client, filepath.Join(consts.LogsDir, consts.LogsTailDbFilename))
 	if err != nil {
 		return err
+	}
+
+	rn.logsPublisher = &logs.LogsPublisher{
+		BoxId: rn.sandboxInfo.Box.ID,
 	}
 
 	err = rn.logsPublisher.Start(ctx, tta.MultiTail)
