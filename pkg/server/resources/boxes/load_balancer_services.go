@@ -62,6 +62,10 @@ func (s *BoxesServer) restCreateLoadBalancerService(c context.Context, i *restCr
 		return nil, err
 	}
 
+	if box.NetworkID == nil || *box.NetworkID != lb.NetworkId {
+		return nil, huma.Error400BadRequest("box is not in the same network as the load balancer", nil)
+	}
+
 	err = s.validateLoadBalancerServiceParams(&i.Body.Hostname, &i.Body.PathPrefix, &i.Body.Port)
 	if err != nil {
 		return nil, err
