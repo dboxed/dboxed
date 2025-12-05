@@ -16,7 +16,7 @@ create table log_metadata
     total_line_bytes bigint      not null default 0,
     last_log_time    timestamptz,
 
-    unique (machine_id, box_id, file_name)
+    unique nulls not distinct (machine_id, box_id, file_name)
 );
 
 create table log_line
