@@ -3,13 +3,15 @@ package logs
 import (
 	"io"
 	"log/slog"
+	"slices"
 	"sync/atomic"
 )
 
 type MultiLogHandler struct {
 	slog.Handler
 
-	writer *replaceableWriter
+	writers []io.Writer
+	writer  *replaceableWriter
 }
 
 type replaceableWriter struct {
@@ -35,7 +37,15 @@ func NewMultiLogHandler(logLevel slog.Level) *MultiLogHandler {
 }
 
 func (h *MultiLogHandler) AddWriter(w io.Writer) {
-	oldWriter := h.writer.w.Load().(io.Writer)
-	newWriter := io.MultiWriter(oldWriter, w)
+	h.writers = append(h.writers, w)
+	newWriter := io.MultiWriter(h.writers...)
+	h.writer.w.Store(newWriter)
+}
+
+func (h *MultiLogHandler) RemoveWriter(w io.Writer) {
+	h.writers = slices.DeleteFunc(h.writers, func(writer io.Writer) bool {
+		return writer == w
+	})
+	newWriter := io.MultiWriter(h.writers...)
 	h.writer.w.Store(newWriter)
 }

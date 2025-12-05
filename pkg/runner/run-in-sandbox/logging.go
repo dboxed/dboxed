@@ -20,7 +20,7 @@ func (rn *RunInSandbox) initLogsPublishing(ctx context.Context) error {
 		return err
 	}
 
-	rn.logsPublisher = &logs.LogsPublisher{
+	rn.logsPublisher = &LogsPublisher{
 		BoxId: rn.sandboxInfo.Box.ID,
 	}
 

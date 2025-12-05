@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -36,7 +37,7 @@ type RunInSandbox struct {
 
 	routesMirror network.RoutesMirror
 
-	logsPublisher *logs.LogsPublisher
+	logsPublisher *LogsPublisher
 
 	lastBoxSpecHash string
 	lastBoxSpec     *boxspec.BoxSpec

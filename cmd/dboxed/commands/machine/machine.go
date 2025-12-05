@@ -8,4 +8,6 @@ type MachineCommands struct {
 	AddBox    AddBoxCmd    `cmd:"" help:"Add a box to a machine" group:"box"`
 	RemoveBox RemoveBoxCmd `cmd:"" help:"Remove a box from a machine" group:"box" aliases:"rm-box"`
 	ListBoxes ListBoxesCmd `cmd:"" help:"List boxes for a machine" aliases:"ls-boxes" group:"box"`
+
+	onlyLinux
 }
