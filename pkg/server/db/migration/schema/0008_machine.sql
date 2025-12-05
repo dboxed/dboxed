@@ -18,3 +18,14 @@ create table machine
 
     unique (workspace_id, name)
 );
+
+create table machine_run_status
+(
+    id          text not null primary key references machine (id) on delete cascade,
+
+    status_time timestamptz,
+
+    run_status  text,
+    start_time  timestamptz,
+    stop_time   timestamptz
+);

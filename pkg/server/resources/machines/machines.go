@@ -39,6 +39,10 @@ func (s *MachinesServer) Init(rootGroup huma.API, workspacesGroup huma.API) erro
 	huma.Delete(workspacesGroup, "/machines/{id}/boxes/{boxId}", s.restRemoveBox)
 	huma.Post(workspacesGroup, "/machines/{id}/boxes/{boxId}/create-token", s.restCreateBoxToken, allowMachineTokenModifier)
 
+	// status
+	huma.Get(workspacesGroup, "/machines/{id}/machine-status", s.restGetMachineStatus, allowMachineTokenModifier)
+	huma.Patch(workspacesGroup, "/machines/{id}/machine-status", s.restUpdateMachineStatus, allowMachineTokenModifier)
+
 	return nil
 }
 
@@ -53,7 +57,7 @@ func (s *MachinesServer) restCreateMachine(c context.Context, i *huma_utils.Json
 		return nil, huma.Error400BadRequest(inputErr)
 	}
 
-	ret, err := models.MachineFromDB(*machine)
+	ret, err := models.MachineFromDB(*machine, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -191,15 +195,15 @@ func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma
 	w := auth_middleware.GetWorkspace(c)
 	token := auth_middleware.GetToken(c)
 
-	var l []dmodel.Machine
+	var l []dmodel.MachineWithRunStatus
 	if token == nil || token.ForWorkspace {
 		var err error
-		l, err = dmodel.ListMachinesForWorkspace(q, w.ID, true)
+		l, err = dmodel.ListMachinesWithRunStatusForWorkspace(q, w.ID, true)
 		if err != nil {
 			return nil, err
 		}
 	} else if token.MachineID != nil {
-		b, err := dmodel.GetMachineById(q, &w.ID, *token.MachineID, true)
+		b, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, *token.MachineID, true)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +242,7 @@ func (s *MachinesServer) restGetMachine(c context.Context, i *huma_utils.IdByPat
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	m, err := dmodel.GetMachineById(q, &w.ID, i.Id, true)
+	m, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +263,7 @@ func (s *MachinesServer) restUpdateMachine(c context.Context, i *restUpdateMachi
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	m, err := dmodel.GetMachineById(q, &w.ID, i.Id, true)
+	m, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -290,8 +294,8 @@ func (s *MachinesServer) restDeleteMachine(c context.Context, i *huma_utils.IdBy
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *MachinesServer) postprocessMachine(c context.Context, machine dmodel.Machine) (*models.Machine, error) {
-	ret, err := models.MachineFromDB(machine)
+func (s *MachinesServer) postprocessMachine(c context.Context, machine dmodel.MachineWithRunStatus) (*models.Machine, error) {
+	ret, err := models.MachineFromDB(machine.Machine, machine.RunStatus)
 	if err != nil {
 		return nil, err
 	}

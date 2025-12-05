@@ -86,3 +86,24 @@ func (c *MachineClient) RemoveBox(ctx context.Context, machineId string, boxId s
 	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "DELETE", p, struct{}{})
 	return err
 }
+
+func (c *MachineClient) CreateBoxToken(ctx context.Context, machineId string, boxId string) (*models.Token, error) {
+	p, err := c.Client.BuildApiPath(true, "machines", machineId, "boxes", boxId, "create-token")
+	if err != nil {
+		return nil, err
+	}
+	token, err := baseclient.RequestApi[models.Token](ctx, c.Client, "POST", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+func (c *MachineClient) UpdateMachineStatus(ctx context.Context, machineId string, req models.UpdateMachineRunStatus) interface{} {
+	p, err := c.Client.BuildApiPath(true, "machines", machineId, "machine-status")
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "PATCH", p, req)
+	return err
+}

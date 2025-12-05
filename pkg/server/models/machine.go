@@ -22,6 +22,8 @@ type Machine struct {
 
 	MachineProvider     *string                     `json:"machineProvider,omitempty"`
 	MachineProviderType *global.MachineProviderType `json:"machineProviderType,omitempty"`
+
+	RunStatus *MachineRunStatus `json:"runStatus,omitempty"`
 }
 
 type CreateMachine struct {
@@ -51,7 +53,29 @@ type AddBoxToMachineRequest struct {
 	BoxId string `json:"boxId"`
 }
 
-func MachineFromDB(s dmodel.Machine) (*Machine, error) {
+type MachineRunStatus struct {
+	StatusTime *time.Time `json:"statusTime,omitempty"`
+	RunStatus  *string    `json:"runStatus,omitempty"`
+	StartTime  *time.Time `json:"startTime,omitempty"`
+	StopTime   *time.Time `json:"stopTime,omitempty"`
+}
+
+type UpdateMachineRunStatus struct {
+	RunStatus *string    `json:"runStatus,omitempty"`
+	StartTime *time.Time `json:"startTime,omitempty"`
+	StopTime  *time.Time `json:"stopTime,omitempty"`
+}
+
+func MachineRunStatusFromDB(s *dmodel.MachineRunStatus) *MachineRunStatus {
+	return &MachineRunStatus{
+		StatusTime: s.StatusTime,
+		RunStatus:  s.RunStatus,
+		StartTime:  s.StartTime,
+		StopTime:   s.StopTime,
+	}
+}
+
+func MachineFromDB(s dmodel.Machine, runStatus *dmodel.MachineRunStatus) (*Machine, error) {
 	ret := &Machine{
 		ID:            s.ID,
 		Workspace:     s.WorkspaceID,
@@ -66,6 +90,10 @@ func MachineFromDB(s dmodel.Machine) (*Machine, error) {
 	if s.MachineProviderID != nil {
 		ret.MachineProvider = s.MachineProviderID
 		ret.MachineProviderType = util.Ptr(global.MachineProviderType(*s.MachineProviderType))
+	}
+
+	if runStatus != nil {
+		ret.RunStatus = MachineRunStatusFromDB(runStatus)
 	}
 
 	return ret, nil

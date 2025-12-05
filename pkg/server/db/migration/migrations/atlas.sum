@@ -1,4 +1,4 @@
-h1:WkvzmtWszIyM21xNvrxE9DUQY2yQJiPyPKjJTjcEieE=
+h1:ynsGO0yLdDet7IUBlxmnlaIkz9m+ZzI/d4DYpOuTeFs=
 20251106202744_initial.sql h1:8ORhKxF0D6d3K2ywYRRNfUwBn2lE9TtrJ70e/c+mi18=
 20251107095218_volume_lock_to_mount.sql h1:bL4/86ONX6bdeFzOPHr973GnxtgVSYyNFoAcDFb2fvM=
 20251107160511_volume_mount_status.sql h1:QSsqjdEBjA4yYaKtuPVCNBz5xjf3ffphF5vWTXyMBCE=
@@ -16,3 +16,4 @@ h1:WkvzmtWszIyM21xNvrxE9DUQY2yQJiPyPKjJTjcEieE=
 20251202085252_dboxed_version.sql h1:U2Y8uzYi5KyPKj3TzvISbOdeYq1EkrcDZeSaed4nThQ=
 20251203091559_machine_tokens.sql h1:yq59W/06DqVqBma9jUWrz66r4mPAzBnbdtvT291x1GM=
 20251203135144_machine_logs.sql h1:5VbJyy1lNWV0CTHNoD4BAz8P2JInoXVpSb/PUgeSEeA=
+20251204132542_machine_status.sql h1:b9FcOFZNGmNcwKlaLeUq92C41L6JwKgBlyebNQ7cMJY=
