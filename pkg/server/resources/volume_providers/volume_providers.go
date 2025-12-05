@@ -118,6 +118,11 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		return nil, fmt.Errorf("unsupported volume provider type %s", i.Body.Type)
 	}
 
+	err = dmodel.AddChangeTracking(q, r)
+	if err != nil {
+		return nil, err
+	}
+
 	return huma_utils.NewJsonBody(models.VolumeProviderFromDB(r)), nil
 }
 
@@ -186,8 +191,12 @@ func (s *VolumeProviderServer) restUpdateVolumeProvider(c context.Context, i *re
 		return nil, err
 	}
 
-	m := models.VolumeProviderFromDB(*r)
+	err = dmodel.AddChangeTracking(q, r)
+	if err != nil {
+		return nil, err
+	}
 
+	m := models.VolumeProviderFromDB(*r)
 	return huma_utils.NewJsonBody(m), nil
 }
 
