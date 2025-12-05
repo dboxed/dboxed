@@ -245,7 +245,6 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 		WorkDir:      rn.WorkDir,
 		BoxSpec:      boxSpec,
 		PortForwards: rn.portForwards,
-		Log:          slog.Default(),
 	}
 	err := boxSpecRunner.Reconcile(ctx)
 	if err != nil {
@@ -269,7 +268,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 			WorkDir:      rn.WorkDir,
 			BoxSpec:      rn.lastBoxSpec,
 			PortForwards: rn.portForwards,
-			Log:          slog.Default(),
 		}
 
 		slog.InfoContext(ctx, "shutting down compose projects")

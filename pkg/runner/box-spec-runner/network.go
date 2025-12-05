@@ -3,6 +3,7 @@ package box_spec_runner
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -13,7 +14,7 @@ import (
 
 func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
 	s6 := &service.S6Helper{
-		Log: rn.Log,
+		Log: slog.Default(),
 	}
 
 	if rn.BoxSpec.Network == nil {
@@ -52,7 +53,7 @@ func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
 		fqdn := fmt.Sprintf("%s.dboxed.", nh.Name)
 		staticHosts[fqdn] = nh.IP4
 	}
-	rn.Log.InfoContext(ctx, "writing new static hosts map", "map", staticHosts)
+	slog.InfoContext(ctx, "writing new static hosts map", "map", staticHosts)
 	err := util.AtomicWriteFileYaml(consts.SandboxDnsStaticMapFile, staticHosts, 0600)
 	if err != nil {
 		return err
@@ -89,7 +90,7 @@ func (rn *BoxSpecRunner) runNetbirdUp(ctx context.Context) error {
 			"--extra-dns-labels", fmt.Sprintf("%s.%s", rn.BoxSpec.Name, *rn.BoxSpec.Network.Name),
 			"--setup-key-file", filepath.Join(consts.NetbirdDir, "netbird.setup-key"),
 		},
-		Logger: rn.Log,
+		Logger: slog.Default(),
 		LogCmd: true,
 	}
 	err := cmd.Run(ctx)

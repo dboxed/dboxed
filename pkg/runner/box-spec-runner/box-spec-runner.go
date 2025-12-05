@@ -16,7 +16,6 @@ type BoxSpecRunner struct {
 	WorkDir      string
 	BoxSpec      *boxspec.BoxSpec
 	PortForwards *network.PortForwards
-	Log          *slog.Logger
 
 	NetworkIp4 *string
 }
@@ -74,7 +73,7 @@ func (rn *BoxSpecRunner) downDeletedComposeProjects(ctx context.Context, compose
 		removedComposeProjectsNames = append(removedComposeProjectsNames, cp.Name)
 	}
 	if len(removedComposeProjectsNames) != 0 {
-		rn.Log.InfoContext(ctx, "downing removed compose projects", slog.Any("composeProjects", removedComposeProjectsNames))
+		slog.InfoContext(ctx, "downing removed compose projects", slog.Any("composeProjects", removedComposeProjectsNames))
 		err = rn.runComposeDownByNames(ctx, removedComposeProjectsNames, true, false)
 		if err != nil {
 			return err
@@ -98,7 +97,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 	c := util.CommandHelper{
 		Command: "docker",
 		Args:    []string{"ps", "-a", "--format=json"},
-		Logger:  rn.Log,
+		Logger:  slog.Default(),
 	}
 	var containers []dockercli.DockerPS
 	err = c.RunStdoutJsonLines(ctx, &containers)
@@ -116,7 +115,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 	}
 
 	if len(stopIds) != 0 {
-		rn.Log.InfoContext(ctx, "stopping containers", slog.Any("ids", stopIds))
+		slog.InfoContext(ctx, "stopping containers", slog.Any("ids", stopIds))
 		args := []string{
 			"stop",
 			"--timeout=10",
@@ -125,7 +124,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		c := util.CommandHelper{
 			Command: "docker",
 			Args:    args,
-			Logger:  rn.Log,
+			Logger:  slog.Default(),
 			LogCmd:  true,
 		}
 		err = c.Run(ctx)
@@ -134,7 +133,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		}
 	}
 	if len(rmIds) != 0 {
-		rn.Log.InfoContext(ctx, "removing containers", slog.Any("ids", stopIds))
+		slog.InfoContext(ctx, "removing containers", slog.Any("ids", stopIds))
 		args := []string{
 			"rm",
 			"-fv",
@@ -143,7 +142,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		c := util.CommandHelper{
 			Command: "docker",
 			Args:    args,
-			Logger:  rn.Log,
+			Logger:  slog.Default(),
 			LogCmd:  true,
 		}
 		err = c.Run(ctx)
@@ -152,7 +151,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		}
 	}
 
-	rn.Log.InfoContext(ctx, "releasing dboxed volumes")
+	slog.InfoContext(ctx, "releasing dboxed volumes")
 	err = rn.reconcileDboxedVolumes(ctx, composeProjects, nil, false)
 	if err != nil {
 		return err

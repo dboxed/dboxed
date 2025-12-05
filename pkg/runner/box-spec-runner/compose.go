@@ -36,7 +36,6 @@ func (rn *BoxSpecRunner) listRunningComposeProjects(ctx context.Context) ([]dock
 	cmd := util.CommandHelper{
 		Command: "docker",
 		Args:    []string{"compose", "ls", "-a", "--format", "json"},
-		Logger:  rn.Log,
 	}
 	var l []dockercli.DockerComposeListEntry
 	err := cmd.RunStdoutJson(ctx, &l)
@@ -113,7 +112,7 @@ func (rn *BoxSpecRunner) runComposeDownByNames(ctx context.Context, names []stri
 			}
 			err := rn.runComposeCli(ctx, "", name, nil, args...)
 			if err != nil {
-				rn.Log.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))
+				slog.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))
 				if !ignoreComposeErrors {
 					return err
 				}
@@ -165,7 +164,7 @@ func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, composeBaseDir strin
 		Args:    args2,
 		Env:     cmdEnv,
 		Dir:     dir,
-		Logger:  rn.Log.With(slog.Any("composeProject", projectName)),
+		Logger:  slog.With(slog.Any("composeProject", projectName)),
 		LogCmd:  true,
 	}
 	err := cmd.Run(ctx)
