@@ -60,6 +60,10 @@ func SetReconcileResult[T dmodel.HasReconcileStatus](ctx context.Context, log *s
 }
 
 func SetReconcileStatus[T dmodel.HasReconcileStatus](ctx context.Context, v T, status string, statusDetails string) error {
+	curStatus, curStatusDetails := v.GetReconcileStatus()
+	if curStatus == status && curStatusDetails == statusDetails {
+		return nil
+	}
 	v.SetReconcileStatus(status, statusDetails)
 	return dmodel.UpdateReconcileStatus(querier2.GetQuerier(ctx), v)
 }
