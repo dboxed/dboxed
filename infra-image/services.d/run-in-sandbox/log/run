@@ -1,5 +1,0 @@
-#!/bin/sh
-mkdir -p /var/lib/dboxed/logs/s6/run-in-sandbox
-echo "slog-json" > /var/lib/dboxed/logs/s6/run-in-sandbox/log-format
-
-exec s6-log n20 s1000000 /var/lib/dboxed/logs/s6/run-in-sandbox

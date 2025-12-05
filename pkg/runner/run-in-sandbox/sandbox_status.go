@@ -102,7 +102,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 		SandboxStatus: &rn.sandboxStatus,
 	})
 	if err != nil {
-		rn.reconcileLogger.ErrorContext(ctx, "failed to report run status", "error", err)
+		slog.ErrorContext(ctx, "failed to report run status", "error", err)
 	} else {
 		rn.sandboxStatusSent = rn.sandboxStatus
 		rn.sandboxStatusTime = time.Now()
@@ -112,7 +112,7 @@ func (rn *RunInSandbox) sendSandboxStatus(ctx context.Context, lock bool) {
 func (rn *RunInSandbox) sendSandboxStatusDockerPs(ctx context.Context) {
 	b, err := rn.runDockerPS(ctx)
 	if err != nil {
-		rn.reconcileLogger.ErrorContext(ctx, "failed to run docker ps", "error", err)
+		slog.ErrorContext(ctx, "failed to run docker ps", "error", err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (rn *RunInSandbox) sendSandboxStatusDockerPs(ctx context.Context) {
 
 	err = rn.doSendSandboxStatusDockerPs(ctx, b)
 	if err != nil {
-		rn.reconcileLogger.ErrorContext(ctx, "failed to report docker ps result", "error", err)
+		slog.ErrorContext(ctx, "failed to report docker ps result", "error", err)
 	} else {
 		rn.dockerPSSent = b
 	}

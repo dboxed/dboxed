@@ -70,10 +70,11 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		return err
 	}
 
-	err = rn.initFileLogging(ctx, sandboxDir, logHandler)
-	if err != nil {
-		return err
-	}
+	logFile := filepath.Join(sandboxDir, "logs", "sandbox-run.log")
+	logWriter := logs.BuildRotatingLogger(logFile)
+
+	logHandler.AddWriter(logWriter)
+	defer logHandler.RemoveWriter(logWriter)
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
 	workspacesClient := clients.WorkspacesClient{Client: rn.Client}
@@ -227,6 +228,8 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 			return err
 		}
 	}
+
+	slog.InfoContext(ctx, "sandbox is up and running")
 
 	return nil
 }

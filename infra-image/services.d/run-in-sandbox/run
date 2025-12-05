@@ -2,4 +2,4 @@
 if [ -f /var/lib/dboxed/sandbox.env ]; then
   source /var/lib/dboxed/sandbox.env
 fi
-exec dboxed sandbox run-in-sandbox 2>&1
+exec dboxed sandbox run-in-sandbox

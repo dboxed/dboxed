@@ -221,9 +221,6 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
-	process.Stdout = os.Stdout
-	process.Stderr = os.Stderr
-
 	ul, err := network.ListenSCMSocket(filepath.Join(rn.GetSandboxRoot(), consts.NetNsInitialUnixSocket))
 	if err != nil {
 		return err

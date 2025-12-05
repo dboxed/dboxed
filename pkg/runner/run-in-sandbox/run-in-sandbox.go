@@ -2,7 +2,6 @@ package run_in_sandbox
 
 import (
 	"context"
-	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -39,7 +38,6 @@ type RunInSandbox struct {
 
 	logsPublisher *logs.LogsPublisher
 
-	reconcileLogger *slog.Logger
 	lastBoxSpecHash string
 	lastBoxSpec     *boxspec.BoxSpec
 
@@ -54,12 +52,18 @@ type RunInSandbox struct {
 	hostNetworkNamespace netns.NsHandle
 }
 
-func (rn *RunInSandbox) Run(ctx context.Context) error {
+func (rn *RunInSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
 		signal.Stop(sigs)
 	}()
+
+	logFile := filepath.Join(consts.LogsDir, "run-in-sandbox.log")
+	logWriter := logs.BuildRotatingLogger(logFile)
+
+	logHandler.AddWriter(logWriter)
+	defer logHandler.RemoveWriter(logWriter)
 
 	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
 	defer rn.logsPublisher.Stop(util.Ptr(time.Second * 5))
@@ -158,10 +162,6 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		return false, err
 	}
 
-	var reconcileLogWriter io.WriteCloser
-	rn.reconcileLogger, reconcileLogWriter = rn.buildReconcileLogger()
-	defer reconcileLogWriter.Close()
-
 	rn.updateSandboxStatus(ctx, models.UpdateBoxSandboxStatus2{
 		RunStatus: util.Ptr("starting"),
 		StartTime: &startTime,
@@ -206,7 +206,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
 		} else {
 			if boxSpec.DesiredState != "up" {
-				rn.reconcileLogger.InfoContext(ctx, "desired state is not 'up', shutting down", "desiredState", boxSpec.DesiredState)
+				slog.InfoContext(ctx, "desired state is not 'up', shutting down", "desiredState", boxSpec.DesiredState)
 				return true, nil
 			}
 
@@ -215,10 +215,10 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 				return false, err
 			}
 			if newHash != rn.lastBoxSpecHash {
-				rn.reconcileLogger.InfoContext(ctx, "a new box spec was received")
+				slog.InfoContext(ctx, "a new box spec was received")
 				err = rn.reconcileBoxSpec(ctx, boxSpec)
 				if err != nil {
-					rn.reconcileLogger.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
+					slog.ErrorContext(ctx, "error while reconciling box spec", slog.Any("error", err))
 				}
 				rn.lastBoxSpecHash = newHash
 				rn.lastBoxSpec = boxSpec
@@ -236,7 +236,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 }
 
 func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
-	rn.reconcileLogger.InfoContext(ctx, "starting reconcile of box spec")
+	slog.InfoContext(ctx, "starting reconcile of box spec")
 
 	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
 
@@ -244,7 +244,7 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 		WorkDir:      rn.WorkDir,
 		BoxSpec:      boxSpec,
 		PortForwards: rn.portForwards,
-		Log:          rn.reconcileLogger,
+		Log:          slog.Default(),
 	}
 	err := boxSpecRunner.Reconcile(ctx)
 	if err != nil {
@@ -268,10 +268,10 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 			WorkDir:      rn.WorkDir,
 			BoxSpec:      rn.lastBoxSpec,
 			PortForwards: rn.portForwards,
-			Log:          rn.reconcileLogger,
+			Log:          slog.Default(),
 		}
 
-		rn.reconcileLogger.InfoContext(ctx, "shutting down compose projects")
+		slog.InfoContext(ctx, "shutting down compose projects")
 		err := boxSpecRunner.Down(ctx, false, true)
 		if err != nil {
 			return err
@@ -286,21 +286,21 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		return err
 	}
 
-	rn.reconcileLogger.InfoContext(ctx, "shutting down dockerd")
+	slog.InfoContext(ctx, "shutting down dockerd")
 	err = s6.S6SvcDown(ctx, "dockerd")
 	if err != nil {
 		return err
 	}
-	rn.reconcileLogger.InfoContext(ctx, "dockerd has exited")
+	slog.InfoContext(ctx, "dockerd has exited")
 
 	// ensure we don't restart the sandbox
-	rn.reconcileLogger.InfoContext(ctx, "running s6 halt")
+	slog.InfoContext(ctx, "running s6 halt")
 	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
 	if err != nil {
 		return err
 	}
 
-	rn.reconcileLogger.InfoContext(ctx, "shutting down network")
+	slog.InfoContext(ctx, "shutting down network")
 	err = network.Destroy(ctx, &rn.hostNetworkNamespace, rn.namesAndIps, "")
 	if err != nil {
 		return err
@@ -308,7 +308,7 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 
 	rn.updateSandboxStatusSimple(ctx, "stopped", true)
 
-	rn.reconcileLogger.InfoContext(ctx, "shutdown finished")
+	slog.InfoContext(ctx, "shutdown finished")
 	return nil
 }
 
