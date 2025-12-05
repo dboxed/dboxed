@@ -97,12 +97,12 @@ func (s *LogsServer) restPostLogs(c context.Context, i *huma_utils.JsonBody[mode
 
 	switch i.Body.Metadata.OwnerType {
 	case "box":
-		err := s.checkBoxToken(c, i.Body.Metadata.OwnerId)
+		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Body.Metadata.OwnerId)
 		if err != nil {
 			return nil, err
 		}
 	case "machine":
-		err := s.checkMachineToken(c, i.Body.Metadata.OwnerId)
+		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, i.Body.Metadata.OwnerId)
 		if err != nil {
 			return nil, err
 		}
@@ -315,34 +315,4 @@ func (s *LogsServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput, 
 			}
 		}
 	}
-}
-
-func (s *LogsServer) checkMachineToken(c context.Context, machineId string) error {
-	token := auth_middleware.GetToken(c)
-
-	if token != nil {
-		if token.ForWorkspace {
-			return nil
-		}
-		if token.MachineID == nil || *token.MachineID != machineId {
-			return huma.Error403Forbidden("no access to machine logs")
-		}
-	}
-
-	return nil
-}
-
-func (s *LogsServer) checkBoxToken(c context.Context, boxId string) error {
-	token := auth_middleware.GetToken(c)
-
-	if token != nil {
-		if token.ForWorkspace {
-			return nil
-		}
-		if token.BoxID == nil || *token.BoxID != boxId {
-			return huma.Error403Forbidden("no access to box logs")
-		}
-	}
-
-	return nil
 }

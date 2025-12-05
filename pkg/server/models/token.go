@@ -11,19 +11,20 @@ type Token struct {
 	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
-	Name  string  `json:"name"`
+	Name string           `json:"name"`
+	Type dmodel.TokenType `json:"type"`
+
 	Token *string `json:"token,omitempty"`
 
-	ForWorkspace   bool    `json:"forWorkspace"`
 	MachineID      *string `json:"machineId,omitempty"`
 	BoxID          *string `json:"boxId,omitempty"`
 	LoadBalancerId *string `json:"loadBalancerId,omitempty"`
 }
 
 type CreateToken struct {
-	Name string `json:"name"`
+	Name string           `json:"name"`
+	Type dmodel.TokenType `json:"type"`
 
-	ForWorkspace   bool    `json:"forWorkspace,omitempty"`
 	MachineID      *string `json:"machineId,omitempty"`
 	BoxID          *string `json:"boxId,omitempty"`
 	LoadBalancerId *string `json:"loadBalancerId,omitempty"`
@@ -35,7 +36,7 @@ func TokenFromDB(v dmodel.Token, withSecret bool) Token {
 		Workspace:      v.WorkspaceID,
 		CreatedAt:      v.CreatedAt,
 		Name:           v.Name,
-		ForWorkspace:   v.ForWorkspace,
+		Type:           v.Type,
 		MachineID:      v.MachineID,
 		BoxID:          v.BoxID,
 		LoadBalancerId: v.LoadBalancerId,

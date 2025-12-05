@@ -30,8 +30,7 @@ func NewAuthHandler(authInfo models.AuthInfo, oidcProvider *oidc.Provider) *Auth
 func (s *AuthHandler) Init(api huma.API) error {
 	huma.Get(api, "/v1/auth/current-user", s.restCurrentUser)
 	huma.Get(api, "/v1/auth/current-token", s.restCurrentToken,
-		huma_utils.MetadataModifier(huma_metadata.AllowWorkspaceToken, true),
-		huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true),
+		huma_utils.MetadataModifier(huma_metadata.AllowAnyToken, true),
 	)
 	huma.Get(api, "/v1/auth/info", s.restInfo, huma_utils.MetadataModifier(huma_metadata.SkipAuth, true))
 

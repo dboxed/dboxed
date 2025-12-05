@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -159,7 +160,7 @@ func (c *Client) CheckAuth(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if t.ForWorkspace {
+		if t.Type == dmodel.TokenTypeWorkspace {
 			c.clientAuth.WorkspaceId = &t.Workspace
 		}
 	}

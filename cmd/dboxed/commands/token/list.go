@@ -14,11 +14,11 @@ type ListCmd struct {
 }
 
 type PrintToken struct {
-	ID           string `col:"ID" id:"true"`
-	Name         string `col:"Name"`
-	ForWorkspace bool   `col:"For Workspace"`
-	Machine      string `col:"Machine"`
-	Box          string `col:"Box"`
+	ID      string `col:"ID" id:"true"`
+	Name    string `col:"Name"`
+	Type    string `col:"Type"`
+	Machine string `col:"Machine"`
+	Box     string `col:"Box"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -40,9 +40,9 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintToken
 	for _, token := range tokens {
 		p := PrintToken{
-			ID:           token.ID,
-			Name:         token.Name,
-			ForWorkspace: token.ForWorkspace,
+			ID:   token.ID,
+			Name: token.Name,
+			Type: string(token.Type),
 		}
 		if token.MachineID != nil {
 			p.Machine = ct.Machines.GetColumn(ctx, *token.MachineID, false)

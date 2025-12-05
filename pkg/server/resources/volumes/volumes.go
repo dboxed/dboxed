@@ -309,7 +309,7 @@ func (s *VolumeServer) restMountVolume(ctx context.Context, i *huma_utils.IdByPa
 		} else if v.Attachment.BoxId.V != *i.Body.BoxId {
 			return nil, huma.Error400BadRequest("can't mount volume with boxId not matching the box volume attachment")
 		}
-		if token != nil && token.BoxID != nil {
+		if token != nil && token.Type == dmodel.TokenTypeBox {
 			if *i.Body.BoxId != *token.BoxID {
 				return nil, huma.Error403Forbidden("can't mount volume with boxId for a box you'd have access to")
 			}
@@ -465,7 +465,7 @@ func (s *VolumeServer) checkBoxToken(ctx context.Context, volume *dmodel.Volume,
 	q := querier.GetQuerier(ctx)
 	token := auth_middleware.GetToken(ctx)
 
-	if token == nil || token.BoxID == nil {
+	if token == nil || token.Type != dmodel.TokenTypeBox {
 		// not a box token
 		return nil
 	}

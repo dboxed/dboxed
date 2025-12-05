@@ -31,7 +31,7 @@ func CheckWorkspaceAccess(ctx context.Context, w *models.Workspace, onlyWorkspac
 			}
 		}
 	} else if token != nil {
-		if onlyWorkspaceToken && !token.ForWorkspace {
+		if onlyWorkspaceToken && token.Type != dmodel.TokenTypeWorkspace {
 			return huma.Error403Forbidden("access to workspace not allowed")
 		}
 		if token.Workspace != w.ID {

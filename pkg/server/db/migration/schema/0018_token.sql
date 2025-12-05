@@ -5,9 +5,9 @@ create table token
     created_at       timestamptz not null default current_timestamp,
 
     name             text        not null,
+    type             text        not null,
     token            text        not null unique,
 
-    for_workspace    bool        not null,
     machine_id       text references machine (id) on delete cascade,
     box_id           text references box (id) on delete cascade,
     load_balancer_id text references load_balancer (id) on delete cascade,

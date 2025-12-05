@@ -9,6 +9,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
@@ -34,8 +35,9 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	if cmd.ForWorkspace {
-		req.ForWorkspace = true
+		req.Type = dmodel.TokenTypeWorkspace
 	} else if cmd.Box != nil {
+		req.Type = dmodel.TokenTypeBox
 		b, err := commandutils.GetBox(ctx, c, *cmd.Box)
 		if err != nil {
 			return err

@@ -2,15 +2,24 @@ package dmodel
 
 import "github.com/dboxed/dboxed/pkg/server/db/querier"
 
+type TokenType string
+
+const (
+	TokenTypeWorkspace    TokenType = "workspace"
+	TokenTypeMachine      TokenType = "machine"
+	TokenTypeBox          TokenType = "box"
+	TokenTypeLoadBalancer TokenType = "load-balancer"
+)
+
 type Token struct {
 	ID          string `db:"id" uuid:"true"`
 	WorkspaceID string `db:"workspace_id"`
 	Times
 
-	Name  string `db:"name"`
-	Token string `db:"token"`
+	Name  string    `db:"name"`
+	Type  TokenType `db:"type"`
+	Token string    `db:"token"`
 
-	ForWorkspace   bool    `db:"for_workspace"`
 	MachineID      *string `db:"machine_id"`
 	BoxID          *string `db:"box_id"`
 	LoadBalancerId *string `db:"load_balancer_id"`

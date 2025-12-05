@@ -30,7 +30,7 @@ var (
 func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutCertmagicLockInput) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
 
-	err := s.checkLoadBalancerToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *LoadBalancerServer) restDeleteCertmagicLock(c context.Context, i *huma_
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkLoadBalancerToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ type restHeadCertmagicObjectOutput struct {
 }
 
 func (s *LoadBalancerServer) restHeadCertmagicObject(c context.Context, i *huma_utils.IdByPath) (*restHeadCertmagicObjectOutput, error) {
-	err := s.checkLoadBalancerToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ type restGetCertmagicOutput struct {
 }
 
 func (s *LoadBalancerServer) restGetCertmagicObject(c context.Context, i *restGetCertmagicInput) (*restGetCertmagicOutput, error) {
-	err := s.checkLoadBalancerToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (s *LoadBalancerServer) restPutCertmagicObject(c context.Context, i *restPu
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkLoadBalancerToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +247,7 @@ func (s *LoadBalancerServer) restDeleteCertmagicObject(c context.Context, i *hum
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkLoadBalancerToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -315,19 +315,4 @@ func (s *LoadBalancerServer) getCertmagicValue(c context.Context, lbId string, k
 	}
 
 	return lb, v, nil
-}
-
-func (s *LoadBalancerServer) checkLoadBalancerToken(c context.Context, lbId string) error {
-	token := auth_middleware.GetToken(c)
-
-	if token != nil {
-		if token.ForWorkspace {
-			return nil
-		}
-		if token.LoadBalancerId == nil || *token.LoadBalancerId != lbId {
-			return huma.Error403Forbidden("no access to load balancer")
-		}
-	}
-
-	return nil
 }

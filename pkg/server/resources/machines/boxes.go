@@ -169,6 +169,7 @@ func (s *MachinesServer) restCreateBoxToken(c context.Context, i *restCreateBoxT
 
 	token, err := tokens.CreateToken(c, w.ID, models.CreateToken{
 		Name:  tokenName,
+		Type:  dmodel.TokenTypeBox,
 		BoxID: &box.ID,
 	}, true, true)
 	if err != nil {

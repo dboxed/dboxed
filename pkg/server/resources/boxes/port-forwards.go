@@ -17,7 +17,7 @@ func (s *BoxesServer) restListPortForwards(c context.Context, i *huma_utils.IdBy
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkBoxToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}

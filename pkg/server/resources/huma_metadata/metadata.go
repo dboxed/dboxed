@@ -8,7 +8,7 @@ import (
 const SkipAuth = "skip-auth"
 const NeedAdmin = "need-admin"
 
-const AllowTokensWithWorkspace = "allow-tokens-with-workspace"
+const AllowAnyToken = "allow-any-token"
 
 const AllowWorkspaceToken = "allow-workspace-token"
 const AllowMachineToken = "allow-machine-token"

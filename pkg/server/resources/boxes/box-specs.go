@@ -15,7 +15,7 @@ func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) 
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := s.checkBoxToken(c, i.Id)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}

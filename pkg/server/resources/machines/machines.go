@@ -196,7 +196,7 @@ func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma
 	token := auth_middleware.GetToken(c)
 
 	var l []dmodel.MachineWithRunStatus
-	if token == nil || token.ForWorkspace {
+	if token == nil || token.Type == dmodel.TokenTypeWorkspace {
 		var err error
 		l, err = dmodel.ListMachinesWithRunStatusForWorkspace(q, w.ID, true)
 		if err != nil {
@@ -221,21 +221,6 @@ func (s *MachinesServer) restListMachines(c context.Context, i *struct{}) (*huma
 		ret = append(ret, *mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
-}
-
-func (s *MachinesServer) checkMachineToken(c context.Context, machineId string) error {
-	token := auth_middleware.GetToken(c)
-
-	if token != nil {
-		if token.ForWorkspace {
-			return nil
-		}
-		if token.MachineID == nil || *token.MachineID != machineId {
-			return huma.Error403Forbidden("no access to machine")
-		}
-	}
-
-	return nil
 }
 
 func (s *MachinesServer) restGetMachine(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Machine], error) {

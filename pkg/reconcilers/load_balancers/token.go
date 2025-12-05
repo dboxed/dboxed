@@ -35,6 +35,7 @@ func (r *reconciler) reconcileToken(ctx context.Context, lb *dmodel.LoadBalancer
 
 	mtoken, err := tokens.CreateToken(ctx, lb.WorkspaceID, models.CreateToken{
 		Name:           r.buildTokenName(lb),
+		Type:           dmodel.TokenTypeLoadBalancer,
 		LoadBalancerId: &lb.ID,
 	}, true, true)
 	if err != nil {

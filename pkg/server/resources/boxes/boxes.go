@@ -94,7 +94,7 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	token := auth_middleware.GetToken(c)
 
 	var l []dmodel.BoxWithSandboxStatus
-	if token == nil || token.ForWorkspace {
+	if token == nil || token.Type == dmodel.TokenTypeWorkspace {
 		var err error
 		l, err = dmodel.ListBoxesWithSandboxStatusForWorkspace(q, w.ID, true)
 		if err != nil {
@@ -121,23 +121,8 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) checkBoxToken(c context.Context, boxId string) error {
-	token := auth_middleware.GetToken(c)
-
-	if token != nil {
-		if token.ForWorkspace {
-			return nil
-		}
-		if token.BoxID == nil || *token.BoxID != boxId {
-			return huma.Error403Forbidden("no access to box")
-		}
-	}
-
-	return nil
-}
-
 func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.BoxWithSandboxStatus) (*huma_utils.JsonBody[models.Box], error) {
-	err := s.checkBoxToken(c, box.ID)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, box.ID)
 	if err != nil {
 		return nil, err
 	}

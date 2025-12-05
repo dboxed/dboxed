@@ -183,16 +183,23 @@ func (s *AuthMiddleware) checkDboxedToken(ctx huma.Context, authz string) (*mode
 		return nil, err
 	}
 
-	allowTokensWithWorkspace := huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowTokensWithWorkspace)
-
-	if t.ForWorkspace && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowWorkspaceToken) {
-		return nil, fmt.Errorf("workspace token not allowed")
+	ok := false
+	if huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowAnyToken) {
+		ok = true
+	} else {
+		switch t.Type {
+		case dmodel.TokenTypeWorkspace:
+			ok = huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowWorkspaceToken)
+		case dmodel.TokenTypeMachine:
+			ok = huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowMachineToken)
+		case dmodel.TokenTypeBox:
+			ok = huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowBoxToken)
+		case dmodel.TokenTypeLoadBalancer:
+			ok = huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowLoadBalancerToken)
+		}
 	}
-	if t.BoxID != nil && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowBoxToken) {
-		return nil, fmt.Errorf("box token not allowed")
-	}
-	if t.LoadBalancerId != nil && !allowTokensWithWorkspace && !huma_utils.HasMetadataTrue(ctx, huma_metadata.AllowLoadBalancerToken) {
-		return nil, fmt.Errorf("load balancer token not allowed")
+	if !ok {
+		return nil, fmt.Errorf("%s token not allowed", t.Type)
 	}
 
 	m := models.TokenFromDB(*t, false)
@@ -292,4 +299,42 @@ func GetToken(ctx context.Context) *models.Token {
 		return nil
 	}
 	return token
+}
+
+func CheckTokenAccess(ctx context.Context, expectedTokenType dmodel.TokenType, resourceId string) error {
+	token := GetToken(ctx)
+	if token == nil {
+		user := GetUser(ctx)
+		if user == nil {
+			return huma.Error403Forbidden("missing user and token")
+		}
+		return nil
+	}
+
+	if token.Type == dmodel.TokenTypeWorkspace {
+		return nil
+	}
+	if token.Type != expectedTokenType {
+		return huma.Error403Forbidden(fmt.Sprintf("token does not have access to %s", expectedTokenType))
+	}
+
+	switch token.Type {
+	case dmodel.TokenTypeMachine:
+		if *token.MachineID != resourceId {
+			return huma.Error403Forbidden("token does not have access to machine")
+		}
+		return nil
+	case dmodel.TokenTypeBox:
+		if *token.BoxID != resourceId {
+			return huma.Error403Forbidden("token does not have access to box")
+		}
+		return nil
+	case dmodel.TokenTypeLoadBalancer:
+		if *token.LoadBalancerId != resourceId {
+			return huma.Error403Forbidden("token does not have access to load-balancer")
+		}
+		return nil
+	default:
+		return huma.Error403Forbidden("token does not have access to resource")
+	}
 }

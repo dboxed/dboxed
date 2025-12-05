@@ -16,12 +16,12 @@ func (s *MachinesServer) restGetMachineStatus(c context.Context, i *huma_utils.I
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	machine, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.checkMachineToken(c, machine.ID)
+	machine, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -34,12 +34,12 @@ func (s *MachinesServer) restUpdateMachineStatus(c context.Context, i *huma_util
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	machine, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.checkMachineToken(c, machine.ID)
+	machine, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}

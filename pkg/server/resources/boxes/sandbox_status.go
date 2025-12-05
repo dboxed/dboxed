@@ -20,12 +20,12 @@ func (s *BoxesServer) restGetSandboxStatus(c context.Context, i *huma_utils.IdBy
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.checkBoxToken(c, box.ID)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +38,12 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
+	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.checkBoxToken(c, box.ID)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ func (s *WorkspacesServer) Init(api huma.API) error {
 	s.api = api
 
 	skipWorkspaceModifier := huma_utils.MetadataModifier(huma_metadata.SkipWorkspace, true)
-	allowTokensModifier := huma_utils.MetadataModifier(huma_metadata.AllowTokensWithWorkspace, true)
+	allowTokensModifier := huma_utils.MetadataModifier(huma_metadata.AllowAnyToken, true)
 
 	huma.Post(s.api, "/v1/workspaces", s.restCreateWorkspace, skipWorkspaceModifier)
 	huma.Get(s.api, "/v1/workspaces", s.restListWorkspaces, skipWorkspaceModifier, allowTokensModifier)

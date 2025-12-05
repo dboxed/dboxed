@@ -163,31 +163,44 @@ func CreateToken(ctx context.Context, workspaceId string, ct models.CreateToken,
 	t := dmodel.Token{
 		WorkspaceID: workspaceId,
 		Name:        ct.Name,
+		Type:        ct.Type,
 		Token:       auth.TokenPrefix + util.RandomString(16),
 	}
 
-	if ct.ForWorkspace {
-		t.ForWorkspace = true
-	} else if ct.MachineID != nil {
+	switch ct.Type {
+	case dmodel.TokenTypeWorkspace:
+	case dmodel.TokenTypeMachine:
+		if ct.MachineID == nil {
+			return nil, huma.Error400BadRequest("missing machine id")
+		}
 		machine, err := dmodel.GetMachineById(q, &workspaceId, *ct.MachineID, true)
 		if err != nil {
 			return nil, err
 		}
 		t.MachineID = &machine.ID
-	} else if ct.BoxID != nil {
+	case dmodel.TokenTypeBox:
+		if ct.BoxID == nil {
+			return nil, huma.Error400BadRequest("missing box id")
+		}
 		box, err := dmodel.GetBoxById(q, &workspaceId, *ct.BoxID, true)
 		if err != nil {
 			return nil, err
 		}
 		t.BoxID = &box.ID
-	} else if ct.LoadBalancerId != nil {
+	case dmodel.TokenTypeLoadBalancer:
+		if !internal {
+			return nil, huma.Error400BadRequest("not allowed to create load-balancer tokens")
+		}
+		if ct.LoadBalancerId == nil {
+			return nil, huma.Error400BadRequest("missing load-balancer id")
+		}
 		lb, err := dmodel.GetLoadBalancerById(q, &workspaceId, *ct.LoadBalancerId, true)
 		if err != nil {
 			return nil, err
 		}
 		t.LoadBalancerId = &lb.ID
-	} else {
-		return nil, huma.Error400BadRequest("missing details")
+	default:
+		return nil, huma.Error400BadRequest(fmt.Sprintf("unknown token type %s", ct.Type))
 	}
 
 	err = t.Create(q)
