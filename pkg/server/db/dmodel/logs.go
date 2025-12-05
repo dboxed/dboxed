@@ -31,7 +31,7 @@ type LogLine struct {
 }
 
 func (v *LogMetadata) CreateOrUpdate(q *querier2.Querier) error {
-	return querier2.CreateOrUpdate(q, v, "machine_id, box_id, file_name")
+	return querier2.CreateOrUpdate(q, v, "(machine_id, box_id, file_name)")
 }
 
 func (v *LogLine) Create(q *querier2.Querier) error {

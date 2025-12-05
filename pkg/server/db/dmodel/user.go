@@ -25,5 +25,5 @@ func GetUserById(q *querier.Querier, id string) (*User, error) {
 }
 
 func (v *User) CreateOrUpdate(q *querier.Querier) error {
-	return querier.CreateOrUpdate(q, v, "id")
+	return querier.CreateOrUpdate(q, v, "(id)")
 }

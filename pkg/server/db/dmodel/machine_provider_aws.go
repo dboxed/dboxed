@@ -43,7 +43,7 @@ func (v *MachineProviderAwsStatus) Create(q *querier2.Querier) error {
 }
 
 func (v *MachineProviderAwsSubnet) CreateOrUpdate(q *querier2.Querier) error {
-	return querier2.CreateOrUpdate(q, v, "machine_provider_id, subnet_id")
+	return querier2.CreateOrUpdate(q, v, "(machine_provider_id, subnet_id)")
 }
 
 func DeleteMachineProviderAwsSubnet(q *querier2.Querier, machineProviderId string, subnetId string) error {

@@ -255,7 +255,7 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 		strings.Join(valuesList, ",\n  "),
 	)
 	if allowUpdate {
-		query += fmt.Sprintf("\non conflict(%s) do update set %s",
+		query += fmt.Sprintf("\non conflict %s do update set %s",
 			constraint,
 			strings.Join(conflictSets, ", "),
 		)

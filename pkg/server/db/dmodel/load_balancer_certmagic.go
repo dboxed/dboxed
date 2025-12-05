@@ -18,7 +18,7 @@ func (v *LoadBalancerCertmagic) Create(q *querier2.Querier) error {
 }
 
 func (v *LoadBalancerCertmagic) CreateOrUpdate(q *querier2.Querier) error {
-	return querier2.CreateOrUpdate(q, v, "load_balancer_id, key")
+	return querier2.CreateOrUpdate(q, v, "(load_balancer_id, key)")
 }
 
 func DeleteLoadBalancerCertMagic(q *querier2.Querier, lbId string, key string) error {
