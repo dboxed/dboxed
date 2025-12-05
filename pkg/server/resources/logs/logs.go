@@ -29,13 +29,14 @@ func New() *LogsServer {
 
 func (s *LogsServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	allowBoxTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowBoxToken, true)
+	allowMachineTokenModifier := huma_utils.MetadataModifier(huma_metadata.AllowMachineToken, true)
 
-	huma.Post(workspacesGroup, "/logs", s.restPostLogs, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/logs", s.restPostLogs, allowBoxTokenModifier, allowMachineTokenModifier)
 	huma.Get(workspacesGroup, "/logs", s.restListLogs)
 	sse.Register(workspacesGroup, huma.Operation{
 		OperationID: "logs-stream",
 		Method:      http.MethodGet,
-		Path:        "/logs/{logId}/stream",
+		Path:        "/logs/{id}/stream",
 		Metadata: map[string]any{
 			huma_utils.NoTx: true,
 		},
@@ -207,7 +208,6 @@ func (s *LogsServer) restListLogs(c context.Context, i *restListLogsInput) (*hum
 type sseLogsStreamInput struct {
 	huma_utils.IdByPath
 
-	LogId string `path:"logId"`
 	Since string `query:"since"`
 }
 
@@ -231,7 +231,7 @@ func (s *LogsServer) sseLogsStreamErr(c context.Context, i *sseLogsStreamInput, 
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	lm, err := dmodel.GetLogMetadataById(q, &w.ID, i.LogId, true)
+	lm, err := dmodel.GetLogMetadataById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return err
 	}
