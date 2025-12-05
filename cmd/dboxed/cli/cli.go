@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
@@ -79,7 +78,7 @@ func Execute() {
 
 	err := ctx.Run(&cli.GlobalFlags, handler)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		slog.Error("command exited with error", "error", err.Error())
 		os.Exit(1)
 	}
 }
