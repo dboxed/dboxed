@@ -1,6 +1,10 @@
 package dmodel
 
-import "github.com/dboxed/dboxed/pkg/server/db/querier"
+import (
+	"time"
+
+	"github.com/dboxed/dboxed/pkg/server/db/querier"
+)
 
 type TokenType string
 
@@ -16,9 +20,10 @@ type Token struct {
 	WorkspaceID string `db:"workspace_id"`
 	Times
 
-	Name  string    `db:"name"`
-	Type  TokenType `db:"type"`
-	Token string    `db:"token"`
+	Name       string     `db:"name"`
+	Type       TokenType  `db:"type"`
+	ValidUntil *time.Time `db:"valid_until"`
+	Token      string     `db:"token"`
 
 	MachineID      *string `db:"machine_id"`
 	BoxID          *string `db:"box_id"`
@@ -53,4 +58,15 @@ func ListTokensForWorkspace(q *querier.Querier, workspaceId string) ([]Token, er
 	return querier.GetMany[Token](q, map[string]any{
 		"workspace_id": workspaceId,
 	}, nil)
+}
+
+func ListTokensForBox(q *querier.Querier, boxId string) ([]Token, error) {
+	return querier.GetMany[Token](q, map[string]any{
+		"box_id": boxId,
+	}, nil)
+}
+
+func (v *Token) UpdateValidUntil(q *querier.Querier, validUntil *time.Time) error {
+	v.ValidUntil = validUntil
+	return querier.UpdateOneFromStruct(q, v, "valid_until")
 }

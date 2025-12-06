@@ -6,6 +6,7 @@ create table token
 
     name             text        not null,
     type             text        not null,
+    valid_until      timestamptz,
     token            text        not null unique,
 
     machine_id       text references machine (id) on delete cascade,

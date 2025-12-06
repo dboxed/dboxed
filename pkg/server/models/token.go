@@ -11,8 +11,9 @@ type Token struct {
 	Workspace string    `json:"workspace"`
 	CreatedAt time.Time `json:"createdAt"`
 
-	Name string           `json:"name"`
-	Type dmodel.TokenType `json:"type"`
+	Name       string           `json:"name"`
+	Type       dmodel.TokenType `json:"type"`
+	ValidUntil *time.Time       `json:"validUntil"`
 
 	Token *string `json:"token,omitempty"`
 
@@ -22,8 +23,9 @@ type Token struct {
 }
 
 type CreateToken struct {
-	Name string           `json:"name"`
-	Type dmodel.TokenType `json:"type"`
+	Name       string           `json:"name"`
+	Type       dmodel.TokenType `json:"type"`
+	ValidUntil *time.Time       `json:"validUntil,omitempty"`
 
 	MachineID      *string `json:"machineId,omitempty"`
 	BoxID          *string `json:"boxId,omitempty"`
@@ -37,6 +39,7 @@ func TokenFromDB(v dmodel.Token, withSecret bool) Token {
 		CreatedAt:      v.CreatedAt,
 		Name:           v.Name,
 		Type:           v.Type,
+		ValidUntil:     v.ValidUntil,
 		MachineID:      v.MachineID,
 		BoxID:          v.BoxID,
 		LoadBalancerId: v.LoadBalancerId,

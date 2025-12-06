@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/danielgtaylor/huma/v2"
@@ -309,6 +310,10 @@ func CheckTokenAccess(ctx context.Context, expectedTokenType dmodel.TokenType, r
 			return huma.Error403Forbidden("missing user and token")
 		}
 		return nil
+	}
+
+	if token.ValidUntil != nil && time.Now().After(*token.ValidUntil) {
+		return huma.Error403Forbidden("token has expired")
 	}
 
 	if token.Type == dmodel.TokenTypeWorkspace {
