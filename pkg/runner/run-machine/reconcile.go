@@ -33,9 +33,20 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 		return err
 	}
 	sandboxesByBoxId := map[string]*sandbox.SandboxInfo{}
+	sandboxStatusById := map[string]libcontainer.Status{}
 	boxesById := map[string]*models.Box{}
 	for _, si := range sandboxInfos {
 		sandboxesByBoxId[si.Box.ID] = &si
+		s := sandbox.Sandbox{
+			Debug:       rn.Debug,
+			HostWorkDir: rn.WorkDir,
+			SandboxDir:  filepath.Join(sandboxBaseDir, si.Box.ID),
+		}
+		cs, err := s.GetSandboxContainerStatus()
+		if err != nil {
+			return fmt.Errorf("failed to determine sandbox container status: %w", err)
+		}
+		sandboxStatusById[si.Box.ID] = cs
 	}
 	for _, box := range boxes {
 		boxesById[box.ID] = &box
@@ -43,6 +54,10 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 
 	for _, box := range boxes {
 		log := slog.With("boxId", box.ID, "boxName", box.Name)
+
+		if !box.Enabled {
+			continue
+		}
 
 		si, ok := sandboxesByBoxId[box.ID]
 		if ok {
@@ -52,15 +67,7 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 		if !ok {
 			log.InfoContext(ctx, "starting sandbox for new box")
 		} else {
-			s := sandbox.Sandbox{
-				Debug:       rn.Debug,
-				HostWorkDir: rn.WorkDir,
-				SandboxDir:  filepath.Join(sandboxBaseDir, si.Box.ID),
-			}
-			cs, err := s.GetSandboxContainerStatus()
-			if err != nil {
-				return fmt.Errorf("failed to determine sandbox container status: %w", err)
-			}
+			cs := sandboxStatusById[box.ID]
 			if cs != libcontainer.Running {
 				log.InfoContext(ctx, "sandbox is not in running state, restarting",
 					"sandboxName", si.SandboxName, "state", cs.String())
@@ -85,7 +92,11 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 			doSetMachineStatusReconciling()
 			log.InfoContext(ctx, "box removed from machine, stopping and removing sandbox")
 
-			err = rn.stopAndRemoveSandbox(ctx, si)
+			err = rn.stopSandbox(ctx, si)
+			if err != nil {
+				return err
+			}
+			err = rn.removeSandbox(ctx, si)
 			if err != nil {
 				return err
 			}
@@ -139,7 +150,7 @@ func (rn *RunMachine) startSandbox(ctx context.Context, box *models.Box) error {
 	return nil
 }
 
-func (rn *RunMachine) stopAndRemoveSandbox(ctx context.Context, si sandbox.SandboxInfo) error {
+func (rn *RunMachine) stopSandbox(ctx context.Context, si sandbox.SandboxInfo) error {
 	selfExe, err := os.Executable()
 	if err != nil {
 		return err
@@ -166,7 +177,16 @@ func (rn *RunMachine) stopAndRemoveSandbox(ctx context.Context, si sandbox.Sandb
 		return err
 	}
 
-	args = []string{
+	return nil
+}
+
+func (rn *RunMachine) removeSandbox(ctx context.Context, si sandbox.SandboxInfo) error {
+	selfExe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	args := []string{
 		"sandbox",
 		"rm",
 		si.Box.ID,
@@ -176,7 +196,7 @@ func (rn *RunMachine) stopAndRemoveSandbox(ctx context.Context, si sandbox.Sandb
 		args = append(args, "--debug")
 	}
 
-	cmd = util.CommandHelper{
+	cmd := util.CommandHelper{
 		Command: selfExe,
 		Args:    args,
 		LogCmd:  true,

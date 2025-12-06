@@ -64,12 +64,14 @@ func (rn *RunMachine) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 
 	shutdown, err := rn.doRun(ctx, sigs)
 	if err != nil {
+		rn.updateMachineStatusSimple(ctx, "error", true)
 		return err
 	}
 
 	if shutdown {
 		err = rn.shutdown(ctx)
 		if err != nil {
+			rn.updateMachineStatusSimple(ctx, "error", true)
 			return err
 		}
 	}
@@ -93,6 +95,7 @@ func (rn *RunMachine) doRun(ctx context.Context, sigs chan os.Signal) (bool, err
 			return false, nil
 		case s := <-sigs:
 			slog.InfoContext(ctx, "received signal, exiting now", slog.Any("signal", s.String()))
+			rn.updateMachineStatusSimple(ctx, "stopped", true)
 			return true, nil
 		}
 	}
