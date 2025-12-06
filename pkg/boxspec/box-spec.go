@@ -3,9 +3,9 @@ package boxspec
 import "time"
 
 type BoxSpec struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	DesiredState string `json:"desiredState"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
 
 	ReconcileRequestedAt *time.Time `json:"reconcileRequestedAt,omitempty"`
 

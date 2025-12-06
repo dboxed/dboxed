@@ -19,7 +19,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 	boxSpec := &boxspec.BoxSpec{
 		ID:                   box.ID,
 		Name:                 box.Name,
-		DesiredState:         box.DesiredState,
+		Enabled:              box.Enabled,
 		ReconcileRequestedAt: box.ReconcileRequestedAt,
 		ComposeProjects:      map[string]string{},
 	}

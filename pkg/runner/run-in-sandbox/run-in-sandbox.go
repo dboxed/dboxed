@@ -206,8 +206,8 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))
 		} else {
-			if boxSpec.DesiredState != "up" {
-				slog.InfoContext(ctx, "desired state is not 'up', shutting down", "desiredState", boxSpec.DesiredState)
+			if !boxSpec.Enabled {
+				slog.InfoContext(ctx, "box is disabled, shutting down")
 				return true, nil
 			}
 

@@ -24,7 +24,7 @@ type Box struct {
 	Network     *string             `json:"network"`
 	NetworkType *global.NetworkType `json:"networkType"`
 
-	DesiredState string `json:"desiredState"`
+	Enabled bool `json:"enabled"`
 
 	SandboxStatus *BoxSandboxStatus `json:"sandboxStatus,omitempty"`
 }
@@ -96,7 +96,7 @@ func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, erro
 		Network:     s.NetworkID,
 		NetworkType: networkType,
 
-		DesiredState: s.DesiredState,
+		Enabled: s.Enabled,
 	}
 
 	if sandboxStatus != nil {

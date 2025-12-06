@@ -89,11 +89,11 @@ func renderSandboxStatus(box *models.Box, sandboxStatus *models.BoxSandboxStatus
 		Bold(true)
 
 	statusColors := map[string]lipgloss.Color{
-		"running": lipgloss.Color("10"),
-		"stopped": lipgloss.Color("9"),
-		"paused":  lipgloss.Color("11"),
-		"up":      lipgloss.Color("10"),
-		"down":    lipgloss.Color("9"),
+		"running":  lipgloss.Color("10"),
+		"stopped":  lipgloss.Color("9"),
+		"paused":   lipgloss.Color("11"),
+		"enabled":  lipgloss.Color("10"),
+		"disabled": lipgloss.Color("9"),
 	}
 
 	// Title
@@ -105,15 +105,19 @@ func renderSandboxStatus(box *models.Box, sandboxStatus *models.BoxSandboxStatus
 		valueStyle.Render(box.ID),
 	)
 
-	// Desired State with color
-	desiredStateColor := lipgloss.Color("241") // default gray
-	if color, ok := statusColors[box.DesiredState]; ok {
-		desiredStateColor = color
+	// Enabled State with color
+	enabledStateColor := lipgloss.Color("241") // default gray
+	enabledDisabled := "disabled"
+	if box.Enabled {
+		enabledDisabled = "enabled"
 	}
-	desiredStateStyle := valueStyle.Copy().Foreground(desiredStateColor)
+	if color, ok := statusColors[enabledDisabled]; ok {
+		enabledStateColor = color
+	}
+	enabledStyle := valueStyle.Copy().Foreground(enabledStateColor)
 	fmt.Printf("%s  %s\n",
-		labelStyle.Render("Desired State:"),
-		desiredStateStyle.Render(box.DesiredState),
+		labelStyle.Render("Enabled:"),
+		enabledStyle.Render(fmt.Sprintf("%t", box.Enabled)),
 	)
 
 	// Run Status with color

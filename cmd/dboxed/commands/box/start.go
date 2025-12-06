@@ -36,7 +36,7 @@ func (cmd *StartCmd) Run(g *flags.GlobalFlags) error {
 	slog.Info("box starting",
 		slog.Any("id", updatedBox.ID),
 		slog.Any("name", updatedBox.Name),
-		slog.Any("desired_state", updatedBox.DesiredState),
+		slog.Any("enabled", updatedBox.Enabled),
 	)
 
 	return nil

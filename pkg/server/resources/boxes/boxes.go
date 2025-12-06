@@ -34,8 +34,8 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Get(workspacesGroup, "/boxes/{id}", s.restGetBox, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/by-name/{name}", s.restGetBoxByName, allowBoxTokenModifier)
 	huma.Get(workspacesGroup, "/boxes/{id}/box-spec", s.restGetBoxSpec, allowBoxTokenModifier)
-	huma.Post(workspacesGroup, "/boxes/{id}/start", s.restStartBox)
-	huma.Post(workspacesGroup, "/boxes/{id}/stop", s.restStopBox)
+	huma.Post(workspacesGroup, "/boxes/{id}/enable", s.restEnableBox)
+	huma.Post(workspacesGroup, "/boxes/{id}/disable", s.restDisableBox)
 	huma.Post(workspacesGroup, "/boxes/{id}/reconcile", s.restReconcileBox)
 	huma.Delete(workspacesGroup, "/boxes/{id}", s.restDeleteBox)
 
@@ -162,7 +162,7 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 	return s.getBoxHelper(c, box)
 }
 
-func (s *BoxesServer) restStartBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
+func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
@@ -171,7 +171,7 @@ func (s *BoxesServer) restStartBox(c context.Context, i *huma_utils.IdByPath) (*
 		return nil, err
 	}
 
-	err = box.UpdateDesiredState(q, "up")
+	err = box.UpdateEnabled(q, true)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (s *BoxesServer) restStartBox(c context.Context, i *huma_utils.IdByPath) (*
 	return huma_utils.NewJsonBody(*m), nil
 }
 
-func (s *BoxesServer) restStopBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
+func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
@@ -198,7 +198,7 @@ func (s *BoxesServer) restStopBox(c context.Context, i *huma_utils.IdByPath) (*h
 		return nil, err
 	}
 
-	err = box.UpdateDesiredState(q, "down")
+	err = box.UpdateEnabled(q, false)
 	if err != nil {
 		return nil, err
 	}

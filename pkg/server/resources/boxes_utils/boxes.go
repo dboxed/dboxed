@@ -37,7 +37,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		Name:    body.Name,
 		BoxType: string(boxType),
 
-		DesiredState: "up",
+		Enabled: true,
 
 		NetworkID:   networkId,
 		NetworkType: networkType,

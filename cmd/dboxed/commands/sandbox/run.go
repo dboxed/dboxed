@@ -29,8 +29,8 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
-	if box.DesiredState != "up" {
-		return fmt.Errorf("the desired state of the box is '%s', refusing to start it", box.DesiredState)
+	if !box.Enabled {
+		return fmt.Errorf("the box is disabled, refusing to start it")
 	}
 
 	sandboxName, err := cmd.GetSandboxName(box)

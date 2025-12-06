@@ -17,7 +17,7 @@ type ListBoxesCmd struct {
 type PrintMachineBox struct {
 	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
-	DesiredState  string `col:"Desired State"`
+	Enabled       bool   `col:"Enabled"`
 	Status        string `col:"Status"`
 	StatusDetails string `col:"Status Detail"`
 }
@@ -47,7 +47,7 @@ func (cmd *ListBoxesCmd) Run(g *flags.GlobalFlags) error {
 		table = append(table, PrintMachineBox{
 			ID:            b.ID,
 			Name:          b.Name,
-			DesiredState:  b.DesiredState,
+			Enabled:       b.Enabled,
 			Status:        b.Status,
 			StatusDetails: b.StatusDetails,
 		})

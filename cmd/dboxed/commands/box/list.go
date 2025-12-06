@@ -17,7 +17,7 @@ type PrintBox struct {
 	ID            string `col:"ID" id:"true"`
 	Name          string `col:"Name"`
 	Network       string `col:"Network"`
-	DesiredState  string `col:"Desired State"`
+	Enabled       bool   `col:"Enabled"`
 	Status        string `col:"Status"`
 	StatusDetails string `col:"Status Detail"`
 	SandboxStatus string `col:"Sandbox Status"`
@@ -44,7 +44,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		p := PrintBox{
 			ID:            b.ID,
 			Name:          b.Name,
-			DesiredState:  b.DesiredState,
+			Enabled:       b.Enabled,
 			Status:        b.Status,
 			StatusDetails: b.StatusDetails,
 			SandboxStatus: "-",

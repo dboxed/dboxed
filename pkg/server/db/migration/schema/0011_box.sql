@@ -17,7 +17,7 @@ create table box
 
     machine_id               text        references machine (id) on delete set null,
 
-    desired_state            text        not null default 'up',
+    enabled                  bool        not null default true,
     reconcile_requested_at   timestamptz,
 
     unique (workspace_id, name)
