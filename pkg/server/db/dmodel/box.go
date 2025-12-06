@@ -158,6 +158,13 @@ func GetSandboxStatus(q *querier2.Querier, boxId string) (*BoxSandboxStatus, err
 	})
 }
 
+func (v *BoxSandboxStatus) UpdateStatusTime(q *querier2.Querier) error {
+	v.StatusTime = util.Ptr(time.Now())
+	return querier2.UpdateOneFromStruct(q, v,
+		"status_time",
+	)
+}
+
 func (v *BoxSandboxStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) error {
 	v.StatusTime = util.Ptr(time.Now())
 	v.RunStatus = runStatus

@@ -166,14 +166,22 @@ func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
+	oldEnabled := box.Enabled
 	err = box.UpdateEnabled(q, true)
 	if err != nil {
 		return nil, err
+	}
+
+	if oldEnabled != box.Enabled {
+		err = box.SandboxStatus.UpdateStatusTime(q)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = dmodel.AddChangeTracking(q, box)
@@ -181,7 +189,7 @@ func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (
 		return nil, err
 	}
 
-	m, err := s.postprocessBox(*box, nil)
+	m, err := s.postprocessBox(box.Box, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -193,14 +201,22 @@ func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) 
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
+	oldEnabled := box.Enabled
 	err = box.UpdateEnabled(q, false)
 	if err != nil {
 		return nil, err
+	}
+
+	if oldEnabled != box.Enabled {
+		err = box.SandboxStatus.UpdateStatusTime(q)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = dmodel.AddChangeTracking(q, box)
@@ -208,7 +224,7 @@ func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) 
 		return nil, err
 	}
 
-	m, err := s.postprocessBox(*box, nil)
+	m, err := s.postprocessBox(box.Box, nil)
 	if err != nil {
 		return nil, err
 	}
