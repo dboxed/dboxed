@@ -11,6 +11,7 @@ import (
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/runner/compose"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 	"github.com/moby/sys/mountinfo"
@@ -48,14 +49,19 @@ func (rn *BoxSpecRunner) updateServiceVolume(volume *ctypes.ServiceVolumeConfig)
 	}
 }
 
-func (rn *BoxSpecRunner) reconcileContentVolumes(composeProjects map[string]*ctypes.Project) error {
-	err := os.MkdirAll(filepath.Join(rn.WorkDir, "content-volumes"), 0700)
+func (rn *BoxSpecRunner) reconcileContentVolumes(ctx context.Context) error {
+	_, composeProjects, err := rn.loadBoxSpecComposeProjects(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(filepath.Join(consts.DboxedDataDir, "content-volumes"), 0700)
 	if err != nil {
 		return err
 	}
 
 	for _, cp := range composeProjects {
-		for _, s := range cp.Services {
+		for _, s := range cp.Project.Services {
 			for _, v := range s.Volumes {
 				if v.Type == "content" {
 					pth := rn.getContentFilePath(v.Target)
@@ -78,7 +84,7 @@ func (rn *BoxSpecRunner) reconcileContentVolumes(composeProjects map[string]*cty
 	return nil
 }
 
-func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, composeProjects map[string]*ctypes.Project, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
+func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
 	oldVolumesByName := map[string]*volume_serve.VolumeState{}
 	newVolumeByName := map[string]*boxspec.DboxedVolume{}
 
@@ -130,9 +136,12 @@ func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, composeProj
 		}
 	}
 	if allowDownService && needDown {
-		err = rn.runComposeDown(ctx, composeProjects, false, false)
-		if err != nil {
-			return err
+		composeProjects, _, err := rn.loadBoxSpecComposeProjects(ctx)
+		for name, _ := range composeProjects {
+			err = compose.RunComposeDown(ctx, name, false, false)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

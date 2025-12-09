@@ -3,60 +3,23 @@ package box_spec_runner
 import (
 	"context"
 	"log/slog"
-	"os"
-	"path/filepath"
+	"strings"
 
-	ctypes "github.com/compose-spec/compose-go/v2/types"
-	"github.com/dboxed/dboxed/pkg/runner/dockercli"
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/runner/compose"
 	"golang.org/x/sync/errgroup"
 )
 
-func (rn *BoxSpecRunner) writeComposeFiles(dir string, composeProjects map[string]*ctypes.Project) error {
-	for name, composeProject := range composeProjects {
-		b, err := composeProject.MarshalYAML()
-		if err != nil {
-			return err
-		}
-
-		dir := filepath.Join(dir, name)
-		err = os.MkdirAll(dir, 0700)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(filepath.Join(dir, "docker-compose.yaml"), b, 0600)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (rn *BoxSpecRunner) listRunningComposeProjects(ctx context.Context) ([]dockercli.DockerComposeListEntry, error) {
-	cmd := util.CommandHelper{
-		Command: "docker",
-		Args:    []string{"compose", "ls", "-a", "--format", "json"},
-	}
-	var l []dockercli.DockerComposeListEntry
-	err := cmd.RunStdoutJson(ctx, &l)
-	if err != nil {
-		return nil, err
-	}
-	return l, nil
-}
-
-func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
-	composeProjects, _, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
+func (rn *BoxSpecRunner) runBoxSpecComposeUp(ctx context.Context) error {
+	composeProjects, _, err := rn.loadBoxSpecComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(composeBaseDir)
 
 	var pullWg errgroup.Group
 	pullWg.SetLimit(2)
-	for name := range composeProjects {
+	for _, p := range composeProjects {
 		pullWg.Go(func() error {
-			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "pull")
+			return p.RunPull(ctx)
 		})
 	}
 	err = pullWg.Wait()
@@ -66,9 +29,9 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 
 	var buildWg errgroup.Group
 	buildWg.SetLimit(2)
-	for name := range composeProjects {
+	for _, p := range composeProjects {
 		buildWg.Go(func() error {
-			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "build")
+			return p.RunBuild(ctx)
 		})
 	}
 	err = buildWg.Wait()
@@ -78,9 +41,9 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 
 	var upWg errgroup.Group
 	upWg.SetLimit(2)
-	for name := range composeProjects {
+	for _, p := range composeProjects {
 		upWg.Go(func() error {
-			return rn.runComposeCli(ctx, composeBaseDir, name, nil, "up", "-d", "--remove-orphans", "--pull=never")
+			return p.RunUp(ctx)
 		})
 	}
 	err = upWg.Wait()
@@ -90,86 +53,67 @@ func (rn *BoxSpecRunner) runComposeUp(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) runComposeDown(ctx context.Context, composeProjects map[string]*ctypes.Project, removeVolumes bool, ignoreComposeErrors bool) error {
-	var names []string
-	for name := range composeProjects {
-		names = append(names, name)
-	}
-	return rn.runComposeDownByNames(ctx, names, removeVolumes, ignoreComposeErrors)
-}
-
-func (rn *BoxSpecRunner) runComposeDownByNames(ctx context.Context, names []string, removeVolumes bool, ignoreComposeErrors bool) error {
-	var wg errgroup.Group
-	wg.SetLimit(2)
-	for _, name := range names {
-		wg.Go(func() error {
-			args := []string{
-				"-p", name,
-				"down", "--remove-orphans",
-			}
-			if removeVolumes {
-				args = append(args, "-v")
-			}
-			err := rn.runComposeCli(ctx, "", name, nil, args...)
-			if err != nil {
-				slog.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))
-				if !ignoreComposeErrors {
-					return err
-				}
-			}
-			return nil
-		})
-	}
-	err := wg.Wait()
+func (rn *BoxSpecRunner) downDeletedBoxSpecComposeProjects(ctx context.Context) error {
+	runningComposeProjects, err := compose.ListRunningComposeProjects(ctx)
 	if err != nil {
 		return err
+	}
+
+	composeProjects, _, err := rn.loadBoxSpecComposeProjects(ctx)
+	if err != nil {
+		return err
+	}
+
+	var removedComposeProjectsNames []string
+	for _, cp := range runningComposeProjects {
+		if strings.HasPrefix(cp.Name, "dboxed-") {
+			continue
+		}
+
+		if _, ok := composeProjects[cp.Name]; ok {
+			continue
+		}
+		removedComposeProjectsNames = append(removedComposeProjectsNames, cp.Name)
+	}
+	if len(removedComposeProjectsNames) != 0 {
+		slog.InfoContext(ctx, "downing removed compose projects", slog.Any("composeProjects", removedComposeProjectsNames))
+		for _, name := range removedComposeProjectsNames {
+			err = compose.RunComposeDown(ctx, name, true, false)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
-func (rn *BoxSpecRunner) loadAndWriteComposeProjects(ctx context.Context) (map[string]*ctypes.Project, map[string]*ctypes.Project, string, error) {
+func (rn *BoxSpecRunner) loadBoxSpecComposeProjects(ctx context.Context) (map[string]*compose.ComposeHelper, map[string]*compose.ComposeHelper, error) {
 	composeProjects, err := rn.BoxSpec.LoadComposeProjects(ctx, rn.updateServiceVolume)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 	composeProjectsOrig, err := rn.BoxSpec.LoadComposeProjects(ctx, nil)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, err
 	}
 
-	tmpDir, err := os.MkdirTemp("", "dboxed-docker-compose-")
-	if err != nil {
-		return nil, nil, "", err
+	ret1 := map[string]*compose.ComposeHelper{}
+	ret2 := map[string]*compose.ComposeHelper{}
+
+	for name, p := range composeProjects {
+		ret1[name] = &compose.ComposeHelper{
+			BaseDir:      rn.composeBaseDir,
+			NameOverride: &name,
+			Project:      p,
+		}
+	}
+	for name, p := range composeProjectsOrig {
+		ret2[name] = &compose.ComposeHelper{
+			BaseDir:      rn.composeBaseDir,
+			NameOverride: &name,
+			Project:      p,
+		}
 	}
 
-	err = rn.writeComposeFiles(tmpDir, composeProjects)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return composeProjects, composeProjectsOrig, tmpDir, nil
-}
-
-func (rn *BoxSpecRunner) runComposeCli(ctx context.Context, composeBaseDir string, projectName string, cmdEnv []string, args ...string) error {
-	var args2 []string
-	args2 = append(args2, "compose")
-	args2 = append(args2, args...)
-
-	dir := ""
-	if composeBaseDir != "" {
-		dir = filepath.Join(composeBaseDir, projectName)
-	}
-
-	cmd := util.CommandHelper{
-		Command: "docker",
-		Args:    args2,
-		Env:     cmdEnv,
-		Dir:     dir,
-		Logger:  slog.With(slog.Any("composeProject", projectName)),
-		LogCmd:  true,
-	}
-	err := cmd.Run(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return ret1, ret2, nil
 }

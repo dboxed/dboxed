@@ -4,9 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 
-	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/runner/compose"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -18,16 +19,19 @@ type BoxSpecRunner struct {
 	PortForwards *network.PortForwards
 
 	NetworkIp4 *string
+
+	composeBaseDir string
 }
 
 func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
-	composeProjects, composeProjectsOrig, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
+	composeBaseDir := filepath.Join(consts.DboxedDataDir, "compose")
+	err := os.MkdirAll(composeBaseDir, 0700)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(composeBaseDir)
+	rn.composeBaseDir = composeBaseDir
 
-	err = rn.downDeletedComposeProjects(ctx, composeProjects)
+	err = rn.downDeletedBoxSpecComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
@@ -41,66 +45,69 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.reconcileContentVolumes(composeProjectsOrig)
+	err = rn.reconcileContentVolumes(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = rn.reconcileDboxedVolumes(ctx, composeProjects, rn.BoxSpec.Volumes, true)
+	err = rn.reconcileDboxedVolumes(ctx, rn.BoxSpec.Volumes, true)
 	if err != nil {
 		return err
 	}
 
-	err = rn.runComposeUp(ctx)
+	err = rn.runBoxSpecComposeUp(ctx)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (rn *BoxSpecRunner) downDeletedComposeProjects(ctx context.Context, composeProjects map[string]*ctypes.Project) error {
-	runningComposeProjects, err := rn.listRunningComposeProjects(ctx)
-	if err != nil {
-		return err
-	}
-
-	var removedComposeProjectsNames []string
-	for _, cp := range runningComposeProjects {
-		if _, ok := composeProjects[cp.Name]; ok {
-			continue
-		}
-		removedComposeProjectsNames = append(removedComposeProjectsNames, cp.Name)
-	}
-	if len(removedComposeProjectsNames) != 0 {
-		slog.InfoContext(ctx, "downing removed compose projects", slog.Any("composeProjects", removedComposeProjectsNames))
-		err = rn.runComposeDownByNames(ctx, removedComposeProjectsNames, true, false)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
 func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreComposeErrors bool) error {
-	composeProjects, _, composeBaseDir, err := rn.loadAndWriteComposeProjects(ctx)
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(composeBaseDir)
-
-	err = rn.runComposeDown(ctx, composeProjects, removeVolumes, ignoreComposeErrors)
+	composeProjects, _, err := rn.loadBoxSpecComposeProjects(ctx)
 	if err != nil {
 		return err
 	}
 
+	for name, _ := range composeProjects {
+		err = compose.RunComposeDown(ctx, name, removeVolumes, ignoreComposeErrors)
+		if err != nil {
+			return err
+		}
+	}
+
+	slog.InfoContext(ctx, "releasing dboxed volumes")
+	err = rn.reconcileDboxedVolumes(ctx, nil, false)
+	if err != nil {
+		return err
+	}
+
+	runningComposeProjects, err := compose.ListRunningComposeProjects(ctx)
+	if err != nil {
+		return err
+	}
+	for _, p := range runningComposeProjects {
+		err = compose.RunComposeDown(ctx, p.Name, removeVolumes, ignoreComposeErrors)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = rn.downAllContainers(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rn *BoxSpecRunner) downAllContainers(ctx context.Context) error {
 	c := util.CommandHelper{
 		Command: "docker",
 		Args:    []string{"ps", "-a", "--format=json"},
 		Logger:  slog.Default(),
 	}
 	var containers []dockercli.DockerPS
-	err = c.RunStdoutJsonLines(ctx, &containers)
+	err := c.RunStdoutJsonLines(ctx, &containers)
 	if err != nil {
 		return err
 	}
@@ -149,12 +156,6 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		if err != nil {
 			return err
 		}
-	}
-
-	slog.InfoContext(ctx, "releasing dboxed volumes")
-	err = rn.reconcileDboxedVolumes(ctx, composeProjects, nil, false)
-	if err != nil {
-		return err
 	}
 
 	return nil
