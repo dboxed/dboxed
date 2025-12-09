@@ -16,6 +16,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks"
 	"github.com/dboxed/dboxed/pkg/reconcilers/s3buckets"
+	"github.com/dboxed/dboxed/pkg/reconcilers/tokens"
 	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/workspaces"
 	config2 "github.com/dboxed/dboxed/pkg/server/config"
@@ -52,6 +53,7 @@ var reconcilerFuncs = []initRunFunc{
 	runReconcilerLoadBalancers,
 	runReconcilerBoxes,
 	runReconcilerMachines,
+	runCronJobTokens,
 }
 
 var allFuncs = slices.Concat(
@@ -246,5 +248,10 @@ func runReconcilerLoadBalancers(ctx context.Context, config config2.Config) (run
 
 func runReconcilerMachines(ctx context.Context, config config2.Config) (runFunc, error) {
 	r := machines.NewMachinesReconciler()
+	return r.Run, nil
+}
+
+func runCronJobTokens(ctx context.Context, config config2.Config) (runFunc, error) {
+	r := tokens.NewCronJob()
 	return r.Run, nil
 }

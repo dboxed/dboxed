@@ -3,6 +3,7 @@ package machines
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -193,6 +194,7 @@ func InvalidateBoxTokens(ctx context.Context, workspaceId string, machineId stri
 	}
 	for _, t := range oldTokens {
 		if t.ValidUntil == nil {
+			slog.InfoContext(ctx, "invalidating machine box token", "workspaceId", workspaceId, "machineId", machineId, "boxId", t.BoxID, "tokenId", t.ID, "tokenName", t.Name)
 			err = t.UpdateValidUntil(q, util.Ptr(time.Now().Add(5*time.Minute)))
 			if err != nil {
 				return err

@@ -15,3 +15,5 @@ create table token
 
     unique (workspace_id, name)
 );
+
+create index token_valid_until on token (valid_until, name)

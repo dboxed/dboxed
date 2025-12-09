@@ -67,6 +67,12 @@ func ListTokensWithNamePrefix(q *querier.Querier, workspaceId string, prefix str
 	}, nil)
 }
 
+func ListExpiredInternalTokens(q *querier.Querier, now time.Time) ([]Token, error) {
+	return querier.GetManyWhere[Token](q, `valid_until < :now and name like 'internal_%'`, map[string]any{
+		"now": now,
+	}, nil)
+}
+
 func (v *Token) UpdateValidUntil(q *querier.Querier, validUntil *time.Time) error {
 	v.ValidUntil = validUntil
 	return querier.UpdateOneFromStruct(q, v, "valid_until")
