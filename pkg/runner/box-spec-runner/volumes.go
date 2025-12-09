@@ -12,13 +12,14 @@ import (
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/compose"
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 	"github.com/moby/sys/mountinfo"
 )
 
 func (rn *BoxSpecRunner) getVolumeWorkDir(id string) string {
-	return filepath.Join(rn.WorkDir, "volumes", id)
+	return filepath.Join(consts.DboxedDataDir, "volumes", id)
 }
 
 func (rn *BoxSpecRunner) getDboxedVolumeMountDir(id string) string {
@@ -27,7 +28,7 @@ func (rn *BoxSpecRunner) getDboxedVolumeMountDir(id string) string {
 
 func (rn *BoxSpecRunner) getContentFilePath(target string) string {
 	h := util.Sha256Sum([]byte(target))
-	return filepath.Join(rn.WorkDir, "content-volumes", h)
+	return filepath.Join(consts.DboxedDataDir, "content-volumes", h)
 }
 
 func (rn *BoxSpecRunner) updateServiceVolume(volume *ctypes.ServiceVolumeConfig) error {
@@ -190,7 +191,6 @@ func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVo
 	)
 
 	args := []string{
-		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"create",
 		vol.ID,
@@ -211,7 +211,6 @@ func (rn *BoxSpecRunner) mountVolume(ctx context.Context, vol *boxspec.DboxedVol
 	)
 
 	args := []string{
-		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"mount",
 		vol.ID,
@@ -231,7 +230,6 @@ func (rn *BoxSpecRunner) releaseVolume(ctx context.Context, vol *volume_serve.Vo
 	)
 
 	args := []string{
-		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"release",
 		vol.Volume.ID,
@@ -249,7 +247,6 @@ func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.
 	)
 
 	args := []string{
-		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"service",
 		"install",
@@ -270,7 +267,6 @@ func (rn *BoxSpecRunner) uninstallVolumeService(ctx context.Context, vol *volume
 	)
 
 	args := []string{
-		"--work-dir", rn.WorkDir,
 		"volume-mount",
 		"service",
 		"uninstall",

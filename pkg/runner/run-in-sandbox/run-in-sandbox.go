@@ -26,8 +26,7 @@ import (
 )
 
 type RunInSandbox struct {
-	WorkDir string
-	client  *baseclient.Client
+	client *baseclient.Client
 
 	sandboxInfo *sandbox.SandboxInfo
 
@@ -242,7 +241,6 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
 
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
-		WorkDir:      rn.WorkDir,
 		BoxSpec:      boxSpec,
 		PortForwards: rn.portForwards,
 	}
@@ -265,7 +263,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 
 	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
-			WorkDir:      rn.WorkDir,
 			BoxSpec:      rn.lastBoxSpec,
 			PortForwards: rn.portForwards,
 		}

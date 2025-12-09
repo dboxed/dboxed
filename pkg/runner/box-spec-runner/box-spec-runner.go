@@ -8,13 +8,13 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/compose"
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type BoxSpecRunner struct {
-	WorkDir      string
 	BoxSpec      *boxspec.BoxSpec
 	PortForwards *network.PortForwards
 
