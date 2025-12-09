@@ -14,7 +14,6 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
-	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -47,12 +46,13 @@ func (rn *RunMachine) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 		signal.Stop(sigs)
 	}()
 
-	err := os.MkdirAll(consts.MachineLogsDir, 0755)
+	logsDir := filepath.Join(rn.WorkDir, "machine", "logs")
+	err := os.MkdirAll(logsDir, 0755)
 	if err != nil {
 		return err
 	}
 
-	logFile := filepath.Join(consts.MachineLogsDir, "machine-run.log")
+	logFile := filepath.Join(logsDir, "machine-run.log")
 	logWriter := logs.BuildRotatingLogger(logFile)
 
 	logHandler.AddWriter(logWriter)

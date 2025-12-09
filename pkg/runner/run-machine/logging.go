@@ -11,7 +11,8 @@ import (
 )
 
 func (rn *RunMachine) initLogsPublishing(ctx context.Context) error {
-	tta, err := logs.NewTailToApi(ctx, rn.Client, filepath.Join(consts.MachineLogsDir, consts.LogsTailDbFilename))
+	logsDir := filepath.Join(rn.WorkDir, "machine", "logs")
+	tta, err := logs.NewTailToApi(ctx, rn.Client, filepath.Join(logsDir, consts.LogsTailDbFilename))
 	if err != nil {
 		return err
 	}
@@ -25,7 +26,7 @@ func (rn *RunMachine) initLogsPublishing(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.logsPublisher.PublishMachineLogsDir(consts.MachineLogsDir)
+	err = rn.logsPublisher.PublishMachineLogsDir(logsDir)
 	if err != nil {
 		return err
 	}

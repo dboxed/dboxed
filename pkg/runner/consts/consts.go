@@ -9,7 +9,6 @@ import (
 const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
 
 const DboxedDataDir = "/var/lib/dboxed"
-const DboxedMachineDataDir = DboxedDataDir + "/machine"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 
 const SandboxShortPrefix = "dbx"
@@ -28,7 +27,6 @@ const ContainersDir = DboxedDataDir + "/containers"
 const LogsDir = DboxedDataDir + "/logs"
 const LogsTailDbFilename = "multitail.db"
 
-const MachineLogsDir = DboxedMachineDataDir + "/logs"
 const VolumesDir = DboxedDataDir + "/volumes"
 
 const VethIPStoreFile = "veth-ip"
