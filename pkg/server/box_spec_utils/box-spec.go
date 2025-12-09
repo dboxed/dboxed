@@ -65,6 +65,7 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 				return nil, fmt.Errorf("box %s has no setup key", box.ID)
 			}
 			boxSpec.Network.Netbird = &boxspec.BoxNetworkNetbird{
+				Version:       network.Netbird.NetbirdVersion.V,
 				ManagementUrl: network.Netbird.ApiUrl.V,
 				SetupKey:      *box.Netbird.SetupKey,
 				Hostname:      fmt.Sprintf("%s-%s", cfg.InstanceName, box.ID),

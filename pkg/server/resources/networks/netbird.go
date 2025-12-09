@@ -4,12 +4,15 @@ import (
 	"context"
 	"log/slog"
 	"net/url"
+	"regexp"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
+
+var netbirdVersionRegex = regexp.MustCompile(`^(latest|[0-9]+\.[0-9]+(\.[0-9]+)?)$`)
 
 func (s *NetworksServer) restCreateNetworkNetbird(c context.Context, log *slog.Logger, n *dmodel.Network, body *models.CreateNetworkNetbird) error {
 	q := querier2.GetQuerier(c)
@@ -28,6 +31,9 @@ func (s *NetworksServer) restCreateNetworkNetbird(c context.Context, log *slog.L
 
 	if body.ApiAccessToken == "" {
 		return huma.Error400BadRequest("api access token can't be empty")
+	}
+	if !netbirdVersionRegex.MatchString(body.NetbirdVersion) {
+		return huma.Error400BadRequest("invalid netbird version")
 	}
 
 	log = log.With(slog.Any("apiUrl", apiUrl))
@@ -50,6 +56,9 @@ func (s *NetworksServer) restUpdateNetworkNetbird(c context.Context, log *slog.L
 	q := querier2.GetQuerier(c)
 
 	if body.NetbirdVersion != nil {
+		if !netbirdVersionRegex.MatchString(*body.NetbirdVersion) {
+			return huma.Error400BadRequest("invalid netbird version")
+		}
 		err := n.Netbird.UpdateNetbirdVersion(q, *body.NetbirdVersion)
 		if err != nil {
 			return err

@@ -267,7 +267,7 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 			PortForwards: rn.portForwards,
 		}
 
-		slog.InfoContext(ctx, "shutting down compose projects")
+		slog.InfoContext(ctx, "shutting down box")
 		err := boxSpecRunner.Down(ctx, false, true)
 		if err != nil {
 			return err

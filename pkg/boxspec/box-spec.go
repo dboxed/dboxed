@@ -26,6 +26,7 @@ type BoxNetwork struct {
 }
 
 type BoxNetworkNetbird struct {
+	Version       string `json:"version"`
 	ManagementUrl string `json:"managementUrl"`
 	SetupKey      string `json:"setupKey"`
 	Hostname      string `json:"hostname"`

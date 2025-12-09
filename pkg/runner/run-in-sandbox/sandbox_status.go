@@ -7,9 +7,11 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 )
@@ -166,17 +168,12 @@ func (rn *RunInSandbox) runDockerPS(ctx context.Context) ([]byte, error) {
 }
 
 func (rn *RunInSandbox) runNetbirdStatus(ctx context.Context) error {
-	if _, err := os.Stat("/var/run/netbird.sock"); err != nil {
+	jsonPath := filepath.Join(consts.NetbirdDir, "status.json")
+	if _, err := os.Stat(jsonPath); err != nil {
 		return nil
 	}
 
-	cmd := util.CommandHelper{
-		Command: "netbird",
-		Args:    []string{"status", "--json"},
-	}
-
-	var status models.NetbirdPeerStatus
-	err := cmd.RunStdoutJson(ctx, &status)
+	status, err := util.UnmarshalYamlFile[models.NetbirdPeerStatus](jsonPath)
 	if err != nil {
 		return err
 	}
