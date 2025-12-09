@@ -8,6 +8,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 )
 
 type reconciler struct {
@@ -29,6 +30,13 @@ func (r *reconciler) Reconcile(ctx context.Context, m *dmodel.MachineWithRunStat
 	log = slog.With(
 		slog.Any("name", m.Name),
 	)
+
+	if m.DeletedAt.Valid {
+		err := machines.InvalidateBoxTokens(ctx, m.WorkspaceID, m.ID, nil)
+		if err != nil {
+			return base.InternalError(err)
+		}
+	}
 
 	// Check if status is stale (older than 60 seconds)
 	if m.RunStatus.StatusTime != nil {

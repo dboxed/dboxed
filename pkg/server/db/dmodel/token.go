@@ -60,9 +60,10 @@ func ListTokensForWorkspace(q *querier.Querier, workspaceId string) ([]Token, er
 	}, nil)
 }
 
-func ListTokensForBox(q *querier.Querier, boxId string) ([]Token, error) {
-	return querier.GetMany[Token](q, map[string]any{
-		"box_id": boxId,
+func ListTokensWithNamePrefix(q *querier.Querier, workspaceId string, prefix string) ([]Token, error) {
+	return querier.GetManyWhere[Token](q, `workspace_id = :workspace_id and name like :prefix || '%'`, map[string]any{
+		"workspace_id": workspaceId,
+		"prefix":       prefix,
 	}, nil)
 }
 
