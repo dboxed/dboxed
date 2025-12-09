@@ -52,9 +52,9 @@ func (cmd *InstallCmd) Run(g *flags.GlobalFlags) error {
 }
 
 func (cmd *InstallCmd) installS6(ctx context.Context, g *flags.GlobalFlags, volumeState *volume_serve.VolumeState, backupInterval time.Duration) error {
-	serviceName := fmt.Sprintf("dboxed-volume-%s", volumeState.MountName)
+	serviceName := fmt.Sprintf("dboxed-volume-%s", volumeState.Volume.ID)
 
-	scripts, err := service_files.GetS6RunScripts(g.WorkDir, volumeState.MountName, volumeState.Volume.ID, backupInterval)
+	scripts, err := service_files.GetS6RunScripts(g.WorkDir, volumeState.Volume.ID, backupInterval)
 	if err != nil {
 		return err
 	}

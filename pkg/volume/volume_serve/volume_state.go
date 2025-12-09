@@ -15,8 +15,6 @@ import (
 type VolumeState struct {
 	ClientAuth *baseclient.ClientAuth `json:"clientAuth,omitempty"`
 
-	MountName string `json:"mountName"`
-
 	Volume *models.Volume `json:"volume"`
 
 	ServeStartTime *time.Time `json:"serveStartTime"`

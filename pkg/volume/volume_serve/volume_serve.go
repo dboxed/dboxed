@@ -24,8 +24,6 @@ import (
 type VolumeServeOpts struct {
 	Client *baseclient.Client
 
-	MountName string
-
 	VolumeId string
 	BoxId    *string
 
@@ -314,7 +312,6 @@ func (vs *VolumeServe) mountVolumeViaApi(ctx context.Context) error {
 
 	s := &VolumeState{
 		ClientAuth: vs.opts.Client.GetClientAuth(true),
-		MountName:  vs.opts.MountName,
 		Volume:     newVolume,
 	}
 	err = vs.saveVolumeState(s)

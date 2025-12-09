@@ -18,8 +18,7 @@ type ListCmd struct {
 }
 
 type PrintVolumeMount struct {
-	ID        string `col:"ID" id:"true"`
-	MountName string `col:"Mount Name"`
+	ID        string `col:"ID"`
 	Volume    string `col:"Volume"`
 	Workspace string `col:"Workspace"`
 	Box       string `col:"Box"`
@@ -47,7 +46,6 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	for _, v := range volumes {
 		p := PrintVolumeMount{
 			ID:        v.Volume.ID,
-			MountName: v.MountName,
 			Volume:    v.Volume.Name,
 			Workspace: ct.Workspaces.GetColumn(ctx, v.Volume.Workspace, false),
 		}

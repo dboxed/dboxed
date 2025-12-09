@@ -27,7 +27,7 @@ func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
-	dir := filepath.Join(baseDir, volumeState.MountName)
+	dir := filepath.Join(baseDir, volumeState.Volume.ID)
 
 	vs, err := volume_serve.New(volume_serve.VolumeServeOpts{
 		VolumeId:          volumeState.Volume.ID,

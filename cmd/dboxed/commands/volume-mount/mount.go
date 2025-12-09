@@ -35,9 +35,8 @@ func mountVolume(ctx context.Context, workDir string, volume string, backupInter
 	}
 
 	opts := volume_serve.VolumeServeOpts{
-		MountName: volumeState.MountName,
-		VolumeId:  volumeState.Volume.ID,
-		Dir:       filepath.Join(baseDir, volumeState.MountName),
+		VolumeId: volumeState.Volume.ID,
+		Dir:      filepath.Join(baseDir, volumeState.Volume.ID),
 	}
 	if backupInterval != nil {
 		opts.BackupInterval = *backupInterval

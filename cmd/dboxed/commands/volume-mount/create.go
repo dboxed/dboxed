@@ -15,8 +15,6 @@ import (
 type CreateCmd struct {
 	Volume string  `help:"Specify volume" required:"" arg:""`
 	Box    *string `help:"Specify the box that wants to mount this volume"`
-
-	MountName *string `help:"Override the local mount name. Defaults to the volume ID"`
 }
 
 func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
@@ -32,11 +30,6 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	mountName := v.ID
-	if cmd.MountName != nil {
-		mountName = *cmd.MountName
-	}
-
 	dir := filepath.Join(g.WorkDir, "volumes", v.ID)
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
@@ -44,10 +37,9 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	vsOpts := volume_serve.VolumeServeOpts{
-		Client:    c,
-		MountName: mountName,
-		VolumeId:  v.ID,
-		Dir:       dir,
+		Client:   c,
+		VolumeId: v.ID,
+		Dir:      dir,
 	}
 
 	if cmd.Box != nil {

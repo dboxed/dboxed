@@ -17,10 +17,9 @@ type S6RunScripts struct {
 	RunLog string
 }
 
-func GetS6RunScripts(workDir string, mountName string, volumeId string, backupInterval time.Duration) (*S6RunScripts, error) {
+func GetS6RunScripts(workDir string, volumeId string, backupInterval time.Duration) (*S6RunScripts, error) {
 	data := map[string]any{
 		"DboxedWorkdir":  workDir,
-		"MountName":      mountName,
 		"VolumeId":       volumeId,
 		"BackupInterval": backupInterval.String(),
 	}

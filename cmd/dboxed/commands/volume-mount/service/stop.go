@@ -45,7 +45,7 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 }
 
 func (cmd *StopCmd) stopS6(ctx context.Context, g *flags.GlobalFlags, volumeState *volume_serve.VolumeState) error {
-	serviceName := fmt.Sprintf("dboxed-volume-%s", volumeState.MountName)
+	serviceName := fmt.Sprintf("dboxed-volume-%s", volumeState.Volume.ID)
 
 	s6s := service.S6Service{
 		ServiceName: serviceName,

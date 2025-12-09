@@ -31,7 +31,7 @@ func (cmd *ForceRemoveCmd) Run(g *flags.GlobalFlags) error {
 	if err != nil {
 		return err
 	}
-	dir := filepath.Join(baseDir, volumeState.MountName)
+	dir := filepath.Join(baseDir, volumeState.Volume.ID)
 
 	vs, err := volume_serve.LoadVolumeState(dir)
 	if err != nil {
@@ -42,7 +42,8 @@ func (cmd *ForceRemoveCmd) Run(g *flags.GlobalFlags) error {
 		slog.Warn("failed to create client", "error", err)
 	}
 
-	slog.Info("force-removing volume mount - no backup will be performed", slog.Any("volume", volumeState.Volume.Name), slog.Any("mountName", volumeState.MountName))
+	slog.Info("force-removing volume mount - no backup will be performed",
+		"volume", volumeState.Volume.Name, "volumeId", volumeState.Volume.ID)
 
 	if c != nil && vs.Volume != nil && vs.Volume.MountId != nil {
 		slog.Info("trying to release volume mount")
