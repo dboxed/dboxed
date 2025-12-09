@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -149,9 +150,16 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 		sshKeyName = util.Ptr(cloud_utils.BuildAwsSshKeyName(ctx, r.mp.Name, r.mp.ID))
 	}
 
+	token, err := machines.GetFirstValidMachineToken(ctx, m.WorkspaceID, m.ID)
+	if err != nil {
+		return base.InternalError(err)
+	}
+
 	ud := userdata.GetUserdata(
 		m.DboxedVersion,
-		"dummy",
+		config.Server.BaseUrl,
+		token.Token,
+		m.ID,
 	)
 
 	image, result := r.selectAwsImage(ctx, *m)

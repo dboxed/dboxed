@@ -12,6 +12,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
+	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -115,6 +116,11 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 			}
 		default:
 			return nil, "unknown machine provider type", nil
+		}
+
+		err = s.createMachineToken(c, m)
+		if err != nil {
+			return nil, "", err
 		}
 	}
 
@@ -280,4 +286,17 @@ func (s *MachinesServer) postprocessMachine(c context.Context, machine dmodel.Ma
 	}
 
 	return ret, nil
+}
+
+func (s *MachinesServer) createMachineToken(ctx context.Context, machine *dmodel.Machine) error {
+	tokenName := BuildMachineTokenPrefix(machine.ID) + util.RandomString(8)
+	_, err := tokens.CreateToken(ctx, machine.WorkspaceID, models.CreateToken{
+		Name:      tokenName,
+		Type:      dmodel.TokenTypeMachine,
+		MachineID: &machine.ID,
+	}, true, true)
+	if err != nil {
+		return err
+	}
+	return nil
 }

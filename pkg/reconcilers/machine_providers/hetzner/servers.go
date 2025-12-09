@@ -11,6 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/resources/machines"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
@@ -125,12 +126,20 @@ func (r *Reconciler) buildHetznerServerName(ctx context.Context, m *dmodel.Machi
 
 func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
+	config := config.GetConfig(ctx)
 
 	image := "ubuntu-24.04"
 
+	token, err := machines.GetFirstValidMachineToken(ctx, m.WorkspaceID, m.ID)
+	if err != nil {
+		return base.InternalError(err)
+	}
+
 	ud := userdata.GetUserdata(
 		m.DboxedVersion,
-		"dummy",
+		config.Server.BaseUrl,
+		token.Token,
+		m.ID,
 	)
 
 	log.InfoContext(ctx, "creating hetzner server")

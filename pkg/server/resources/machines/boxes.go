@@ -2,9 +2,6 @@ package machines
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
@@ -173,41 +170,4 @@ func (s *MachinesServer) restCreateBoxToken(c context.Context, i *restCreateBoxT
 	}
 
 	return huma_utils.NewJsonBody(*token), nil
-}
-
-func ListBoxTokens(ctx context.Context, workspaceId string, machineId string, boxId *string) ([]dmodel.Token, error) {
-	q := querier2.GetQuerier(ctx)
-
-	prefix := BuildBoxTokenNamePrefix(machineId, boxId)
-	tokens, err := dmodel.ListTokensWithNamePrefix(q, workspaceId, prefix)
-	if err != nil {
-		return nil, err
-	}
-	return tokens, nil
-}
-
-func InvalidateBoxTokens(ctx context.Context, workspaceId string, machineId string, boxId *string) error {
-	q := querier2.GetQuerier(ctx)
-	oldTokens, err := ListBoxTokens(ctx, workspaceId, machineId, boxId)
-	if err != nil {
-		return err
-	}
-	for _, t := range oldTokens {
-		if t.ValidUntil == nil {
-			slog.InfoContext(ctx, "invalidating machine box token", "workspaceId", workspaceId, "machineId", machineId, "boxId", t.BoxID, "tokenId", t.ID, "tokenName", t.Name)
-			err = t.UpdateValidUntil(q, util.Ptr(time.Now().Add(5*time.Minute)))
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func BuildBoxTokenNamePrefix(machineId string, boxId *string) string {
-	prefix := tokens.InternalTokenNamePrefix + fmt.Sprintf("machine_box_%s_", machineId)
-	if boxId != nil {
-		prefix += fmt.Sprintf("%s_", *boxId)
-	}
-	return prefix
 }
