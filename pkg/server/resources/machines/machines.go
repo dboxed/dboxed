@@ -47,8 +47,6 @@ func (s *MachinesServer) Init(rootGroup huma.API, workspacesGroup huma.API) erro
 }
 
 func (s *MachinesServer) restCreateMachine(c context.Context, i *huma_utils.JsonBody[models.CreateMachine]) (*huma_utils.JsonBody[models.Machine], error) {
-	q := querier2.GetQuerier(c)
-
 	machine, inputErr, err := s.createMachine(c, i.Body)
 	if err != nil {
 		return nil, err
@@ -62,10 +60,6 @@ func (s *MachinesServer) restCreateMachine(c context.Context, i *huma_utils.Json
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, machine)
-	if err != nil {
-		return nil, err
-	}
 	return huma_utils.NewJsonBody(*ret), nil
 }
 
@@ -260,7 +254,7 @@ func (s *MachinesServer) restUpdateMachine(c context.Context, i *restUpdateMachi
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, m)
+	err = dmodel.BumpChangeSeq(q, m)
 	if err != nil {
 		return nil, err
 	}

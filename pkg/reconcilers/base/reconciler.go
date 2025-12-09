@@ -47,7 +47,7 @@ type Reconciler[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 
 	globalState any
 
-	lastChangeId int64
+	lastChangeSeq int64
 
 	log *slog.Logger
 }
@@ -71,7 +71,7 @@ func NewReconciler[T dmodel.HasReconcileStatusAndSoftDelete](config Config[T]) *
 		config:              config,
 		workQueue:           workqueue.NewTypedDelayingQueue[workQueueItem](),
 		statefulReconcilers: map[string]ReconcileImpl[T]{},
-		lastChangeId:        -1,
+		lastChangeSeq:       -1,
 		log:                 slog.With(slog.Any("reconciler", config.ReconcilerName)),
 	}
 	return r
@@ -103,15 +103,15 @@ func (r *Reconciler[T]) Run(ctx context.Context) error {
 func (r *Reconciler[T]) findChangesInitial(ctx context.Context) {
 	q := querier2.GetQuerier(ctx)
 
-	maxId, err := dmodel.GetMaxChangeTrackingId[T](q)
+	maxSeq, err := dmodel.GetMaxChangeSeq[T](q)
 	if err != nil {
 		if !querier2.IsSqlNotFoundError(err) {
-			slog.ErrorContext(ctx, "error in GetMaxChangeTrackingId", slog.Any("error", err))
+			slog.ErrorContext(ctx, "error in GetMaxChangeSeq", slog.Any("error", err))
 			return
 		}
-		maxId = -1
+		maxSeq = -1
 	}
-	r.lastChangeId = maxId
+	r.lastChangeSeq = maxSeq
 
 	allIds, err := dmodel.GetAllIds[T](q)
 	if err != nil {
@@ -135,14 +135,14 @@ func (r *Reconciler[T]) findChanges(ctx context.Context) {
 	}
 
 	toQueue := map[string]workQueueItem{}
-	changedItems, err := dmodel.FindChanges[T](q, r.lastChangeId)
+	changedItems, err := dmodel.FindChanges[T](q, r.lastChangeSeq)
 	if err != nil {
-		slog.ErrorContext(ctx, "error in ListChangeTracking", slog.Any("error", err))
+		slog.ErrorContext(ctx, "error in FindChanges", slog.Any("error", err))
 		return
 	}
 	for _, ci := range changedItems {
-		r.lastChangeId = ci.ID
-		toQueue[ci.EntityID] = workQueueItem{id: ci.EntityID}
+		r.lastChangeSeq = ci.ChangeSeq
+		toQueue[ci.Id] = workQueueItem{id: ci.Id}
 	}
 
 	for _, wi := range toQueue {

@@ -6,6 +6,7 @@ create table volume
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Initializing',
     reconcile_status_details text        not null default '',
 
@@ -21,6 +22,7 @@ create table volume
 
     unique (workspace_id, name)
 );
+create index volume_change_seq on volume (change_seq);
 
 create table volume_rustic
 (

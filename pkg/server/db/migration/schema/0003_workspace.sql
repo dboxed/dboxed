@@ -5,11 +5,13 @@ create table workspace
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Initializing',
     reconcile_status_details text        not null default '',
 
     name                     text        not null
 );
+create index workspace_change_seq on workspace (change_seq);
 
 create table workspace_access
 (

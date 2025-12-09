@@ -84,7 +84,7 @@ func (s *BoxesServer) restCreatePortForward(c context.Context, i *restCreatePort
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (s *BoxesServer) restUpdatePortForward(c context.Context, i *restUpdatePort
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (s *BoxesServer) restDeletePortForward(c context.Context, i *restDeletePort
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}

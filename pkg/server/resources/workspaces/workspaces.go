@@ -73,11 +73,6 @@ func (s *WorkspacesServer) restCreateWorkspace(ctx context.Context, i *huma_util
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, w)
-	if err != nil {
-		return nil, err
-	}
-
 	return huma_utils.NewJsonBody(models.WorkspaceFromDB(*w)), nil
 }
 
@@ -157,7 +152,7 @@ func (s *WorkspacesServer) restDeleteWorkspace(ctx context.Context, i *models.Wo
 	if err != nil {
 		return nil, err
 	}
-	err = dmodel.AddChangeTrackingForId[*dmodel.Workspace](q, w.ID)
+	err = dmodel.BumpChangeSeqForId[*dmodel.Workspace](q, w.ID)
 	if err != nil {
 		return nil, err
 	}

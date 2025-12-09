@@ -97,11 +97,6 @@ func (s *LoadBalancerServer) restCreateLoadBalancer(c context.Context, i *huma_u
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, lb)
-	if err != nil {
-		return nil, err
-	}
-
 	ret := models.LoadBalancerFromDB(*lb)
 	return huma_utils.NewJsonBody(*ret), nil
 }
@@ -187,7 +182,7 @@ func (s *LoadBalancerServer) restUpdateLoadBalancer(c context.Context, i *restUp
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, lb)
+	err = dmodel.BumpChangeSeq(q, lb)
 	if err != nil {
 		return nil, err
 	}
@@ -214,11 +209,6 @@ func (s *LoadBalancerServer) restDeleteLoadBalancer(c context.Context, i *huma_u
 	}
 
 	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.LoadBalancer](q, &lb.WorkspaceID, lb.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dmodel.AddChangeTracking(q, lb)
 	if err != nil {
 		return nil, err
 	}

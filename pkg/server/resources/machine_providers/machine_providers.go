@@ -103,11 +103,6 @@ func (s *MachineProviderServer) restCreateMachineProvider(c context.Context, i *
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, mp)
-	if err != nil {
-		return nil, err
-	}
-
 	return huma_utils.NewJsonBody(*mcp), nil
 }
 
@@ -171,7 +166,7 @@ func (s *MachineProviderServer) restUpdateMachineProvider(c context.Context, i *
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, mp)
+	err = dmodel.BumpChangeSeq(q, mp)
 	if err != nil {
 		return nil, err
 	}

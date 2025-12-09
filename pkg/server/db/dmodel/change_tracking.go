@@ -1,46 +1,42 @@
 package dmodel
 
 import (
-	"time"
-
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 )
 
-type ChangeTracking struct {
-	ID int64 `db:"id" omitCreate:"true"`
-
-	TableName string    `db:"table_name"`
-	EntityID  string    `db:"entity_id"`
-	Time      time.Time `db:"time" omitCreate:"true"`
+func BumpChangeSeq[T HasReconcileStatus](q *querier2.Querier, v T) error {
+	return BumpChangeSeqForId[T](q, v.GetId())
 }
 
-func AddChangeTracking[T querier2.HasId](q *querier2.Querier, v T) error {
-	return AddChangeTrackingForId[T](q, v.GetId())
-}
-
-func AddChangeTrackingForId[T querier2.HasId](q *querier2.Querier, id string) error {
-	return querier2.Create(q, &ChangeTracking{
-		TableName: querier2.GetTableName[T](),
-		EntityID:  id,
+func BumpChangeSeqForId[T HasReconcileStatus](q *querier2.Querier, id string) error {
+	return querier2.UpdateOne[T](q, "id = :id", map[string]any{
+		"id": id,
+	}, map[string]any{
+		"change_seq": querier2.RawSql("nextval('change_tracking_seq')"),
 	})
 }
 
-const queryGetMaxChangeTrackingId = `select coalesce(max(id), -1) from change_tracking where table_name = :table_name`
-
-func GetMaxChangeTrackingId[T querier2.HasId](q *querier2.Querier) (int64, error) {
-	var maxId int64
-	err := q.GetNamed(&maxId, queryGetMaxChangeTrackingId, ChangeTracking{
-		TableName: querier2.GetTableName[T](),
-	})
+func GetMaxChangeSeq[T HasReconcileStatus](q *querier2.Querier) (int64, error) {
+	var maxSeq int64
+	err := q.GetNamed(&maxSeq, "select coalesce(max(change_seq), -1) from "+querier2.GetTableName[T](), nil)
 	if err != nil {
 		return 0, err
 	}
-	return maxId, nil
+	return maxSeq, nil
 }
 
-func FindChanges[T querier2.HasId](q *querier2.Querier, lastId int64) ([]ChangeTracking, error) {
-	return querier2.GetManyWhere[ChangeTracking](q, "table_name = :table_name and id > :last_id", map[string]any{
-		"table_name": querier2.GetTableName[T](),
-		"last_id":    lastId,
-	}, nil)
+type IdAndChangeSeq struct {
+	Id        string `db:"id"`
+	ChangeSeq int64  `db:"change_seq"`
+}
+
+func FindChanges[T HasReconcileStatus](q *querier2.Querier, lastSeq int64) ([]IdAndChangeSeq, error) {
+	var ret []IdAndChangeSeq
+	err := q.SelectNamed(&ret, "select id, change_seq from "+querier2.GetTableName[T]()+" where change_seq > :last_seq", map[string]any{
+		"last_seq": lastSeq,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }

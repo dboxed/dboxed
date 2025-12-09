@@ -6,6 +6,7 @@ create table load_balancer
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Initializing',
     reconcile_status_details text        not null default '',
 
@@ -19,6 +20,7 @@ create table load_balancer
 
     unique (workspace_id, name)
 );
+create index load_balancer_change_seq on load_balancer (change_seq);
 
 create table load_balancer_box
 (

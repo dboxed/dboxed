@@ -184,7 +184,7 @@ func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (
 		}
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) 
 		}
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (s *BoxesServer) restReconcileBox(c context.Context, i *huma_utils.IdByPath
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}

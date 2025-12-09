@@ -6,6 +6,7 @@ create table machine_provider
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Initializing',
     reconcile_status_details text        not null default '',
 
@@ -15,3 +16,4 @@ create table machine_provider
 
     unique (workspace_id, name)
 );
+create index machine_provider_change_seq on machine_provider (change_seq);

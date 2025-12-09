@@ -6,6 +6,7 @@ create table s3_bucket
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Ok',
     reconcile_status_details text        not null default '',
 
@@ -14,5 +15,6 @@ create table s3_bucket
     access_key_id            text        not null,
     secret_access_key        text        not null
 );
+create index s3_bucket_change_seq on s3_bucket (change_seq);
 
 create index s3_bucket_workspace_bucket on s3_bucket (workspace_id, bucket);

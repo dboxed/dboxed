@@ -6,6 +6,7 @@ create table box
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Initializing',
     reconcile_status_details text        not null default '',
 
@@ -22,6 +23,7 @@ create table box
 
     unique (workspace_id, name)
 );
+create index box_change_seq on box (change_seq);
 
 create table box_sandbox_status
 (
@@ -41,14 +43,16 @@ create table box_sandbox_status
 
 create table box_netbird
 (
-    id                       text not null primary key references box (id) on delete cascade,
+    id                       text   not null primary key references box (id) on delete cascade,
 
-    reconcile_status         text not null default 'Initializing',
-    reconcile_status_details text not null default '',
+    change_seq               bigint not null,
+    reconcile_status         text   not null default 'Initializing',
+    reconcile_status_details text   not null default '',
 
     setup_key_id             text,
     setup_key                text
 );
+create index box_netbird_change_seq on box_netbird (change_seq);
 
 create table box_compose_project
 (

@@ -89,7 +89,7 @@ func (r *reconciler) softDeleteReplica(ctx context.Context, lb *dmodel.LoadBalan
 			if err != nil {
 				return base.InternalError(err)
 			}
-			err = dmodel.AddChangeTracking(q, box)
+			err = dmodel.BumpChangeSeq(q, box)
 			if err != nil {
 				return base.InternalError(err)
 			}

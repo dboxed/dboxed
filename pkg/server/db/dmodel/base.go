@@ -9,6 +9,7 @@ import (
 
 type HasReconcileStatus interface {
 	querier2.HasId
+	GetChangeSeq() int64
 	SetReconcileStatus(status string, statusDetails string)
 	GetReconcileStatus() (string, string)
 }
@@ -32,6 +33,7 @@ type OwnedByWorkspace struct {
 }
 
 type ReconcileStatus struct {
+	ChangeSeq              querier2.NullForJoin[int64]  `db:"change_seq"`
 	ReconcileStatus        querier2.NullForJoin[string] `db:"reconcile_status" omitCreate:"true"`
 	ReconcileStatusDetails querier2.NullForJoin[string] `db:"reconcile_status_details" omitCreate:"true"`
 }
@@ -42,6 +44,10 @@ func (v *OwnedByWorkspace) SetId(id string) {
 
 func (v OwnedByWorkspace) GetId() string {
 	return v.ID
+}
+
+func (v *ReconcileStatus) GetChangeSeq() int64 {
+	return v.ChangeSeq.V
 }
 
 func (v *ReconcileStatus) SetReconcileStatus(status string, statusDetails string) {

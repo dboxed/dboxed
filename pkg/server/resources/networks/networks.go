@@ -76,11 +76,6 @@ func (s *NetworksServer) restCreateNetwork(c context.Context, i *huma_utils.Json
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, n)
-	if err != nil {
-		return nil, err
-	}
-
 	return huma_utils.NewJsonBody(*mcp), nil
 }
 
@@ -164,7 +159,7 @@ func (s *NetworksServer) restUpdateNetwork(c context.Context, i *restUpdateNetwo
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, n)
+	err = dmodel.BumpChangeSeq(q, n)
 	if err != nil {
 		return nil, err
 	}

@@ -145,7 +145,12 @@ func SoftDeleteWithConstraints[T IsSoftDelete](q *querier2.Querier, byFields map
 	return nil
 }
 
-func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDelete](q *querier2.Querier, workspaceId *string, id string, extra SoftDeleteWithConstraintsExtra) error {
+type IsSoftDeleteAndHasReconcileStatus interface {
+	IsSoftDelete
+	HasReconcileStatus
+}
+
+func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDeleteAndHasReconcileStatus](q *querier2.Querier, workspaceId *string, id string, extra SoftDeleteWithConstraintsExtra) error {
 	err := SoftDeleteWithConstraints[T](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
@@ -153,14 +158,14 @@ func SoftDeleteWithConstraintsByIdsExtra[T IsSoftDelete](q *querier2.Querier, wo
 	if err != nil {
 		return err
 	}
-	err = AddChangeTrackingForId[T](q, id)
+	err = BumpChangeSeqForId[T](q, id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func SoftDeleteWithConstraintsByIds[T IsSoftDelete](q *querier2.Querier, workspaceId *string, id string) error {
+func SoftDeleteWithConstraintsByIds[T IsSoftDeleteAndHasReconcileStatus](q *querier2.Querier, workspaceId *string, id string) error {
 	return SoftDeleteWithConstraintsByIdsExtra[T](q, workspaceId, id, nil)
 }
 
@@ -196,7 +201,7 @@ func setDBFinalizers[T any](q *querier2.Querier, id string, k string, v bool) (s
 	return newFinalizers, nil
 }
 
-func AddFinalizer[T IsSoftDelete](q *querier2.Querier, v T, finalizer string) error {
+func AddFinalizer[T IsSoftDeleteAndHasReconcileStatus](q *querier2.Querier, v T, finalizer string) error {
 	if v.HasFinalizer(finalizer) {
 		return nil
 	}
@@ -208,10 +213,15 @@ func AddFinalizer[T IsSoftDelete](q *querier2.Querier, v T, finalizer string) er
 
 	v.setFinalizersRaw(newFinalizers)
 
+	err = BumpChangeSeqForId[T](q, v.GetId())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func RemoveFinalizer[T IsSoftDelete](q *querier2.Querier, v T, finalizer string) error {
+func RemoveFinalizer[T IsSoftDeleteAndHasReconcileStatus](q *querier2.Querier, v T, finalizer string) error {
 	if !v.HasFinalizer(finalizer) {
 		return nil
 	}
@@ -222,6 +232,11 @@ func RemoveFinalizer[T IsSoftDelete](q *querier2.Querier, v T, finalizer string)
 	}
 
 	v.setFinalizersRaw(newFinalizers)
+
+	err = BumpChangeSeqForId[T](q, v.GetId())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -209,6 +209,7 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 		returningFieldNames = append(returningFieldNames, f.FieldName)
 
 		isUuid := f.StructField.Tag.Get("uuid") == "true"
+		isChangeSeq := f.FieldName == "change_seq"
 		isOmitCreate := f.StructField.Tag.Get("omitCreate") == "true"
 		isOmitOnConflictUpdate := f.StructField.Tag.Get("omitOnConflictUpdate") == "true"
 
@@ -219,7 +220,7 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 		createFields = append(createFields, f)
 		createFieldNames = append(createFieldNames, f.FieldName)
 
-		if !isUuid && !isOmitOnConflictUpdate {
+		if !isUuid && !isChangeSeq && !isOmitOnConflictUpdate {
 			conflictSets = append(conflictSets, fmt.Sprintf("%s = excluded.%s", f.FieldName, f.FieldName))
 		}
 	}
@@ -232,18 +233,23 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 			argName := fmt.Sprintf("i%d_%s", i, f.FieldName)
 
 			isUuid := f.StructField.Tag.Get("uuid") == "true"
+			isChangeSeq := f.FieldName == "change_seq"
 
-			values = append(values, ":"+argName)
+			value := ":" + argName
 			if isUuid {
 				u, err := uuid.NewV7()
 				if err != nil {
 					return err
 				}
 				args[argName] = u.String()
+			} else if isChangeSeq {
+				value = "nextval('change_tracking_seq')"
 			} else {
 				fv := GetStructValueByPath(v, f.Path)
 				args[argName] = fv.Interface()
 			}
+
+			values = append(values, value)
 		}
 
 		valuesList = append(valuesList, fmt.Sprintf("(%s)", strings.Join(values, ", ")))

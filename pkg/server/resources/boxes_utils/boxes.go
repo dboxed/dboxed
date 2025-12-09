@@ -85,10 +85,5 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		}
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
-	if err != nil {
-		return nil, "", err
-	}
-
 	return box, "", nil
 }

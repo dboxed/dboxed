@@ -61,7 +61,7 @@ func (s *BoxesServer) restCreateComposeProject(c context.Context, i *restCreateC
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (s *BoxesServer) restUpdateComposeProject(c context.Context, i *restUpdateC
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (s *BoxesServer) restDeleteComposeProject(c context.Context, i *restDeleteC
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}

@@ -52,8 +52,6 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 }
 
 func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonBody[models.CreateVolume]) (*huma_utils.JsonBody[models.Volume], error) {
-	q := querier.GetQuerier(ctx)
-
 	v, inputErr, err := s.createVolume(ctx, i.Body)
 	if err != nil {
 		return nil, err
@@ -64,10 +62,6 @@ func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonB
 
 	ret := models.VolumeFromDB(*v, nil, nil, nil)
 
-	err = dmodel.AddChangeTracking(q, v)
-	if err != nil {
-		return nil, err
-	}
 	return huma_utils.NewJsonBody(ret), nil
 }
 
@@ -249,7 +243,10 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 	}
 
 	for _, s := range snapshots {
-		err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.VolumeSnapshot](q, &w.ID, s.ID)
+		err = dmodel.SoftDeleteWithConstraints[*dmodel.VolumeSnapshot](q, map[string]any{
+			"workspace_id": w.ID,
+			"id":           s.ID,
+		}, nil)
 		if err != nil {
 			return nil, err
 		}

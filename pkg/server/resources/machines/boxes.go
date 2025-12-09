@@ -75,12 +75,12 @@ func (s *MachinesServer) restAddBox(c context.Context, i *restAddBoxInput) (*hum
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, machine)
+	err = dmodel.BumpChangeSeq(q, machine)
 	if err != nil {
 		return nil, err
 	}
@@ -121,12 +121,12 @@ func (s *MachinesServer) restRemoveBox(c context.Context, i *restRemoveBoxInput)
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, machine)
+	err = dmodel.BumpChangeSeq(q, machine)
 	if err != nil {
 		return nil, err
 	}

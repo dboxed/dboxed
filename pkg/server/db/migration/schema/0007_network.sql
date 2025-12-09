@@ -6,6 +6,7 @@ create table network
     deleted_at               timestamptz,
     finalizers               text        not null default '{}',
 
+    change_seq               bigint      not null,
     reconcile_status         text        not null default 'Initializing',
     reconcile_status_details text        not null default '',
 
@@ -14,6 +15,7 @@ create table network
 
     unique (workspace_id, name)
 );
+create index network_change_seq on network (change_seq);
 
 create table network_netbird
 (

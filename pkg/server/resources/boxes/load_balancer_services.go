@@ -92,7 +92,7 @@ func (s *BoxesServer) restCreateLoadBalancerService(c context.Context, i *restCr
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (s *BoxesServer) restUpdateLoadBalancerService(c context.Context, i *restUp
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (s *BoxesServer) restDeleteLoadBalancerService(c context.Context, i *restDe
 		return nil, err
 	}
 
-	err = dmodel.AddChangeTracking(q, box)
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return nil, err
 	}

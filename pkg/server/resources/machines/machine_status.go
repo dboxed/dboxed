@@ -83,7 +83,7 @@ func (s *MachinesServer) restUpdateMachineStatus(c context.Context, i *huma_util
 		// if we didn't update status for some time, do immediate reconciliation so that the overall machine status gets
 		// updates asap
 		if machine.RunStatus.StatusTime.Sub(*oldStatusTime) >= time.Second*30 {
-			err = dmodel.AddChangeTracking(q, machine)
+			err = dmodel.BumpChangeSeq(q, machine)
 			if err != nil {
 				return nil, err
 			}
