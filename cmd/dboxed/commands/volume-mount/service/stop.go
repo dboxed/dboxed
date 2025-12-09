@@ -38,7 +38,7 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("init system %s not suppoert", initSystem)
+		return fmt.Errorf("init system %s not supported", initSystem)
 	}
 
 	return nil
@@ -48,7 +48,7 @@ func (cmd *StopCmd) stopS6(ctx context.Context, g *flags.GlobalFlags, volumeStat
 	serviceName := fmt.Sprintf("dboxed-volume-%s", volumeState.MountName)
 
 	s6s := service.S6Service{
-		ServiceName:   serviceName,
+		ServiceName: serviceName,
 	}
 
 	err := s6s.Stop(ctx)

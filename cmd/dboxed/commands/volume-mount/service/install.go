@@ -45,7 +45,7 @@ func (cmd *InstallCmd) Run(g *flags.GlobalFlags) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("init system %s not suppoert", initSystem)
+		return fmt.Errorf("init system %s not supported", initSystem)
 	}
 
 	return nil
