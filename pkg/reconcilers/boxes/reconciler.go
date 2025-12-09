@@ -32,6 +32,10 @@ func (r *reconciler) Reconcile(ctx context.Context, box *dmodel.BoxWithSandboxSt
 
 	// Check if status is stale (older than 60 seconds)
 	if box.SandboxStatus.StatusTime != nil {
+		if box.SandboxStatus.RunStatus != nil && *box.SandboxStatus.RunStatus == "stopped" {
+			return base.StatusWithMessage("Stopped", "Box stopped")
+		}
+
 		statusAge := time.Since(*box.SandboxStatus.StatusTime)
 		if statusAge > 60*time.Second {
 			if !box.Enabled {

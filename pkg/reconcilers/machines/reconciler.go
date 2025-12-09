@@ -32,6 +32,10 @@ func (r *reconciler) Reconcile(ctx context.Context, m *dmodel.MachineWithRunStat
 
 	// Check if status is stale (older than 60 seconds)
 	if m.RunStatus.StatusTime != nil {
+		if m.RunStatus.RunStatus != nil && *m.RunStatus.RunStatus == "stopped" {
+			return base.StatusWithMessage("Stopped", "Machine stopped")
+		}
+
 		statusAge := time.Since(*m.RunStatus.StatusTime)
 		if statusAge > 60*time.Second {
 			return base.StatusWithMessage("Stale", "Machine run status is stale")
