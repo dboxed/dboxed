@@ -31,17 +31,6 @@ RUN mkdir -p /etc/dboxed \
 
 RUN mkdir /var/lib/docker && ln -s /var/lib/dboxed/containers /var/lib/docker/containers
 
-# rustic
-ENV RUSTIC_VERSION=0.10.1
-RUN mkdir /tmp/rustic && cd /tmp/rustic  \
-    && wget -O rustic.tar.gz https://github.com/rustic-rs/rustic/releases/download/v${RUSTIC_VERSION}/rustic-v${RUSTIC_VERSION}-$(uname -m)-unknown-linux-musl.tar.gz \
-    && tar xzf rustic.tar.gz \
-    && cp rustic /usr/bin/ \
-    && cd / && rm -rf /tmp/rustic
-
-# extra tools we need for dboxed volumes
-RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools
-
 # cleanup
 RUN apk --no-cache del git openssh-client
 
@@ -49,7 +38,6 @@ FROM scratch
 COPY --from=rootfs / /
 
 COPY infra-images/sandbox/services.d /etc/services.d
-COPY infra-images/sandbox/lvm.conf /etc/lvm/lvm.conf
 
 RUN mkdir /etc/docker
 COPY infra-images/sandbox/daemon.json /etc/docker/

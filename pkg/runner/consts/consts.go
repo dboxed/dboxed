@@ -6,7 +6,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/version"
 )
 
-const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra-sandbox"
+const dboxedInfraSandboxImage = "ghcr.io/dboxed/dboxed-infra-sandbox"
+const dboxedInfraVolumeImage = "ghcr.io/dboxed/dboxed-infra-volume"
 
 const DboxedDataDir = "/var/lib/dboxed"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
@@ -34,11 +35,18 @@ const SandboxInfoFile = "sandbox-info.yaml"
 
 const ShutdownSandboxMarkerFile = DboxedDataDir + "/" + "stop-sandbox"
 
-func GetDefaultInfraImage() string {
+func GetDefaultInfraImageTag() string {
 	tag := "nightly"
 	if !version.IsDummyVersion() {
 		tag = "v" + version.Version
 	}
-	infraImage := fmt.Sprintf("%s:%s", dboxedInfraImage, tag)
-	return infraImage
+	return tag
+}
+
+func GetDefaultSandboxInfraImage() string {
+	return fmt.Sprintf("%s:%s", dboxedInfraSandboxImage, GetDefaultInfraImageTag())
+}
+
+func GetDefaultVolumeInfraImage() string {
+	return fmt.Sprintf("%s:%s", dboxedInfraVolumeImage, GetDefaultInfraImageTag())
 }

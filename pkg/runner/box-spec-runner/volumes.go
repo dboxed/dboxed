@@ -199,9 +199,10 @@ func (rn *BoxSpecRunner) buildDboxedVolumesComposeProject(ctx context.Context) (
 
 	clientAuth := rn.Client.GetClientAuth(true)
 
+	consts.GetDefaultSandboxInfraImage()
 	for _, dv := range rn.BoxSpec.Volumes {
 		p.Services[dv.Name] = ctypes.ServiceConfig{
-			Image:      "ghcr.io/dboxed/dboxed-infra:nightly",
+			Image:      consts.GetDefaultVolumeInfraImage(),
 			Privileged: true,
 			Volumes: []ctypes.ServiceVolumeConfig{
 				dboxedBinVolume,

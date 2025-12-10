@@ -67,6 +67,23 @@ dockers_v2:
     dockerfile: infra-images/sandbox/Dockerfile
     extra_files:
       - infra-images/sandbox
+  - id: infra-image-volume
+    images:
+      - ghcr.io/dboxed/dboxed-infra-volume
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    labels:
+      "org.opencontainers.image.description": "Dboxed infra-volume-image"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    dockerfile: infra-images/volume/Dockerfile
+    extra_files:
+      - infra-images/volume
   - id: infra-image-caddy
     images:
       - ghcr.io/dboxed/dboxed-infra-lb-caddy

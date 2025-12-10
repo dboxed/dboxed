@@ -64,7 +64,7 @@ func Execute() {
 		}),
 		kong.DefaultEnvars("DBOXED"),
 		kong.Vars{
-			"default_infra_image": consts.GetDefaultInfraImage(),
+			"default_infra_image": consts.GetDefaultSandboxInfraImage(),
 		})
 
 	logLevel := slog.LevelInfo
