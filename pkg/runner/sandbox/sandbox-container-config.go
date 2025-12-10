@@ -82,10 +82,11 @@ func (rn *Sandbox) buildSandboxContainerMounts() []*configs.Mount {
 			Flags:       unix.MS_BIND,
 		},
 		{
-			Destination: consts.VolumesDir,
-			Device:      "rbind",
-			Source:      filepath.Join(rn.SandboxDir, "volumes"),
-			Flags:       unix.MS_BIND | unix.MS_REC | unix.MS_SHARED,
+			Destination:      consts.VolumesDir,
+			Device:           "rbind",
+			Source:           filepath.Join(rn.SandboxDir, "volumes"),
+			Flags:            unix.MS_BIND,
+			PropagationFlags: []int{unix.MS_REC | unix.MS_SHARED},
 		},
 	}
 
