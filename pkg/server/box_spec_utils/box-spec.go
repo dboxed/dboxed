@@ -3,6 +3,7 @@ package box_spec_utils
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/boxspec"
@@ -140,6 +141,10 @@ func listNetworkHosts(c context.Context, network *dmodel.Network) ([]boxspec.Net
 			IP4:  ip4,
 		})
 	}
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Name < ret[j].Name
+	})
 
 	return ret, nil
 }
