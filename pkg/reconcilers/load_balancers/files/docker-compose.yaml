@@ -1,7 +1,7 @@
 name: caddy
 services:
   caddy:
-    image: ghcr.io/dboxed/dboxed-lb-caddy:{{ .CaddyVersion }}
+    image: ghcr.io/dboxed/dboxed-infra-lb-caddy:{{ .CaddyVersion }}
     {{- if or (eq .CaddyVersion "nightly") (eq .CaddyVersion "latest") }}
     pull_policy: always
     {{- end }}

@@ -67,9 +67,9 @@ dockers_v2:
     dockerfile: infra-images/sandbox/Dockerfile
     extra_files:
       - infra-images/sandbox
-  - id: caddy
+  - id: infra-image-caddy
     images:
-      - ghcr.io/dboxed/dboxed-lb-caddy
+      - ghcr.io/dboxed/dboxed-infra-lb-caddy
     tags:
       - "v{{ .Version }}"
       - "{{ if .IsNightly }}nightly{{ end }}"
@@ -83,9 +83,9 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{.GitURL}}"
-    dockerfile: caddy/Dockerfile
+    dockerfile: infra-images/caddy/Dockerfile
     extra_files:
-      - caddy
+      - infra-images/caddy
 
 changelog:
   sort: asc
