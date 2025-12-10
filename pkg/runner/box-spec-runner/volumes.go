@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	ctypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/dboxed/dboxed/pkg/boxspec"
@@ -15,7 +16,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
-	"github.com/moby/sys/mountinfo"
 )
 
 func (rn *BoxSpecRunner) getVolumeWorkDir(id string) string {
@@ -85,7 +85,7 @@ func (rn *BoxSpecRunner) reconcileContentVolumes(ctx context.Context) error {
 	return nil
 }
 
-func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, newVolumes []boxspec.DboxedVolume, allowDownService bool) error {
+func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, allowDownService bool) error {
 	oldVolumesByName := map[string]*volume_serve.VolumeState{}
 	newVolumeByName := map[string]*boxspec.DboxedVolume{}
 
@@ -97,16 +97,19 @@ func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, newVolumes 
 	for _, v := range oldVolumes {
 		oldVolumesByName[v.Volume.ID] = v
 	}
-	for _, v := range newVolumes {
+	for _, v := range rn.BoxSpec.Volumes {
 		newVolumeByName[v.ID] = &v
 	}
 
 	needDown := false
-	var deleteVolumes []*volume_serve.VolumeState
-
-	var createVolumes []*boxspec.DboxedVolume
-	var mountVolumes []*boxspec.DboxedVolume
-	var installServices []*boxspec.DboxedVolume
+	p, err := rn.buildDboxedVolumesComposeProject(ctx)
+	if err != nil {
+		return err
+	}
+	ch := compose.ComposeHelper{
+		BaseDir: rn.composeBaseDir,
+		Project: p,
+	}
 
 	for _, oldVolume := range oldVolumesByName {
 		if _, ok := newVolumeByName[oldVolume.Volume.ID]; !ok {
@@ -114,28 +117,21 @@ func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, newVolumes 
 				slog.InfoContext(ctx, "need to down services due to volume being deleted", slog.Any("volumeName", oldVolume.Volume.Name))
 			}
 			needDown = true
-			deleteVolumes = append(deleteVolumes, oldVolume)
 		}
 	}
-	for _, newVolume := range newVolumeByName {
-		if oldVolume, ok := oldVolumesByName[newVolume.ID]; ok {
-			mountDir := rn.getDboxedVolumeMountDir(oldVolume.Volume.ID)
+	if !needDown && p != nil {
+		changed, err := ch.CheckRecreateNeeded(ctx)
+		if err != nil {
+			return err
+		}
+		if changed {
+			if allowDownService {
+				slog.InfoContext(ctx, "need to down services due to volume needed to be recreated")
+			}
+			needDown = true
+		}
+	}
 
-			mounted, err := mountinfo.Mounted(mountDir)
-			if err != nil {
-				if !os.IsNotExist(err) {
-					return err
-				}
-			}
-			if !mounted {
-				mountVolumes = append(mountVolumes, newVolume)
-			}
-			installServices = append(installServices, newVolume)
-		} else {
-			createVolumes = append(createVolumes, newVolume)
-			installServices = append(installServices, newVolume)
-		}
-	}
 	if allowDownService && needDown {
 		composeProjects, _, err := rn.loadBoxSpecComposeProjects(ctx)
 		for name, _ := range composeProjects {
@@ -146,138 +142,111 @@ func (rn *BoxSpecRunner) reconcileDboxedVolumes(ctx context.Context, newVolumes 
 		}
 	}
 
-	for _, v := range deleteVolumes {
-		err = rn.uninstallVolumeService(ctx, v)
+	if p != nil {
+		err = ch.RunPull(ctx)
 		if err != nil {
 			return err
 		}
-		err = rn.releaseVolume(ctx, v)
+		err = ch.RunUp(ctx, true)
 		if err != nil {
 			return err
 		}
-	}
-	for _, v := range createVolumes {
-		err = rn.createVolume(ctx, v)
-		if err != nil {
-			return err
-		}
-	}
-	for _, v := range mountVolumes {
-		err = rn.mountVolume(ctx, v)
+	} else {
+		err = rn.downDboxedVolumes(ctx)
 		if err != nil {
 			return err
 		}
 	}
-	for _, v := range newVolumes {
+
+	for _, v := range rn.BoxSpec.Volumes {
 		mountDir := rn.getDboxedVolumeMountDir(v.ID)
 		err = rn.fixVolumePermissions(v, mountDir)
 		if err != nil {
 			return err
 		}
 	}
-	for _, v := range installServices {
-		err = rn.installVolumeService(ctx, v)
-		if err != nil {
-			return err
+
+	return nil
+}
+
+func (rn *BoxSpecRunner) downDboxedVolumes(ctx context.Context) error {
+	slog.InfoContext(ctx, "downing dboxed volumes")
+
+	err := compose.RunComposeDown(ctx, "dboxed-volumes", false, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rn *BoxSpecRunner) buildDboxedVolumesComposeProject(ctx context.Context) (*ctypes.Project, error) {
+	if len(rn.BoxSpec.Volumes) == 0 {
+		return nil, nil
+	}
+
+	p := &ctypes.Project{
+		Name:     "dboxed-volumes",
+		Services: map[string]ctypes.ServiceConfig{},
+		Volumes:  map[string]ctypes.VolumeConfig{},
+	}
+
+	dboxedBinVolume := ctypes.ServiceVolumeConfig{
+		Type:   "bind",
+		Source: "/usr/bin/dboxed",
+		Target: "/usr/bin/dboxed",
+	}
+
+	clientAuth := rn.Client.GetClientAuth(true)
+
+	for _, dv := range rn.BoxSpec.Volumes {
+		p.Services[dv.Name] = ctypes.ServiceConfig{
+			Image:      "ghcr.io/dboxed/dboxed-infra:nightly",
+			Privileged: true,
+			Volumes: []ctypes.ServiceVolumeConfig{
+				dboxedBinVolume,
+				{
+					Type:   "bind",
+					Source: "/dev",
+					Target: "/dev",
+				},
+				{
+					Type:   "bind",
+					Source: consts.VolumesDir,
+					Target: consts.VolumesDir,
+					Bind: &ctypes.ServiceVolumeBind{
+						Propagation: "shared",
+					},
+				},
+			},
+			Environment: map[string]*string{
+				"DBOXED_API_URL":   &clientAuth.ApiUrl,
+				"DBOXED_API_TOKEN": clientAuth.StaticToken,
+				"ASD":              util.Ptr("asd1"),
+			},
+			Entrypoint: []string{
+				"dboxed",
+				"volume-mount",
+				"serve",
+				dv.ID,
+				"--backup-interval", dv.BackupInterval,
+				"--ready-file", "/volume-ready",
+			},
+			HealthCheck: &ctypes.HealthCheckConfig{
+				Test: []string{
+					"CMD",
+					"test",
+					"-f",
+					"/volume-ready",
+				},
+				Interval:    util.Ptr(ctypes.Duration(time.Second * 5)),
+				StartPeriod: util.Ptr(ctypes.Duration(time.Minute * 10)),
+			},
+			StopGracePeriod: util.Ptr(ctypes.Duration(time.Minute * 10)),
 		}
 	}
 
-	return nil
-}
-
-func (rn *BoxSpecRunner) createVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
-	slog.InfoContext(ctx, "creating volume-mount",
-		slog.Any("name", vol.Name),
-	)
-
-	args := []string{
-		"volume-mount",
-		"create",
-		vol.ID,
-		"--box", rn.BoxSpec.ID,
-	}
-
-	err := rn.runDboxedVolume(ctx, args)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (rn *BoxSpecRunner) mountVolume(ctx context.Context, vol *boxspec.DboxedVolume) error {
-	slog.InfoContext(ctx, "mounting volume",
-		slog.Any("name", vol.Name),
-	)
-
-	args := []string{
-		"volume-mount",
-		"mount",
-		vol.ID,
-	}
-
-	err := rn.runDboxedVolume(ctx, args)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (rn *BoxSpecRunner) releaseVolume(ctx context.Context, vol *volume_serve.VolumeState) error {
-	slog.InfoContext(ctx, "releasing volume",
-		slog.Any("name", vol.Volume.Name),
-	)
-
-	args := []string{
-		"volume-mount",
-		"release",
-		vol.Volume.ID,
-	}
-
-	err := rn.runDboxedVolume(ctx, args)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (rn *BoxSpecRunner) installVolumeService(ctx context.Context, vol *boxspec.DboxedVolume) error {
-	slog.InfoContext(ctx, "installing volume service",
-		slog.Any("name", vol.Name),
-	)
-
-	args := []string{
-		"volume-mount",
-		"service",
-		"install",
-		vol.ID,
-		"--backup-interval", vol.BackupInterval,
-	}
-
-	err := rn.runDboxedVolume(ctx, args)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rn *BoxSpecRunner) uninstallVolumeService(ctx context.Context, vol *volume_serve.VolumeState) error {
-	slog.InfoContext(ctx, "uninstalling volume service",
-		slog.Any("name", vol.Volume.Name),
-	)
-
-	args := []string{
-		"volume-mount",
-		"service",
-		"uninstall",
-		vol.Volume.ID,
-	}
-
-	err := rn.runDboxedVolume(ctx, args)
-	if err != nil {
-		return err
-	}
-	return nil
+	return p, nil
 }
 
 func (rn *BoxSpecRunner) fixVolumePermissions(vol boxspec.DboxedVolume, mountDir string) error {

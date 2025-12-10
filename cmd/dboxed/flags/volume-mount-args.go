@@ -1,13 +1,9 @@
 package flags
 
-type VolumeMountArgs struct {
-	Volume string `help:"Specify volume" required:"" arg:""`
-}
-
 type VolumeServeArgs struct {
-	VolumeMountArgs
-
-	BackupInterval string `help:"Specify the backup interval" default:"5m"`
+	Volume         string  `help:"Specify volume" required:"" arg:""`
+	BackupInterval string  `help:"Specify the backup interval" default:"5m"`
+	Box            *string `help:"Specify the box that wants to serve this volume"`
 }
 
 type WebdavProxyFlags struct {

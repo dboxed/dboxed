@@ -51,12 +51,6 @@ func New(opts VolumeServeOpts) (*VolumeServe, error) {
 		stop: make(chan struct{}),
 	}
 
-	dir, err := normalizePath(opts.Dir)
-	if err != nil {
-		return nil, err
-	}
-	vs.opts.Dir = dir
-
 	vs.log = slog.With(
 		slog.Any("volumeId", opts.VolumeId),
 		slog.Any("dir", opts.Dir),
@@ -82,7 +76,7 @@ func (vs *VolumeServe) buildClient(s *VolumeState) (*baseclient.Client, error) {
 }
 
 func (vs *VolumeServe) Create(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -104,7 +98,7 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 		return err
 	}
 
-	s, err = vs.loadVolumeState()
+	s, err = vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}
@@ -147,7 +141,7 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 }
 
 func (vs *VolumeServe) Open(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}
@@ -232,7 +226,7 @@ func (vs *VolumeServe) MountDevice(ctx context.Context, readOnly bool) error {
 }
 
 func (vs *VolumeServe) ReleaseVolumeMountViaApi(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -323,7 +317,7 @@ func (vs *VolumeServe) mountVolumeViaApi(ctx context.Context) error {
 }
 
 func (vs *VolumeServe) refreshVolumeMount(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}
@@ -396,7 +390,7 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 }
 
 func (vs *VolumeServe) BackupOnce(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}
@@ -438,7 +432,7 @@ func (vs *VolumeServe) BackupOnce(ctx context.Context) error {
 }
 
 func (vs *VolumeServe) IsRestoreDone() (bool, error) {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return false, err
 	}
@@ -446,7 +440,7 @@ func (vs *VolumeServe) IsRestoreDone() (bool, error) {
 }
 
 func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId string, delete bool) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}
@@ -485,7 +479,7 @@ func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId string, d
 }
 
 func (vs *VolumeServe) RestoreFromLatestSnapshot(ctx context.Context) error {
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}
@@ -550,17 +544,4 @@ func (vs *VolumeServe) periodicBackup(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
-}
-
-func normalizePath(path string) (realPath string, err error) {
-	if realPath, err = filepath.Abs(path); err != nil {
-		return "", err
-	}
-	if realPath, err = filepath.EvalSymlinks(realPath); err != nil {
-		return "", err
-	}
-	if _, err := os.Stat(realPath); err != nil {
-		return "", err
-	}
-	return realPath, nil
 }

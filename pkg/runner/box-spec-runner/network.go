@@ -41,7 +41,7 @@ func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = ch.RunUp(ctx)
+	err = ch.RunUp(ctx, true)
 	if err != nil {
 		return err
 	}

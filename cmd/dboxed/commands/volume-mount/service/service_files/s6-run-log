@@ -1,3 +1,0 @@
-#!/bin/sh
-mkdir -p {{ .DboxedWorkdir }}/volumes/{{ .VolumeId }}/logs
-exec s6-log n20 s1000000 {{ .DboxedWorkdir }}/volumes/{{ .VolumeId }}/logs

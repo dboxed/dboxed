@@ -7,7 +7,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func RunComposeCli(ctx context.Context, log *slog.Logger, dir string, projectName string, cmdEnv []string, args ...string) error {
+func RunComposeCli(ctx context.Context, log *slog.Logger, dir string, projectName string, cmdEnv []string, catchStd bool, args ...string) ([]byte, []byte, error) {
 	var args2 []string
 	args2 = append(args2, "compose")
 	if projectName != "" {
@@ -31,9 +31,13 @@ func RunComposeCli(ctx context.Context, log *slog.Logger, dir string, projectNam
 		Logger:  log,
 		LogCmd:  true,
 	}
+	if catchStd {
+		cmd.CatchStdout = true
+		cmd.CatchStderr = true
+	}
 	err := cmd.Run(ctx)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	return nil
+	return cmd.Stdout, cmd.Stderr, nil
 }

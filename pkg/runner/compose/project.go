@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"os"
@@ -50,7 +51,7 @@ func (rn *ComposeHelper) RunPull(ctx context.Context) error {
 		return err
 	}
 
-	err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, "pull")
+	_, _, err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, false, "pull")
 	if err != nil {
 		return err
 	}
@@ -63,24 +64,44 @@ func (rn *ComposeHelper) RunBuild(ctx context.Context) error {
 		return err
 	}
 
-	err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, "build")
+	_, _, err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, false, "build")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (rn *ComposeHelper) RunUp(ctx context.Context) error {
+func (rn *ComposeHelper) RunUp(ctx context.Context, wait bool) error {
 	dir, err := rn.writeComposeFile()
 	if err != nil {
 		return err
 	}
 
-	err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, "up", "-d", "--remove-orphans", "--pull=never")
+	args := []string{"up", "-d", "--remove-orphans", "--pull=never"}
+	if wait {
+		args = append(args, "--wait")
+	}
+
+	_, _, err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, false, args...)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (rn *ComposeHelper) CheckRecreateNeeded(ctx context.Context) (bool, error) {
+	dir, err := rn.writeComposeFile()
+	if err != nil {
+		return false, err
+	}
+
+	args := []string{"up", "--dry-run"}
+	_, stderr, err := RunComposeCli(ctx, nil, dir, rn.projectName(), nil, true, args...)
+	if err != nil {
+		return false, err
+	}
+	didChange := bytes.Contains(stderr, []byte("Recreated"))
+	return didChange, nil
 }
 
 func (rn *ComposeHelper) RunExec(ctx context.Context, serviceName string, interactive bool, args ...string) error {
@@ -98,7 +119,7 @@ func (rn *ComposeHelper) RunExec(ctx context.Context, serviceName string, intera
 	args2 = append(args2, serviceName)
 	args2 = append(args2, args...)
 
-	err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, args2...)
+	_, _, err = RunComposeCli(ctx, nil, dir, rn.projectName(), nil, false, args2...)
 	if err != nil {
 		return err
 	}
@@ -112,7 +133,7 @@ func RunComposeDown(ctx context.Context, name string, removeVolumes bool, ignore
 	if removeVolumes {
 		args = append(args, "-v")
 	}
-	err := RunComposeCli(ctx, nil, "", name, nil, args...)
+	_, _, err := RunComposeCli(ctx, nil, "", name, nil, false, args...)
 	if err != nil {
 		if ignoreComposeErrors {
 			slog.ErrorContext(ctx, "error while calling docker compose", slog.Any("error", err))

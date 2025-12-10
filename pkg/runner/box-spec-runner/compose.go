@@ -43,7 +43,7 @@ func (rn *BoxSpecRunner) runBoxSpecComposeUp(ctx context.Context) error {
 	upWg.SetLimit(2)
 	for _, p := range composeProjects {
 		upWg.Go(func() error {
-			return p.RunUp(ctx)
+			return p.RunUp(ctx, false)
 		})
 	}
 	err = upWg.Wait()

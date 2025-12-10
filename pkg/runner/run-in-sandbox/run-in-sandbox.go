@@ -241,6 +241,7 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
 
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
+		Client:       rn.client,
 		BoxSpec:      boxSpec,
 		PortForwards: rn.portForwards,
 	}
@@ -249,6 +250,8 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 		rn.updateSandboxStatusSimple(ctx, "reconciling failed", true)
 		return err
 	}
+
+	slog.InfoContext(ctx, "reconciling of box spec done")
 
 	rn.updateSandboxStatusSimple(ctx, "running", true)
 	return nil
@@ -263,6 +266,7 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 
 	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
+			Client:       rn.client,
 			BoxSpec:      rn.lastBoxSpec,
 			PortForwards: rn.portForwards,
 		}

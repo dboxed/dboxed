@@ -29,7 +29,7 @@ type VolumeState struct {
 	RestoreSnapshot *string `json:"restoreSnapshot"`
 }
 
-func (vs *VolumeServe) loadVolumeState() (*VolumeState, error) {
+func (vs *VolumeServe) LoadVolumeState() (*VolumeState, error) {
 	s, err := LoadVolumeState(vs.opts.Dir)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (vs *VolumeServe) updateVolumeState(ctx context.Context, sendStatus bool, f
 	vs.volumeStateMutex.Lock()
 	defer vs.volumeStateMutex.Unlock()
 
-	s, err := vs.loadVolumeState()
+	s, err := vs.LoadVolumeState()
 	if err != nil {
 		return err
 	}

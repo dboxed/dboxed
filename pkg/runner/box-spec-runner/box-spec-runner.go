@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/compose"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
@@ -15,6 +16,7 @@ import (
 )
 
 type BoxSpecRunner struct {
+	Client       *baseclient.Client
 	BoxSpec      *boxspec.BoxSpec
 	PortForwards *network.PortForwards
 
@@ -30,6 +32,11 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 	rn.composeBaseDir = composeBaseDir
+
+	/*err = rn.reconcileDboxedServiceContainers(ctx)
+	if err != nil {
+		return err
+	}*/
 
 	err = rn.downDeletedBoxSpecComposeProjects(ctx)
 	if err != nil {
@@ -50,7 +57,7 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 		return err
 	}
 
-	err = rn.reconcileDboxedVolumes(ctx, rn.BoxSpec.Volumes, true)
+	err = rn.reconcileDboxedVolumes(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -76,8 +83,7 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 		}
 	}
 
-	slog.InfoContext(ctx, "releasing dboxed volumes")
-	err = rn.reconcileDboxedVolumes(ctx, nil, false)
+	err = rn.downDboxedVolumes(ctx)
 	if err != nil {
 		return err
 	}
