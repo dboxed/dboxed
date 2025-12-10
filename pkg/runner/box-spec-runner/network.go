@@ -111,6 +111,7 @@ func (rn *BoxSpecRunner) buildNetbirdComposeProject(ctx context.Context, p *ctyp
 			"SYS_ADMIN",
 			"SYS_RESOURCE",
 		},
+		Restart:    "unless-stopped",
 		Entrypoint: cmd,
 		EnvFiles: []ctypes.EnvFile{
 			{
@@ -120,7 +121,8 @@ func (rn *BoxSpecRunner) buildNetbirdComposeProject(ctx context.Context, p *ctyp
 		Volumes: []ctypes.ServiceVolumeConfig{dataVolume, runVolume},
 	}
 	p.Services["netbird-status"] = ctypes.ServiceConfig{
-		Image: image,
+		Image:   image,
+		Restart: "unless-stopped",
 		Entrypoint: []string{
 			"sh",
 			"-c",
