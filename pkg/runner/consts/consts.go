@@ -6,7 +6,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/version"
 )
 
-const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra"
+const dboxedInfraImage = "ghcr.io/dboxed/dboxed-infra-sandbox"
 
 const DboxedDataDir = "/var/lib/dboxed"
 const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"

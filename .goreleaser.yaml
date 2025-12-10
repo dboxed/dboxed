@@ -50,23 +50,23 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{.GitURL}}"
-  - id: infra-image
+  - id: infra-image-sandbox
     images:
-      - ghcr.io/dboxed/dboxed-infra
+      - ghcr.io/dboxed/dboxed-infra-sandbox
     tags:
       - "v{{ .Version }}"
       - "{{ if .IsNightly }}nightly{{ end }}"
       - "{{ if not .IsNightly }}latest{{ end }}"
     labels:
-      "org.opencontainers.image.description": "Dboxed infra-image"
+      "org.opencontainers.image.description": "Dboxed infra-sandbox-image"
       "org.opencontainers.image.created": "{{.Date}}"
       "org.opencontainers.image.name": "{{.ProjectName}}"
       "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{.GitURL}}"
-    dockerfile: infra-image/Dockerfile
+    dockerfile: infra-images/sandbox/Dockerfile
     extra_files:
-      - infra-image
+      - infra-images/sandbox
   - id: caddy
     images:
       - ghcr.io/dboxed/dboxed-lb-caddy

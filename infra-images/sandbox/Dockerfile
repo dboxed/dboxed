@@ -9,7 +9,7 @@ RUN apk --no-cache add coreutils procps iproute2
 
 ENV S6_OVERLAY_VERSION=3.2.1.0
 
-ADD infra-image/s6-overlay.sha256 /tmp/s6-overlay/
+ADD infra-images/sandbox/s6-overlay.sha256 /tmp/s6-overlay/
 RUN cd /tmp/s6-overlay \
     && wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz \
     && wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-aarch64.tar.xz \
@@ -48,12 +48,12 @@ RUN apk --no-cache del git openssh-client
 FROM scratch
 COPY --from=rootfs / /
 
-COPY infra-image/services.d /etc/services.d
-COPY infra-image/lvm.conf /etc/lvm/lvm.conf
+COPY infra-images/sandbox/services.d /etc/services.d
+COPY infra-images/sandbox/lvm.conf /etc/lvm/lvm.conf
 
 RUN mkdir /etc/docker
-COPY infra-image/daemon.json /etc/docker/
-COPY infra-image/resolv.conf /etc/resolv.conf
+COPY infra-images/sandbox/daemon.json /etc/docker/
+COPY infra-images/sandbox/resolv.conf /etc/resolv.conf
 
 ENV S6_LOGGING_SCRIPT="n10 s10000000"
 ENV S6_KEEP_ENV=1
