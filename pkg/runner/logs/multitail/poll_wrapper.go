@@ -13,6 +13,7 @@ type pollWrapper struct {
 }
 
 func (w *pollWrapper) Read(p []byte) (n int, err error) {
+	stopOnEOF := false
 	for {
 		b, err := w.ReadCloser.Read(p)
 		if err == nil {
@@ -20,11 +21,13 @@ func (w *pollWrapper) Read(p []byte) (n int, err error) {
 		}
 		if err != io.EOF {
 			return 0, err
+		} else if stopOnEOF {
+			return 0, io.EOF
 		}
 
 		select {
 		case <-w.stopOnEOF:
-			return 0, io.EOF
+			stopOnEOF = true
 		case <-w.ctx.Done():
 			return 0, w.ctx.Err()
 		case <-time.After(100 * time.Millisecond):
