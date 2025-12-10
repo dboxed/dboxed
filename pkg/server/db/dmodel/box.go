@@ -165,33 +165,33 @@ func (v *BoxSandboxStatus) UpdateStatusTime(q *querier2.Querier) error {
 	)
 }
 
-func (v *BoxSandboxStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) error {
-	v.StatusTime = util.Ptr(time.Now())
-	v.RunStatus = runStatus
-	return querier2.UpdateOneFromStruct(q, v,
-		"status_time",
-		"run_status",
-	)
-}
+func (v *BoxSandboxStatus) UpdateStatus(q *querier2.Querier, runStatus *string, startTime *time.Time, stopTime *time.Time, networkIp4 *string) error {
+	var fields []string
+	if runStatus != nil {
+		fields = append(fields, "run_status")
+		v.RunStatus = runStatus
+	}
+	if startTime != nil {
+		fields = append(fields, "start_time", "stop_time")
+		v.StartTime = startTime
+		v.StopTime = stopTime
+	} else if stopTime != nil {
+		fields = append(fields, "stop_time")
+		v.StopTime = stopTime
+	}
+	if networkIp4 != nil {
+		fields = append(fields, "network_ip4")
+		v.NetworkIP4 = networkIp4
+	}
 
-func (v *BoxSandboxStatus) UpdateStartTime(q *querier2.Querier, startTime *time.Time) error {
-	v.StatusTime = util.Ptr(time.Now())
-	v.StartTime = startTime
-	v.StopTime = nil
-	return querier2.UpdateOneFromStruct(q, v,
-		"status_time",
-		"start_time",
-		"stop_time",
-	)
-}
+	if len(fields) == 0 {
+		return nil
+	}
 
-func (v *BoxSandboxStatus) UpdateStopTime(q *querier2.Querier, stopTime *time.Time) error {
+	fields = append(fields, "status_time")
 	v.StatusTime = util.Ptr(time.Now())
-	v.StopTime = stopTime
-	return querier2.UpdateOneFromStruct(q, v,
-		"status_time",
-		"stop_time",
-	)
+
+	return querier2.UpdateOneFromStruct(q, v, fields...)
 }
 
 func (v *BoxSandboxStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) error {
@@ -200,15 +200,6 @@ func (v *BoxSandboxStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) 
 	return querier2.UpdateOneFromStruct(q, v,
 		"status_time",
 		"docker_ps",
-	)
-}
-
-func (v *BoxSandboxStatus) UpdateNetworkIp4(q *querier2.Querier, ip4 *string) error {
-	v.StatusTime = util.Ptr(time.Now())
-	v.NetworkIP4 = ip4
-	return querier2.UpdateOneFromStruct(q, v,
-		"status_time",
-		"network_ip4",
 	)
 }
 

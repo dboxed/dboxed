@@ -48,34 +48,15 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 		return nil, err
 	}
 
-	oldStatusTime := box.SandboxStatus.StatusTime
+	var oldStatusTime, newStatusTime time.Time
+	if box.SandboxStatus.StatusTime != nil {
+		oldStatusTime = *box.SandboxStatus.StatusTime
+	}
 
 	if i.Body.SandboxStatus != nil {
-		if i.Body.SandboxStatus.RunStatus != nil {
-			err = box.SandboxStatus.UpdateRunStatus(q, i.Body.SandboxStatus.RunStatus)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if i.Body.SandboxStatus.StartTime != nil {
-			err = box.SandboxStatus.UpdateStartTime(q, i.Body.SandboxStatus.StartTime)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if i.Body.SandboxStatus.StopTime != nil {
-			err = box.SandboxStatus.UpdateStopTime(q, i.Body.SandboxStatus.StopTime)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if i.Body.SandboxStatus.NetworkIp4 != nil {
-			err = box.SandboxStatus.UpdateNetworkIp4(q, i.Body.SandboxStatus.NetworkIp4)
-			if err != nil {
-				return nil, err
-			}
+		err = box.SandboxStatus.UpdateStatus(q, i.Body.SandboxStatus.RunStatus, i.Body.SandboxStatus.StartTime, i.Body.SandboxStatus.StopTime, i.Body.SandboxStatus.NetworkIp4)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -102,14 +83,15 @@ func (s *BoxesServer) restUpdateSandboxStatus(c context.Context, i *huma_utils.I
 		}
 	}
 
-	if oldStatusTime != nil && box.SandboxStatus.StatusTime != nil {
-		// if we didn't update status for some time, do immediate reconciliation so that the overall box status gets
-		// updates asap
-		if box.SandboxStatus.StatusTime.Sub(*oldStatusTime) >= time.Second*30 {
-			err = dmodel.BumpChangeSeq(q, box)
-			if err != nil {
-				return nil, err
-			}
+	if box.SandboxStatus.StatusTime != nil {
+		newStatusTime = *box.SandboxStatus.StatusTime
+	}
+
+	// cause reconciliation on change or after some time passed
+	if oldStatusTime != newStatusTime || time.Now().Sub(newStatusTime) >= time.Second*30 {
+		err = dmodel.BumpChangeSeq(q, box)
+		if err != nil {
+			return nil, err
 		}
 	}
 
