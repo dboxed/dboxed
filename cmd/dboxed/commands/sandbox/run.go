@@ -5,6 +5,7 @@ package sandbox
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -29,13 +30,19 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
-	if !box.Enabled {
-		return fmt.Errorf("the box is disabled, refusing to start it")
-	}
-
 	sandboxName, err := cmd.GetSandboxName(box)
 	if err != nil {
 		return err
+	}
+
+	logFile := filepath.Join(run_sandbox.GetSandboxDir(g.WorkDir, sandboxName), "logs", "sandbox-run.log")
+	logWriter := logs.BuildRotatingLogger(logFile)
+
+	logHandler.AddWriter(logWriter)
+	defer logHandler.RemoveWriter(logWriter)
+
+	if !box.Enabled {
+		return fmt.Errorf("the box is disabled, refusing to start it")
 	}
 
 	runBox := run_sandbox.RunSandbox{
@@ -48,7 +55,7 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		VethNetworkCidr: cmd.VethCidr,
 	}
 
-	err = runBox.Run(ctx, logHandler)
+	err = runBox.Run(ctx)
 	if err != nil {
 		return err
 	}

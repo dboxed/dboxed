@@ -17,7 +17,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -42,7 +41,7 @@ type RunSandbox struct {
 	sandbox *sandbox.Sandbox
 }
 
-func (rn *RunSandbox) getSandboxDir() string {
+func (rn *RunSandbox) GetSandboxDir() string {
 	return rn.getSandboxDir2(rn.SandboxName)
 }
 
@@ -54,12 +53,12 @@ func GetSandboxDir(workDir string, sandboxName string) string {
 	return filepath.Join(workDir, "sandboxes", sandboxName)
 }
 
-func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
+func (rn *RunSandbox) Run(ctx context.Context) error {
 	if rn.Client.GetApiToken() == nil {
 		return fmt.Errorf("can only run box with static token")
 	}
 
-	sandboxDir := rn.getSandboxDir()
+	sandboxDir := rn.GetSandboxDir()
 
 	err := os.MkdirAll(sandboxDir, 0700)
 	if err != nil {
@@ -69,12 +68,6 @@ func (rn *RunSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler)
 	if err != nil {
 		return err
 	}
-
-	logFile := filepath.Join(sandboxDir, "logs", "sandbox-run.log")
-	logWriter := logs.BuildRotatingLogger(logFile)
-
-	logHandler.AddWriter(logWriter)
-	defer logHandler.RemoveWriter(logWriter)
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
 	workspacesClient := clients.WorkspacesClient{Client: rn.Client}
@@ -239,7 +232,7 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 	}
 	defer fl.Unlock()
 
-	p, err := sandbox.ReadVethCidr(rn.getSandboxDir())
+	p, err := sandbox.ReadVethCidr(rn.GetSandboxDir())
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -278,7 +271,7 @@ func (rn *RunSandbox) reserveVethCIDR(ctx context.Context) error {
 		return fmt.Errorf("failed to reserve veth pair CIDR")
 	}
 
-	err = sandbox.WriteVethCidr(rn.getSandboxDir(), &newPrefix)
+	err = sandbox.WriteVethCidr(rn.GetSandboxDir(), &newPrefix)
 	if err != nil {
 		return err
 	}

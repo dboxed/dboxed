@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/box-spec-runner"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -51,18 +49,12 @@ type RunInSandbox struct {
 	hostNetworkNamespace netns.NsHandle
 }
 
-func (rn *RunInSandbox) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
+func (rn *RunInSandbox) Run(ctx context.Context) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
 		signal.Stop(sigs)
 	}()
-
-	logFile := filepath.Join(consts.LogsDir, "run-in-sandbox.log")
-	logWriter := logs.BuildRotatingLogger(logFile)
-
-	logHandler.AddWriter(logWriter)
-	defer logHandler.RemoveWriter(logWriter)
 
 	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
 	defer rn.logsPublisher.Stop(util.Ptr(time.Second * 5))

@@ -7,19 +7,17 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	dns_proxy "github.com/dboxed/dboxed/pkg/runner/dns-proxy"
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 )
 
 type RunDnsProxy struct {
 }
 
-func (cmd *RunDnsProxy) Run(logHandler *logs.MultiLogHandler) error {
+func (cmd *RunDnsProxy) Run() error {
 	ctx := context.Background()
 
 	sigs := make(chan os.Signal, 1)
@@ -27,12 +25,6 @@ func (cmd *RunDnsProxy) Run(logHandler *logs.MultiLogHandler) error {
 	defer func() {
 		signal.Stop(sigs)
 	}()
-
-	logFile := filepath.Join(consts.LogsDir, "dns-proxy.log")
-	logWriter := logs.BuildRotatingLogger(logFile)
-
-	logHandler.AddWriter(logWriter)
-	defer logHandler.RemoveWriter(logWriter)
 
 	hostNetNsFd, err := network.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
 	if err != nil {

@@ -4,6 +4,8 @@ package machine
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -28,6 +30,18 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
+	logsDir := filepath.Join(g.WorkDir, "machine", "logs")
+	err = os.MkdirAll(logsDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	logFile := filepath.Join(logsDir, "machine-run.log")
+	logWriter := logs.BuildRotatingLogger(logFile)
+
+	logHandler.AddWriter(logWriter)
+	defer logHandler.RemoveWriter(logWriter)
+
 	runMachine := run_machine.RunMachine{
 		Debug:      g.Debug,
 		WorkDir:    g.WorkDir,
@@ -37,5 +51,5 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		MachineId:  m.ID,
 	}
 
-	return runMachine.Run(ctx, logHandler)
+	return runMachine.Run(ctx)
 }

@@ -7,14 +7,12 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 )
@@ -39,24 +37,12 @@ type RunMachine struct {
 	sendStatusDone   sync.WaitGroup
 }
 
-func (rn *RunMachine) Run(ctx context.Context, logHandler *logs.MultiLogHandler) error {
+func (rn *RunMachine) Run(ctx context.Context) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
 		signal.Stop(sigs)
 	}()
-
-	logsDir := filepath.Join(rn.WorkDir, "machine", "logs")
-	err := os.MkdirAll(logsDir, 0755)
-	if err != nil {
-		return err
-	}
-
-	logFile := filepath.Join(logsDir, "machine-run.log")
-	logWriter := logs.BuildRotatingLogger(logFile)
-
-	logHandler.AddWriter(logWriter)
-	defer logHandler.RemoveWriter(logWriter)
 
 	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
 	defer rn.logsPublisher.Stop(util.Ptr(time.Second * 5))

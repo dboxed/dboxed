@@ -8,19 +8,17 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 )
 
 type NetnsHolder struct {
 }
 
-func (cmd *NetnsHolder) Run(logHandler *logs.MultiLogHandler) error {
+func (cmd *NetnsHolder) Run() error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -30,12 +28,6 @@ func (cmd *NetnsHolder) Run(logHandler *logs.MultiLogHandler) error {
 	defer func() {
 		signal.Stop(sigs)
 	}()
-
-	logFile := filepath.Join(consts.LogsDir, "netns-holder.log")
-	logWriter := logs.BuildRotatingLogger(logFile)
-
-	logHandler.AddWriter(logWriter)
-	defer logHandler.RemoveWriter(logWriter)
 
 	var ul *net.UnixListener
 	sigReceived := false

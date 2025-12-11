@@ -5,19 +5,18 @@ package sandbox
 import (
 	"context"
 
-	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/run-in-sandbox"
 )
 
 type RunInSandbox struct {
 }
 
-func (cmd *RunInSandbox) Run(logHandler *logs.MultiLogHandler) error {
+func (cmd *RunInSandbox) Run() error {
 	ctx := context.Background()
 
 	runBox := run_in_sandbox.RunInSandbox{}
 
-	err := runBox.Run(ctx, logHandler)
+	err := runBox.Run(ctx)
 	if err != nil {
 		return err
 	}
