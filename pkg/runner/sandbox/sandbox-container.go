@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/network"
+	"github.com/dboxed/dboxed/pkg/runner/sendnshandle"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	_ "github.com/opencontainers/cgroups/devices"
@@ -225,7 +225,7 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 		return err
 	}
 
-	ul, err := network.ListenSCMSocket(filepath.Join(rn.GetSandboxRoot(), consts.NetNsInitialUnixSocket))
+	ul, err := sendnshandle.ListenSCMSocket(filepath.Join(rn.GetSandboxRoot(), consts.NetNsInitialUnixSocket))
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (rn *Sandbox) createAndStartSandboxContainer(ctx context.Context) error {
 	}
 	defer hostNetworkNs.Close()
 
-	err = network.SendNetNsFD(uc, hostNetworkNs)
+	err = sendnshandle.SendNetNsFD(uc, hostNetworkNs)
 	if err != nil {
 		return err
 	}

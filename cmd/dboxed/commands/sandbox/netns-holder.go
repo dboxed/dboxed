@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/network"
+	"github.com/dboxed/dboxed/pkg/runner/sendnshandle"
 )
 
 type NetnsHolder struct {
@@ -39,13 +39,13 @@ func (cmd *NetnsHolder) Run() error {
 		cancel()
 	}()
 
-	hostNsFd, err := network.ReadNetNsFD(ctx, consts.NetNsInitialUnixSocket)
+	hostNsFd, err := sendnshandle.ReadNetNsFD(ctx, consts.NetNsInitialUnixSocket)
 	if err != nil {
 		return err
 	}
 	defer hostNsFd.Close()
 
-	ul, err = network.ListenSCMSocket(consts.NetNsHolderUnixSocket)
+	ul, err = sendnshandle.ListenSCMSocket(consts.NetNsHolderUnixSocket)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (cmd *NetnsHolder) Run() error {
 		}
 
 		slog.Info("sending host netns handle")
-		err = network.SendNetNsFD(uc, hostNsFd)
+		err = sendnshandle.SendNetNsFD(uc, hostNsFd)
 		_ = uc.Close()
 		if err != nil {
 			slog.Error("SendNetNsFD failed", "error", err)

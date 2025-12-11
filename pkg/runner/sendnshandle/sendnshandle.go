@@ -1,4 +1,4 @@
-package network
+package sendnshandle
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/vishvananda/netns"
 )
 
@@ -65,7 +64,10 @@ func ReadNetNsFD(ctx context.Context, unixPath string) (netns.NsHandle, error) {
 		if err == nil {
 			break
 		}
-		if !util.SleepWithContext(ctx, 100*time.Millisecond) {
+
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case <-ctx.Done():
 			return 0, ctx.Err()
 		}
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"github.com/dboxed/dboxed/pkg/runner/sendnshandle"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
@@ -96,7 +97,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		return false, err
 	}
 
-	hostNetNsFd, err := network.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
+	hostNetNsFd, err := sendnshandle.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
 	if err != nil {
 		return false, err
 	}

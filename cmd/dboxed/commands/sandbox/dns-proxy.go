@@ -12,6 +12,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	dns_proxy "github.com/dboxed/dboxed/pkg/runner/dns-proxy"
 	"github.com/dboxed/dboxed/pkg/runner/network"
+	"github.com/dboxed/dboxed/pkg/runner/sendnshandle"
 )
 
 type RunDnsProxy struct {
@@ -26,7 +27,7 @@ func (cmd *RunDnsProxy) Run() error {
 		signal.Stop(sigs)
 	}()
 
-	hostNetNsFd, err := network.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
+	hostNetNsFd, err := sendnshandle.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
 	if err != nil {
 		return err
 	}

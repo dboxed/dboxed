@@ -12,9 +12,9 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/network"
 	run_in_sandbox_status "github.com/dboxed/dboxed/pkg/runner/run-in-sandbox-status"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"github.com/dboxed/dboxed/pkg/runner/sendnshandle"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -30,7 +30,7 @@ func (cmd *RunInSandboxStatus) Run() error {
 		signal.Stop(sigs)
 	}()
 
-	hostNetNsFd, err := network.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
+	hostNetNsFd, err := sendnshandle.ReadNetNsFD(ctx, consts.NetNsHolderUnixSocket)
 	if err != nil {
 		return err
 	}
