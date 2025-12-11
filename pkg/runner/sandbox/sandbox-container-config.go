@@ -4,6 +4,7 @@ package sandbox
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
@@ -105,6 +106,11 @@ func (rn *Sandbox) buildSandboxContainerProcessSpec(image *v1.Image) (*libcontai
 		Env:  env,
 		Cwd:  workingDir,
 		Init: true,
+	}
+
+	if os.Getenv("DBOXED_SANDBOX_STDIO") == "1" {
+		process.Stdout = os.Stdout
+		process.Stderr = os.Stderr
 	}
 
 	return process, nil
