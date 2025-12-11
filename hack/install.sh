@@ -83,7 +83,7 @@ setup_tmp() {
 
 # Find version from Github metadata
 get_release_version() {
-    if [ -n "${VERSION_DBOXED}" ]; then
+    if [ -n "${VERSION_DBOXED}" -a "${VERSION_DBOXED}" != "latest" ]; then
       RELEASE_NAME=${VERSION_DBOXED}
       return
     fi
