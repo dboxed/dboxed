@@ -53,6 +53,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/opencontainers/selinux v1.11.1
 	github.com/pelletier/go-toml/v2 v2.2.4
+	github.com/ramr/go-reaper v0.3.1
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/net v0.44.0
 	golang.org/x/oauth2 v0.31.0

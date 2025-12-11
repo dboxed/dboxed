@@ -5,7 +5,7 @@ FROM docker:28.4.0-dind AS rootfs
 ARG TARGETARCH
 
 # Some extra tools we need
-RUN apk --no-cache add coreutils procps iproute2 s6 tini bind-tools
+RUN apk --no-cache add coreutils procps iproute2 s6 bind-tools
 RUN apk --no-cache add mount umount losetup lvm2
 
 RUN mkdir -p /etc/dboxed \
@@ -30,6 +30,5 @@ RUN mkdir /etc/docker
 COPY infra-images/sandbox/daemon.json /etc/docker/
 COPY infra-images/sandbox/resolv.conf /etc/resolv.conf
 
-COPY infra-images/sandbox/sandbox-entrypoint.sh /sandbox-entrypoint.sh
-
-ENTRYPOINT ["tini", "-g", "/sandbox-entrypoint.sh"]
+# The dboxed binary is not part of the infra image. It is instead copied into the rootfs on sandbox creation
+ENTRYPOINT ["/usr/bin/dboxed", "sandbox", "entrypoint"]
