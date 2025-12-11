@@ -63,38 +63,6 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 	return nil
 }
 
-// PublishS6Logs publishes logs from s6-log output
-func (lp *LogsPublisher) PublishS6Logs(dir string) error {
-	err := os.MkdirAll(dir, 0700)
-	if err != nil {
-		return err
-	}
-
-	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
-		logDir := filepath.Dir(path)
-		serviceName := filepath.Base(logDir)
-		logFormatBytes, _ := os.ReadFile(filepath.Join(logDir, "log-format"))
-		logFormat := strings.TrimSpace(string(logFormatBytes))
-		if logFormat == "" {
-			logFormat = "raw"
-		}
-		return boxspec.LogMetadata{
-			OwnerType: "box",
-			OwnerId:   lp.BoxId,
-			FileName:  filepath.Join("dboxed", serviceName),
-			Format:    logFormat,
-			Metadata: map[string]any{
-				"service-name": serviceName,
-			},
-		}, nil
-	}
-
-	if lp.mt != nil {
-		return lp.mt.WatchDir(dir, "*/current", 1, buildMetadata)
-	}
-	return nil
-}
-
 func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
 	err := os.MkdirAll(volumesDir, 0700)
 	if err != nil {

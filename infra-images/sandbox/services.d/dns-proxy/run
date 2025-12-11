@@ -1,5 +1,0 @@
-#!/bin/sh
-if [ -f /var/lib/dboxed/sandbox.env ]; then
-  source /var/lib/dboxed/sandbox.env
-fi
-exec dboxed sandbox dns-proxy

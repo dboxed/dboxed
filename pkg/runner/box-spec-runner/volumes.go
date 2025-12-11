@@ -244,6 +244,7 @@ func (rn *BoxSpecRunner) buildDboxedVolumesComposeProject(ctx context.Context) (
 				StartPeriod: util.Ptr(ctypes.Duration(time.Minute * 10)),
 			},
 			StopGracePeriod: util.Ptr(ctypes.Duration(time.Minute * 10)),
+			Init:            util.Ptr(true),
 		}
 	}
 

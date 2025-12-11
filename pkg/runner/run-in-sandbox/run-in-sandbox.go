@@ -18,7 +18,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
-	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
@@ -281,21 +280,8 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 	// final docker ps report
 	rn.sendSandboxStatusDockerPs(ctx)
 
-	s6, err := rn.getS6Helper()
-	if err != nil {
-		return err
-	}
-
-	slog.InfoContext(ctx, "shutting down dockerd")
-	err = s6.S6SvcDown(ctx, "dockerd")
-	if err != nil {
-		return err
-	}
-	slog.InfoContext(ctx, "dockerd has exited")
-
-	// ensure we don't restart the sandbox
-	slog.InfoContext(ctx, "running s6 halt")
-	err = util.RunCommand(ctx, "/run/s6/basedir/bin/halt")
+	slog.InfoContext(ctx, "writing exit-marker")
+	err := os.WriteFile("/exit-marker", nil, 0644)
 	if err != nil {
 		return err
 	}
@@ -310,9 +296,4 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 
 	slog.InfoContext(ctx, "shutdown finished")
 	return nil
-}
-
-func (rn *RunInSandbox) getS6Helper() (*service.S6Helper, error) {
-	s6 := &service.S6Helper{}
-	return s6, nil
 }

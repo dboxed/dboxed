@@ -5,7 +5,7 @@ FROM alpine:3.23.0
 ARG TARGETARCH
 
 # Some extra tools we need
-RUN apk --no-cache add coreutils procps
+RUN apk --no-cache add coreutils procps tini
 
 # rustic
 ENV RUSTIC_VERSION=0.10.1
@@ -16,6 +16,6 @@ RUN mkdir /tmp/rustic && cd /tmp/rustic  \
     && cd / && rm -rf /tmp/rustic
 
 # extra tools we need for dboxed volumes
-RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools
+RUN apk --no-cache add mount umount losetup lvm2 lvm2-dmeventd device-mapper thin-provisioning-tools e2fsprogs btrfs-progs xfsprogs
 
 COPY infra-images/volume/lvm.conf /etc/lvm/lvm.conf

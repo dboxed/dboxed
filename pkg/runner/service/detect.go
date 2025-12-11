@@ -13,7 +13,6 @@ import (
 type InitSystem string
 
 const (
-	InitSystemS6      = "s6"
 	InitSystemSystemd = "systemd"
 )
 
@@ -28,9 +27,7 @@ func DetectInitSystem(ctx context.Context) (InitSystem, error) {
 		return "", err
 	}
 	s := strings.TrimSpace(string(c.Stdout))
-	if strings.HasPrefix(s, "s6-") {
-		return InitSystemS6, nil
-	} else if s == "systemd" {
+	if s == "systemd" {
 		return InitSystemSystemd, nil
 	}
 	return "", fmt.Errorf("unknown init system")

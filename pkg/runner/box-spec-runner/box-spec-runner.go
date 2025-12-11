@@ -33,11 +33,6 @@ func (rn *BoxSpecRunner) Reconcile(ctx context.Context) error {
 	}
 	rn.composeBaseDir = composeBaseDir
 
-	/*err = rn.reconcileDboxedServiceContainers(ctx)
-	if err != nil {
-		return err
-	}*/
-
 	err = rn.downDeletedBoxSpecComposeProjects(ctx)
 	if err != nil {
 		return err
@@ -121,6 +116,10 @@ func (rn *BoxSpecRunner) downAllContainers(ctx context.Context) error {
 	var stopIds []string
 	var rmIds []string
 	for _, c := range containers {
+		if c.Names == "dboxed-run-in-sandbox" {
+			continue
+		}
+
 		if c.State == "running" {
 			stopIds = append(stopIds, c.ID)
 		}

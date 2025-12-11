@@ -13,7 +13,6 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/network"
-	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/util"
 	_ "github.com/opencontainers/cgroups/devices"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -57,21 +56,30 @@ func (rn *Sandbox) GetSandboxContainerStatus() (libcontainer.Status, error) {
 	return cs, nil
 }
 
-func (rn *Sandbox) GetS6Helper() (*service.S6Helper, error) {
+func (rn *Sandbox) RunDockerCli(ctx context.Context, args ...string) error {
 	c, err := rn.GetSandboxContainer()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	imageConfig, err := rn.GetInfraImageConfig()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	s6 := &service.S6Helper{
-		Container:   c,
-		ImageConfig: &imageConfig.Config,
+	cmd := util.CommandHelper{
+		ContainerHolder: util.ContainerHolder{
+			Container:   c,
+			ImageConfig: &imageConfig.Config,
+		},
+		Command: "docker",
+		Args:    args,
+		LogCmd:  true,
+		Logger:  slog.Default(),
 	}
-	return s6, nil
+	err = cmd.Run(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (rn *Sandbox) writeShutdownMarker() error {
@@ -95,12 +103,7 @@ func (rn *Sandbox) StopRunInSandboxService(ctx context.Context, shutdown bool) e
 		}
 	}
 
-	s6, err := rn.GetS6Helper()
-	if err != nil {
-		return err
-	}
-
-	err = s6.S6SvcDown(ctx, "run-in-sandbox")
+	err := rn.RunDockerCli(ctx, "stop", "dboxed-run-in-sandbox")
 	if err != nil {
 		return err
 	}
