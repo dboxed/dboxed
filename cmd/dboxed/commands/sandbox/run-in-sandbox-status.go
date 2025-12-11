@@ -61,10 +61,17 @@ func (cmd *RunInSandboxStatus) Run() error {
 		return err
 	}
 
+	sp := run_in_sandbox_status.StatusPublisher{
+		Client: client,
+		BoxId:  sandboxInfo.Box.ID,
+	}
+	sp.Start(ctx)
+
 	sig := <-sigs
 	slog.Info("received signal", "signal", sig.String())
 
 	lp.Stop(util.Ptr(time.Second * 5))
+	sp.Stop()
 
 	return nil
 }

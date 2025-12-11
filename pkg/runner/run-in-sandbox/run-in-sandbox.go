@@ -38,14 +38,10 @@ type RunInSandbox struct {
 	lastBoxSpecHash string
 	lastBoxSpec     *boxspec.BoxSpec
 
-	sandboxStatus     models.UpdateBoxSandboxStatus2
-	sandboxStatusSent models.UpdateBoxSandboxStatus2
-	sandboxStatusTime time.Time
-	dockerPSSent      []byte
-	statusMutex       sync.Mutex
+	sandboxStatus        models.UpdateBoxSandboxStatus2
+	sandboxStatusWritten models.UpdateBoxSandboxStatus2
+	statusMutex          sync.Mutex
 
-	sendStatusStopCh     chan struct{}
-	sendStatusDone       sync.WaitGroup
 	hostNetworkNamespace netns.NsHandle
 }
 
@@ -55,8 +51,6 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 	defer func() {
 		signal.Stop(sigs)
 	}()
-
-	defer rn.stopUpdateSandboxStatusLoop()
 
 	shutdown, err := rn.doRun(ctx, sigs)
 	if err != nil {
@@ -150,12 +144,10 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		return false, err
 	}
 
-	rn.updateSandboxStatus(ctx, models.UpdateBoxSandboxStatus2{
+	rn.updateSandboxStatus(models.UpdateBoxSandboxStatus2{
 		RunStatus: util.Ptr("starting"),
 		StartTime: &startTime,
-	}, false)
-
-	rn.startUpdateSandboxStatusLoop(ctx)
+	})
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
@@ -174,7 +166,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	}
 	slog.InfoContext(ctx, "docker is up and running")
 
-	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
+	rn.updateSandboxStatusSimple("reconciling")
 
 	for {
 		boxesClient := clients.BoxClient{Client: rn.client}
@@ -219,7 +211,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.BoxSpec) error {
 	slog.InfoContext(ctx, "starting reconcile of box spec")
 
-	rn.updateSandboxStatusSimple(ctx, "reconciling", true)
+	rn.updateSandboxStatusSimple("reconciling")
 
 	boxSpecRunner := box_spec_runner.BoxSpecRunner{
 		Client:       rn.client,
@@ -228,22 +220,21 @@ func (rn *RunInSandbox) reconcileBoxSpec(ctx context.Context, boxSpec *boxspec.B
 	}
 	err := boxSpecRunner.Reconcile(ctx)
 	if err != nil {
-		rn.updateSandboxStatusSimple(ctx, "reconciling failed", true)
+		rn.updateSandboxStatusSimple("reconciling failed")
 		return err
 	}
 
 	slog.InfoContext(ctx, "reconciling of box spec done")
 
-	rn.updateSandboxStatusSimple(ctx, "running", true)
+	rn.updateSandboxStatusSimple("running")
 	return nil
 }
 
 func (rn *RunInSandbox) shutdown(ctx context.Context) error {
-	rn.updateSandboxStatus(ctx, models.UpdateBoxSandboxStatus2{
+	rn.updateSandboxStatus(models.UpdateBoxSandboxStatus2{
 		RunStatus: util.Ptr("stopping"),
 		StopTime:  util.Ptr(time.Now()),
-	}, true)
-	rn.sendSandboxStatusDockerPs(ctx)
+	})
 
 	if rn.lastBoxSpec != nil {
 		boxSpecRunner := box_spec_runner.BoxSpecRunner{
@@ -259,9 +250,6 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		}
 	}
 
-	// final docker ps report
-	rn.sendSandboxStatusDockerPs(ctx)
-
 	slog.InfoContext(ctx, "writing exit-marker")
 	err := os.WriteFile("/exit-marker", nil, 0644)
 	if err != nil {
@@ -274,7 +262,7 @@ func (rn *RunInSandbox) shutdown(ctx context.Context) error {
 		return err
 	}
 
-	rn.updateSandboxStatusSimple(ctx, "stopped", true)
+	rn.updateSandboxStatusSimple("stopped")
 
 	slog.InfoContext(ctx, "shutdown finished")
 	return nil

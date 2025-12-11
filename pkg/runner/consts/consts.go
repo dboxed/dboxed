@@ -26,6 +26,7 @@ const NetbirdDir = DboxedDataDir + "/netbird"
 
 const LogsDir = DboxedDataDir + "/logs"
 const LogsTailDbFilename = "multitail.db"
+const SandboxStatusFile = DboxedDataDir + "/sandbox-status.yaml"
 
 const VolumesDir = DboxedDataDir + "/volumes"
 
