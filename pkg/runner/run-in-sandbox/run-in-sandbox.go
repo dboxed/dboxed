@@ -33,8 +33,6 @@ type RunInSandbox struct {
 
 	routesMirror network.RoutesMirror
 
-	logsPublisher *LogsPublisher
-
 	lastBoxSpecHash string
 	lastBoxSpec     *boxspec.BoxSpec
 
@@ -56,8 +54,6 @@ func (rn *RunInSandbox) Run(ctx context.Context) error {
 		signal.Stop(sigs)
 	}()
 
-	// stop the publisher at the very end of Run, so that we try our best to publish all logs, including shutdown logs
-	defer rn.logsPublisher.Stop(util.Ptr(time.Second * 5))
 	defer rn.stopUpdateSandboxStatusLoop()
 
 	shutdown, err := rn.doRun(ctx, sigs)
@@ -160,11 +156,6 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 
 	rn.startUpdateSandboxStatusLoop(ctx)
 
-	err = rn.initLogsPublishing(ctx)
-	if err != nil {
-		return false, err
-	}
-
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
 		_, err := util.RunCommandStdout(ctx, "docker", "info")
@@ -190,8 +181,6 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		if err != nil {
 			if baseclient.IsNotFound(err) || baseclient.IsUnauthorized(err) {
 				slog.InfoContext(ctx, "box was deleted, exiting")
-				// if the box got deleted, we won't be able to upload remaining logs, so we cancel immediately to avoid spamming local logs
-				rn.logsPublisher.Stop(util.Ptr(time.Second * 1))
 				return true, nil
 			}
 			slog.ErrorContext(ctx, "error in GetBoxSpecById", slog.Any("error", err))

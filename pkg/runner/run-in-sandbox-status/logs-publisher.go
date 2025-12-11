@@ -1,4 +1,4 @@
-package run_in_sandbox
+package run_in_sandbox_status
 
 import (
 	"context"
@@ -9,14 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/boxspec"
+	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
+	"github.com/dboxed/dboxed/pkg/runner/logs"
 	"github.com/dboxed/dboxed/pkg/runner/logs/multitail"
-	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
 type LogsPublisher struct {
-	BoxId string
+	Client *baseclient.Client
+	BoxId  string
 
 	mt *multitail.MultiTail
 }
@@ -30,13 +33,29 @@ func (lp *LogsPublisher) Stop(cancelAfter *time.Duration) {
 	}
 }
 
-func (lp *LogsPublisher) Start(ctx context.Context, mt *multitail.MultiTail) error {
+func (lp *LogsPublisher) Start(ctx context.Context) error {
 	slog.InfoContext(ctx, "initializing logs publishing to dboxed api")
-	lp.mt = mt
+
+	tta, err := logs.NewTailToApi(ctx, lp.Client, filepath.Join(consts.LogsDir, consts.LogsTailDbFilename))
+	if err != nil {
+		return err
+	}
+
+	lp.mt = tta.MultiTail
+
+	err = lp.publishDboxedLogsDir(consts.LogsDir)
+	if err != nil {
+		return err
+	}
+
+	err = lp.publishDockerContainerLogsDir(consts.ContainersDir)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
+func (lp *LogsPublisher) publishDboxedLogsDir(dir string) error {
 	err := os.MkdirAll(dir, 0700)
 	if err != nil {
 		return err
@@ -63,44 +82,7 @@ func (lp *LogsPublisher) PublishDboxedLogsDir(dir string) error {
 	return nil
 }
 
-func (lp *LogsPublisher) PublishVolumeServiceLogs(volumesDir string) error {
-	err := os.MkdirAll(volumesDir, 0700)
-	if err != nil {
-		return err
-	}
-
-	buildMetadata := func(path string) (boxspec.LogMetadata, error) {
-		logDir := filepath.Dir(path)
-		volumeDir := filepath.Dir(logDir)
-
-		var fileName string
-		metadata := map[string]any{}
-		volumeState, err := volume_serve.LoadVolumeState(volumeDir)
-		if err == nil {
-			metadata["volume"] = map[string]any{
-				"name": volumeState.Volume.Name,
-				"id":   volumeState.Volume.ID,
-			}
-			fileName = filepath.Join("volumes", volumeState.Volume.Name)
-		} else {
-			fileName = filepath.Join("volumes", filepath.Base(volumeDir))
-		}
-		return boxspec.LogMetadata{
-			OwnerType: "box",
-			OwnerId:   lp.BoxId,
-			FileName:  fileName,
-			Format:    "slog-json",
-			Metadata:  metadata,
-		}, nil
-	}
-
-	if lp.mt != nil {
-		return lp.mt.WatchDir(volumesDir, "*/logs/current", 2, buildMetadata)
-	}
-	return nil
-}
-
-func (lp *LogsPublisher) PublishDockerContainerLogsDir(containersDir string) error {
+func (lp *LogsPublisher) publishDockerContainerLogsDir(containersDir string) error {
 	err := os.MkdirAll(containersDir, 0700)
 	if err != nil {
 		return err

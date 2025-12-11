@@ -15,7 +15,8 @@ type SandboxCommands struct {
 
 	Service service.ServiceCmd `cmd:"" help:"Manage sandboxes as services"`
 
-	NetnsHolder  NetnsHolder  `cmd:"" hidden:""`
-	DnsProxy     RunDnsProxy  `cmd:"" hidden:""`
-	RunInSandbox RunInSandbox `cmd:"" hidden:""`
+	NetnsHolder        NetnsHolder        `cmd:"" hidden:""`
+	RunInSandboxStatus RunInSandboxStatus `cmd:"" hidden:""`
+	DnsProxy           RunDnsProxy        `cmd:"" hidden:""`
+	RunInSandbox       RunInSandbox       `cmd:"" hidden:""`
 }

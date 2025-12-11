@@ -32,6 +32,10 @@ function do_exit() {
     do_log "stopping dboxed-run-in-sandbox"
     docker stop dboxed-run-in-sandbox || true
   fi
+  if echo "$docker_ps" | grep '^dboxed-run-in-sandbox-status$' &> /dev/null; then
+    do_log "stopping dboxed-run-in-sandbox-status"
+    docker stop dboxed-run-in-sandbox-status || true
+  fi
 
   kill_dockerd
   exit
@@ -61,6 +65,11 @@ docker run -d $ENV_FILE_ARG --restart=on-failure --net=host --pid=host --name=db
   -v/:/hostfs \
   --privileged --init \
   dboxed-busybox chroot /hostfs dboxed sandbox dns-proxy
+docker run -d $ENV_FILE_ARG --restart=on-failure --net=host --pid=host --name=dboxed-run-in-sandbox-status \
+  -v/:/hostfs \
+  --privileged --init \
+  -eDBOXED_SANDBOX=1 \
+  dboxed-busybox chroot /hostfs dboxed sandbox run-in-sandbox-status
 docker run -d $ENV_FILE_ARG --restart=on-failure --net=host --pid=host --name=dboxed-run-in-sandbox \
   -v/:/hostfs \
   --privileged --init \
