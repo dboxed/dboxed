@@ -11,10 +11,7 @@ RUN apk --no-cache add mount umount losetup lvm2
 RUN mkdir -p /etc/dboxed \
     && mkdir -p /var/lib/dboxed && chmod 0700 /var/lib/dboxed \
     && mkdir -p /var/lib/dboxed/logs \
-    && mkdir -p /var/lib/dboxed/containers \
     && mkdir -p /run/netns
-
-RUN mkdir /var/lib/docker && ln -s /var/lib/dboxed/containers /var/lib/docker/containers
 
 # cleanup
 RUN apk --no-cache del git openssh-client

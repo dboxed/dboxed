@@ -24,7 +24,6 @@ const NetNsHolderUnixSocket = DboxedDataDir + "/netns-holder.socket"
 
 const NetbirdDir = DboxedDataDir + "/netbird"
 
-const ContainersDir = DboxedDataDir + "/containers"
 const LogsDir = DboxedDataDir + "/logs"
 const LogsTailDbFilename = "multitail.db"
 

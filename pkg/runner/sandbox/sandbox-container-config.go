@@ -64,12 +64,6 @@ func (rn *Sandbox) buildSandboxContainerMounts() []*configs.Mount {
 			Flags:       unix.MS_NOSUID | unix.MS_NOEXEC | unix.MS_NODEV,
 		},
 		{
-			Destination: consts.ContainersDir,
-			Device:      "bind",
-			Source:      filepath.Join(rn.SandboxDir, "containers"),
-			Flags:       unix.MS_BIND,
-		},
-		{
 			Destination: consts.LogsDir,
 			Device:      "bind",
 			Source:      filepath.Join(rn.SandboxDir, "logs"),

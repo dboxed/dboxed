@@ -48,7 +48,7 @@ func (lp *LogsPublisher) Start(ctx context.Context) error {
 		return err
 	}
 
-	err = lp.publishDockerContainerLogsDir(consts.ContainersDir)
+	err = lp.publishDockerContainerLogsDir("/var/lib/docker/containers")
 	if err != nil {
 		return err
 	}
