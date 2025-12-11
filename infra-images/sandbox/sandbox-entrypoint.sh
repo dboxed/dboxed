@@ -68,12 +68,10 @@ docker run -d $ENV_FILE_ARG --restart=on-failure --net=host --pid=host --name=db
 docker run -d $ENV_FILE_ARG --restart=on-failure --net=host --pid=host --name=dboxed-run-in-sandbox-status \
   -v/:/hostfs \
   --privileged --init \
-  -eDBOXED_SANDBOX=1 \
   dboxed-busybox chroot /hostfs dboxed sandbox run-in-sandbox-status
 docker run -d $ENV_FILE_ARG --restart=on-failure --net=host --pid=host --name=dboxed-run-in-sandbox \
   -v/:/hostfs \
   --privileged --init \
-  -eDBOXED_SANDBOX=1 \
   dboxed-busybox chroot /hostfs dboxed sandbox run-in-sandbox
 
 sleep infinity

@@ -373,7 +373,7 @@ func (rn *RunSandbox) writeDboxedConfFiles(ctx context.Context) error {
 	}
 
 	err = util.AtomicWriteFileYaml(
-		filepath.Join(rn.sandbox.GetSandboxRoot(), consts.BoxClientAuthFile),
+		filepath.Join(rn.sandbox.GetSandboxRoot(), consts.SandboxClientAuthFile),
 		rn.Client.GetClientAuth(true),
 		0600,
 	)

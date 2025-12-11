@@ -7,6 +7,8 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/runner/consts"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type GlobalFlags struct {
@@ -22,7 +24,16 @@ type GlobalFlags struct {
 }
 
 func (f *GlobalFlags) BuildClient(ctx context.Context, opts ...baseclient.ClientOpt) (*baseclient.Client, error) {
-	clientAuth, err := baseclient.ReadClientAuth(f.ClientAuthFile)
+	clientAuthFile := f.ClientAuthFile
+	isSandboxClientAuth := false
+	if clientAuthFile == nil {
+		if _, err := os.Stat(consts.SandboxClientAuthFile); err == nil {
+			clientAuthFile = util.Ptr(consts.SandboxClientAuthFile)
+			isSandboxClientAuth = true
+		}
+	}
+
+	clientAuth, err := baseclient.ReadClientAuth(clientAuthFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
@@ -30,7 +41,7 @@ func (f *GlobalFlags) BuildClient(ctx context.Context, opts ...baseclient.Client
 		clientAuth = &baseclient.ClientAuth{}
 	}
 
-	c, err := baseclient.New(f.ClientAuthFile, clientAuth, true, opts...)
+	c, err := baseclient.New(clientAuthFile, clientAuth, !isSandboxClientAuth, opts...)
 	if err != nil {
 		return nil, err
 	}

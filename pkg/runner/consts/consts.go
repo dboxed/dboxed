@@ -10,7 +10,7 @@ const dboxedInfraSandboxImage = "ghcr.io/dboxed/dboxed-infra-sandbox"
 const dboxedInfraVolumeImage = "ghcr.io/dboxed/dboxed-infra-volume"
 
 const DboxedDataDir = "/var/lib/dboxed"
-const BoxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
+const SandboxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 
 const SandboxShortPrefix = "dbx"
 const SandboxEnvironmentFile = DboxedDataDir + "/sandbox.env"

@@ -138,8 +138,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 		}
 	}
 
-	// this will respect DBOXED_SANDBOX=1
-	clientAuth, err := baseclient.ReadClientAuth(nil)
+	clientAuth, err := baseclient.ReadClientAuth(util.Ptr(consts.SandboxClientAuthFile))
 	if err != nil {
 		return false, err
 	}

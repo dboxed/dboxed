@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	"golang.org/x/oauth2"
@@ -22,10 +21,6 @@ type ClientAuth struct {
 }
 
 func GetDefaultClientAuthFile() (string, error) {
-	if os.Getenv("DBOXED_SANDBOX") == "1" {
-		return consts.BoxClientAuthFile, nil
-	}
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", nil
