@@ -2,7 +2,6 @@ package box_spec_runner
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -10,9 +9,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/runner/compose"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
-	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/runner/network"
-	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type BoxSpecRunner struct {
@@ -89,75 +86,6 @@ func (rn *BoxSpecRunner) Down(ctx context.Context, removeVolumes bool, ignoreCom
 	}
 	for _, p := range runningComposeProjects {
 		err = compose.RunComposeDown(ctx, p.Name, removeVolumes, ignoreComposeErrors)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = rn.downAllContainers(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rn *BoxSpecRunner) downAllContainers(ctx context.Context) error {
-	c := util.CommandHelper{
-		Command: "docker",
-		Args:    []string{"ps", "-a", "--format=json"},
-		Logger:  slog.Default(),
-	}
-	var containers []dockercli.DockerPS
-	err := c.RunStdoutJsonLines(ctx, &containers)
-	if err != nil {
-		return err
-	}
-
-	var stopIds []string
-	var rmIds []string
-	for _, c := range containers {
-		if c.Names == "dboxed-run-in-sandbox" {
-			continue
-		}
-
-		if c.State == "running" {
-			stopIds = append(stopIds, c.ID)
-		}
-		rmIds = append(rmIds, c.ID)
-	}
-
-	if len(stopIds) != 0 {
-		slog.InfoContext(ctx, "stopping containers", slog.Any("ids", stopIds))
-		args := []string{
-			"stop",
-			"--timeout=10",
-		}
-		args = append(args, stopIds...)
-		c := util.CommandHelper{
-			Command: "docker",
-			Args:    args,
-			Logger:  slog.Default(),
-			LogCmd:  true,
-		}
-		err = c.Run(ctx)
-		if err != nil {
-			return err
-		}
-	}
-	if len(rmIds) != 0 {
-		slog.InfoContext(ctx, "removing containers", slog.Any("ids", stopIds))
-		args := []string{
-			"rm",
-			"-fv",
-		}
-		args = append(args, rmIds...)
-		c := util.CommandHelper{
-			Command: "docker",
-			Args:    args,
-			Logger:  slog.Default(),
-			LogCmd:  true,
-		}
-		err = c.Run(ctx)
 		if err != nil {
 			return err
 		}
