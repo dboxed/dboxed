@@ -78,7 +78,7 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 			WorkspaceID: w.ID,
 		},
 		Name:          body.Name,
-		DboxedVersion: "nightly",
+		DboxedVersion: "latest",
 	}
 
 	if body.MachineProvider != nil {

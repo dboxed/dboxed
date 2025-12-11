@@ -57,7 +57,7 @@ func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalan
 		return "", result
 	}
 
-	ret, err := files.GetCaddyComposeFile("nightly", cf)
+	ret, err := files.GetCaddyComposeFile("latest", cf)
 	if err != nil {
 		return "", base.InternalError(err)
 	}
