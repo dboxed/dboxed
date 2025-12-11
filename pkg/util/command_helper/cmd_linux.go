@@ -1,6 +1,6 @@
 //go:build linux
 
-package util
+package command_helper
 
 import (
 	"context"
@@ -34,6 +34,7 @@ func (c *CommandHelper) runContainer(ctx context.Context, stdout io.Writer, stde
 	p := &libcontainer.Process{
 		Args:   args,
 		Env:    env,
+		Stdin:  c.Stdin,
 		Stdout: stdout,
 		Stderr: stderr,
 	}

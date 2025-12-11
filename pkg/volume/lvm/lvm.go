@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 )
 
 type PVEntry struct {
@@ -98,7 +98,7 @@ func buildColNames[T any]() []string {
 }
 
 func ListPVs(ctx context.Context) ([]PVEntry, error) {
-	h, err := util.RunCommandJson[pvsReport](ctx, "pvs", "--reportformat=json", "-o", strings.Join(buildColNames[PVEntry](), ","))
+	h, err := command_helper.RunCommandJson[pvsReport](ctx, "pvs", "--reportformat=json", "-o", strings.Join(buildColNames[PVEntry](), ","))
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func ListPVs(ctx context.Context) ([]PVEntry, error) {
 }
 
 func ListVGs(ctx context.Context) ([]VGEntry, error) {
-	h, err := util.RunCommandJson[vgsReport](ctx, "vgs", "--reportformat=json", "-o", strings.Join(buildColNames[VGEntry](), ","))
+	h, err := command_helper.RunCommandJson[vgsReport](ctx, "vgs", "--reportformat=json", "-o", strings.Join(buildColNames[VGEntry](), ","))
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func ListVGs(ctx context.Context) ([]VGEntry, error) {
 }
 
 func ListLVs(ctx context.Context) ([]LVEntry, error) {
-	h, err := util.RunCommandJson[lvsReport](ctx, "lvs", "--all", "--reportformat=json", "-o", strings.Join(buildColNames[LVEntry](), ","))
+	h, err := command_helper.RunCommandJson[lvsReport](ctx, "lvs", "--all", "--reportformat=json", "-o", strings.Join(buildColNames[LVEntry](), ","))
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func ListLVs(ctx context.Context) ([]LVEntry, error) {
 }
 
 func PVCreate(ctx context.Context, dev string) error {
-	err := util.RunCommand(ctx, "pvcreate", dev)
+	err := command_helper.RunCommand(ctx, "pvcreate", dev)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func PVAddTags(ctx context.Context, dev string, tags []string) error {
 		args = append(args, "--addtag", t)
 	}
 	args = append(args, dev)
-	err := util.RunCommand(ctx, "pvchange", args...)
+	err := command_helper.RunCommand(ctx, "pvchange", args...)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func VGCreate(ctx context.Context, vgName string, devs []string, tags []string) 
 	for _, t := range tags {
 		args = append(args, "--addtag", t)
 	}
-	err := util.RunCommand(ctx, "vgcreate", args...)
+	err := command_helper.RunCommand(ctx, "vgcreate", args...)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func VGGet(ctx context.Context, vgName string) (*VGEntry, error) {
 }
 
 func VGDeactivate(ctx context.Context, vgName string) error {
-	cmd := util.CommandHelper{
+	cmd := command_helper.CommandHelper{
 		Command: "vgchange",
 		Args: []string{
 			"-an",
@@ -213,7 +213,7 @@ func LVCreate(ctx context.Context, vgName string, lvName string, size int64, tag
 	for _, t := range tags {
 		args = append(args, "--addtag", t)
 	}
-	err := util.RunCommand(ctx, "lvcreate", args...)
+	err := command_helper.RunCommand(ctx, "lvcreate", args...)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func LVSnapCreate100Free(ctx context.Context, vgName string, lvName string, snap
 		"-s", "--name", snapName,
 		fmt.Sprintf("%s/%s", vgName, lvName),
 	}
-	err := util.RunCommand(ctx, "lvcreate", args...)
+	err := command_helper.RunCommand(ctx, "lvcreate", args...)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func LVRemove(ctx context.Context, vgName string, lvName string) error {
 		"-f",
 		fmt.Sprintf("%s/%s", vgName, lvName),
 	}
-	err := util.RunCommand(ctx, "lvremove", args...)
+	err := command_helper.RunCommand(ctx, "lvremove", args...)
 	if err != nil {
 		return err
 	}
@@ -261,7 +261,7 @@ func LVActivateFullName(ctx context.Context, fullName string, activate bool) err
 	}
 	args = append(args, "--ignoremonitoring")
 	args = append(args, fullName)
-	err := util.RunCommand(ctx, "lvchange", args...)
+	err := command_helper.RunCommand(ctx, "lvchange", args...)
 	if err != nil {
 		return err
 	}

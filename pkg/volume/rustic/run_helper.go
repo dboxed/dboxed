@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -28,7 +28,7 @@ func RunRusticCommandJson[T any](ctx context.Context, config RusticConfig, args 
 func RunRusticCommand(ctx context.Context, config RusticConfig, catchStdout bool, args []string) ([]byte, error) {
 	var stdout []byte
 	err := RunWithRusticConfig(config, func(configDir string) error {
-		c := util.CommandHelper{
+		c := command_helper.CommandHelper{
 			Command:     "rustic",
 			Args:        args,
 			Dir:         configDir,

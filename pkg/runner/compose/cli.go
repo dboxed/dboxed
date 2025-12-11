@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 )
 
 func RunComposeCli(ctx context.Context, log *slog.Logger, dir string, projectName string, cmdEnv []string, catchStd bool, args ...string) ([]byte, []byte, error) {
@@ -23,7 +23,7 @@ func RunComposeCli(ctx context.Context, log *slog.Logger, dir string, projectNam
 		log = log.With("composeProject", projectName)
 	}
 
-	cmd := util.CommandHelper{
+	cmd := command_helper.CommandHelper{
 		Command: "docker",
 		Args:    args2,
 		Env:     cmdEnv,

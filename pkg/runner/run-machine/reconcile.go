@@ -11,7 +11,7 @@ import (
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/opencontainers/runc/libcontainer"
 )
 
@@ -136,7 +136,7 @@ func (rn *RunMachine) startSandbox(ctx context.Context, box *models.Box) error {
 	env = append(env, fmt.Sprintf("DBOXED_API_URL=%s", rn.Client.GetClientAuth(true).ApiUrl))
 	env = append(env, fmt.Sprintf("DBOXED_API_TOKEN=%s", *token.Token))
 
-	cmd := util.CommandHelper{
+	cmd := command_helper.CommandHelper{
 		Command: selfExe,
 		Args:    args,
 		Env:     env,
@@ -166,7 +166,7 @@ func (rn *RunMachine) stopSandbox(ctx context.Context, si sandbox.SandboxInfo) e
 		args = append(args, "--debug")
 	}
 
-	cmd := util.CommandHelper{
+	cmd := command_helper.CommandHelper{
 		Command: selfExe,
 		Args:    args,
 		LogCmd:  true,
@@ -196,7 +196,7 @@ func (rn *RunMachine) removeSandbox(ctx context.Context, si sandbox.SandboxInfo)
 		args = append(args, "--debug")
 	}
 
-	cmd := util.CommandHelper{
+	cmd := command_helper.CommandHelper{
 		Command: selfExe,
 		Args:    args,
 		LogCmd:  true,

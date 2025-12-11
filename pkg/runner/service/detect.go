@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 )
 
 type InitSystem string
@@ -17,7 +17,7 @@ const (
 )
 
 func DetectInitSystem(ctx context.Context) (InitSystem, error) {
-	c := util.CommandHelper{
+	c := command_helper.CommandHelper{
 		Command:     "ps",
 		Args:        []string{"--no-headers", "-o", "comm", "1"},
 		CatchStdout: true,

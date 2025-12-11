@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 )
 
 func (rn *RunInSandbox) updateSandboxStatusSimple(ctx context.Context, status string, send bool) {
@@ -156,7 +157,7 @@ func (rn *RunInSandbox) doSendSandboxStatusDockerPs(ctx context.Context, b []byt
 }
 
 func (rn *RunInSandbox) runDockerPS(ctx context.Context) ([]byte, error) {
-	c := util.CommandHelper{
+	c := command_helper.CommandHelper{
 		Command: "docker",
 		Args:    []string{"ps", "-a", "--format", "json"},
 	}

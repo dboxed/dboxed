@@ -15,6 +15,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/compose"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
@@ -292,7 +293,7 @@ func (rn *BoxSpecRunner) parseMode(s string) (os.FileMode, error) {
 }
 
 func (rn *BoxSpecRunner) runDboxedVolume(ctx context.Context, args []string) error {
-	c := util.CommandHelper{
+	c := command_helper.CommandHelper{
 		Command: "dboxed",
 		Args:    args,
 		LogCmd:  true,

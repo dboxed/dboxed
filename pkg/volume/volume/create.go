@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/dboxed/dboxed/pkg/volume/fallocate"
 	"github.com/dboxed/dboxed/pkg/volume/lvm"
 	"github.com/google/uuid"
@@ -94,7 +94,7 @@ func Create(ctx context.Context, opts CreateOptions) error {
 	if err != nil {
 		return err
 	}
-	err = util.RunCommand(ctx, fmt.Sprintf("mkfs.%s", opts.FsType), fsDev)
+	err = command_helper.RunCommand(ctx, fmt.Sprintf("mkfs.%s", opts.FsType), fsDev)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
 //go:build !linux
 
-package util
+package command_helper
 
 import (
 	"context"

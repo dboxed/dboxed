@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 )
 
 func ListRunningComposeProjects(ctx context.Context) ([]dockercli.DockerComposeListEntry, error) {
-	cmd := util.CommandHelper{
+	cmd := command_helper.CommandHelper{
 		Command: "docker",
 		Args:    []string{"compose", "ls", "-a", "--format", "json"},
 	}

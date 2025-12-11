@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/dboxed/dboxed/pkg/volume/mount"
 )
 
@@ -35,7 +35,7 @@ func (v *Volume) Mount(ctx context.Context, mountTarget string, readOnly bool) e
 }
 
 func (v *Volume) RemountReadOnly(ctx context.Context, mountTarget string) error {
-	err := util.RunCommand(ctx, "mount", "-o", "remount,ro", mountTarget)
+	err := command_helper.RunCommand(ctx, "mount", "-o", "remount,ro", mountTarget)
 	if err != nil {
 		return err
 	}

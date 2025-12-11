@@ -14,6 +14,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	_ "github.com/opencontainers/cgroups/devices"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runc/libcontainer"
@@ -65,8 +66,8 @@ func (rn *Sandbox) RunDockerCli(ctx context.Context, args ...string) error {
 	if err != nil {
 		return err
 	}
-	cmd := util.CommandHelper{
-		ContainerHolder: util.ContainerHolder{
+	cmd := command_helper.CommandHelper{
+		ContainerHolder: command_helper.ContainerHolder{
 			Container:   c,
 			ImageConfig: &imageConfig.Config,
 		},

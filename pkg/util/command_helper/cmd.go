@@ -1,4 +1,4 @@
-package util
+package command_helper
 
 import (
 	"bytes"
@@ -11,8 +11,6 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
-
-	"github.com/dboxed/dboxed/pkg/runner/logs/line_handler"
 )
 
 type CommandHelper struct {
@@ -22,6 +20,7 @@ type CommandHelper struct {
 	Args    []string
 	Env     []string
 
+	Stdin       io.Reader
 	CatchStdout bool
 	CatchStderr bool
 	Logger      *slog.Logger
@@ -52,10 +51,10 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 
 	var lhStdout, lhStderr io.WriteCloser
 	if c.Logger != nil {
-		lhStdout = line_handler.NewLineHandler(func(line string) {
+		lhStdout = NewLineHandler(func(line string) {
 			c.Logger.InfoContext(ctx, line)
 		})
-		lhStderr = line_handler.NewLineHandler(func(line string) {
+		lhStderr = NewLineHandler(func(line string) {
 			c.Logger.WarnContext(ctx, line)
 		})
 		defer lhStdout.Close()
@@ -97,6 +96,7 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 func (c *CommandHelper) runNormal(ctx context.Context, stdout io.Writer, stderr io.Writer) error {
 	cmd := exec.CommandContext(ctx, c.Command, c.Args...)
 	cmd.Dir = c.Dir
+	cmd.Stdin = c.Stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if c.Env != nil {

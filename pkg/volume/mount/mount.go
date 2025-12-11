@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/moby/sys/mountinfo"
 )
 
@@ -89,7 +89,7 @@ func Mount(ctx context.Context, fsType string, source string, target string, rea
 
 	args = append(args, source, target)
 
-	err := util.RunCommand(ctx, "mount", args...)
+	err := command_helper.RunCommand(ctx, "mount", args...)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func Mount(ctx context.Context, fsType string, source string, target string, rea
 }
 
 func Unmount(ctx context.Context, target string) error {
-	err := util.RunCommand(ctx, "umount", target)
+	err := command_helper.RunCommand(ctx, "umount", target)
 	if err != nil {
 		return err
 	}

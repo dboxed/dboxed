@@ -19,6 +19,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	util2 "github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/vishvananda/netns"
 )
 
@@ -157,7 +158,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 
 	slog.InfoContext(ctx, "waiting for docker to become available")
 	for {
-		_, err := util.RunCommandStdout(ctx, "docker", "info")
+		_, err := command_helper.RunCommandStdout(ctx, "docker", "info")
 		if err == nil {
 			break
 		}

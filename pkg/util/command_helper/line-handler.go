@@ -1,4 +1,4 @@
-package line_handler
+package command_helper
 
 import (
 	"bufio"

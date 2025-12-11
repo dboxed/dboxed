@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/dboxed/dboxed/pkg/volume/lvm"
 	"github.com/dboxed/dboxed/pkg/volume/mount"
 )
@@ -29,7 +29,7 @@ func (v *Volume) CreateSnapshot(ctx context.Context, snapshotName string, overwr
 		}
 	}
 
-	_ = util.RunCommand(ctx, "sync")
+	_ = command_helper.RunCommand(ctx, "sync")
 
 	slog.Info("creating snapshot", slog.Any("snapshotName", snapshotName))
 	err = lvm.LVSnapCreate100Free(ctx, v.filesystemLv.VgName, v.filesystemLv.LvName, snapshotName)

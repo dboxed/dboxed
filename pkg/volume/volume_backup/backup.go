@@ -10,6 +10,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/dboxed/dboxed/pkg/volume/rustic"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
 	"github.com/dboxed/dboxed/pkg/volume/webdavproxy"
@@ -32,7 +33,7 @@ func (vb *VolumeBackup) Backup(ctx context.Context) (*models.VolumeSnapshot, err
 	snapshotName := "backup-snapshot"
 	rusticHost := fmt.Sprintf("dboxed-volume-%s", vb.VolumeId)
 
-	_ = util.RunCommand(ctx, "sync")
+	_ = command_helper.RunCommand(ctx, "sync")
 
 	c2 := clients.VolumesClient{Client: vb.Client}
 	v, err := c2.GetVolumeById(ctx, vb.VolumeId)
