@@ -33,8 +33,10 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	signal := unix.SIGTERM
+	timeout := time.Minute * 10
 	if cmd.Kill {
 		signal = unix.SIGKILL
+		timeout = time.Second * 10
 	}
 
 	for _, si := range sandboxes {
@@ -58,7 +60,7 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 			}
 		}
 
-		stopped, err := s.KillSandboxContainer(ctx, signal, time.Second*10)
+		stopped, err := s.KillSandboxContainer(ctx, signal, timeout)
 		if err != nil {
 			return err
 		}
