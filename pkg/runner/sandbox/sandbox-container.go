@@ -104,7 +104,7 @@ func (rn *Sandbox) StopRunInSandboxService(ctx context.Context, shutdown bool) e
 		}
 	}
 
-	err := rn.RunDockerCli(ctx, "stop", "dboxed-run-in-sandbox")
+	err := rn.RunDockerCli(ctx, "stop", "dboxed-run-in-sandbox", "--timeout=600")
 	if err != nil {
 		return err
 	}
