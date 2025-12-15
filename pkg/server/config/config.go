@@ -40,9 +40,8 @@ type AuthOidcConfig struct {
 }
 
 type DbConfig struct {
-	Url              string         `json:"url"`
-	Migrate          bool           `json:"migrate,omitempty"`
-	SlowLogThreshold *util.Duration `json:"slowLogThreshold,omitempty"`
+	Url     string `json:"url"`
+	Migrate bool   `json:"migrate,omitempty"`
 }
 
 type ServerConfig struct {
