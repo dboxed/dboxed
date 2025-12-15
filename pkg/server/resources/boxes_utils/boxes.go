@@ -5,12 +5,11 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func CreateBox(c context.Context, workspaceId string, body models.CreateBox, boxType global.BoxType) (*dmodel.Box, string, error) {
+func CreateBox(c context.Context, workspaceId string, body models.CreateBox, boxType dmodel.BoxType) (*dmodel.Box, string, error) {
 	q := querier2.GetQuerier(c)
 
 	err := util.CheckName(body.Name)
@@ -19,7 +18,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 	}
 
 	var networkId *string
-	var networkType *string
+	var networkType *dmodel.NetworkType
 	if body.Network != nil {
 		var network *dmodel.Network
 		network, err = dmodel.GetNetworkById(q, &workspaceId, *body.Network, true)
@@ -35,7 +34,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 			WorkspaceID: workspaceId,
 		},
 		Name:    body.Name,
-		BoxType: string(boxType),
+		BoxType: boxType,
 
 		Enabled: true,
 
@@ -57,8 +56,8 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 	}
 
 	if networkId != nil {
-		switch global.NetworkType(*networkType) {
-		case global.NetworkNetbird:
+		switch *networkType {
+		case dmodel.NetworkTypeNetbird:
 			box.Netbird = &dmodel.BoxNetbird{
 				ID: querier2.N(box.ID),
 			}

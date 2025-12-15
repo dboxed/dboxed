@@ -7,7 +7,7 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
-	"github.com/dboxed/dboxed/pkg/server/global"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
@@ -34,7 +34,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 
 	req := models.CreateNetwork{
 		Name: cmd.Name,
-		Type: global.NetworkNetbird,
+		Type: dmodel.NetworkTypeNetbird,
 	}
 
 	switch cmd.Type {

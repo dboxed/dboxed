@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type LoadBalancer struct {
@@ -16,7 +15,7 @@ type LoadBalancer struct {
 	StatusDetails string `json:"statusDetails"`
 
 	Name             string                  `json:"name"`
-	LoadBalancerType global.LoadBalancerType `json:"loadBalancerType"`
+	LoadBalancerType dmodel.LoadBalancerType `json:"loadBalancerType"`
 	Network          string                  `json:"network"`
 	HttpPort         int                     `json:"httpPort"`
 	HttpsPort        int                     `json:"httpsPort"`
@@ -25,7 +24,7 @@ type LoadBalancer struct {
 
 type CreateLoadBalancer struct {
 	Name             string                  `json:"name"`
-	LoadBalancerType global.LoadBalancerType `json:"loadBalancerType"`
+	LoadBalancerType dmodel.LoadBalancerType `json:"loadBalancerType"`
 	Network          string                  `json:"network"`
 	HttpPort         int                     `json:"httpPort"`
 	HttpsPort        int                     `json:"httpsPort"`
@@ -46,7 +45,7 @@ func LoadBalancerFromDB(p dmodel.LoadBalancer) *LoadBalancer {
 		Status:           p.ReconcileStatus.ReconcileStatus.V,
 		StatusDetails:    p.ReconcileStatus.ReconcileStatusDetails.V,
 		Name:             p.Name,
-		LoadBalancerType: global.LoadBalancerType(p.LoadBalancerType),
+		LoadBalancerType: dmodel.LoadBalancerType(p.LoadBalancerType),
 		Network:          p.NetworkId,
 		HttpPort:         p.HttpPort,
 		HttpsPort:        p.HttpsPort,

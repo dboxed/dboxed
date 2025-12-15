@@ -10,7 +10,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/networks/netbird"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type networkReconciler struct {
@@ -29,8 +28,8 @@ func (r *networkReconciler) GetItem(ctx context.Context, id string) (*dmodel.Net
 }
 
 func (r *networkReconciler) getSubReconciler(ctx context.Context, n *dmodel.Network) (subReconciler, error) {
-	switch global.NetworkType(n.Type) {
-	case global.NetworkNetbird:
+	switch n.Type {
+	case dmodel.NetworkTypeNetbird:
 		return &netbird.Reconciler{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported network type %s", n.Type)

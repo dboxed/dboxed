@@ -15,8 +15,8 @@ type Machine struct {
 
 	DboxedVersion string `db:"dboxed_version"`
 
-	MachineProviderID   *string `db:"machine_provider_id"`
-	MachineProviderType *string `db:"machine_provider_type"`
+	MachineProviderID   *string              `db:"machine_provider_id"`
+	MachineProviderType *MachineProviderType `db:"machine_provider_type"`
 	MachineProvider     *MachineProvider
 
 	Aws     *MachineAws     `join:"true"`

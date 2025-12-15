@@ -11,7 +11,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers/hetzner"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type reconciler struct {
@@ -30,10 +29,10 @@ func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.MachinePro
 }
 
 func (r *reconciler) getSubReconciler(mp *dmodel.MachineProvider) (subReconciler, error) {
-	switch global.MachineProviderType(mp.Type) {
-	case global.MachineProviderAws:
+	switch dmodel.MachineProviderType(mp.Type) {
+	case dmodel.MachineProviderTypeAws:
 		return &aws.Reconciler{}, nil
-	case global.MachineProviderHetzner:
+	case dmodel.MachineProviderTypeHetzner:
 		return &hetzner.Reconciler{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported machine provider type %s", mp.Type)

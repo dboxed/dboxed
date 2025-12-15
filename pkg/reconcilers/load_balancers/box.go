@@ -8,7 +8,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 )
@@ -42,7 +41,7 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 			box, inputErr, err := boxes_utils.CreateBox(ctx, lb.WorkspaceID, models.CreateBox{
 				Name:    boxName,
 				Network: &network.ID,
-			}, global.BoxTypeLoadBalancer)
+			}, dmodel.BoxTypeLoadBalancer)
 			if err != nil {
 				return base.InternalError(err)
 			}
@@ -87,8 +86,8 @@ func (r *reconciler) reconcileBoxReplica(ctx context.Context, lb *dmodel.LoadBal
 		return result
 	}
 
-	switch global.LoadBalancerType(lb.LoadBalancerType) {
-	case global.LoadBalancerTypeCaddy:
+	switch dmodel.LoadBalancerType(lb.LoadBalancerType) {
+	case dmodel.LoadBalancerTypeCaddy:
 		result = r.reconcileLoadBalancerCaddy(ctx, lb, box, token, log)
 		if result.Error != nil {
 			return result

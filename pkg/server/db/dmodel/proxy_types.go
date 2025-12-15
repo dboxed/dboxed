@@ -1,4 +1,4 @@
-package global
+package dmodel
 
 type LoadBalancerType string
 

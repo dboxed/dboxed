@@ -8,8 +8,8 @@ type MachineProvider struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Type string `db:"type"`
-	Name string `db:"name"`
+	Type MachineProviderType `db:"type"`
+	Name string              `db:"name"`
 
 	SshKeyPublic *string `db:"ssh_key_public"`
 

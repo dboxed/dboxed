@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
@@ -72,7 +71,7 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 
 func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[models.CreateBox]) (*huma_utils.JsonBody[models.Box], error) {
 	w := auth_middleware.GetWorkspace(c)
-	box, inputErr, err := boxes_utils.CreateBox(c, w.ID, i.Body, global.BoxTypeNormal)
+	box, inputErr, err := boxes_utils.CreateBox(c, w.ID, i.Body, dmodel.BoxTypeNormal)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +298,7 @@ func (s *BoxesServer) postprocessBox(box dmodel.Box, sandboxStatus *dmodel.BoxSa
 }
 
 func (s *BoxesServer) checkNormalBoxMod(box *dmodel.Box) error {
-	if box.BoxType != string(global.BoxTypeNormal) {
+	if box.BoxType != dmodel.BoxTypeNormal {
 		return huma.Error400BadRequest(fmt.Sprintf("modifications on %s boxes not allowed", box.BoxType))
 	}
 	return nil

@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -60,7 +59,7 @@ func (s *MachineProviderServer) restCreateMachineProvider(c context.Context, i *
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: workspace.ID,
 		},
-		Type: string(i.Body.Type),
+		Type: i.Body.Type,
 		Name: i.Body.Name,
 	}
 
@@ -78,7 +77,7 @@ func (s *MachineProviderServer) restCreateMachineProvider(c context.Context, i *
 	}
 
 	switch i.Body.Type {
-	case global.MachineProviderAws:
+	case dmodel.MachineProviderTypeAws:
 		if i.Body.Aws == nil {
 			return nil, huma.Error400BadRequest("aws field not set")
 		}
@@ -86,7 +85,7 @@ func (s *MachineProviderServer) restCreateMachineProvider(c context.Context, i *
 		if err != nil {
 			return nil, err
 		}
-	case global.MachineProviderHetzner:
+	case dmodel.MachineProviderTypeHetzner:
 		if i.Body.Hetzner == nil {
 			return nil, huma.Error400BadRequest("hetzner field not set")
 		}
@@ -189,8 +188,8 @@ func (s *MachineProviderServer) doUpdateMachineProvider(c context.Context, mp *d
 		}
 	}
 
-	switch global.MachineProviderType(mp.Type) {
-	case global.MachineProviderAws:
+	switch mp.Type {
+	case dmodel.MachineProviderTypeAws:
 		if body.Aws != nil {
 			var err error
 			err = s.restUpdateMachineProviderAws(c, log, mp, body.Aws)
@@ -198,7 +197,7 @@ func (s *MachineProviderServer) doUpdateMachineProvider(c context.Context, mp *d
 				return err
 			}
 		}
-	case global.MachineProviderHetzner:
+	case dmodel.MachineProviderTypeHetzner:
 		if body.Hetzner != nil {
 			var err error
 			err = s.restUpdateMachineProviderHetzner(c, log, mp, body.Hetzner)
@@ -234,13 +233,13 @@ func (s *MachineProviderServer) postprocessMachineProvider(c context.Context, mp
 		}
 	}
 
-	switch global.MachineProviderType(mp.Type) {
-	case global.MachineProviderAws:
+	switch mp.Type {
+	case dmodel.MachineProviderTypeAws:
 		err := s.postprocessMachineProviderAws(c, &mp, ret)
 		if err != nil {
 			return nil, err
 		}
-	case global.MachineProviderHetzner:
+	case dmodel.MachineProviderTypeHetzner:
 		err := s.postprocessMachineProviderHetzner(c, &mp, ret)
 		if err != nil {
 			return nil, err

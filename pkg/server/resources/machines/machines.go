@@ -8,7 +8,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
@@ -97,8 +96,8 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 	}
 
 	if body.MachineProvider != nil {
-		switch global.MachineProviderType(*m.MachineProviderType) {
-		case global.MachineProviderHetzner:
+		switch *m.MachineProviderType {
+		case dmodel.MachineProviderTypeHetzner:
 			if body.Hetzner == nil {
 				return nil, "missing hetzner config", nil
 			}
@@ -106,7 +105,7 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 			if err != nil {
 				return nil, "", err
 			}
-		case global.MachineProviderAws:
+		case dmodel.MachineProviderTypeAws:
 			if body.Aws == nil {
 				return nil, "missing aws config", nil
 			}

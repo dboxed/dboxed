@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type MachineProvider struct {
@@ -15,8 +14,8 @@ type MachineProvider struct {
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
 
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type dmodel.MachineProviderType `json:"type"`
+	Name string                     `json:"name"`
 
 	SshKeyFingerprint *string `json:"sshKeyFingerprint"`
 
@@ -53,7 +52,7 @@ type MachineProviderHetzner struct {
 }
 
 type CreateMachineProvider struct {
-	Type global.MachineProviderType `json:"type"`
+	Type dmodel.MachineProviderType `json:"type"`
 	Name string                     `json:"name"`
 
 	SshKeyPublic *string `json:"sshKeyPublic,omitempty"`

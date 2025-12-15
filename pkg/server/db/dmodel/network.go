@@ -8,8 +8,8 @@ type Network struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Type string `db:"type"`
-	Name string `db:"name"`
+	Type NetworkType `db:"type"`
+	Name string      `db:"name"`
 
 	Netbird *NetworkNetbird `join:"true"`
 }

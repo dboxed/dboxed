@@ -7,7 +7,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
-	"github.com/dboxed/dboxed/pkg/server/global"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
@@ -37,7 +37,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 
 	req := models.CreateLoadBalancer{
 		Name:             cmd.Name,
-		LoadBalancerType: global.LoadBalancerType(cmd.Type),
+		LoadBalancerType: dmodel.LoadBalancerType(cmd.Type),
 		Network:          network.ID,
 		HttpPort:         cmd.HttpPort,
 		HttpsPort:        cmd.HttpsPort,

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 type Network struct {
@@ -15,7 +14,7 @@ type Network struct {
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
 
-	Type global.NetworkType `json:"type"`
+	Type dmodel.NetworkType `json:"type"`
 	Name string             `json:"name"`
 
 	Netbird *NetworkNetbird `json:"netbird"`
@@ -27,7 +26,7 @@ type NetworkNetbird struct {
 }
 
 type CreateNetwork struct {
-	Type global.NetworkType `json:"type"`
+	Type dmodel.NetworkType `json:"type"`
 	Name string             `json:"name"`
 
 	Netbird *CreateNetworkNetbird `json:"netbird,omitempty"`
@@ -56,7 +55,7 @@ func NetworkFromDB(v dmodel.Network) *Network {
 		Status:        v.ReconcileStatus.ReconcileStatus.V,
 		StatusDetails: v.ReconcileStatus.ReconcileStatusDetails.V,
 
-		Type: global.NetworkType(v.Type),
+		Type: dmodel.NetworkType(v.Type),
 		Name: v.Name,
 	}
 }

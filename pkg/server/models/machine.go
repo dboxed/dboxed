@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -21,7 +20,7 @@ type Machine struct {
 	DboxedVersion string `json:"dboxedVersion"`
 
 	MachineProvider     *string                     `json:"machineProvider,omitempty"`
-	MachineProviderType *global.MachineProviderType `json:"machineProviderType,omitempty"`
+	MachineProviderType *dmodel.MachineProviderType `json:"machineProviderType,omitempty"`
 
 	RunStatus *MachineRunStatus `json:"runStatus,omitempty"`
 }
@@ -89,7 +88,7 @@ func MachineFromDB(s dmodel.Machine, runStatus *dmodel.MachineRunStatus) (*Machi
 
 	if s.MachineProviderID != nil {
 		ret.MachineProvider = s.MachineProviderID
-		ret.MachineProviderType = util.Ptr(global.MachineProviderType(*s.MachineProviderType))
+		ret.MachineProviderType = util.Ptr(dmodel.MachineProviderType(*s.MachineProviderType))
 	}
 
 	if runStatus != nil {

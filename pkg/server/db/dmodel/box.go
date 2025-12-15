@@ -11,11 +11,11 @@ type Box struct {
 	OwnedByWorkspace
 	ReconcileStatus
 
-	Name    string `db:"name"`
-	BoxType string `db:"box_type"`
+	Name    string  `db:"name"`
+	BoxType BoxType `db:"box_type"`
 
-	NetworkID   *string `db:"network_id"`
-	NetworkType *string `db:"network_type"`
+	NetworkID   *string      `db:"network_id"`
+	NetworkType *NetworkType `db:"network_type"`
 
 	MachineID *string `db:"machine_id"`
 

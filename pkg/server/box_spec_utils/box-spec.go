@@ -10,7 +10,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 )
 
 func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (*boxspec.BoxSpec, error) {
@@ -60,8 +59,8 @@ func BuildBoxSpec(c context.Context, box *dmodel.Box, network *dmodel.Network) (
 	}
 
 	if network != nil {
-		switch global.NetworkType(*box.NetworkType) {
-		case global.NetworkNetbird:
+		switch *box.NetworkType {
+		case dmodel.NetworkTypeNetbird:
 			if box.Netbird.SetupKey == nil {
 				return nil, fmt.Errorf("box %s has no setup key", box.ID)
 			}
@@ -125,7 +124,7 @@ func listNetworkHosts(c context.Context, network *dmodel.Network) ([]boxspec.Net
 	for _, box := range boxes {
 		ip4 := ""
 		switch *box.NetworkType {
-		case global.NetworkNetbird:
+		case dmodel.NetworkTypeNetbird:
 			if box.SandboxStatus.NetworkIP4 != nil {
 				ip4 = *box.SandboxStatus.NetworkIP4
 			}

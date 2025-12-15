@@ -9,7 +9,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
@@ -49,7 +48,7 @@ func (s *NetworksServer) restCreateNetwork(c context.Context, i *huma_utils.Json
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: workspace.ID,
 		},
-		Type: string(i.Body.Type),
+		Type: i.Body.Type,
 		Name: i.Body.Name,
 	}
 
@@ -59,7 +58,7 @@ func (s *NetworksServer) restCreateNetwork(c context.Context, i *huma_utils.Json
 	}
 
 	switch i.Body.Type {
-	case global.NetworkNetbird:
+	case dmodel.NetworkTypeNetbird:
 		if i.Body.Netbird == nil {
 			return nil, huma.Error400BadRequest("netbird field not set")
 		}
@@ -171,8 +170,8 @@ func (s *NetworksServer) doUpdateNetwork(c context.Context, n *dmodel.Network, b
 	log := slog.With(slog.Any("workspace", n.WorkspaceID), slog.Any("type", n.Type), slog.Any("name", n.Name))
 	log.InfoContext(c, "updating network")
 
-	switch global.NetworkType(n.Type) {
-	case global.NetworkNetbird:
+	switch n.Type {
+	case dmodel.NetworkTypeNetbird:
 		if body.Netbird != nil {
 			err := s.restUpdateNetworkNetbird(c, log, n, body.Netbird)
 			if err != nil {
@@ -201,8 +200,8 @@ func (s *NetworksServer) restDeleteNetwork(c context.Context, i *huma_utils.IdBy
 func (s *NetworksServer) postprocessNetwork(c context.Context, n dmodel.Network) (*models.Network, error) {
 	ret := models.NetworkFromDB(n)
 
-	switch global.NetworkType(n.Type) {
-	case global.NetworkNetbird:
+	switch n.Type {
+	case dmodel.NetworkTypeNetbird:
 		err := s.postprocessNetworkNetbird(c, &n, ret)
 		if err != nil {
 			return nil, err

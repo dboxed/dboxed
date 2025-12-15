@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/global"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
@@ -17,12 +16,12 @@ type Box struct {
 	StatusDetails string `json:"statusDetails"`
 
 	Name    string         `json:"name"`
-	BoxType global.BoxType `json:"boxType"`
+	BoxType dmodel.BoxType `json:"boxType"`
 
 	Machine *string `json:"machine"`
 
 	Network     *string             `json:"network"`
-	NetworkType *global.NetworkType `json:"networkType"`
+	NetworkType *dmodel.NetworkType `json:"networkType"`
 
 	Enabled bool `json:"enabled"`
 
@@ -77,9 +76,9 @@ func BoxSandboxStatusFromDB(s dmodel.BoxSandboxStatus) *BoxSandboxStatus {
 }
 
 func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, error) {
-	var networkType *global.NetworkType
+	var networkType *dmodel.NetworkType
 	if s.NetworkType != nil {
-		networkType = util.Ptr(global.NetworkType(*s.NetworkType))
+		networkType = util.Ptr(dmodel.NetworkType(*s.NetworkType))
 	}
 	ret := &Box{
 		ID:            s.ID,
@@ -89,7 +88,7 @@ func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, erro
 		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Name:    s.Name,
-		BoxType: global.BoxType(s.BoxType),
+		BoxType: dmodel.BoxType(s.BoxType),
 
 		Machine: s.MachineID,
 
