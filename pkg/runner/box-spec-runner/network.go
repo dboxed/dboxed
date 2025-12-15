@@ -35,6 +35,8 @@ func (rn *BoxSpecRunner) reconcileNetwork(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		return nil
 	}
 
 	err = ch.RunPull(ctx)
