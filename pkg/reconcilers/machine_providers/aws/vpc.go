@@ -29,7 +29,7 @@ func (r *Reconciler) reconcileVpc(ctx context.Context) base.ReconcileResult {
 		VpcIds: []string{*r.mp.Aws.VpcID},
 	})
 	if err != nil {
-		return base.ErrorWithMessage(err, "failed to descript AWS VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
+		return base.ErrorWithMessage(err, "failed to describe AWS VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
 	}
 	if len(vpcs.Vpcs) == 0 {
 		return base.ErrorFromMessage("vpc %s not found", *r.mp.Aws.VpcID)
@@ -67,7 +67,7 @@ func (r *Reconciler) reconcileSubnets(ctx context.Context) base.ReconcileResult 
 		Filters: []types.Filter{{Name: util.Ptr("vpc-id"), Values: []string{*r.mp.Aws.VpcID}}},
 	})
 	if err != nil {
-		return base.ErrorWithMessage(err, "failed to descript AWS subnets for VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
+		return base.ErrorWithMessage(err, "failed to describe AWS subnets for VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
 	}
 	found := map[string]struct{}{}
 	for _, subnet := range subnets.Subnets {
@@ -137,7 +137,7 @@ func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) base.Reconcile
 		},
 	})
 	if err != nil {
-		return base.ErrorWithMessage(err, "failed to descript AWS security groups for VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
+		return base.ErrorWithMessage(err, "failed to describe AWS security groups for VPC %s: %s", *r.mp.Aws.VpcID, err.Error())
 	}
 
 	var sg *types.SecurityGroup
@@ -191,7 +191,7 @@ func (r *Reconciler) createSecurityGroup(ctx context.Context, log *slog.Logger, 
 		GroupIds: []string{*resp.GroupId},
 	})
 	if err != nil {
-		return nil, base.ErrorWithMessage(err, "failed to descript AWS security group %s: %s", groupName, err.Error())
+		return nil, base.ErrorWithMessage(err, "failed to describe AWS security group %s: %s", groupName, err.Error())
 	}
 	if len(resp2.SecurityGroups) == 0 {
 		return nil, base.ErrorFromMessage("failed to find security group even after creating it")
