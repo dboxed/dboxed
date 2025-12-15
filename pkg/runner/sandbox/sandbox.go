@@ -69,10 +69,6 @@ func (rn *Sandbox) Prepare(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(rn.SandboxDir, "containers"), 0700)
-	if err != nil {
-		return err
-	}
 
 	err = rn.pullInfraImage(ctx)
 	if err != nil {
