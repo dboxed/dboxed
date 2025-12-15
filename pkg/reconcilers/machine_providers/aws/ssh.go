@@ -97,6 +97,11 @@ func (r *Reconciler) createSshKeyPair(ctx context.Context) base.ReconcileResult 
 
 func (r *Reconciler) deleteSshKeyPair(ctx context.Context) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
+
+	if !r.mp.HasFinalizer("aws-ssh-key") {
+		return base.ReconcileResult{}
+	}
+
 	keyName := cloud_utils.BuildAwsSshKeyName(ctx, r.mp.Name, r.mp.ID)
 
 	r.log.InfoContext(ctx, "deleting ssh key", slog.Any("sshKeyName", keyName))
