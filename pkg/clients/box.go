@@ -66,16 +66,16 @@ func (c *BoxClient) DeleteBox(ctx context.Context, id string) error {
 	return err
 }
 
-func (c *BoxClient) StartBox(ctx context.Context, id string) (*models.Box, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", id, "start")
+func (c *BoxClient) EnableBox(ctx context.Context, id string) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id, "enable")
 	if err != nil {
 		return nil, err
 	}
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, struct{}{})
 }
 
-func (c *BoxClient) StopBox(ctx context.Context, id string) (*models.Box, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", id, "stop")
+func (c *BoxClient) DisableBox(ctx context.Context, id string) (*models.Box, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", id, "disable")
 	if err != nil {
 		return nil, err
 	}

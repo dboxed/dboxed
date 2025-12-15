@@ -9,11 +9,11 @@ import (
 	"github.com/dboxed/dboxed/pkg/clients"
 )
 
-type StopCmd struct {
+type DisableCmd struct {
 	Box string `help:"Specify the box" required:"" arg:""`
 }
 
-func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *DisableCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	c, err := g.BuildClient(ctx)
@@ -28,12 +28,12 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	updatedBox, err := c2.StopBox(ctx, b.ID)
+	updatedBox, err := c2.DisableBox(ctx, b.ID)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("box stopping",
+	slog.Info("disabled box",
 		slog.Any("id", updatedBox.ID),
 		slog.Any("name", updatedBox.Name),
 		slog.Any("enabled", updatedBox.Enabled),

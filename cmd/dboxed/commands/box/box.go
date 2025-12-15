@@ -1,16 +1,18 @@
 package box
 
 type BoxCommands struct {
-	Create    CreateCmd    `cmd:"" help:"Create a box"`
-	Get       GetCmd       `cmd:"" help:"Get a box"`
-	List      ListCmd      `cmd:"" help:"List boxes" aliases:"ls"`
-	Delete    DeleteCmd    `cmd:"" help:"Delete a box" aliases:"rm,delete"`
-	Start     StartCmd     `cmd:"" help:"Start a box"`
-	Stop      StopCmd      `cmd:"" help:"Stop a box"`
-	Reconcile ReconcileCmd `cmd:"" help:"Request box reconciliation"`
-	Status    StatusCmd    `cmd:"" help:"Display box run status and containers"`
-	Logs      LogsCmd      `cmd:"" help:"Stream box logs"`
-	ListLogs  ListLogsCmd  `cmd:"" help:"List available log files for a box"`
+	Create CreateCmd `cmd:"" help:"Create a box"`
+	Get    GetCmd    `cmd:"" help:"Get a box"`
+	List   ListCmd   `cmd:"" help:"List boxes" aliases:"ls"`
+	Delete DeleteCmd `cmd:"" help:"Delete a box" aliases:"rm,delete"`
+
+	Logs     LogsCmd     `cmd:"" help:"Stream box logs" group:"logs"`
+	ListLogs ListLogsCmd `cmd:"" help:"List available log files for a box" group:"logs"`
+
+	Enable    EnableCmd    `cmd:"" help:"Enable a box" group:"status"`
+	Disable   DisableCmd   `cmd:"" help:"Disable a box" group:"status"`
+	Reconcile ReconcileCmd `cmd:"" help:"Request box reconciliation" group:"status"`
+	Status    StatusCmd    `cmd:"" help:"Display box run status and containers" group:"status"`
 
 	AddCompose    AddComposeCmd    `cmd:"" help:"Create a compose project" group:"compose"`
 	RemoveCompose RemoveComposeCmd `cmd:"" help:"Remove a compose project" group:"compose" aliases:"rm-compose,delete-compose"`
