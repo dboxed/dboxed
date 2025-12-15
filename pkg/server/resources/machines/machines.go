@@ -151,6 +151,9 @@ func (s *MachinesServer) createMachineHetzner(c context.Context, machine *dmodel
 func (s *MachinesServer) createMachineAws(c context.Context, machine *dmodel.Machine, body models.CreateMachineAws) error {
 	q := querier2.GetQuerier(c)
 
+	if body.InstanceType == "" {
+		return huma.Error400BadRequest("instance_type can not be empty")
+	}
 	if body.SubnetId == "" {
 		return huma.Error400BadRequest("subnet_id can not be empty")
 	}
