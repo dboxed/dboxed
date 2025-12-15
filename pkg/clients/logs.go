@@ -32,9 +32,8 @@ func (c *LogsClient) ListLogs(ctx context.Context, ownerType string, ownerId str
 	q := url.Values{}
 	q.Set("owner_type", ownerType)
 	q.Set("owner_id", ownerId)
-	p += "?" + q.Encode()
 
-	l, err := baseclient.RequestApi[huma_utils.ListBody[models.LogMetadataModel]](ctx, c.Client, "GET", p, struct{}{})
+	l, err := baseclient.RequestApiQ[huma_utils.ListBody[models.LogMetadataModel]](ctx, c.Client, "GET", p, q, struct{}{})
 	if err != nil {
 		return nil, err
 	}

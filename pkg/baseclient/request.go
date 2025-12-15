@@ -18,8 +18,12 @@ func RequestApi[ReplyBody any, RequestBody any](ctx context.Context, c *Client, 
 	return requestApiJson[ReplyBody, RequestBody](ctx, c, method, p, nil, body, true, nil)
 }
 
-func RequestApiResponse[RequestBody any](ctx context.Context, c *Client, method string, p string, body RequestBody, header *http.Header) (*http.Response, error) {
-	return requestApiResponse[RequestBody](ctx, c, method, p, nil, body, true, header)
+func RequestApiQ[ReplyBody any, RequestBody any](ctx context.Context, c *Client, method string, p string, q url.Values, body RequestBody) (*ReplyBody, error) {
+	return requestApiJson[ReplyBody, RequestBody](ctx, c, method, p, q, body, true, nil)
+}
+
+func RequestApiResponse[RequestBody any](ctx context.Context, c *Client, method string, p string, q url.Values, body RequestBody, header *http.Header) (*http.Response, error) {
+	return requestApiResponse[RequestBody](ctx, c, method, p, q, body, true, header)
 }
 
 func requestApiJson[ReplyBody any, RequestBody any](ctx context.Context, c *Client, method string, p string, q url.Values, body RequestBody, withToken bool, header *http.Header) (*ReplyBody, error) {
