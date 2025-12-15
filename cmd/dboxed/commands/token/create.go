@@ -18,6 +18,7 @@ type CreateCmd struct {
 
 	ForWorkspace bool    `help:"If set, the token will be for the whole workspace" xor:"for"`
 	Box          *string `help:"Specify box for which to create the token" xor:"for"`
+	Machine      *string `help:"Specify machine for which to create the token" xor:"for"`
 }
 
 func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
@@ -43,6 +44,13 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 			return err
 		}
 		req.BoxID = &b.ID
+	} else if cmd.Machine != nil {
+		req.Type = dmodel.TokenTypeMachine
+		m, err := commandutils.GetMachine(ctx, c, *cmd.Machine)
+		if err != nil {
+			return err
+		}
+		req.MachineID = &m.ID
 	} else {
 		return fmt.Errorf("did not specify for what the token should be")
 	}
