@@ -15,6 +15,9 @@ type Machine struct {
 	Status        string `json:"status"`
 	StatusDetails string `json:"statusDetails"`
 
+	MachineProviderStatus        string `json:"machineProviderStatus"`
+	MachineProviderStatusDetails string `json:"machineProviderStatusDetails"`
+
 	Name string `json:"name"`
 
 	DboxedVersion string `json:"dboxedVersion"`
@@ -88,7 +91,15 @@ func MachineFromDB(s dmodel.Machine, runStatus *dmodel.MachineRunStatus) (*Machi
 
 	if s.MachineProviderID != nil {
 		ret.MachineProvider = s.MachineProviderID
-		ret.MachineProviderType = util.Ptr(dmodel.MachineProviderType(*s.MachineProviderType))
+		ret.MachineProviderType = util.Ptr(*s.MachineProviderType)
+	}
+
+	if s.Aws != nil && s.Aws.ID.Valid {
+		ret.MachineProviderStatus = s.Aws.ReconcileStatus.ReconcileStatus.V
+		ret.MachineProviderStatusDetails = s.Aws.ReconcileStatus.ReconcileStatusDetails.V
+	} else if s.Hetzner != nil && s.Hetzner.ID.Valid {
+		ret.MachineProviderStatus = s.Hetzner.ReconcileStatus.ReconcileStatus.V
+		ret.MachineProviderStatusDetails = s.Hetzner.ReconcileStatus.ReconcileStatusDetails.V
 	}
 
 	if runStatus != nil {

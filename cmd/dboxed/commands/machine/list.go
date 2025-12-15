@@ -18,6 +18,9 @@ type PrintMachine struct {
 	Name          string `col:"Name"`
 	Status        string `col:"Status"`
 	StatusDetails string `col:"Status Detail"`
+
+	MachineProviderStatus        string `col:"MP Status"`
+	MachineProviderStatusDetails string `col:"MP Status Details"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -38,10 +41,12 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 	var table []PrintMachine
 	for _, m := range machines {
 		table = append(table, PrintMachine{
-			ID:            m.ID,
-			Name:          m.Name,
-			Status:        m.Status,
-			StatusDetails: m.StatusDetails,
+			ID:                           m.ID,
+			Name:                         m.Name,
+			Status:                       m.Status,
+			StatusDetails:                m.StatusDetails,
+			MachineProviderStatus:        m.MachineProviderStatus,
+			MachineProviderStatusDetails: m.MachineProviderStatusDetails,
 		})
 	}
 
