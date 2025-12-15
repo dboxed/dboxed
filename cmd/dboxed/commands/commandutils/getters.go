@@ -160,3 +160,25 @@ func GetMachine(ctx context.Context, c *baseclient.Client, machine string) (*mod
 		return nil, fmt.Errorf("machine not found: %s", machine)
 	}
 }
+
+func GetMachineProvider(ctx context.Context, c *baseclient.Client, machineProvider string) (*models.MachineProvider, error) {
+	c2 := clients.MachineProviderClient{Client: c}
+	if uuid.Validate(machineProvider) == nil {
+		mp, err := c2.GetMachineProviderById(ctx, machineProvider)
+		if err != nil {
+			return nil, err
+		}
+		return mp, nil
+	} else {
+		l, err := c2.ListMachineProviders(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, mp := range l {
+			if mp.Name == machineProvider {
+				return &mp, nil
+			}
+		}
+		return nil, fmt.Errorf("machine provider not found: %s", machineProvider)
+	}
+}

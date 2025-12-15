@@ -4,8 +4,10 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
 
@@ -31,11 +33,19 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	req := models.CreateMachine{
-		Name:            cmd.Name,
-		MachineProvider: cmd.MachineProvider,
+		Name: cmd.Name,
 	}
 
-	if cmd.HetznerServerType != nil || cmd.HetznerServerLocation != nil {
+	var mp *models.MachineProvider
+	if cmd.MachineProvider != nil {
+		mp, err = commandutils.GetMachineProvider(ctx, c, *cmd.MachineProvider)
+		if err != nil {
+			return err
+		}
+		req.MachineProvider = &mp.ID
+	}
+
+	if mp != nil && mp.Type == dmodel.MachineProviderTypeHetzner {
 		req.Hetzner = &models.CreateMachineHetzner{}
 		if cmd.HetznerServerType != nil {
 			req.Hetzner.ServerType = *cmd.HetznerServerType
@@ -45,7 +55,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		}
 	}
 
-	if cmd.AwsInstanceType != nil || cmd.AwsSubnetId != nil {
+	if mp != nil && mp.Type == dmodel.MachineProviderTypeAws {
 		req.Aws = &models.CreateMachineAws{}
 		if cmd.AwsInstanceType != nil {
 			req.Aws.InstanceType = *cmd.AwsInstanceType
