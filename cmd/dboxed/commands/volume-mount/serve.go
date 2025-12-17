@@ -28,34 +28,64 @@ type ServeCmd struct {
 func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	backupInterval, err := time.ParseDuration(cmd.BackupInterval)
+	err := runServeVolumeCmd(ctx, g, runServeVolumeCmdOpts{
+		volume:            cmd.Volume,
+		backupInterval:    &cmd.BackupInterval,
+		webdavProxyListen: &cmd.WebdavProxyListen,
+		box:               cmd.Box,
+		readyFile:         cmd.ReadyFile,
+	})
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+type runServeVolumeCmdOpts struct {
+	volume            string
+	backupInterval    *string
+	webdavProxyListen *string
+	box               *string
+
+	readyFile *string
+}
+
+func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeVolumeCmdOpts) error {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer func() {
+		signal.Stop(sigs)
+	}()
 
 	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	volume, err := commandutils.GetVolume(ctx, c, cmd.Volume)
+	volume, err := commandutils.GetVolume(ctx, c, opts.volume)
 	if err != nil {
 		return err
 	}
 
 	dir := filepath.Join(g.WorkDir, "volumes", volume.ID)
 	vsOpts := volume_serve.VolumeServeOpts{
-		Client:            c,
-		VolumeId:          volume.ID,
-		Dir:               dir,
-		BackupInterval:    backupInterval,
-		WebdavProxyListen: cmd.WebdavProxyListen,
+		Client:   c,
+		VolumeId: volume.ID,
+		Dir:      dir,
 	}
-	if cmd.Box != nil {
-		box, err := commandutils.GetBox(ctx, c, *cmd.Box)
+	if opts.backupInterval != nil {
+		backupInterval, err := time.ParseDuration(*opts.backupInterval)
+		if err != nil {
+			return err
+		}
+		vsOpts.BackupInterval = backupInterval
+	}
+	if opts.webdavProxyListen != nil {
+		vsOpts.WebdavProxyListen = *opts.webdavProxyListen
+	}
+
+	if opts.box != nil {
+		box, err := commandutils.GetBox(ctx, c, *opts.box)
 		if err != nil {
 			return err
 		}
@@ -109,14 +139,14 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		vs.Stop()
 	}()
 
-	if cmd.ReadyFile != nil {
-		err = os.WriteFile(*cmd.ReadyFile, nil, 0644)
+	if opts.readyFile != nil {
+		err = os.WriteFile(*opts.readyFile, nil, 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	slog.Info("starting periodic backup", slog.Any("interval", cmd.BackupInterval))
+	slog.Info("starting periodic backup", slog.Any("interval", opts.backupInterval))
 	err = vs.Run(ctx)
 	if err != nil {
 		return err
