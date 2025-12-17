@@ -12,6 +12,8 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/auth"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes"
+	"github.com/dboxed/dboxed/pkg/server/resources/git_credentials"
+	"github.com/dboxed/dboxed/pkg/server/resources/git_specs"
 	"github.com/dboxed/dboxed/pkg/server/resources/healthz"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/server/resources/load_balancers"
@@ -56,6 +58,8 @@ type DboxedServer struct {
 	boxes            *boxes.BoxesServer
 	machines         *machines.MachinesServer
 	loadBalancers    *load_balancers.LoadBalancerServer
+	gitCredentials   *git_credentials.GitCredentialsServer
+	gitSpecs         *git_specs.GitSpecsServer
 }
 
 func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, error) {
@@ -87,6 +91,8 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.boxes = boxes.New(config)
 	s.machines = machines.New(config)
 	s.loadBalancers = load_balancers.New(config)
+	s.gitCredentials = git_credentials.New()
+	s.gitSpecs = git_specs.New()
 
 	return s, nil
 }
@@ -173,6 +179,14 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		return err
 	}
 	err = s.loadBalancers.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
+	err = s.gitCredentials.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
+	err = s.gitSpecs.Init(s.api, workspacesGroup)
 	if err != nil {
 		return err
 	}

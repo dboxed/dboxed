@@ -169,17 +169,20 @@ func (v *Volume) UpdateLatestSnapshot(q *querier.Querier, snapshotId *string) er
 
 func (v *BoxVolumeAttachment) Update(q *querier.Querier, rootUid *int64, rootGid *int64, rootMode *string) error {
 	var fields []string
-	if rootUid != nil {
+	if rootUid != nil && *rootUid != v.RootUid.V {
 		v.RootUid = querier.N(*rootUid)
 		fields = append(fields, "root_uid")
 	}
-	if rootGid != nil {
+	if rootGid != nil && *rootGid != v.RootGid.V {
 		v.RootGid = querier.N(*rootGid)
 		fields = append(fields, "root_gid")
 	}
-	if rootMode != nil {
+	if rootMode != nil && *rootMode != v.RootMode.V {
 		v.RootMode = querier.N(*rootMode)
 		fields = append(fields, "root_mode")
+	}
+	if len(fields) == 0 {
+		return nil
 	}
 	return querier.UpdateOneByFieldsFromStruct(q, map[string]any{
 		"box_id":    v.BoxId,

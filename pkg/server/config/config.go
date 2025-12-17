@@ -16,6 +16,8 @@ type Config struct {
 	DB     DbConfig     `json:"db"`
 	Server ServerConfig `json:"server"`
 
+	GitMirrorDir string `json:"gitMirrorDir"`
+
 	DefaultWorkspaceQuotas DefaultWorkspaceQuotas `json:"defaultWorkspaceQuotas"`
 }
 
@@ -74,6 +76,9 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 	if config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes == 0 {
 		config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes = humanize.MiByte * 100
+	}
+	if config.GitMirrorDir == "" {
+		config.GitMirrorDir = "/var/lib/dboxed-server/git-mirrors"
 	}
 
 	return &config, nil

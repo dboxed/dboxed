@@ -6,6 +6,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
+	git_credentials "github.com/dboxed/dboxed/cmd/dboxed/commands/git-credentials"
+	git_spec "github.com/dboxed/dboxed/cmd/dboxed/commands/git-spec"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/load-balancer"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/machine"
@@ -46,6 +48,9 @@ type Cli struct {
 	Machine         machine.MachineCommands                  `cmd:"" help:"manage machines"`
 	MachineProvider machine_provider.MachineProviderCommands `cmd:"" help:"manage machine providers"`
 	Sandbox         sandbox.SandboxCommands                  `cmd:"" help:"manage sandboxes" aliases:"sb"`
+
+	GitCredentials git_credentials.GitCredentialsCommands `cmd:"" help:"manage git credentials" aliases:"git-creds"`
+	GitSpec        git_spec.GitSpecCommands               `cmd:"" help:"manage git specs"`
 
 	Version VersionCmd `cmd:"" help:"Print version"`
 

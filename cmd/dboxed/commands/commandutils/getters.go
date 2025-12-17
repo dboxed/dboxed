@@ -182,3 +182,36 @@ func GetMachineProvider(ctx context.Context, c *baseclient.Client, machineProvid
 		return nil, fmt.Errorf("machine provider not found: %s", machineProvider)
 	}
 }
+
+func GetGitCredentials(ctx context.Context, c *baseclient.Client, gitCredentials string) (*models.GitCredentials, error) {
+	c2 := clients.GitCredentialsClient{Client: c}
+	if uuid.Validate(gitCredentials) == nil {
+		gc, err := c2.GetGitCredentialsById(ctx, gitCredentials)
+		if err != nil {
+			return nil, err
+		}
+		return gc, nil
+	} else {
+		// GitCredentials doesn't have a name field, so we search by host
+		l, err := c2.ListGitCredentials(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, gc := range l {
+			if gc.Host == gitCredentials {
+				return &gc, nil
+			}
+		}
+		return nil, fmt.Errorf("git credentials not found: %s", gitCredentials)
+	}
+}
+
+func GetGitSpec(ctx context.Context, c *baseclient.Client, gitSpec string) (*models.GitSpec, error) {
+	c2 := clients.GitSpecClient{Client: c}
+	// GitSpec only supports ID lookup
+	gs, err := c2.GetGitSpecById(ctx, gitSpec)
+	if err != nil {
+		return nil, err
+	}
+	return gs, nil
+}

@@ -77,6 +77,14 @@ func GetLoadBalancerById(q *querier2.Querier, workspaceId *string, id string, sk
 	})
 }
 
+func GetLoadBalancerByName(q *querier2.Querier, workspaceId *string, name string, skipDeleted bool) (*LoadBalancer, error) {
+	return querier2.GetOne[LoadBalancer](q, map[string]any{
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"name":         name,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func ListLoadBalancersForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]LoadBalancer, error) {
 	return querier2.GetMany[LoadBalancer](q, map[string]any{
 		"workspace_id": workspaceId,
