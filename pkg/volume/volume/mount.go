@@ -7,6 +7,7 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/util/command_helper"
 	"github.com/dboxed/dboxed/pkg/volume/mount"
+	"github.com/moby/sys/mountinfo"
 )
 
 func (v *Volume) Mount(ctx context.Context, mountTarget string, readOnly bool) error {
@@ -46,6 +47,14 @@ func (v *Volume) Unmount(ctx context.Context, mountTarget string) error {
 	return mount.Unmount(ctx, mountTarget)
 }
 
+func (v *Volume) GetMountInfo() (*mountinfo.Info, error) {
+	lvDev, err := v.DevPath(true)
+	if err != nil {
+		return nil, err
+	}
+	return mount.GetMountBySource(lvDev)
+}
+
 func (v *Volume) IsMounted() (bool, error) {
 	lvDev, err := v.DevPath(true)
 	if err != nil {
@@ -54,6 +63,5 @@ func (v *Volume) IsMounted() (bool, error) {
 		}
 		return false, err
 	}
-
 	return mount.IsMountedSource(lvDev)
 }

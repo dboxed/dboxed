@@ -295,7 +295,7 @@ func (vs *VolumeServe) mountVolumeViaApi(ctx context.Context) error {
 	c2 := clients.VolumesClient{Client: vs.opts.Client}
 
 	var newVolume *models.Volume
-	vs.log.Info("mounting volume")
+	vs.log.Info("creating volume-mount")
 	mountRequest := models.VolumeMountRequest{
 		BoxId: vs.opts.BoxId,
 	}
@@ -343,12 +343,20 @@ func (vs *VolumeServe) refreshVolumeMount(ctx context.Context) error {
 		refreshMountRequest.LastFinishedSnapshotId = &s.LastFinishedSnapshot.ID
 	}
 
-	st, err := mount.StatFS(vs.GetMountDir())
-	if err != nil {
-		vs.log.Error(err.Error())
-	} else {
-		refreshMountRequest.VolumeTotalSize = st.TotalSize
-		refreshMountRequest.VolumeFreeSize = st.FreeSize
+	if vs.LocalVolume != nil {
+		mountInfo, err := vs.LocalVolume.GetMountInfo()
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		if mountInfo != nil {
+			st, err := mount.StatFS(mountInfo.Mountpoint)
+			if err != nil {
+				vs.log.Error(err.Error())
+			} else {
+				refreshMountRequest.VolumeTotalSize = &st.TotalSize
+				refreshMountRequest.VolumeFreeSize = &st.FreeSize
+			}
+		}
 	}
 
 	newVolume, err := c2.VolumeRefreshMount(ctx, vs.opts.VolumeId, refreshMountRequest)

@@ -71,9 +71,21 @@ func (v *VolumeMountStatus) UpdateReleaseInfo(q *querier2.Querier, releaseTime *
 	)
 }
 
-func (v *VolumeMountStatus) UpdateMountInfo(q *querier2.Querier, totalSize int64, freeSize int64, lastFinishedSnapshotId *string, snapshotStartTime *time.Time, snapshotEndTime *time.Time) error {
-	v.VolumeTotalSize = &totalSize
-	v.VolumeFreeSize = &freeSize
+func (v *VolumeMountStatus) UpdateMountInfo(q *querier2.Querier, totalSize *int64, freeSize *int64, lastFinishedSnapshotId *string, snapshotStartTime *time.Time, snapshotEndTime *time.Time) error {
+	fields := []string{
+		"last_finished_snapshot_id",
+		"snapshot_start_time",
+		"snapshot_end_time",
+		"status_time",
+	}
+	if totalSize != nil {
+		v.VolumeTotalSize = totalSize
+		fields = append(fields, "volume_total_size")
+	}
+	if freeSize != nil {
+		v.VolumeFreeSize = freeSize
+		fields = append(fields, "volume_free_size")
+	}
 	v.LastFinishedSnapshotId = lastFinishedSnapshotId
 	v.SnapshotStartTime = snapshotStartTime
 	v.SnapshotEndTime = snapshotEndTime
@@ -81,12 +93,5 @@ func (v *VolumeMountStatus) UpdateMountInfo(q *querier2.Querier, totalSize int64
 	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
 		"volume_id": v.VolumeId.V,
 		"mount_id":  v.MountId.V,
-	}, v,
-		"volume_total_size",
-		"volume_free_size",
-		"last_finished_snapshot_id",
-		"snapshot_start_time",
-		"snapshot_end_time",
-		"status_time",
-	)
+	}, v, fields...)
 }

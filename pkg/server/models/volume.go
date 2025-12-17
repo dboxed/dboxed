@@ -83,8 +83,8 @@ type VolumeMountRequest struct {
 type VolumeRefreshMountRequest struct {
 	MountId string `json:"mountId"`
 
-	VolumeTotalSize int64 `json:"volumeTotalSize"`
-	VolumeFreeSize  int64 `json:"volumeFreeSize"`
+	VolumeTotalSize *int64 `json:"volumeTotalSize,omitempty"`
+	VolumeFreeSize  *int64 `json:"volumeFreeSize,omitempty"`
 
 	LastFinishedSnapshotId *string `json:"lastFinishedSnapshotId,omitempty"`
 
