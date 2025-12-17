@@ -25,7 +25,6 @@ type Times struct {
 
 type OwnedByWorkspace struct {
 	ID string `db:"id" uuid:"true"`
-	SoftDeleteFields
 	Times
 
 	WorkspaceID string `db:"workspace_id"`

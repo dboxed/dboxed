@@ -6,6 +6,7 @@ import (
 
 type MachineProvider struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Type MachineProviderType `db:"type"`

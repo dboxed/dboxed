@@ -6,6 +6,7 @@ import (
 
 type LoadBalancer struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Name             string `db:"name"`

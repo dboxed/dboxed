@@ -8,6 +8,7 @@ import (
 
 type VolumeSnapshot struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 
 	VolumeProviderID querier.NullForJoin[string] `db:"volume_provider_id"`
 	VolumedID        querier.NullForJoin[string] `db:"volume_id"`

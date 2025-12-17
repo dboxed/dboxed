@@ -4,6 +4,7 @@ import "github.com/dboxed/dboxed/pkg/server/db/querier"
 
 type S3Bucket struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Endpoint        string `db:"endpoint"`

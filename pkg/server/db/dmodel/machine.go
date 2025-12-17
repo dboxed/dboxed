@@ -9,6 +9,7 @@ import (
 
 type Machine struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Name string `db:"name"`

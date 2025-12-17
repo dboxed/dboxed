@@ -6,6 +6,7 @@ import (
 
 type Volume struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Name string `db:"name"`

@@ -9,6 +9,7 @@ import (
 
 type LogMetadata struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 
 	MachineID *string `db:"machine_id" omitOnConflictUpdate:"true"`
 	BoxID     *string `db:"box_id" omitOnConflictUpdate:"true"`

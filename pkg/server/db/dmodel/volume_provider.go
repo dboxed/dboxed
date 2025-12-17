@@ -6,6 +6,7 @@ import (
 
 type VolumeProvider struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Type VolumeProviderType `db:"type"`

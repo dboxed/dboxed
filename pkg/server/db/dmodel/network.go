@@ -6,6 +6,7 @@ import (
 
 type Network struct {
 	OwnedByWorkspace
+	SoftDeleteFields
 	ReconcileStatus
 
 	Type NetworkType `db:"type"`
