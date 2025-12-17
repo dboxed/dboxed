@@ -8,22 +8,19 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 )
 
-type ReleaseCmd struct {
+type MountCmd struct {
 	Volume string `help:"Specify volume" required:"" arg:""`
-
-	flags.WebdavProxyFlags
 }
 
-func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
+func (cmd *MountCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
 	err := runServeVolumeCmd(ctx, g, runServeVolumeCmdOpts{
-		volume:            cmd.Volume,
-		webdavProxyListen: &cmd.WebdavProxyListen,
-		create:            false,
-		mount:             false,
-		serve:             false,
-		release:           true,
+		volume:  cmd.Volume,
+		create:  false,
+		mount:   true,
+		serve:   false,
+		release: false,
 	})
 
 	if err != nil {

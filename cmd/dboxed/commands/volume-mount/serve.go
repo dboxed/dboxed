@@ -35,6 +35,7 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		box:               cmd.Box,
 		readyFile:         cmd.ReadyFile,
 		create:            true,
+		mount:             true,
 		serve:             true,
 		release:           true,
 	})
@@ -53,6 +54,7 @@ type runServeVolumeCmdOpts struct {
 	readyFile *string
 
 	create  bool
+	mount   bool
 	serve   bool
 	release bool
 }
@@ -109,38 +111,43 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 	}
 	if volumeState == nil {
 		if !opts.create {
-			return fmt.Errorf("volume-mount must be created first")
+			return fmt.Errorf("volume-mount not found")
 		}
 		err = vs.Create(ctx)
 		if err != nil {
 			return err
 		}
 	}
+
 	err = vs.Open(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = vs.MountDevice(ctx, false)
-	if err != nil {
-		return err
-	}
-
-	restoreDone, err := vs.IsRestoreDone()
-	if err != nil {
-		return err
-	}
-	if !restoreDone {
-		err = vs.RestoreFromLatestSnapshot(ctx)
+	didInitialBackup := false
+	if opts.mount {
+		err = vs.MountDevice(ctx, false)
 		if err != nil {
 			return err
 		}
-	}
 
-	slog.Info("performing single backup")
-	err = vs.BackupOnce(ctx)
-	if err != nil {
-		return err
+		restoreDone, err := vs.IsRestoreDone()
+		if err != nil {
+			return err
+		}
+		if !restoreDone {
+			err = vs.RestoreFromLatestSnapshot(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		slog.Info("performing single backup")
+		err = vs.BackupOnce(ctx)
+		if err != nil {
+			return err
+		}
+		didInitialBackup = true
 	}
 
 	if opts.serve {
@@ -169,13 +176,32 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 	}
 
 	if opts.release {
-		slog.Info("remounting read-only")
-		err = vs.LocalVolume.RemountReadOnly(ctx, vs.GetMountDir())
+		isMounted, err := vs.LocalVolume.IsMounted()
 		if err != nil {
 			return err
 		}
+		if isMounted {
+			slog.Info("remounting read-only")
+			err = vs.LocalVolume.RemountReadOnly(ctx, vs.GetMountDir())
+			if err != nil {
+				return err
+			}
+		} else {
+			didRestore, err := vs.IsRestoreDone()
+			if err != nil {
+				return err
+			}
+			if didRestore {
+				slog.Info("need to mount volume for release to perform final backup")
+				err = vs.MountDevice(ctx, true)
+				if err != nil {
+					return err
+				}
+				isMounted = true
+			}
+		}
 
-		if opts.serve {
+		if isMounted && (opts.serve || !didInitialBackup) {
 			slog.Info("performing final backup")
 			err = vs.BackupOnce(ctx)
 			if err != nil {
@@ -190,10 +216,12 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 			return err
 		}
 
-		slog.Info("unmounting volume")
-		err = vs.LocalVolume.Unmount(ctx, vs.GetMountDir())
-		if err != nil {
-			return err
+		if isMounted {
+			slog.Info("unmounting volume")
+			err = vs.LocalVolume.Unmount(ctx, vs.GetMountDir())
+			if err != nil {
+				return err
+			}
 		}
 
 		err = vs.Deactivate(ctx)
