@@ -34,6 +34,9 @@ func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 		webdavProxyListen: &cmd.WebdavProxyListen,
 		box:               cmd.Box,
 		readyFile:         cmd.ReadyFile,
+		create:            true,
+		serve:             true,
+		release:           true,
 	})
 	if err != nil {
 		return err
@@ -48,6 +51,10 @@ type runServeVolumeCmdOpts struct {
 	box               *string
 
 	readyFile *string
+
+	create  bool
+	serve   bool
+	release bool
 }
 
 func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeVolumeCmdOpts) error {
@@ -101,6 +108,9 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 		return err
 	}
 	if volumeState == nil {
+		if !opts.create {
+			return fmt.Errorf("volume-mount must be created first")
+		}
 		err = vs.Create(ctx)
 		if err != nil {
 			return err
@@ -127,17 +137,19 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 		}
 	}
 
-	slog.Info("performing initial backup")
+	slog.Info("performing single backup")
 	err = vs.BackupOnce(ctx)
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		s := <-sigs
-		slog.Info(fmt.Sprintf("received %s, stopping periodic backup", s.String()))
-		vs.Stop()
-	}()
+	if opts.serve {
+		go func() {
+			s := <-sigs
+			slog.Info(fmt.Sprintf("received %s, stopping periodic backup", s.String()))
+			vs.Stop()
+		}()
+	}
 
 	if opts.readyFile != nil {
 		err = os.WriteFile(*opts.readyFile, nil, 0644)
@@ -146,48 +158,54 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 		}
 	}
 
-	slog.Info("starting periodic backup", slog.Any("interval", opts.backupInterval))
-	err = vs.Run(ctx)
-	if err != nil {
-		return err
+	if opts.serve {
+		slog.Info("starting periodic backup", slog.Any("interval", opts.backupInterval))
+		err = vs.Run(ctx)
+		if err != nil {
+			return err
+		}
+
+		slog.Info("periodic backup stopped")
 	}
 
-	slog.Info("periodic backup stopped")
+	if opts.release {
+		slog.Info("remounting read-only")
+		err = vs.LocalVolume.RemountReadOnly(ctx, vs.GetMountDir())
+		if err != nil {
+			return err
+		}
 
-	slog.Info("remounting read-only")
-	err = vs.LocalVolume.RemountReadOnly(ctx, vs.GetMountDir())
-	if err != nil {
-		return err
-	}
+		if opts.serve {
+			slog.Info("performing final backup")
+			err = vs.BackupOnce(ctx)
+			if err != nil {
+				return err
+			}
+		}
 
-	slog.Info("performing final backup")
-	err = vs.BackupOnce(ctx)
-	if err != nil {
-		return err
-	}
+		// we release early, because the volume being read-only already ensures we don't lose data
+		slog.Info("releasing volume mount")
+		err = vs.ReleaseVolumeMountViaApi(ctx)
+		if err != nil {
+			return err
+		}
 
-	// we release early, because the volume being read-only already ensures we don't lose data
-	slog.Info("releasing volume mount")
-	err = vs.ReleaseVolumeMountViaApi(ctx)
-	if err != nil {
-		return err
-	}
+		slog.Info("unmounting volume")
+		err = vs.LocalVolume.Unmount(ctx, vs.GetMountDir())
+		if err != nil {
+			return err
+		}
 
-	slog.Info("unmounting volume")
-	err = vs.LocalVolume.Unmount(ctx, vs.GetMountDir())
-	if err != nil {
-		return err
-	}
+		err = vs.Deactivate(ctx)
+		if err != nil {
+			return err
+		}
 
-	err = vs.Deactivate(ctx)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("removing volume dir")
-	err = os.RemoveAll(dir)
-	if err != nil {
-		return err
+		slog.Info("removing volume dir")
+		err = os.RemoveAll(dir)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
