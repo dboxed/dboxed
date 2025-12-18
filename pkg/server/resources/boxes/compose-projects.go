@@ -88,22 +88,7 @@ func (s *BoxesServer) restUpdateComposeProject(c context.Context, i *restUpdateC
 		return nil, err
 	}
 
-	cp, err := dmodel.GetBoxComposeProjectByName(q, box.ID, i.ComposeName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = cp.UpdateComposeProject(q, i.Body.ComposeProject)
-	if err != nil {
-		return nil, err
-	}
-
-	err = boxes_utils.ValidateBoxSpec(c, box, false)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dmodel.BumpChangeSeq(q, box)
+	err = boxes_utils.UpdateComposeProject(c, box, i.ComposeName, i.Body.ComposeProject)
 	if err != nil {
 		return nil, err
 	}
@@ -128,25 +113,7 @@ func (s *BoxesServer) restDeleteComposeProject(c context.Context, i *restDeleteC
 		return nil, err
 	}
 
-	cp, err := dmodel.GetBoxComposeProjectByName(q, box.ID, i.ComposeName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = querier2.DeleteOneByFields[dmodel.BoxComposeProject](q, map[string]any{
-		"box_id": box.ID,
-		"name":   cp.Name,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = boxes_utils.ValidateBoxSpec(c, box, false)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dmodel.BumpChangeSeq(q, box)
+	err = boxes_utils.DeleteComposeProject(c, box, i.ComposeName)
 	if err != nil {
 		return nil, err
 	}

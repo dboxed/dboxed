@@ -87,3 +87,12 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 
 	return box, nil
 }
+
+func DeleteBox(c context.Context, workspaceId string, boxId string) error {
+	q := querier2.GetQuerier(c)
+	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &workspaceId, boxId)
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -50,3 +50,58 @@ func CreateComposeProject(c context.Context, box *dmodel.Box, req models.CreateB
 
 	return nil
 }
+
+func UpdateComposeProject(c context.Context, box *dmodel.Box, composeName string, composeProject string) error {
+	q := querier2.GetQuerier(c)
+
+	cp, err := dmodel.GetBoxComposeProjectByName(q, box.ID, composeName)
+	if err != nil {
+		return err
+	}
+
+	err = cp.UpdateComposeProject(q, composeProject)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateBoxSpec(c, box, false)
+	if err != nil {
+		return err
+	}
+
+	err = dmodel.BumpChangeSeq(q, box)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteComposeProject(c context.Context, box *dmodel.Box, composeName string) error {
+	q := querier2.GetQuerier(c)
+
+	cp, err := dmodel.GetBoxComposeProjectByName(q, box.ID, composeName)
+	if err != nil {
+		return err
+	}
+
+	err = querier2.DeleteOneByFields[dmodel.BoxComposeProject](q, map[string]any{
+		"box_id": box.ID,
+		"name":   cp.Name,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = ValidateBoxSpec(c, box, false)
+	if err != nil {
+		return err
+	}
+
+	err = dmodel.BumpChangeSeq(q, box)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

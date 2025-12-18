@@ -68,11 +68,6 @@ func (s *BoxesServer) restAttachVolume(c context.Context, i *restAttachVolumeInp
 		return nil, err
 	}
 
-	err = dmodel.BumpChangeSeq(q, box)
-	if err != nil {
-		return nil, err
-	}
-
 	return &huma_utils.Empty{}, nil
 }
 
@@ -145,25 +140,7 @@ func (s *BoxesServer) restDetachVolume(c context.Context, i *restDetachVolumeInp
 		return nil, err
 	}
 
-	volume, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.VolumeId, true)
-	if err != nil {
-		return nil, err
-	}
-
-	err = querier2.DeleteOneByFields[dmodel.BoxVolumeAttachment](q, map[string]any{
-		"box_id":    box.ID,
-		"volume_id": volume.ID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = boxes_utils.ValidateBoxSpec(c, box, false)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dmodel.BumpChangeSeq(q, box)
+	err = boxes_utils.DetachVolume(c, box, i.VolumeId)
 	if err != nil {
 		return nil, err
 	}

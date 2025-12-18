@@ -7,7 +7,6 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/boxspec"
-	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/models"
@@ -15,9 +14,8 @@ import (
 
 func AttachVolume(c context.Context, box *dmodel.Box, req models.AttachVolumeRequest) error {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	volume, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, req.VolumeId, true)
+	volume, err := dmodel.GetVolumeWithDetailsById(q, &box.WorkspaceID, req.VolumeId, true)
 	if err != nil {
 		return err
 	}
@@ -53,6 +51,40 @@ func AttachVolume(c context.Context, box *dmodel.Box, req models.AttachVolumeReq
 	}
 
 	err = ValidateBoxSpec(c, box, false)
+	if err != nil {
+		return err
+	}
+
+	err = dmodel.BumpChangeSeq(q, box)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DetachVolume(c context.Context, box *dmodel.Box, volumeId string) error {
+	q := querier2.GetQuerier(c)
+
+	volume, err := dmodel.GetVolumeWithDetailsById(q, &box.WorkspaceID, volumeId, true)
+	if err != nil {
+		return err
+	}
+
+	err = querier2.DeleteOneByFields[dmodel.BoxVolumeAttachment](q, map[string]any{
+		"box_id":    box.ID,
+		"volume_id": volume.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = ValidateBoxSpec(c, box, false)
+	if err != nil {
+		return err
+	}
+
+	err = dmodel.BumpChangeSeq(q, box)
 	if err != nil {
 		return err
 	}

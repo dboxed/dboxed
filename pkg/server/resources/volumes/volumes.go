@@ -52,12 +52,10 @@ func (s *VolumeServer) Init(rootGroup huma.API, workspacesGroup huma.API) error 
 }
 
 func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonBody[models.CreateVolume]) (*huma_utils.JsonBody[models.Volume], error) {
-	v, inputErr, err := s.createVolume(ctx, i.Body)
+	w := auth_middleware.GetWorkspace(ctx)
+	v, err := CreateVolume(ctx, w.ID, i.Body)
 	if err != nil {
 		return nil, err
-	}
-	if inputErr != "" {
-		return nil, huma.Error400BadRequest(inputErr)
 	}
 
 	ret := models.VolumeFromDB(*v, nil, nil, nil)
@@ -65,23 +63,22 @@ func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonB
 	return huma_utils.NewJsonBody(ret), nil
 }
 
-func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolume) (*dmodel.Volume, error) {
+func CreateVolume(ctx context.Context, workspaceId string, body models.CreateVolume) (*dmodel.Volume, error) {
 	q := querier.GetQuerier(ctx)
-	w := auth_middleware.GetWorkspace(ctx)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, body.VolumeProvider, true)
+	vp, err := dmodel.GetVolumeProviderById(q, &workspaceId, body.VolumeProvider, true)
 	if err != nil {
 		return nil, err
 	}
 
 	v := &dmodel.Volume{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
-			WorkspaceID: w.ID,
+			WorkspaceID: workspaceId,
 		},
 		Name:               body.Name,
 		VolumeProviderType: vp.Type,
@@ -98,7 +95,7 @@ func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolum
 		if body.Rustic == nil {
 			return nil, huma.Error400BadRequest("missing rustic config")
 		}
-		err = s.createVolumeRustic(ctx, v, *body.Rustic)
+		err = createVolumeRustic(ctx, v, *body.Rustic)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +106,7 @@ func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolum
 	return v, nil
 }
 
-func (s *VolumeServer) createVolumeRustic(ctx context.Context, v *dmodel.Volume, body models.CreateVolumeRustic) error {
+func createVolumeRustic(ctx context.Context, v *dmodel.Volume, body models.CreateVolumeRustic) error {
 	q := querier.GetQuerier(ctx)
 
 	if body.FsSize <= humanize.MiByte {
@@ -207,21 +204,29 @@ func (s *VolumeServer) restGetVolumeByName(c context.Context, i *VolumeName) (*h
 }
 
 func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
-	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
-
-	v, err := dmodel.GetVolumeWithDetailsById(q, &w.ID, i.Id, true)
+	err := DeleteVolume(ctx, w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}
+	return &huma_utils.Empty{}, nil
+}
+
+func DeleteVolume(ctx context.Context, workspaceId string, id string) error {
+	q := querier.GetQuerier(ctx)
+
+	v, err := dmodel.GetVolumeWithDetailsById(q, &workspaceId, id, true)
+	if err != nil {
+		return err
+	}
 	if v.Attachment != nil && v.Attachment.BoxId.Valid {
-		return nil, huma.Error400BadRequest("can not delete volume that is attached to a box")
+		return huma.Error400BadRequest("can not delete volume that is attached to a box")
 	}
 
 	// make sure we can delete all snapshots (we have a 'on delete restrict' constraint on it)
 	err = v.UpdateLatestSnapshot(q, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	extraDeleteVolume := func(q *querier.Querier) error {
@@ -232,27 +237,27 @@ func (s *VolumeServer) restDeleteVolume(ctx context.Context, i *huma_utils.IdByP
 		return err
 	}
 
-	err = dmodel.SoftDeleteWithConstraintsByIdsExtra[*dmodel.Volume](q, &w.ID, i.Id, extraDeleteVolume)
+	err = dmodel.SoftDeleteWithConstraintsByIdsExtra[*dmodel.Volume](q, &workspaceId, id, extraDeleteVolume)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	snapshots, err := dmodel.ListVolumeSnapshotsForVolume(q, &w.ID, v.ID, true)
+	snapshots, err := dmodel.ListVolumeSnapshotsForVolume(q, &workspaceId, v.ID, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, s := range snapshots {
 		err = dmodel.SoftDeleteWithConstraints[*dmodel.VolumeSnapshot](q, map[string]any{
-			"workspace_id": w.ID,
+			"workspace_id": workspaceId,
 			"id":           s.ID,
 		}, nil)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return &huma_utils.Empty{}, nil
+	return nil
 }
 
 func (s *VolumeServer) restGetMountStatus(ctx context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.VolumeMountStatus], error) {

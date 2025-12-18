@@ -267,7 +267,7 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 		return nil, err
 	}
 
-	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &w.ID, i.Id)
+	err = boxes_utils.DeleteBox(c, w.ID, i.Id)
 	if err != nil {
 		return nil, err
 	}
