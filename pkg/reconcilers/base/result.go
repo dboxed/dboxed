@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 )
@@ -27,6 +28,12 @@ func StatusWithMessage(status string, message string) ReconcileResult {
 }
 
 func InternalError(err error) ReconcileResult {
+	var err2 huma.StatusError
+	if errors.As(err, &err2) {
+		if err2.GetStatus() >= 400 || err2.GetStatus() < 500 {
+			return ErrorWithMessage(err, err.Error())
+		}
+	}
 	return ReconcileResult{Error: err, UserMessage: "internal error"}
 }
 
