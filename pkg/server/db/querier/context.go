@@ -69,13 +69,9 @@ func IsForbidAutoTx(ctx context.Context) bool {
 	return true
 }
 
-func Transaction(ctx context.Context, fn func(ctx context.Context) error) error {
+func Transaction(ctx context.Context, fn func(ctx context.Context) (bool, error)) error {
 	return GetDB(ctx).Transaction(ctx, func(tx *sqlx.Tx) (bool, error) {
 		ctx = context.WithValue(ctx, "tx", tx)
-		err := fn(ctx)
-		if err != nil {
-			return false, err
-		}
-		return true, nil
+		return fn(ctx)
 	})
 }

@@ -8,12 +8,12 @@ import (
 
 func Transaction(ctx context.Context, fn func(ctx context.Context) ReconcileResult) ReconcileResult {
 	var result ReconcileResult
-	err := querier.Transaction(ctx, func(ctx context.Context) error {
+	err := querier.Transaction(ctx, func(ctx context.Context) (bool, error) {
 		result = fn(ctx)
 		if result.Error != nil {
-			return result.Error
+			return false, result.Error
 		}
-		return nil
+		return true, nil
 	})
 	if result.Error == nil && err != nil {
 		return InternalError(err)

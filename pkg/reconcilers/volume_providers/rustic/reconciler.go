@@ -161,7 +161,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		_, ok := rsSnapshotIdSet[s.Rustic.SnapshotId.V]
 		if !ok {
 			log.InfoContext(ctx, "snapshot vanished from rustic, marking for deletion in DB")
-			err := querier.Transaction(ctx, func(ctx context.Context) error {
+			err := querier.Transaction(ctx, func(ctx context.Context) (bool, error) {
 				q := querier.GetQuerier(ctx)
 				v, ok := dbVolumes[s.VolumedID.V]
 				if ok {
@@ -169,15 +169,15 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 						log.InfoContext(ctx, "snapshot was the latest snapshot, resetting latest snapshot field")
 						err := v.UpdateLatestSnapshot(q, nil)
 						if err != nil {
-							return err
+							return false, err
 						}
 					}
 				}
 				err := dmodel.SoftDeleteByStruct(q, s)
 				if err != nil {
-					return err
+					return false, err
 				}
-				return nil
+				return true, nil
 			})
 			if err != nil {
 				return base.InternalError(err)
