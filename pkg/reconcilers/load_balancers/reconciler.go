@@ -36,12 +36,12 @@ func (r *reconciler) Reconcile(ctx context.Context, lb *dmodel.LoadBalancer, log
 	}
 
 	token, result := r.reconcileToken(ctx, lb, log)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.reconcileBoxReplicas(ctx, lb, token, log)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -59,7 +59,7 @@ func (r *reconciler) reconcileDelete(ctx context.Context, lb *dmodel.LoadBalance
 
 	for _, replica := range existingReplicas {
 		result := r.softDeleteReplica(ctx, lb, replica.BoxId, log)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	}

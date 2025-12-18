@@ -49,12 +49,12 @@ func (r *Reconciler) reconcileVpc(ctx context.Context) base.ReconcileResult {
 	}
 
 	result := r.reconcileSubnets(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.reconcileSecurityGroups(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -144,7 +144,7 @@ func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) base.Reconcile
 	if resp == nil || len(resp.SecurityGroups) == 0 {
 		var result base.ReconcileResult
 		sg, result = r.createSecurityGroup(ctx, log, groupName)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	} else {
@@ -161,7 +161,7 @@ func (r *Reconciler) reconcileSecurityGroups(ctx context.Context) base.Reconcile
 	}
 
 	result := r.reconcileSecurityGroupRules(ctx, log, sg)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

@@ -43,7 +43,7 @@ func (r *Reconciler) queryPeers(ctx context.Context) base.ReconcileResult {
 
 func (r *Reconciler) Cleanup(ctx context.Context) base.ReconcileResult {
 	groups, result := r.groupIds(r.desiredGroups(ctx), true)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	for _, sk := range r.setupKeysById {
@@ -101,7 +101,7 @@ func (r *Reconciler) doReconcileBox(ctx context.Context, box *dmodel.Box) base.R
 
 	if box.Netbird.SetupKeyID == nil {
 		autoGroups, result := r.groupIds(r.desiredGroups(ctx), true)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 

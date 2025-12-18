@@ -31,19 +31,19 @@ type Reconciler struct {
 
 func (r *Reconciler) queryNetbirdResources(ctx context.Context) base.ReconcileResult {
 	result := r.queryNetbirdGroups(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	result = r.queryNetbirdPolicies(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	result = r.querySetupKeys(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	result = r.queryPeers(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -63,7 +63,7 @@ func (r *Reconciler) ReconcileNetwork(ctx context.Context, log *slog.Logger, n *
 	}
 
 	result := r.queryNetbirdResources(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -73,12 +73,12 @@ func (r *Reconciler) ReconcileNetwork(ctx context.Context, log *slog.Logger, n *
 	}
 
 	result = r.reconcileNetbirdGroups(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.reconcileNetbirdPolicies(ctx, false)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -93,13 +93,13 @@ func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileR
 	}
 
 	result := r.queryNetbirdResources(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	config := config.GetConfig(ctx)
 	groupIds, result := r.groupIds(r.groupsToDelete(ctx), false)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -137,7 +137,7 @@ func (r *Reconciler) reconcileDeleteNetwork(ctx context.Context) base.ReconcileR
 	}
 
 	result = r.reconcileNetbirdPolicies(ctx, true)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

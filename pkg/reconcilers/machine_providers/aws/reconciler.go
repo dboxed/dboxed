@@ -53,7 +53,7 @@ func (r *Reconciler) ReconcileMachineProvider(ctx context.Context, log *slog.Log
 	q := querier.GetQuerier(ctx)
 
 	result := r.reconcileCommon(log, mp)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -67,17 +67,17 @@ func (r *Reconciler) ReconcileMachineProvider(ctx context.Context, log *slog.Log
 	}
 
 	result = r.reconcileSshKey(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.reconcileVpc(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.queryAwsInstances(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -100,12 +100,12 @@ func (r *Reconciler) reconcileDeleteMachineProvider(ctx context.Context) base.Re
 	}
 
 	result := r.deleteSecurityGroup(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.deleteSshKeyPair(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

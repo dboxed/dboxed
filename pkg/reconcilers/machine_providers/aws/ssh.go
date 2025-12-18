@@ -61,7 +61,7 @@ func (r *Reconciler) reconcileSshKey(ctx context.Context) base.ReconcileResult {
 	}
 
 	result := r.deleteSshKeyPair(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	return r.createSshKeyPair(ctx)

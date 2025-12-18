@@ -80,13 +80,13 @@ func (r *Reconciler) doReconcileMachine(ctx context.Context, m *dmodel.Machine) 
 
 	if m.Aws.Status.InstanceID == nil {
 		result := r.createAwsInstance(ctx, log, m)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	}
 
 	result := r.updateAwsInstance(ctx, log, m)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -163,7 +163,7 @@ func (r *Reconciler) createAwsInstance(ctx context.Context, log *slog.Logger, m 
 	)
 
 	image, result := r.selectAwsImage(ctx, *m)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

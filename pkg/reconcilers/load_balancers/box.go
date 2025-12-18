@@ -27,7 +27,7 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 
 	for len(existingReplicas) > lb.Replicas {
 		result := r.softDeleteReplica(ctx, lb, existingReplicas[len(existingReplicas)-1].BoxId, log)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 		existingReplicas = existingReplicas[:len(existingReplicas)-1]
@@ -56,7 +56,7 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 			existingReplicas = append(existingReplicas, newReplica)
 			return base.ReconcileResult{}
 		})
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	}
@@ -67,7 +67,7 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 			return base.InternalError(err)
 		}
 		result := r.reconcileBoxReplica(ctx, lb, box, token, log)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	}
@@ -79,14 +79,14 @@ func (r *reconciler) reconcileBoxReplica(ctx context.Context, lb *dmodel.LoadBal
 	log = log.With("boxId", box.ID, "boxName", box.Name)
 
 	result := r.reconcileBoxPortForwards(ctx, lb, box, log)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	switch dmodel.LoadBalancerType(lb.LoadBalancerType) {
 	case dmodel.LoadBalancerTypeCaddy:
 		result = r.reconcileLoadBalancerCaddy(ctx, lb, box, token, log)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	}

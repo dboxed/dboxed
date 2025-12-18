@@ -53,7 +53,7 @@ func (r *reconciler) Reconcile(ctx context.Context, mp *dmodel.MachineProvider, 
 	}
 
 	result := sr.ReconcileMachineProvider(ctx, log, mp)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

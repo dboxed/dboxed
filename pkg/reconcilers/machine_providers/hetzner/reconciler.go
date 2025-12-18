@@ -43,17 +43,17 @@ func (r *Reconciler) ReconcileMachineProvider(ctx context.Context, log *slog.Log
 	}
 
 	result := r.reconcileSshKey(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.reconcileHetznerNetwork(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.queryHetznerServers(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

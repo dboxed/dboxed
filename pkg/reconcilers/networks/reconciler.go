@@ -50,7 +50,7 @@ func (r *networkReconciler) Reconcile(ctx context.Context, n *dmodel.Network, lo
 	}
 
 	result := sr.ReconcileNetwork(ctx, log, n)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -68,7 +68,7 @@ func (r *networkReconciler) Reconcile(ctx context.Context, n *dmodel.Network, lo
 	}
 
 	result = sr.Cleanup(ctx)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 

@@ -14,6 +14,12 @@ type ReconcileResult struct {
 	Status      string
 	Error       error
 	UserMessage string
+
+	Requeue bool
+}
+
+func (r *ReconcileResult) ExitReconcile() bool {
+	return r.Error != nil || r.Requeue
 }
 
 func StatusWithMessage(status string, message string) ReconcileResult {

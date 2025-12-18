@@ -67,7 +67,7 @@ func (r *Reconciler) doReconcileMachine(ctx context.Context, m *dmodel.Machine) 
 			}
 		} else {
 			result := r.createHetznerServer(ctx, log, m)
-			if result.Error != nil {
+			if result.ExitReconcile() {
 				return result
 			}
 		}

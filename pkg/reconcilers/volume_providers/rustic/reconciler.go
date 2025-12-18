@@ -135,12 +135,12 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 	}
 
 	result := r.initRusticRepo(ctx, log, vp, b, c)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	rsSnapshotIds, result := r.listRusticSnapshotIds(ctx, vp, b, c)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	rsSnapshotIdSet := map[string]struct{}{}
@@ -190,7 +190,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 
 func (r *Reconciler) ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) base.ReconcileResult {
 	result := r.deleteRusticSnapshot(ctx, log, vp, dbSnapshot.Rustic.SnapshotId.V)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 	return base.ReconcileResult{}

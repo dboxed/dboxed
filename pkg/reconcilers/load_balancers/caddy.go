@@ -18,7 +18,7 @@ func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.
 	q := querier.GetQuerier(ctx)
 
 	composeFile, result := r.buildCaddyCompose(ctx, lb, box, token, log)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -53,7 +53,7 @@ func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.
 
 func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalancer, proxyBox *dmodel.Box, token *models.Token, log *slog.Logger) (string, base.ReconcileResult) {
 	cf, result := r.buildCaddyfile(ctx, lb, token, log)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return "", result
 	}
 

@@ -77,17 +77,17 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 	}
 
 	dbVolumes, dbSnapshots, result := r.getVolumeProviderChildren(ctx, vp)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = r.forgetOldSnapshots(ctx, log, vp, dbVolumes, dbSnapshots)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
 	result = sr.ReconcileVolumeProvider(ctx, log, vp, dbVolumes, dbSnapshots)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
@@ -99,7 +99,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 			}
 
 			result = sr.ReconcileDeleteSnapshot(ctx, log, vp, &v.Volume, s)
-			if result.Error != nil {
+			if result.ExitReconcile() {
 				return result
 			}
 
@@ -114,7 +114,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 	for _, v := range dbVolumes {
 		if v.DeletedAt.Valid {
 			result = sr.ReconcileDeleteVolume(ctx, log, vp, v)
-			if result.Error != nil {
+			if result.ExitReconcile() {
 				return result
 			}
 
@@ -145,7 +145,7 @@ func (r *reconciler) forgetOldSnapshots(ctx context.Context, log *slog.Logger, v
 			continue
 		}
 		result := r.forgetOldSnapshotsForVolume(ctx, log, v, sl)
-		if result.Error != nil {
+		if result.ExitReconcile() {
 			return result
 		}
 	}

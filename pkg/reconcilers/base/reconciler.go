@@ -24,7 +24,8 @@ type Config[T dmodel.HasReconcileStatusAndSoftDelete] struct {
 
 	ChangeCheckInterval   time.Duration
 	FullReconcileInterval time.Duration
-	ErrorRetryTine        time.Duration
+	ErrorRetryTime        time.Duration
+	RequeueDelay          time.Duration
 	Parallel              int
 
 	Reconciler            ReconcileImpl[T]
@@ -60,8 +61,11 @@ func NewReconciler[T dmodel.HasReconcileStatusAndSoftDelete](config Config[T]) *
 	if config.ChangeCheckInterval == 0 {
 		config.ChangeCheckInterval = time.Second * 1
 	}
-	if config.ErrorRetryTine == 0 {
-		config.ErrorRetryTine = time.Second * 15
+	if config.ErrorRetryTime == 0 {
+		config.ErrorRetryTime = time.Second * 15
+	}
+	if config.RequeueDelay == 0 {
+		config.RequeueDelay = time.Second * 5
 	}
 	if config.Parallel == 0 {
 		config.Parallel = 4
@@ -196,7 +200,7 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 	impl, err := r.getReconcilerImpl(ctx, item.id)
 	if err != nil {
 		log.ErrorContext(ctx, "error getting/creating reconciler impl", slog.Any("error", err))
-		r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+		r.workQueue.AddAfter(item, r.config.ErrorRetryTime)
 		return true
 	}
 
@@ -204,7 +208,7 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 	if err != nil {
 		if !querier2.IsSqlNotFoundError(err) {
 			log.ErrorContext(ctx, "error getting reconcile item", slog.Any("error", err))
-			r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+			r.workQueue.AddAfter(item, r.config.ErrorRetryTime)
 		}
 		return true
 	}
@@ -225,7 +229,7 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 				if err != nil {
 					LogReconcileResultError(ctx, log, result)
 					SetReconcileResult(ctx, log, v, InternalError(err))
-					r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+					r.workQueue.AddAfter(item, r.config.ErrorRetryTime)
 					return true
 				}
 			}
@@ -233,9 +237,11 @@ func (r *Reconciler[T]) runQueueOnce(ctx context.Context) bool {
 	}
 
 	if result.Error != nil {
-		r.workQueue.AddAfter(item, r.config.ErrorRetryTine)
+		r.workQueue.AddAfter(item, r.config.ErrorRetryTime)
 	} else {
-		if r.config.FullReconcileInterval != 0 {
+		if result.Requeue {
+			r.workQueue.AddAfter(item, r.config.RequeueDelay)
+		} else if r.config.FullReconcileInterval != 0 {
 			r.workQueue.AddAfter(item, r.config.FullReconcileInterval)
 		}
 	}

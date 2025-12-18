@@ -31,7 +31,7 @@ func (r *reconciler) Reconcile(ctx context.Context, w *dmodel.Workspace, log *sl
 	)
 
 	result := r.reconcileLogQuotas(ctx, w, log)
-	if result.Error != nil {
+	if result.ExitReconcile() {
 		return result
 	}
 
