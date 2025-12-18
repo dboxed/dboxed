@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/loader"
@@ -87,18 +88,20 @@ func (s *BoxSpec) ValidateComposeProject(ctx context.Context, name string, compo
 }
 
 func (s *BoxSpec) loadComposeProject(ctx context.Context, name string, str string, validate bool) (*ctypes.Project, error) {
-	tmpFile, err := os.CreateTemp("", "")
+	tmpDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, err
 	}
-	defer tmpFile.Close()
-	defer os.Remove(tmpFile.Name())
+	defer os.RemoveAll(tmpDir)
 
-	_, err = tmpFile.Write([]byte(str))
+	subdir := filepath.Join(tmpDir, name)
+	err = os.Mkdir(subdir, 0700)
 	if err != nil {
 		return nil, err
 	}
-	err = tmpFile.Close()
+
+	cpFile := filepath.Join(subdir, "docker-compose.yaml")
+	err = os.WriteFile(cpFile, []byte(str), 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +119,7 @@ func (s *BoxSpec) loadComposeProject(ctx context.Context, name string, str strin
 		)
 	}
 
-	options, err := cli.NewProjectOptions([]string{tmpFile.Name()}, opts...)
+	options, err := cli.NewProjectOptions([]string{cpFile}, opts...)
 	if err != nil {
 		return nil, err
 	}
