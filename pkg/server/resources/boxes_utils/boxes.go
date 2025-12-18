@@ -3,18 +3,19 @@ package boxes_utils
 import (
 	"context"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
-func CreateBox(c context.Context, workspaceId string, body models.CreateBox, boxType dmodel.BoxType) (*dmodel.Box, string, error) {
+func CreateBox(c context.Context, workspaceId string, body models.CreateBox, boxType dmodel.BoxType) (*dmodel.Box, error) {
 	q := querier2.GetQuerier(c)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
-		return nil, err.Error(), nil
+		return nil, err
 	}
 
 	var networkId *string
@@ -23,7 +24,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		var network *dmodel.Network
 		network, err = dmodel.GetNetworkById(q, &workspaceId, *body.Network, true)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		networkId = &network.ID
 		networkType = &network.Type
@@ -44,7 +45,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 
 	err = box.Create(q)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	sandboxStatus := dmodel.BoxSandboxStatus{
@@ -52,7 +53,7 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 	}
 	err = sandboxStatus.Create(q)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	if networkId != nil {
@@ -63,26 +64,26 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 			}
 			err = box.Netbird.Create(q)
 			if err != nil {
-				return nil, "", err
+				return nil, err
 			}
 		default:
-			return nil, "unknown network type", nil
+			return nil, huma.Error400BadRequest("unknown network type")
 		}
 	}
 
 	for _, va := range body.VolumeAttachments {
 		err = AttachVolume(c, box, va)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 	}
 
 	for _, cp := range body.ComposeProjects {
 		err = CreateComposeProject(c, box, cp)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 	}
 
-	return box, "", nil
+	return box, nil
 }

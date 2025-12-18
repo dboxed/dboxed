@@ -65,18 +65,18 @@ func (s *VolumeServer) restCreateVolume(ctx context.Context, i *huma_utils.JsonB
 	return huma_utils.NewJsonBody(ret), nil
 }
 
-func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolume) (*dmodel.Volume, string, error) {
+func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolume) (*dmodel.Volume, error) {
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
 	err := util.CheckName(body.Name)
 	if err != nil {
-		return nil, err.Error(), nil
+		return nil, err
 	}
 
 	vp, err := dmodel.GetVolumeProviderById(q, &w.ID, body.VolumeProvider, true)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	v := &dmodel.Volume{
@@ -90,23 +90,23 @@ func (s *VolumeServer) createVolume(ctx context.Context, body models.CreateVolum
 
 	err = v.Create(q)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	switch vp.Type {
 	case dmodel.VolumeProviderTypeRustic:
 		if body.Rustic == nil {
-			return nil, "missing rustic config", nil
+			return nil, huma.Error400BadRequest("missing rustic config")
 		}
 		err = s.createVolumeRustic(ctx, v, *body.Rustic)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 	default:
-		return nil, "", huma.Error501NotImplemented("volume provider not implemented")
+		return nil, huma.Error501NotImplemented("volume provider not implemented")
 	}
 
-	return v, "", nil
+	return v, nil
 }
 
 func (s *VolumeServer) createVolumeRustic(ctx context.Context, v *dmodel.Volume, body models.CreateVolumeRustic) error {

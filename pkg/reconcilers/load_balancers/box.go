@@ -38,15 +38,12 @@ func (r *reconciler) reconcileBoxReplicas(ctx context.Context, lb *dmodel.LoadBa
 			boxName := fmt.Sprintf("lb-%s-%d", lb.Name, len(existingReplicas)+1)
 
 			log.InfoContext(ctx, "creating box for load balancer")
-			box, inputErr, err := boxes_utils.CreateBox(ctx, lb.WorkspaceID, models.CreateBox{
+			box, err := boxes_utils.CreateBox(ctx, lb.WorkspaceID, models.CreateBox{
 				Name:    boxName,
 				Network: &network.ID,
 			}, dmodel.BoxTypeLoadBalancer)
 			if err != nil {
 				return base.InternalError(err)
-			}
-			if inputErr != "" {
-				return base.ErrorFromMessage(inputErr)
 			}
 			newReplica := dmodel.LoadBalancerBox{
 				LoadBalancerId: lb.ID,

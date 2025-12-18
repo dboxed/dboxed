@@ -71,12 +71,9 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 
 func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[models.CreateBox]) (*huma_utils.JsonBody[models.Box], error) {
 	w := auth_middleware.GetWorkspace(c)
-	box, inputErr, err := boxes_utils.CreateBox(c, w.ID, i.Body, dmodel.BoxTypeNormal)
+	box, err := boxes_utils.CreateBox(c, w.ID, i.Body, dmodel.BoxTypeNormal)
 	if err != nil {
 		return nil, err
-	}
-	if inputErr != "" {
-		return nil, huma.Error400BadRequest(inputErr)
 	}
 
 	ret, err := models.BoxFromDB(*box, nil)
