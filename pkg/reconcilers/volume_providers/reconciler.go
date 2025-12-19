@@ -19,7 +19,7 @@ type reconciler struct {
 func NewVolumeProvidersReconciler() *base.Reconciler[*dmodel.VolumeProvider] {
 	return base.NewReconciler(base.Config[*dmodel.VolumeProvider]{
 		ReconcilerName:        "volume_providers",
-		FullReconcileInterval: 5 * time.Second,
+		FullReconcileInterval: 60 * time.Minute,
 		Reconciler:            &reconciler{},
 	})
 }

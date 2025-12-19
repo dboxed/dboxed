@@ -18,7 +18,7 @@ import (
 type Reconciler struct {
 }
 
-func (vb *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, region string) rustic.RusticConfig {
+func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, region string) rustic.RusticConfig {
 	config := rustic.RusticConfig{
 		Repository: rustic.RusticConfigRepository{
 			Repository: "opendal:s3",
