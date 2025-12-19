@@ -20,7 +20,10 @@ type CommandHelper struct {
 	Args    []string
 	Env     []string
 
-	Stdin       io.Reader
+	Stdin        io.Reader
+	StdoutStream io.Writer
+	StderrStream io.Writer
+
 	CatchStdout bool
 	CatchStderr bool
 	Logger      *slog.Logger
@@ -65,6 +68,8 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 	var stdout, stderr io.Writer
 	if c.CatchStdout {
 		stdout = &stdoutBuf
+	} else if c.StdoutStream != nil {
+		stdout = c.StdoutStream
 	} else {
 		if c.Logger != nil {
 			stdout = lhStdout
@@ -74,6 +79,8 @@ func (c *CommandHelper) Run(ctx context.Context) error {
 	}
 	if c.CatchStderr {
 		stderr = &stderrBuf
+	} else if c.StderrStream != nil {
+		stderr = c.StderrStream
 	} else {
 		if c.Logger != nil {
 			stderr = lhStderr
