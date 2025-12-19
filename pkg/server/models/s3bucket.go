@@ -16,6 +16,8 @@ type S3Bucket struct {
 
 	Endpoint string `json:"endpoint"`
 	Bucket   string `json:"bucket"`
+
+	DeterminedRegion *string `json:"determinedRegion"`
 }
 
 type CreateS3Bucket struct {
@@ -42,6 +44,8 @@ func S3BucketFromDB(v dmodel.S3Bucket) S3Bucket {
 
 		Endpoint: v.Endpoint,
 		Bucket:   v.Bucket,
+
+		DeterminedRegion: v.DeterminedRegion,
 	}
 	return ret
 }

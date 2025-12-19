@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"path"
-	"sync"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -19,12 +18,6 @@ import (
 )
 
 type S3ProxyServer struct {
-	bucketLocationCache sync.Map
-}
-
-type bucketLocationCacheKey struct {
-	endpoint string
-	bucket   string
 }
 
 func New() *S3ProxyServer {
@@ -60,27 +53,7 @@ func (s *S3ProxyServer) handleBase(ctx context.Context, bucketId string) (*dmode
 		return nil, nil, err
 	}
 
-	key := bucketLocationCacheKey{
-		endpoint: b.Endpoint,
-		bucket:   b.Bucket,
-	}
-
-	cachedRegion, ok := s.bucketLocationCache.Load(key)
-	if !ok {
-		c, err := s3utils.BuildS3Client(b, "")
-		if err != nil {
-			return nil, nil, err
-		}
-		loc, err := c.GetBucketLocation(ctx, b.Bucket)
-		if err != nil {
-			return nil, nil, err
-		}
-		cachedRegion = &loc
-		s.bucketLocationCache.Store(key, cachedRegion)
-	}
-	region := cachedRegion.(*string)
-
-	c, err := s3utils.BuildS3Client(b, *region)
+	c, err := s3utils.BuildS3Client(b)
 	if err != nil {
 		return nil, nil, err
 	}

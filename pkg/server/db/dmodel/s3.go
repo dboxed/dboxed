@@ -11,6 +11,8 @@ type S3Bucket struct {
 	Bucket          string `db:"bucket"`
 	AccessKeyId     string `db:"access_key_id"`
 	SecretAccessKey string `db:"secret_access_key"`
+
+	DeterminedRegion *string `db:"determined_region"`
 }
 
 func (v *S3Bucket) Create(q *querier.Querier) error {
@@ -69,5 +71,12 @@ func (v *S3Bucket) UpdateKeys(q *querier.Querier, accessKeyId string, secretAcce
 	return querier.UpdateOneFromStruct(q, v,
 		"access_key_id",
 		"secret_access_key",
+	)
+}
+
+func (v *S3Bucket) UpdateDeterminedRegion(q *querier.Querier, region *string) error {
+	v.DeterminedRegion = region
+	return querier.UpdateOneFromStruct(q, v,
+		"determined_region",
 	)
 }

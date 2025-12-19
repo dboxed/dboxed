@@ -69,6 +69,7 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 	}
 
 	checkS3Bucket := func(bucketId string) error {
+		// this checks workspace ownership of the bucket
 		_, err := dmodel.GetS3BucketById(q, &w.ID, bucketId, true)
 		if err != nil {
 			return err

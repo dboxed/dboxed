@@ -52,15 +52,17 @@ func (s *S3BucketsServer) restCreateS3Bucket(ctx context.Context, i *huma_utils.
 		SecretAccessKey: i.Body.SecretAccessKey,
 	}
 
-	c, err := s3utils.BuildS3Client(r, "")
+	c, err := s3utils.BuildS3Client(r)
 	if err != nil {
 		return nil, huma.Error400BadRequest(fmt.Sprintf("failed to verify S3 bucket: %s", err.Error()), err)
 	}
 	loc, err := c.GetBucketLocation(ctx, r.Bucket)
 	if err != nil {
-		return nil, err
+		return nil, huma.Error400BadRequest(fmt.Sprintf("failed to verify S3 bucket: %s", err.Error()), err)
 	}
 	slog.InfoContext(ctx, "adding S3 bucket", "endpoint", i.Body.Endpoint, "bucket", i.Body.Bucket, "location", loc)
+
+	r.DeterminedRegion = &loc
 
 	err = r.Create(q)
 	if err != nil {

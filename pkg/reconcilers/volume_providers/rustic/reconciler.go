@@ -88,7 +88,7 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) base.ReconcileResult {
 	log.InfoContext(ctx, "deleting rustic snapshot", slog.Any("rsSnapshotId", snapshotId))
 
-	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID)
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
 	}
@@ -129,7 +129,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		dbVolumesByUuuid[v.ID] = v
 	}
 
-	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID, "")
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID)
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
 	}

@@ -13,7 +13,9 @@ create table s3_bucket
     endpoint                 text        not null,
     bucket                   text        not null,
     access_key_id            text        not null,
-    secret_access_key        text        not null
+    secret_access_key        text        not null,
+
+    determined_region        text
 );
 create index s3_bucket_change_seq on s3_bucket (change_seq);
 
