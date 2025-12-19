@@ -26,7 +26,6 @@ builds:
     ldflags:
       - -s -w
       - '{{ if ne .Env.NO_GO_VERSION "1" }}-X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.builtBy=goreleaser{{ end }}'
-      - '{{ if eq .Os "linux" }}-extldflags=-static{{ end }}'
 
 archives:
   - formats: [tar.gz]
