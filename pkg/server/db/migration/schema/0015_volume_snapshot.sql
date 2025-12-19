@@ -15,37 +15,29 @@ create table volume_snapshot
 alter table volume
     add foreign key (latest_snapshot_id) references volume_snapshot (id) on delete restrict;
 
-create table volume_snapshot_rustic
+create table volume_snapshot_restic
 (
-    id                      text        not null primary key references volume_snapshot (id) on delete cascade,
+    id                    text        not null primary key references volume_snapshot (id) on delete cascade,
 
-    snapshot_id             text        not null unique,
-    snapshot_time           timestamptz not null,
-    parent_snapshot_id      text,
+    snapshot_id           text        not null unique,
+    snapshot_time         timestamptz not null,
+    parent_snapshot_id    text,
 
-    hostname                text        not null,
+    hostname              text        not null,
 
-    files_new               int         not null,
-    files_changed           int         not null,
-    files_unmodified        int         not null,
-    total_files_processed   int         not null,
-    total_bytes_processed   int         not null,
-    dirs_new                int         not null,
-    dirs_changed            int         not null,
-    dirs_unmodified         int         not null,
-    total_dirs_processed    int         not null,
-    total_dirsize_processed int         not null,
-    data_blobs              int         not null,
-    tree_blobs              int         not null,
-    data_added              int         not null,
-    data_added_packed       int         not null,
-    data_added_files        int         not null,
-    data_added_files_packed int         not null,
-    data_added_trees        int         not null,
-    data_added_trees_packed int         not null,
+    backup_start          timestamptz not null,
+    backup_end            timestamptz not null,
 
-    backup_start            timestamptz not null,
-    backup_end              timestamptz not null,
-    backup_duration         float4      not null,
-    total_duration          float4      not null
+    files_new             int         not null,
+    files_changed         int         not null,
+    files_unmodified      int         not null,
+    dirs_new              int         not null,
+    dirs_changed          int         not null,
+    dirs_unmodified       int         not null,
+    data_blobs            int         not null,
+    tree_blobs            int         not null,
+    data_added            int         not null,
+    data_added_packed     int         not null,
+    total_files_processed int         not null,
+    total_bytes_processed int         not null
 );

@@ -69,7 +69,8 @@ func (s *S3ProxyServer) restListObjects(ctx context.Context, i *huma_utils.IdByP
 	slog.InfoContext(ctx, "restListObjects", slog.Any("listPrefix", i.Body.Prefix))
 
 	ch := c.ListObjects(ctx, b.Bucket, minio.ListObjectsOptions{
-		Prefix: i.Body.Prefix,
+		Prefix:    i.Body.Prefix,
+		Recursive: i.Body.Recursive,
 	})
 	defer func() {
 		// drain it

@@ -1,8 +1,9 @@
-package rustic
+package restic
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"path"
 	"strings"
@@ -11,59 +12,54 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/s3utils"
-	"github.com/dboxed/dboxed/pkg/volume/rustic"
+	"github.com/dboxed/dboxed/pkg/volume/restic"
 	"github.com/minio/minio-go/v7"
 )
 
 type Reconciler struct {
 }
 
-func (r *Reconciler) buildRusticConfig(vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, region string) rustic.RusticConfig {
-	config := rustic.RusticConfig{
-		Repository: rustic.RusticConfigRepository{
-			Repository: "opendal:s3",
-			Password:   vp.Rustic.Password.V,
-			Options: rustic.RusticConfigRepositoryOptions{
-				Endpoint:        b.Endpoint,
-				Region:          &region,
-				Bucket:          b.Bucket,
-				AccessKeyId:     b.AccessKeyId,
-				SecretAccessKey: b.SecretAccessKey,
-				Root:            vp.Rustic.StoragePrefix.V,
-			},
-		},
+func (r *Reconciler) buildResticEnv(vp *dmodel.VolumeProvider, b *dmodel.S3Bucket) []string {
+	repo := fmt.Sprintf("%s/%s", b.Endpoint, b.Bucket)
+	if vp.Restic.StoragePrefix.Valid && vp.Restic.StoragePrefix.V != "" {
+		repo += "/" + vp.Restic.StoragePrefix.V
 	}
-	return config
+
+	env := []string{
+		fmt.Sprintf("RESTIC_REPOSITORY=s3:%s", repo),
+		fmt.Sprintf("RESTIC_PASSWORD=%s", vp.Restic.Password.V),
+		fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", b.AccessKeyId),
+		fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", b.SecretAccessKey),
+	}
+	if b.DeterminedRegion != nil {
+		env = append(env, fmt.Sprintf("AWS_DEFAULT_REGION=%s", *b.DeterminedRegion))
+	}
+	return env
 }
 
-func (r *Reconciler) initRusticRepo(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, c *minio.Client) base.ReconcileResult {
+func (r *Reconciler) initResticRepo(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, c *minio.Client) base.ReconcileResult {
 	_, err := c.StatObject(ctx, b.Bucket,
-		path.Join(vp.Rustic.StoragePrefix.V, "config"),
+		path.Join(vp.Restic.StoragePrefix.V, "config"),
 		minio.StatObjectOptions{})
 	if err == nil {
 		return base.ReconcileResult{}
 	}
 	var err2 minio.ErrorResponse
 	if !errors.As(err, &err2) || err2.Code != minio.NoSuchKey {
-		return base.ErrorWithMessage(err, "failed to determine if rustic repo is already initialized: %s", err.Error())
+		return base.ErrorWithMessage(err, "failed to determine if restic repo is already initialized: %s", err.Error())
 	}
 
-	region, err := c.GetBucketLocation(ctx, b.Bucket)
+	log.InfoContext(ctx, "initializing restic repo")
+	err = restic.RunInit(ctx, r.buildResticEnv(vp, b), restic.InitOpts{})
 	if err != nil {
-		return base.ErrorWithMessage(err, "failed to determine bucket region: %s", err.Error())
-	}
-
-	log.InfoContext(ctx, "initializing rustic repo")
-	err = rustic.RunInit(ctx, r.buildRusticConfig(vp, b, region), rustic.InitOpts{})
-	if err != nil {
-		return base.ErrorWithMessage(err, "failed to initialize rustic repo: %s", err.Error())
+		return base.ErrorWithMessage(err, "failed to initialize restic repo: %s", err.Error())
 	}
 
 	return base.ReconcileResult{}
 }
 
-func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, c *minio.Client) ([]string, base.ReconcileResult) {
-	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
+func (r *Reconciler) listResticSnapshotIds(ctx context.Context, vp *dmodel.VolumeProvider, b *dmodel.S3Bucket, c *minio.Client) ([]string, base.ReconcileResult) {
+	prefix := path.Join(vp.Restic.StoragePrefix.V, "snapshots") + "/"
 	ch := c.ListObjects(ctx, b.Bucket, minio.ListObjectsOptions{
 		Prefix: prefix,
 	})
@@ -85,15 +81,15 @@ func (r *Reconciler) listRusticSnapshotIds(ctx context.Context, vp *dmodel.Volum
 	return ret, base.ReconcileResult{}
 }
 
-func (r *Reconciler) deleteRusticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) base.ReconcileResult {
-	log.InfoContext(ctx, "deleting rustic snapshot", slog.Any("rsSnapshotId", snapshotId))
+func (r *Reconciler) deleteResticSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, snapshotId string) base.ReconcileResult {
+	log.InfoContext(ctx, "deleting restic snapshot", slog.Any("rsSnapshotId", snapshotId))
 
-	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID)
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Restic.S3BucketID)
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
 	}
 
-	prefix := path.Join(vp.Rustic.StoragePrefix.V, "snapshots") + "/"
+	prefix := path.Join(vp.Restic.StoragePrefix.V, "snapshots") + "/"
 
 	key := path.Join(prefix, snapshotId)
 	err = c.RemoveObject(ctx, b.Bucket, key, minio.RemoveObjectOptions{})
@@ -120,26 +116,26 @@ func (r *Reconciler) getTagValue(tags []string, tagPrefix string) string {
 }
 
 func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolumes map[string]*dmodel.VolumeWithJoins, dbSnapshots map[string]*dmodel.VolumeSnapshot) base.ReconcileResult {
-	dbSnapshotsByRusticId := map[string]*dmodel.VolumeSnapshot{}
+	dbSnapshotsByResticId := map[string]*dmodel.VolumeSnapshot{}
 	for _, s := range dbSnapshots {
-		dbSnapshotsByRusticId[s.Rustic.SnapshotId.V] = s
+		dbSnapshotsByResticId[s.Restic.SnapshotId.V] = s
 	}
 	dbVolumesByUuuid := map[string]*dmodel.VolumeWithJoins{}
 	for _, v := range dbVolumes {
 		dbVolumesByUuuid[v.ID] = v
 	}
 
-	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Rustic.S3BucketID)
+	b, c, err := s3utils.BuildS3ClientFromId(ctx, *vp.Restic.S3BucketID)
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed building S3 client: %s", err.Error())
 	}
 
-	result := r.initRusticRepo(ctx, log, vp, b, c)
+	result := r.initResticRepo(ctx, log, vp, b, c)
 	if result.ExitReconcile() {
 		return result
 	}
 
-	rsSnapshotIds, result := r.listRusticSnapshotIds(ctx, vp, b, c)
+	rsSnapshotIds, result := r.listResticSnapshotIds(ctx, vp, b, c)
 	if result.ExitReconcile() {
 		return result
 	}
@@ -155,12 +151,12 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 		log := log.With(
 			slog.Any("volumeId", s.VolumedID.V),
 			slog.Any("snapshotId", s.ID),
-			slog.Any("snapshotRusticId", s.Rustic.SnapshotId.V),
+			slog.Any("snapshotResticId", s.Restic.SnapshotId.V),
 		)
 
-		_, ok := rsSnapshotIdSet[s.Rustic.SnapshotId.V]
+		_, ok := rsSnapshotIdSet[s.Restic.SnapshotId.V]
 		if !ok {
-			log.InfoContext(ctx, "snapshot vanished from rustic, marking for deletion in DB")
+			log.InfoContext(ctx, "snapshot vanished from restic, marking for deletion in DB")
 			err := querier.Transaction(ctx, func(ctx context.Context) (bool, error) {
 				q := querier.GetQuerier(ctx)
 				v, ok := dbVolumes[s.VolumedID.V]
@@ -189,7 +185,7 @@ func (r *Reconciler) ReconcileVolumeProvider(ctx context.Context, log *slog.Logg
 }
 
 func (r *Reconciler) ReconcileDeleteSnapshot(ctx context.Context, log *slog.Logger, vp *dmodel.VolumeProvider, dbVolume *dmodel.Volume, dbSnapshot *dmodel.VolumeSnapshot) base.ReconcileResult {
-	result := r.deleteRusticSnapshot(ctx, log, vp, dbSnapshot.Rustic.SnapshotId.V)
+	result := r.deleteResticSnapshot(ctx, log, vp, dbSnapshot.Restic.SnapshotId.V)
 	if result.ExitReconcile() {
 		return result
 	}

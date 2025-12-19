@@ -8,10 +8,10 @@ type DboxedSpecs struct {
 type Volume struct {
 	Recreate string        `json:"recreate,omitempty"`
 	Provider string        `json:"provider"`
-	Rustic   *VolumeRustic `json:"rustic"`
+	Restic   *VolumeRestic `json:"restic"`
 }
 
-type VolumeRustic struct {
+type VolumeRestic struct {
 	FsSize string `json:"fsSize"`
 	FsType string `json:"fsType"`
 }

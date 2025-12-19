@@ -14,7 +14,8 @@ type S3ProxyPresignPutResult struct {
 }
 
 type S3ProxyListObjectsRequest struct {
-	Prefix string `json:"prefix"`
+	Prefix    string `json:"prefix"`
+	Recursive bool   `json:"recursive"`
 }
 
 type S3ProxyListObjectsResult struct {

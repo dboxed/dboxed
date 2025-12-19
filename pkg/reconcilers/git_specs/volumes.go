@@ -54,17 +54,17 @@ func (r *reconciler) createVolume(ctx context.Context, gs *dmodel.GitSpec, u typ
 		VolumeProvider: vp.ID,
 	}
 	switch vp.Type {
-	case dmodel.VolumeProviderTypeRustic:
-		if volume.Rustic == nil {
-			return base.ErrorFromMessage("missing rustic config for volumes %s", name)
+	case dmodel.VolumeProviderTypeRestic:
+		if volume.Restic == nil {
+			return base.ErrorFromMessage("missing restic config for volumes %s", name)
 		}
-		fsSize, err := humanize.ParseBytes(volume.Rustic.FsSize)
+		fsSize, err := humanize.ParseBytes(volume.Restic.FsSize)
 		if err != nil {
 			return base.ErrorWithMessage(err, "failed to parse fsSize: %s", err.Error())
 		}
-		createArgs.Rustic = &models.CreateVolumeRustic{
+		createArgs.Restic = &models.CreateVolumeRestic{
 			FsSize: int64(fsSize),
-			FsType: volume.Rustic.FsType,
+			FsType: volume.Restic.FsType,
 		}
 	default:
 		return base.ErrorFromMessage("unknown volume provider type %s", vp.Type)

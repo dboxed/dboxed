@@ -14,12 +14,12 @@ import (
 type CreateCmd struct {
 	Name string `help:"Specify the volume provider name. Must be unique." required:""`
 
-	Type string `help:"Specify the provider type." required:"" enum:"rustic"`
+	Type string `help:"Specify the provider type." required:"" enum:"restic"`
 
 	S3Bucket string `name:"s3-bucket" help:"Specify the S3 bucket to use" required:""`
 
 	StoragePrefix  string `help:"Specify the storage prefix"`
-	RusticPassword string `help:"Specify the password used for encryption" required:""`
+	ResticPassword string `help:"Specify the password used for encryption" required:""`
 }
 
 func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
@@ -36,10 +36,10 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		Type: dmodel.VolumeProviderType(cmd.Type),
 		Name: cmd.Name,
 	}
-	req.Rustic = &models.CreateVolumeProviderRustic{
+	req.Restic = &models.CreateVolumeProviderRestic{
 		StorageType:   dmodel.VolumeProviderStorageTypeS3,
 		StoragePrefix: cmd.StoragePrefix,
-		Password:      cmd.RusticPassword,
+		Password:      cmd.ResticPassword,
 	}
 
 	b, err := commandutils.GetS3Bucket(ctx, c, cmd.S3Bucket)
@@ -47,7 +47,7 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	req.Rustic.S3BucketId = &b.ID
+	req.Restic.S3BucketId = &b.ID
 
 	rep, err := c2.CreateVolumeProvider(ctx, req)
 	if err != nil {

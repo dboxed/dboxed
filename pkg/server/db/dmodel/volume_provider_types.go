@@ -4,7 +4,7 @@ type VolumeProviderType string
 type VolumeProviderStorageType string
 
 const (
-	VolumeProviderTypeRustic VolumeProviderType = "rustic"
+	VolumeProviderTypeRestic VolumeProviderType = "restic"
 )
 
 const (

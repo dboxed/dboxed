@@ -144,8 +144,8 @@ func findLatestTimestamp(list []*dmodel.VolumeSnapshot) time.Time {
 	for _, sn := range list {
 		// Find the latest snapshot in the list
 		// The latest snapshot must, however, not be in the future.
-		if sn.Rustic.SnapshotTime.V.After(latest) && sn.Rustic.SnapshotTime.V.Before(now) {
-			latest = sn.Rustic.SnapshotTime.V
+		if sn.Restic.SnapshotTime.V.After(latest) && sn.Restic.SnapshotTime.V.Before(now) {
+			latest = sn.Restic.SnapshotTime.V
 		}
 	}
 
@@ -177,7 +177,7 @@ type KeepReason struct {
 func ApplyPolicy(list []*dmodel.VolumeSnapshot, p ExpirePolicy) (keep, remove []*dmodel.VolumeSnapshot, reasons []KeepReason) {
 	// sort newest snapshots first
 	sort.SliceStable(list, func(i, j int) bool {
-		return list[i].Rustic.SnapshotTime.V.After(list[j].Rustic.SnapshotTime.V)
+		return list[i].Restic.SnapshotTime.V.After(list[j].Restic.SnapshotTime.V)
 	})
 
 	if len(list) == 0 {
@@ -222,7 +222,7 @@ func ApplyPolicy(list []*dmodel.VolumeSnapshot, p ExpirePolicy) (keep, remove []
 		// If the timestamp of the snapshot is within the range, then keep it.
 		if !p.Within.Zero() {
 			t := latest.AddDate(-p.Within.Years, -p.Within.Months, -p.Within.Days).Add(time.Hour * time.Duration(-p.Within.Hours))
-			if cur.Rustic.SnapshotTime.V.After(t) {
+			if cur.Restic.SnapshotTime.V.After(t) {
 				keepSnap = true
 				keepSnapReasons = append(keepSnapReasons, fmt.Sprintf("within %v", p.Within))
 			}
@@ -232,7 +232,7 @@ func ApplyPolicy(list []*dmodel.VolumeSnapshot, p ExpirePolicy) (keep, remove []
 		for i, b := range buckets {
 			// -1 means "keep all"
 			if b.Count > 0 || b.Count == -1 {
-				val := b.bucker(cur.Rustic.SnapshotTime.V, nr)
+				val := b.bucker(cur.Restic.SnapshotTime.V, nr)
 				// also keep the oldest snapshot if the bucket has some counts left. This maximizes the
 				// the history length kept while some counts are left.
 				if val != b.Last || nr == len(list)-1 {
@@ -255,8 +255,8 @@ func ApplyPolicy(list []*dmodel.VolumeSnapshot, p ExpirePolicy) (keep, remove []
 			if !b.Within.Zero() {
 				t := latest.AddDate(-b.Within.Years, -b.Within.Months, -b.Within.Days).Add(time.Hour * time.Duration(-b.Within.Hours))
 
-				if cur.Rustic.SnapshotTime.V.After(t) {
-					val := b.bucker(cur.Rustic.SnapshotTime.V, nr)
+				if cur.Restic.SnapshotTime.V.After(t) {
+					val := b.bucker(cur.Restic.SnapshotTime.V, nr)
 					if val != b.Last || nr == len(list)-1 {
 						//debug.Log("keep %v, time %v, ID %v, bucker %v, val %v %v\n", b.reason, cur.Time, cur.id.Str(), i, val, b.Last)
 						keepSnap = true

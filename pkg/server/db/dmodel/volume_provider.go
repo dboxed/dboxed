@@ -12,10 +12,10 @@ type VolumeProvider struct {
 	Type VolumeProviderType `db:"type"`
 	Name string             `db:"name"`
 
-	Rustic *VolumeProviderRustic `join:"true"`
+	Restic *VolumeProviderRestic `join:"true"`
 }
 
-type VolumeProviderRustic struct {
+type VolumeProviderRestic struct {
 	ID querier.NullForJoin[string] `db:"id"`
 
 	Password querier.NullForJoin[string] `db:"password"`
@@ -34,7 +34,7 @@ func (v *VolumeProvider) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func (v *VolumeProviderRustic) Create(q *querier.Querier) error {
+func (v *VolumeProviderRestic) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
@@ -90,21 +90,21 @@ func GetVolumeProviderByName(q *querier.Querier, workspaceId string, name string
 	return vp, nil
 }
 
-func (v *VolumeProviderRustic) UpdateS3Bucket(q *querier.Querier, bucketId string) error {
+func (v *VolumeProviderRestic) UpdateS3Bucket(q *querier.Querier, bucketId string) error {
 	v.S3BucketID = &bucketId
 	return querier.UpdateOneFromStruct(q, v,
 		"s3_bucket_id",
 	)
 }
 
-func (v *VolumeProviderRustic) UpdatePassword(q *querier.Querier, password string) error {
+func (v *VolumeProviderRestic) UpdatePassword(q *querier.Querier, password string) error {
 	v.Password = querier.N(password)
 	return querier.UpdateOneFromStruct(q, v,
 		"password",
 	)
 }
 
-func (v *VolumeProviderRustic) UpdateStoragePrefix(q *querier.Querier, prefix string) error {
+func (v *VolumeProviderRestic) UpdateStoragePrefix(q *querier.Querier, prefix string) error {
 	v.StoragePrefix = querier.N(prefix)
 	return querier.UpdateOneFromStruct(q, v,
 		"storage_prefix",

@@ -45,13 +45,13 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		storage := ""
 		storagePrefix := ""
 		switch r.Type {
-		case dmodel.VolumeProviderTypeRustic:
-			if r.Rustic != nil {
-				storagePrefix = r.Rustic.StoragePrefix
-				switch r.Rustic.StorageType {
+		case dmodel.VolumeProviderTypeRestic:
+			if r.Restic != nil {
+				storagePrefix = r.Restic.StoragePrefix
+				switch r.Restic.StorageType {
 				case dmodel.VolumeProviderStorageTypeS3:
-					if r.Rustic.S3BucketId != nil {
-						storage = ct.S3Buckets.GetColumn(ctx, *r.Rustic.S3BucketId, false)
+					if r.Restic.S3BucketId != nil {
+						storage = ct.S3Buckets.GetColumn(ctx, *r.Restic.S3BucketId, false)
 					}
 				}
 			}

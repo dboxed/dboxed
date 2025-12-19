@@ -203,6 +203,21 @@ func LVGet(ctx context.Context, vgName string, lvName string) (*LVEntry, error) 
 	return nil, os.ErrNotExist
 }
 
+func FindVGsWithTag(ctx context.Context, tag string) ([]VGEntry, error) {
+	lvs, err := ListVGs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []VGEntry
+	for _, lv := range lvs {
+		if slices.Contains(lv.VgTags.L, tag) {
+			ret = append(ret, lv)
+		}
+	}
+	return ret, nil
+}
+
 func LVCreate(ctx context.Context, vgName string, lvName string, size int64, tags []string) error {
 	args := []string{
 		"--name", lvName,
@@ -220,11 +235,14 @@ func LVCreate(ctx context.Context, vgName string, lvName string, size int64, tag
 	return nil
 }
 
-func LVSnapCreate100Free(ctx context.Context, vgName string, lvName string, snapName string) error {
+func LVSnapCreate100Free(ctx context.Context, vgName string, lvName string, snapName string, tags []string) error {
 	args := []string{
 		"-l100%FREE",
 		"-s", "--name", snapName,
 		fmt.Sprintf("%s/%s", vgName, lvName),
+	}
+	for _, t := range tags {
+		args = append(args, "--addtag", t)
 	}
 	err := command_helper.RunCommand(ctx, "lvcreate", args...)
 	if err != nil {

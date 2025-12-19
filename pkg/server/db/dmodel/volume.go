@@ -18,19 +18,19 @@ type Volume struct {
 
 	LatestSnapshotId *string `db:"latest_snapshot_id"`
 
-	Rustic *VolumeRustic `join:"true"`
+	Restic *VolumeRestic `join:"true"`
 }
 
-type VolumeRustic struct {
+type VolumeRestic struct {
 	ID querier.NullForJoin[string] `db:"id"`
 
 	FsSize querier.NullForJoin[int64]  `db:"fs_size"`
 	FsType querier.NullForJoin[string] `db:"fs_type"`
 
-	Status *VolumeRusticStatus `join:"true"`
+	Status *VolumeResticStatus `join:"true"`
 }
 
-type VolumeRusticStatus struct {
+type VolumeResticStatus struct {
 	ID querier.NullForJoin[string] `db:"id"`
 }
 
@@ -67,11 +67,11 @@ func (v *Volume) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func (v *VolumeRustic) Create(q *querier.Querier) error {
+func (v *VolumeRestic) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func (v *VolumeRusticStatus) Create(q *querier.Querier) error {
+func (v *VolumeResticStatus) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 

@@ -25,10 +25,10 @@ type Volume struct {
 
 	Attachment *VolumeAttachment `json:"attachment,omitempty"`
 
-	Rustic *VolumeRustic `json:"rustic,omitempty"`
+	Restic *VolumeRestic `json:"restic,omitempty"`
 }
 
-type VolumeRustic struct {
+type VolumeRestic struct {
 	Password string `json:"password"`
 
 	FsSize int64  `json:"fsSize"`
@@ -40,10 +40,10 @@ type CreateVolume struct {
 
 	VolumeProvider string `json:"volumeProvider"`
 
-	Rustic *CreateVolumeRustic `json:"rustic,omitempty"`
+	Restic *CreateVolumeRestic `json:"restic,omitempty"`
 }
 
-type CreateVolumeRustic struct {
+type CreateVolumeRestic struct {
 	FsSize int64  `json:"fsSize"`
 	FsType string `json:"fsType"`
 }
@@ -140,13 +140,13 @@ func VolumeFromDB(s dmodel.Volume, attachment *dmodel.BoxVolumeAttachment, volum
 		ret.Attachment = util.Ptr(VolumeAttachmentFromDB(*attachment, nil, volumeProvider, volumeMountStatus))
 	}
 
-	if s.Rustic != nil && s.Rustic.ID.Valid {
-		ret.Rustic = &VolumeRustic{
-			FsSize: s.Rustic.FsSize.V,
-			FsType: s.Rustic.FsType.V,
+	if s.Restic != nil && s.Restic.ID.Valid {
+		ret.Restic = &VolumeRestic{
+			FsSize: s.Restic.FsSize.V,
+			FsType: s.Restic.FsType.V,
 		}
 		if volumeProvider != nil {
-			ret.Rustic.Password = volumeProvider.Rustic.Password.V
+			ret.Restic.Password = volumeProvider.Restic.Password.V
 		}
 	}
 

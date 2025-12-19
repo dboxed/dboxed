@@ -17,10 +17,10 @@ type VolumeProvider struct {
 	Type dmodel.VolumeProviderType `json:"type"`
 	Name string                    `json:"name"`
 
-	Rustic *VolumeProviderRustic `json:"rustic,omitempty"`
+	Restic *VolumeProviderRestic `json:"restic,omitempty"`
 }
 
-type VolumeProviderRustic struct {
+type VolumeProviderRestic struct {
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
 	S3BucketId  *string                          `json:"s3BucketId"`
 
@@ -31,10 +31,10 @@ type CreateVolumeProvider struct {
 	Type dmodel.VolumeProviderType `json:"type"`
 	Name string                    `json:"name"`
 
-	Rustic *CreateVolumeProviderRustic `json:"rustic"`
+	Restic *CreateVolumeProviderRestic `json:"restic"`
 }
 
-type CreateVolumeProviderRustic struct {
+type CreateVolumeProviderRestic struct {
 	Password string `json:"password"`
 
 	StorageType dmodel.VolumeProviderStorageType `json:"storageType"`
@@ -44,9 +44,9 @@ type CreateVolumeProviderRustic struct {
 }
 
 type UpdateVolumeProvider struct {
-	Rustic *UpdateVolumeProviderRustic `json:"rustic,omitempty"`
+	Restic *UpdateVolumeProviderRestic `json:"restic,omitempty"`
 }
-type UpdateVolumeProviderRustic struct {
+type UpdateVolumeProviderRestic struct {
 	Password *string `json:"password,omitempty"`
 
 	StorageS3 *UpdateRepositoryStorageS3 `json:"storageS3,omitempty"`
@@ -68,11 +68,11 @@ func VolumeProviderFromDB(v dmodel.VolumeProvider) VolumeProvider {
 		Type: v.Type,
 		Name: v.Name,
 	}
-	if v.Rustic != nil && v.Rustic.ID.Valid {
-		ret.Rustic = &VolumeProviderRustic{
-			StorageType:   v.Rustic.StorageType.V,
-			S3BucketId:    v.Rustic.S3BucketID,
-			StoragePrefix: v.Rustic.StoragePrefix.V,
+	if v.Restic != nil && v.Restic.ID.Valid {
+		ret.Restic = &VolumeProviderRestic{
+			StorageType:   v.Restic.StorageType.V,
+			S3BucketId:    v.Restic.S3BucketID,
+			StoragePrefix: v.Restic.StoragePrefix.V,
 		}
 	}
 	return ret

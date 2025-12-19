@@ -24,14 +24,14 @@ create table volume
 );
 create index volume_change_seq on volume (change_seq);
 
-create table volume_rustic
+create table volume_restic
 (
     id      text   not null primary key references volume (id) on delete cascade,
     fs_size bigint not null,
     fs_type text   not null
 );
 
-create table volume_rustic_status
+create table volume_restic_status
 (
     id text not null primary key references volume (id) on delete cascade
 );

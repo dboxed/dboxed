@@ -14,10 +14,10 @@ type VolumeSnapshot struct {
 	VolumedID        querier.NullForJoin[string] `db:"volume_id"`
 	MountID          querier.NullForJoin[string] `db:"mount_id"`
 
-	Rustic *VolumeSnapshotRustic `join:"true"`
+	Restic *VolumeSnapshotRestic `join:"true"`
 }
 
-type VolumeSnapshotRustic struct {
+type VolumeSnapshotRestic struct {
 	ID querier.NullForJoin[string] `db:"id"`
 
 	SnapshotId       querier.NullForJoin[string]    `db:"snapshot_id"`
@@ -26,37 +26,29 @@ type VolumeSnapshotRustic struct {
 
 	Hostname querier.NullForJoin[string] `db:"hostname"`
 
-	FilesNew            querier.NullForJoin[int] `db:"files_new"`
-	FilesChanged        querier.NullForJoin[int] `db:"files_changed"`
-	FilesUnmodified     querier.NullForJoin[int] `db:"files_unmodified"`
-	TotalFilesProcessed querier.NullForJoin[int] `db:"total_files_processed"`
-	TotalBytesProcessed querier.NullForJoin[int] `db:"total_bytes_processed"`
+	BackupStart querier.NullForJoin[time.Time] `db:"backup_start"`
+	BackupEnd   querier.NullForJoin[time.Time] `db:"backup_end"`
 
-	DirsNew               querier.NullForJoin[int] `db:"dirs_new"`
-	DirsChanged           querier.NullForJoin[int] `db:"dirs_changed"`
-	DirsUnmodified        querier.NullForJoin[int] `db:"dirs_unmodified"`
-	TotalDirsProcessed    querier.NullForJoin[int] `db:"total_dirs_processed"`
-	TotalDirsizeProcessed querier.NullForJoin[int] `db:"total_dirsize_processed"`
-	DataBlobs             querier.NullForJoin[int] `db:"data_blobs"`
-	TreeBlobs             querier.NullForJoin[int] `db:"tree_blobs"`
-	DataAdded             querier.NullForJoin[int] `db:"data_added"`
-	DataAddedPacked       querier.NullForJoin[int] `db:"data_added_packed"`
-	DataAddedFiles        querier.NullForJoin[int] `db:"data_added_files"`
-	DataAddedFilesPacked  querier.NullForJoin[int] `db:"data_added_files_packed"`
-	DataAddedTrees        querier.NullForJoin[int] `db:"data_added_trees"`
-	DataAddedTreesPacked  querier.NullForJoin[int] `db:"data_added_trees_packed"`
-
-	BackupStart    querier.NullForJoin[time.Time] `db:"backup_start"`
-	BackupEnd      querier.NullForJoin[time.Time] `db:"backup_end"`
-	BackupDuration querier.NullForJoin[float32]   `db:"backup_duration"`
-	TotalDuration  querier.NullForJoin[float32]   `db:"total_duration"`
+	// statistics from the backup json output
+	FilesNew            querier.NullForJoin[int]   `db:"files_new"`
+	FilesChanged        querier.NullForJoin[int]   `db:"files_changed"`
+	FilesUnmodified     querier.NullForJoin[int]   `db:"files_unmodified"`
+	DirsNew             querier.NullForJoin[int]   `db:"dirs_new"`
+	DirsChanged         querier.NullForJoin[int]   `db:"dirs_changed"`
+	DirsUnmodified      querier.NullForJoin[int]   `db:"dirs_unmodified"`
+	DataBlobs           querier.NullForJoin[int]   `db:"data_blobs"`
+	TreeBlobs           querier.NullForJoin[int]   `db:"tree_blobs"`
+	DataAdded           querier.NullForJoin[int64] `db:"data_added"`
+	DataAddedPacked     querier.NullForJoin[int64] `db:"data_added_packed"`
+	TotalFilesProcessed querier.NullForJoin[int]   `db:"total_files_processed"`
+	TotalBytesProcessed querier.NullForJoin[int64] `db:"total_bytes_processed"`
 }
 
 func (v *VolumeSnapshot) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 
-func (v *VolumeSnapshotRustic) Create(q *querier.Querier) error {
+func (v *VolumeSnapshotRestic) Create(q *querier.Querier) error {
 	return querier.Create(q, v)
 }
 

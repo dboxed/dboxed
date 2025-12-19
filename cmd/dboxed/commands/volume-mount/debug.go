@@ -1,5 +1,5 @@
 package volume_mount
 
 type DebugCmd struct {
-	WebdavProxy WebdavProxyCmd `cmd:"" help:"Run a webdav proxy"`
+	ResticRestServer ResticRestServerCmd `cmd:"" help:"Run a restic rest server"`
 }

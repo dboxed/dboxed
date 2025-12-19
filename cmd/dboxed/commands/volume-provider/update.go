@@ -16,7 +16,7 @@ type UpdateCmd struct {
 	S3Bucket *string `name:"s3-bucket" help:"Specify the S3 bucket to use"`
 
 	StoragePrefix  *string `help:"Specify the storage prefix"`
-	RusticPassword *string `help:"Specify the password used for encryption"`
+	ResticPassword *string `help:"Specify the password used for encryption"`
 }
 
 func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
@@ -36,8 +36,8 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 
 	req := models.UpdateVolumeProvider{}
 
-	req.Rustic = &models.UpdateVolumeProviderRustic{
-		Password: cmd.RusticPassword,
+	req.Restic = &models.UpdateVolumeProviderRestic{
+		Password: cmd.ResticPassword,
 	}
 
 	var bucketId *string
@@ -49,7 +49,7 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 		bucketId = &b.ID
 	}
 
-	req.Rustic.StorageS3 = &models.UpdateRepositoryStorageS3{
+	req.Restic.StorageS3 = &models.UpdateRepositoryStorageS3{
 		S3BucketId:    bucketId,
 		StoragePrefix: cmd.StoragePrefix,
 	}

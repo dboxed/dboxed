@@ -14,46 +14,38 @@ type VolumeSnapshot struct {
 	VolumeID string `json:"volumeId"`
 	MountId  string `json:"mountId"`
 
-	Rustic *VolumeSnapshotRustic `json:"rustic,omitempty"`
+	Restic *VolumeSnapshotRestic `json:"restic,omitempty"`
 }
 
-type VolumeSnapshotRustic struct {
+type VolumeSnapshotRestic struct {
 	SnapshotId       string    `json:"snapshotId"`
 	SnapshotTime     time.Time `json:"snapshotTime"`
 	ParentSnapshotId *string   `json:"parentSnapshotId,omitempty"`
 
 	Hostname string `json:"hostname"`
 
-	FilesNew            int `json:"filesNew"`
-	FilesChanged        int `json:"filesChanged"`
-	FilesUnmodified     int `json:"filesUnmodified"`
-	TotalFilesProcessed int `json:"totalFilesProcessed"`
-	TotalBytesProcessed int `json:"totalBytesProcessed"`
+	BackupStart time.Time `json:"backupStart"`
+	BackupEnd   time.Time `json:"backupEnd"`
 
-	DirsNew               int `json:"dirsNew"`
-	DirsChanged           int `json:"dirsChanged"`
-	DirsUnmodified        int `json:"dirsUnmodified"`
-	TotalDirsProcessed    int `json:"totalDirsProcessed"`
-	TotalDirsizeProcessed int `json:"totalDirsizeProcessed"`
-	DataBlobs             int `json:"dataBlobs"`
-	TreeBlobs             int `json:"treeBlobs"`
-	DataAdded             int `json:"dataAdded"`
-	DataAddedPacked       int `json:"dataAddedPacked"`
-	DataAddedFiles        int `json:"dataAddedFiles"`
-	DataAddedFilesPacked  int `json:"dataAddedFilesPacked"`
-	DataAddedTrees        int `json:"dataAddedTrees"`
-	DataAddedTreesPacked  int `json:"dataAddedTreesPacked"`
-
-	BackupStart    time.Time `json:"backupStart"`
-	BackupEnd      time.Time `json:"backupEnd"`
-	BackupDuration float32   `json:"backupDuration"`
-	TotalDuration  float32   `json:"totalDuration"`
+	// statistics from the backup json output
+	FilesNew            int   `json:"filesNew"`
+	FilesChanged        int   `json:"filesChanged"`
+	FilesUnmodified     int   `json:"filesUnmodified"`
+	DirsNew             int   `json:"dirsNew"`
+	DirsChanged         int   `json:"dirsChanged"`
+	DirsUnmodified      int   `json:"dirsUnmodified"`
+	DataBlobs           int   `json:"dataBlobs"`
+	TreeBlobs           int   `json:"treeBlobs"`
+	DataAdded           int64 `json:"dataAdded"`
+	DataAddedPacked     int64 `json:"dataAddedPacked"`
+	TotalFilesProcessed int   `json:"totalFilesProcessed"`
+	TotalBytesProcessed int64 `json:"totalBytesProcessed"`
 }
 
 type CreateVolumeSnapshot struct {
 	MountId string `json:"mountId"`
 
-	Rustic *VolumeSnapshotRustic `json:"rustic,omitempty"`
+	Restic *VolumeSnapshotRestic `json:"restic,omitempty"`
 }
 
 func VolumeSnapshotFromDB(v dmodel.VolumeSnapshot) VolumeSnapshot {
@@ -65,34 +57,28 @@ func VolumeSnapshotFromDB(v dmodel.VolumeSnapshot) VolumeSnapshot {
 		MountId:   v.MountID.V,
 	}
 
-	if v.Rustic != nil && v.Rustic.ID.Valid {
-		ret.Rustic = &VolumeSnapshotRustic{
-			SnapshotId:            v.Rustic.SnapshotId.V,
-			SnapshotTime:          v.Rustic.SnapshotTime.V,
-			ParentSnapshotId:      v.Rustic.ParentSnapshotId,
-			Hostname:              v.Rustic.Hostname.V,
-			FilesNew:              v.Rustic.FilesNew.V,
-			FilesChanged:          v.Rustic.FilesChanged.V,
-			FilesUnmodified:       v.Rustic.FilesUnmodified.V,
-			TotalFilesProcessed:   v.Rustic.TotalFilesProcessed.V,
-			TotalBytesProcessed:   v.Rustic.TotalBytesProcessed.V,
-			DirsNew:               v.Rustic.DirsNew.V,
-			DirsChanged:           v.Rustic.DirsChanged.V,
-			DirsUnmodified:        v.Rustic.DirsUnmodified.V,
-			TotalDirsProcessed:    v.Rustic.TotalDirsProcessed.V,
-			TotalDirsizeProcessed: v.Rustic.TotalDirsizeProcessed.V,
-			DataBlobs:             v.Rustic.DataBlobs.V,
-			TreeBlobs:             v.Rustic.TreeBlobs.V,
-			DataAdded:             v.Rustic.DataAdded.V,
-			DataAddedPacked:       v.Rustic.DataAddedPacked.V,
-			DataAddedFiles:        v.Rustic.DataAddedFiles.V,
-			DataAddedFilesPacked:  v.Rustic.DataAddedFilesPacked.V,
-			DataAddedTrees:        v.Rustic.DataAddedTrees.V,
-			DataAddedTreesPacked:  v.Rustic.DataAddedTreesPacked.V,
-			BackupStart:           v.Rustic.BackupStart.V,
-			BackupEnd:             v.Rustic.BackupEnd.V,
-			BackupDuration:        v.Rustic.BackupDuration.V,
-			TotalDuration:         v.Rustic.TotalDuration.V,
+	if v.Restic != nil && v.Restic.ID.Valid {
+		ret.Restic = &VolumeSnapshotRestic{
+			SnapshotId:       v.Restic.SnapshotId.V,
+			SnapshotTime:     v.Restic.SnapshotTime.V,
+			ParentSnapshotId: v.Restic.ParentSnapshotId,
+			Hostname:         v.Restic.Hostname.V,
+
+			BackupStart: v.Restic.BackupStart.V,
+			BackupEnd:   v.Restic.BackupEnd.V,
+
+			FilesNew:            v.Restic.FilesNew.V,
+			FilesChanged:        v.Restic.FilesChanged.V,
+			FilesUnmodified:     v.Restic.FilesUnmodified.V,
+			DirsNew:             v.Restic.DirsNew.V,
+			DirsChanged:         v.Restic.DirsChanged.V,
+			DirsUnmodified:      v.Restic.DirsUnmodified.V,
+			DataBlobs:           v.Restic.DataBlobs.V,
+			TreeBlobs:           v.Restic.TreeBlobs.V,
+			DataAdded:           v.Restic.DataAdded.V,
+			DataAddedPacked:     v.Restic.DataAddedPacked.V,
+			TotalFilesProcessed: v.Restic.TotalFilesProcessed.V,
+			TotalBytesProcessed: v.Restic.TotalBytesProcessed.V,
 		}
 	}
 

@@ -47,40 +47,34 @@ func (s *VolumeServer) restCreateSnapshot(ctx context.Context, i *huma_utils.IdB
 	}
 
 	switch v.VolumeProviderType {
-	case dmodel.VolumeProviderTypeRustic:
-		if i.Body.Rustic == nil {
-			return nil, huma.Error400BadRequest("missing rustic data")
+	case dmodel.VolumeProviderTypeRestic:
+		if i.Body.Restic == nil {
+			return nil, huma.Error400BadRequest("missing restic data")
 		}
-		vs.Rustic = &dmodel.VolumeSnapshotRustic{
-			ID:                    querier.N(vs.ID),
-			SnapshotId:            querier.N(i.Body.Rustic.SnapshotId),
-			SnapshotTime:          querier.N(i.Body.Rustic.SnapshotTime),
-			ParentSnapshotId:      i.Body.Rustic.ParentSnapshotId,
-			Hostname:              querier.N(i.Body.Rustic.Hostname),
-			FilesNew:              querier.N(i.Body.Rustic.FilesNew),
-			FilesChanged:          querier.N(i.Body.Rustic.FilesChanged),
-			FilesUnmodified:       querier.N(i.Body.Rustic.FilesUnmodified),
-			TotalFilesProcessed:   querier.N(i.Body.Rustic.TotalFilesProcessed),
-			TotalBytesProcessed:   querier.N(i.Body.Rustic.TotalBytesProcessed),
-			DirsNew:               querier.N(i.Body.Rustic.DirsNew),
-			DirsChanged:           querier.N(i.Body.Rustic.DirsChanged),
-			DirsUnmodified:        querier.N(i.Body.Rustic.DirsUnmodified),
-			TotalDirsProcessed:    querier.N(i.Body.Rustic.TotalDirsProcessed),
-			TotalDirsizeProcessed: querier.N(i.Body.Rustic.TotalDirsizeProcessed),
-			DataBlobs:             querier.N(i.Body.Rustic.DataBlobs),
-			TreeBlobs:             querier.N(i.Body.Rustic.TreeBlobs),
-			DataAdded:             querier.N(i.Body.Rustic.DataAdded),
-			DataAddedPacked:       querier.N(i.Body.Rustic.DataAddedPacked),
-			DataAddedFiles:        querier.N(i.Body.Rustic.DataAddedFiles),
-			DataAddedFilesPacked:  querier.N(i.Body.Rustic.DataAddedFilesPacked),
-			DataAddedTrees:        querier.N(i.Body.Rustic.DataAddedTrees),
-			DataAddedTreesPacked:  querier.N(i.Body.Rustic.DataAddedTreesPacked),
-			BackupStart:           querier.N(i.Body.Rustic.BackupStart),
-			BackupEnd:             querier.N(i.Body.Rustic.BackupEnd),
-			BackupDuration:        querier.N(i.Body.Rustic.BackupDuration),
-			TotalDuration:         querier.N(i.Body.Rustic.TotalDuration),
+		vs.Restic = &dmodel.VolumeSnapshotRestic{
+			ID:               querier.N(vs.ID),
+			SnapshotId:       querier.N(i.Body.Restic.SnapshotId),
+			SnapshotTime:     querier.N(i.Body.Restic.SnapshotTime),
+			ParentSnapshotId: i.Body.Restic.ParentSnapshotId,
+			Hostname:         querier.N(i.Body.Restic.Hostname),
+
+			BackupStart: querier.N(i.Body.Restic.BackupStart),
+			BackupEnd:   querier.N(i.Body.Restic.BackupEnd),
+
+			FilesNew:            querier.N(i.Body.Restic.FilesNew),
+			FilesChanged:        querier.N(i.Body.Restic.FilesChanged),
+			FilesUnmodified:     querier.N(i.Body.Restic.FilesUnmodified),
+			DirsNew:             querier.N(i.Body.Restic.DirsNew),
+			DirsChanged:         querier.N(i.Body.Restic.DirsChanged),
+			DirsUnmodified:      querier.N(i.Body.Restic.DirsUnmodified),
+			DataBlobs:           querier.N(i.Body.Restic.DataBlobs),
+			TreeBlobs:           querier.N(i.Body.Restic.TreeBlobs),
+			DataAdded:           querier.N(i.Body.Restic.DataAdded),
+			DataAddedPacked:     querier.N(i.Body.Restic.DataAddedPacked),
+			TotalFilesProcessed: querier.N(i.Body.Restic.TotalFilesProcessed),
+			TotalBytesProcessed: querier.N(i.Body.Restic.TotalBytesProcessed),
 		}
-		err = vs.Rustic.Create(q)
+		err = vs.Restic.Create(q)
 		if err != nil {
 			return nil, err
 		}
@@ -155,12 +149,17 @@ func (s *VolumeServer) restDeleteSnapshot(ctx context.Context, i *snapshotIdByPa
 	q := querier.GetQuerier(ctx)
 	w := auth_middleware.GetWorkspace(ctx)
 
-	_, err := dmodel.GetVolumeSnapshotById(q, &w.ID, &i.Id, i.SnapshotId, true)
+	snapshot, err := dmodel.GetVolumeSnapshotById(q, &w.ID, &i.Id, i.SnapshotId, true)
 	if err != nil {
 		return nil, err
 	}
 
 	err = dmodel.SoftDeleteByIds[*dmodel.VolumeSnapshot](q, &w.ID, i.SnapshotId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.BumpChangeSeqForId[*dmodel.VolumeProvider](q, snapshot.VolumeProviderID.V)
 	if err != nil {
 		return nil, err
 	}
