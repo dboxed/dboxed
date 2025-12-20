@@ -23,9 +23,14 @@ builds:
           {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
           {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
         {{- end }}
+    flags:
+      # using -extldflags=-static on linux causes DNS resolution to crash when the cgo resolver is used
+      # we also enforce the go version of os/user just to be on the safe side
+      - '{{ if eq .Os "linux" }}-tags=netgo,osusergo{{ end }}'
     ldflags:
       - -s -w
       - '{{ if ne .Env.NO_GO_VERSION "1" }}-X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.builtBy=goreleaser{{ end }}'
+      - '{{ if eq .Os "linux" }}-extldflags=-static{{ end }}'
 
 archives:
   - formats: [tar.gz]
