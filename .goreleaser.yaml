@@ -4,25 +4,18 @@ pro: true
 
 builds:
   - id: dboxed
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    main: ./cmd/dboxed
     binary: dboxed
     env:
-      - CGO_ENABLED=1
-      - >-
-        {{- if eq .Os "darwin" }}
-          {{- if eq .Arch "amd64"}}CC=o64-clang{{- end }}
-          {{- if eq .Arch "arm64"}}CC=aarch64-apple-darwin21.1-clang{{- end }}
-        {{- end }}
-        {{- if eq .Os "linux" }}
-          {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
-          {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
-        {{- end }}
+    - CGO_ENABLED=1
+    - >-
+      {{- if eq .Os "darwin" }}
+        {{- if eq .Arch "amd64"}}CC=o64-clang{{- end }}
+        {{- if eq .Arch "arm64"}}CC=aarch64-apple-darwin21.1-clang{{- end }}
+      {{- end }}
+      {{- if eq .Os "linux" }}
+        {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
+        {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
+      {{- end }}
     flags:
       # using -extldflags=-static on linux causes DNS resolution to crash when the cgo resolver is used
       # we also enforce the go version of os/user just to be on the safe side
@@ -31,6 +24,37 @@ builds:
       - -s -w
       - '{{ if ne .Env.NO_GO_VERSION "1" }}-X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.builtBy=goreleaser{{ end }}'
       - '{{ if eq .Os "linux" }}-extldflags=-static{{ end }}'
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/dboxed
+  - id: dboxed-docker-volume-plugin
+    binary: dboxed-docker-volume-plugin
+    # tags: "docker_volume_plugin"
+    # FIXME Should linux OS be hardcoded since it should only ever be ran on the alpine base image? Or direct copy/paste for consistency?
+    # Another factor: right now flags: has defined flags when this build could be hardcoded under the proper tags key
+    env:
+    - CGO_ENABLED=1
+    - >-
+      {{- if eq .Arch "amd64"}}CC=x86_64-linux-gnu-gcc{{- end }}
+      {{- if eq .Arch "arm64"}}CC=aarch64-linux-gnu-gcc{{- end }}
+    flags:
+      # using -extldflags=-static on linux causes DNS resolution to crash when the cgo resolver is used
+      # we also enforce the go version of os/user just to be on the safe side
+      - '-tags=docker_volume_plugin,netgo,osusergo'
+    ldflags:
+      - -s -w
+      - '{{ if ne .Env.NO_GO_VERSION "1" }}-X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.builtBy=goreleaser{{ end }}'
+      - '-extldflags=-static'
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/dboxed
 
 archives:
   - formats: [tar.gz]
@@ -54,6 +78,23 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{.GitURL}}"
+  - id: docker-volume-plugin
+    images:
+      - ghcr.io/dboxed/dboxed-docker-volume-plugin
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    labels:
+      "org.opencontainers.image.description": "Dboxed Docker Volume Plugin"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    dockerfile: docker-volume-plugin/Dockerfile
+    # extra_files:
+    #   - docker-volume-plugin/files
   - id: infra-image-sandbox
     images:
       - ghcr.io/dboxed/dboxed-infra-sandbox
