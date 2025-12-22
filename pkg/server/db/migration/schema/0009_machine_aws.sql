@@ -16,5 +16,6 @@ create table machine_aws_status
 (
     id          text not null primary key references machine (id) on delete cascade,
 
-    instance_id text unique
+    instance_id text unique,
+    public_ip4  text
 );

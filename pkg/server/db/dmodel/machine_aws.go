@@ -23,6 +23,7 @@ type MachineAwsStatus struct {
 	ID querier2.NullForJoin[string] `db:"id"`
 
 	InstanceID *string `db:"instance_id"`
+	PublicIp4  *string `db:"public_ip4"`
 }
 
 func (v *MachineAws) Create(q *querier2.Querier) error {
@@ -36,4 +37,9 @@ func (v *MachineAwsStatus) Create(q *querier2.Querier) error {
 func (v *MachineAwsStatus) UpdateInstanceID(q *querier2.Querier, instanceId *string) error {
 	v.InstanceID = instanceId
 	return querier2.UpdateOneFromStruct(q, v, "instance_id")
+}
+
+func (v *MachineAwsStatus) UpdatePublicIP4(q *querier2.Querier, ip *string) error {
+	v.PublicIp4 = ip
+	return querier2.UpdateOneFromStruct(q, v, "public_ip4")
 }

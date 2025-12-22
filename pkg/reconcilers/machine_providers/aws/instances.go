@@ -249,5 +249,12 @@ func (r *Reconciler) updateAwsInstance(ctx context.Context, log *slog.Logger, m 
 		}
 	}
 
+	if !util.EqualsViaJson(instance.PublicIpAddress, m.Aws.Status.PublicIp4) {
+		err := m.Aws.Status.UpdatePublicIP4(q, instance.PublicIpAddress)
+		if err != nil {
+			return base.InternalError(err)
+		}
+	}
+
 	return base.ReconcileResult{}
 }

@@ -183,7 +183,7 @@ func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, 
 
 func (r *Reconciler) updateHetznerServer(ctx context.Context, log *slog.Logger, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
-	_, ok := r.hetznerServersById[*m.Hetzner.Status.ServerID]
+	server, ok := r.hetznerServersById[*m.Hetzner.Status.ServerID]
 	if !ok {
 		log.InfoContext(ctx, "hetzner server disappeared, removing server id and expecting it to be re-created")
 		var err error
@@ -192,6 +192,14 @@ func (r *Reconciler) updateHetznerServer(ctx context.Context, log *slog.Logger, 
 			return base.InternalError(err)
 		}
 		return base.ReconcileResult{}
+	}
+
+	newIp := util.ZeroPtr(server.PublicNet.IPv4.IP.String())
+	if !util.EqualsViaJson(newIp, m.Hetzner.Status.PublicIp4) {
+		err := m.Hetzner.Status.UpdatePublicIP4(q, newIp)
+		if err != nil {
+			return base.InternalError(err)
+		}
 	}
 
 	return base.ReconcileResult{}

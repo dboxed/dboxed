@@ -96,6 +96,10 @@ func ListMachinesForMachineProvider(q *querier2.Querier, machineProviderId strin
 	return listMachines[Machine](q, nil, &machineProviderId, skipDeleted)
 }
 
+func (v *Machine) UpdatePubicIp(q *querier2.Querier, publicIp *string) error {
+	return querier2.UpdateOneFromStruct(q, v, "public_ip")
+}
+
 func (v *MachineRunStatus) UpdateRunStatus(q *querier2.Querier, runStatus *string) error {
 	v.StatusTime = util.Ptr(time.Now())
 	v.RunStatus = runStatus
