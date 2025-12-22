@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/util/command_helper"
 )
@@ -42,10 +43,13 @@ func RunResticCommandStdoutCallback(ctx context.Context, env []string, args []st
 		}
 	}()
 
-	c := buildResticCommand(env, args)
+	c, err := buildResticCommand(ctx, env, args)
+	if err != nil {
+		return err
+	}
 	c.StdoutStream = pw
 
-	err := c.Run(ctx)
+	err = c.Run(ctx)
 
 	_ = pw.Close()
 	<-done
@@ -58,9 +62,12 @@ func RunResticCommandStdoutCallback(ctx context.Context, env []string, args []st
 }
 
 func RunResticCommand(ctx context.Context, env []string, catchStdout bool, args []string) ([]byte, error) {
-	c := buildResticCommand(env, args)
+	c, err := buildResticCommand(ctx, env, args)
+	if err != nil {
+		return nil, err
+	}
 	c.CatchStdout = catchStdout
-	err := c.Run(ctx)
+	err = c.Run(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -68,15 +75,20 @@ func RunResticCommand(ctx context.Context, env []string, catchStdout bool, args 
 	return c.Stdout, err
 }
 
-func buildResticCommand(env []string, args []string) command_helper.CommandHelper {
+func buildResticCommand(ctx context.Context, env []string, args []string) (*command_helper.CommandHelper, error) {
+	binDir, err := DownloadResticBinary(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	env2 := os.Environ()
 	env2 = append(env2, env...)
 
-	c := command_helper.CommandHelper{
-		Command: "restic",
+	c := &command_helper.CommandHelper{
+		Command: filepath.Join(binDir, "restic"),
 		Args:    args,
 		Env:     env2,
 		LogCmd:  true,
 	}
-	return c
+	return c, nil
 }
