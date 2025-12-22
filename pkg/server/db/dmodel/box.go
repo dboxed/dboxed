@@ -136,7 +136,9 @@ func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId str
 	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
-	}, nil)
+	}, &querier2.SortAndPage{
+		Sort: querier2.SortBySingleField("id", querier2.SortOrderAsc),
+	})
 }
 
 func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
