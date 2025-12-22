@@ -7,20 +7,19 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
-	// config2 "github.com/dboxed/dboxed/pkg/server/config"
+
+	plugin_config "github.com/dboxed/dboxed/pkg/docker-volume-plugin/config"
+	"github.com/dboxed/dboxed/pkg/docker-volume-plugin/server"
+	// plugin_config "github.com/dboxed/dboxed/pkg/server/config"
 )
 
-type initRunFunc func(ctx context.Context,
-
-// config config2.Config
-) (runFunc, error)
+type initRunFunc func(ctx context.Context, config plugin_config.Config) (runFunc, error)
 type runFunc func(ctx context.Context) error
 
 type RunCmd struct {
-	Config string       `help:"Config file" type:"existingfile"`
-	Plugin RunPluginCmd `cmd:"" help:"run the docker volume plugin"`
-	// TODO use custom config instead of borrowing from server
-	// loadedConfig config2.Config
+	Config       string       `help:"Config file" type:"existingfile"`
+	Plugin       RunPluginCmd `cmd:"" help:"run the docker volume plugin"`
+	loadedConfig plugin_config.Config
 }
 
 var pluginFuncs = []initRunFunc{
@@ -31,7 +30,7 @@ type RunPluginCmd struct {
 }
 
 func (cmd *RunCmd) AfterApply() error {
-	// config, err := config2.LoadConfig(cmd.Config)
+	// config, err := plugin_config.LoadConfig(cmd.Config)
 	// if err != nil {
 	// 	return err
 	// }
@@ -42,21 +41,40 @@ func (cmd *RunCmd) AfterApply() error {
 func (cmd *RunPluginCmd) Run(runCmd *RunCmd) error {
 	ctx := context.Background()
 	return runMultiple(ctx,
-		// runCmd.loadedConfig,
+		runCmd.loadedConfig,
 		true,
 		pluginFuncs...,
 	)
 }
 
-func runPlugin(ctx context.Context,
-
-// config config2.Config
+func runPlugin(ctx context.Context, config plugin_config.Config,
 ) (runFunc, error) {
-	return nil, nil
+
+	s, err := server.NewPluginServer(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.InitGin()
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.InitHuma()
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.InitApi(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ListenAndServe, nil
 }
 
 func runMultiple(ctx context.Context,
-	// config config2.Config,
+	config plugin_config.Config,
 	allowMigrate bool,
 	runs ...initRunFunc) error {
 	ctx, cancel := context.WithCancel(ctx)
@@ -64,6 +82,8 @@ func runMultiple(ctx context.Context,
 
 	var firstErr error
 	var m sync.Mutex
+
+	//TODO: Use allowMigrate for saved configs of already created volumes?
 
 	// db, err := initDB(ctx, config, allowMigrate)
 	// if err != nil {
@@ -78,7 +98,7 @@ func runMultiple(ctx context.Context,
 
 		slog.InfoContext(ctx, fmt.Sprintf("starting %s", fnName))
 
-		runFn, err := initRun(ctx) // config
+		runFn, err := initRun(ctx, config)
 
 		if err != nil {
 			return fmt.Errorf("error in %s: %w", fnName, err)

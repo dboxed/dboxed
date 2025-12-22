@@ -1,0 +1,85 @@
+package config
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dustin/go-humanize"
+	"sigs.k8s.io/yaml"
+)
+
+type Config struct {
+	InstanceName string `json:"instanceName"`
+
+	Auth   AuthConfig   `json:"auth"`
+	DB     DbConfig     `json:"db"`
+	Server ServerConfig `json:"server"`
+
+	GitMirrorDir string `json:"gitMirrorDir"`
+
+	DefaultWorkspaceQuotas DefaultWorkspaceQuotas `json:"defaultWorkspaceQuotas"`
+}
+
+type AuthConfig struct {
+	Oidc *AuthOidcConfig `json:"oidc"`
+}
+
+type AdminUser struct {
+	ID       *string `json:"id,omitempty"`
+	Username *string `json:"username,omitempty"`
+}
+
+type AuthOidcConfig struct {
+	IssuerUrl string `json:"issuerUrl"`
+	ClientId  string `json:"clientId"`
+
+	UsernameClaim string `json:"usernameClaim"`
+	EMailClaim    string `json:"emailClaim"`
+	FullNameClaim string `json:"fullNameClaim"`
+
+	AdminUsers []AdminUser `json:"adminUsers"`
+}
+
+type DbConfig struct {
+	Url     string `json:"url"`
+	Migrate bool   `json:"migrate,omitempty"`
+}
+
+type ServerConfig struct {
+	ListenAddress string `json:"listenAddress"`
+	BaseUrl       string `json:"baseUrl"`
+}
+
+type DefaultWorkspaceQuotas struct {
+	MaxLogBytes util.HumanBytes `json:"maxLogBytes"`
+}
+
+func LoadConfig(configPath string) (*Config, error) {
+	if configPath == "" {
+		return nil, fmt.Errorf("missing config path")
+	}
+
+	f, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Config
+	err = yaml.Unmarshal(f, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.InstanceName == "" {
+		config.InstanceName = "dboxed"
+	}
+	if config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes == 0 {
+		config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes = humanize.MiByte * 100
+	}
+	if config.GitMirrorDir == "" {
+		config.GitMirrorDir = "/var/lib/dboxed-server/git-mirrors"
+	}
+
+	return &config, nil
+}
