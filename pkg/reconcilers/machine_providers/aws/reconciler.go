@@ -85,11 +85,13 @@ func (r *Reconciler) ReconcileMachineProvider(ctx context.Context, log *slog.Log
 }
 
 func (r *Reconciler) buildAWSClients() {
-	r.ec2Client = cloud_utils.BuildAwsClient(cloud_utils.AwsCreds{
+	awsCfg := cloud_utils.BuildAwsConfig(cloud_utils.AwsCreds{
 		AwsAccessKeyID:     r.mp.Aws.AwsAccessKeyID,
 		AwsSecretAccessKey: r.mp.Aws.AwsSecretAccessKey,
 		Region:             r.mp.Aws.Region.V,
 	})
+
+	r.ec2Client = ec2.NewFromConfig(*awsCfg)
 }
 
 func (r *Reconciler) reconcileDeleteMachineProvider(ctx context.Context) base.ReconcileResult {

@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/dboxed/dboxed/pkg/server/config"
 )
@@ -17,7 +16,7 @@ type AwsCreds struct {
 	Region             string
 }
 
-func BuildAwsClient(creds AwsCreds) *ec2.Client {
+func BuildAwsConfig(creds AwsCreds) *aws.Config {
 	creds2 := aws.Credentials{}
 	if creds.AwsAccessKeyID != nil {
 		creds2.AccessKeyID = *creds.AwsAccessKeyID
@@ -32,7 +31,7 @@ func BuildAwsClient(creds AwsCreds) *ec2.Client {
 		return creds2, nil
 	})
 
-	return ec2.NewFromConfig(*awsConfig)
+	return awsConfig
 }
 
 func AwsAllHelper[P any, R any](params *P, fn func(params *P) ([]R, *string, error)) ([]R, error) {
