@@ -25,5 +25,5 @@ func GetDefaultMachineDboxedVersion() string {
 	if IsDummyVersion() {
 		return "nightly"
 	}
-	return Version
+	return "v" + Version
 }
