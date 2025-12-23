@@ -8,7 +8,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humagin"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
-	"github.com/gin-contrib/cors"
+
+	// "github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,12 +25,12 @@ func (s *PluginServer) InitGin() error {
 		c.JSON(500, em)
 	}))
 
-	corsConf := cors.DefaultConfig()
-	corsConf.AllowAllOrigins = true
-	corsConf.AllowCredentials = true
-	corsConf.AddAllowHeaders("Authorization")
-	corsConf.AddExposeHeaders("X-Total-Count")
-	s.ginEngine.Use(cors.New(corsConf))
+	// corsConf := cors.DefaultConfig()
+	// corsConf.AllowAllOrigins = true
+	// corsConf.AllowCredentials = true
+	// corsConf.AddAllowHeaders("Authorization")
+	// corsConf.AddExposeHeaders("X-Total-Count")
+	// s.ginEngine.Use(cors.New(corsConf))
 
 	return nil
 }
@@ -47,25 +48,25 @@ func (s *PluginServer) ListenAndServe(ctx context.Context) error {
 }
 
 func (s *PluginServer) InitHuma() error {
-	s.humaConfig = huma.DefaultConfig("Dboxed API", "0.1.0")
+	s.humaConfig = huma.DefaultConfig("Dboxed Docker Plugin API", "0.1.0")
 
-	if s.oidcProvider != nil {
-		s.humaConfig.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-			"dboxed": {
-				Type: "oauth2",
-				Flows: &huma.OAuthFlows{
-					Implicit: &huma.OAuthFlow{
-						AuthorizationURL: s.oidcProvider.Endpoint().AuthURL,
-						TokenURL:         s.oidcProvider.Endpoint().TokenURL,
-						Scopes:           map[string]string{},
-					},
-				},
-			},
-		}
-		s.humaConfig.Security = []map[string][]string{
-			{"dboxed": {}},
-		}
-	}
+	// if s.oidcProvider != nil {
+	// 	s.humaConfig.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+	// 		"dboxed": {
+	// 			Type: "oauth2",
+	// 			Flows: &huma.OAuthFlows{
+	// 				Implicit: &huma.OAuthFlow{
+	// 					AuthorizationURL: s.oidcProvider.Endpoint().AuthURL,
+	// 					TokenURL:         s.oidcProvider.Endpoint().TokenURL,
+	// 					Scopes:           map[string]string{},
+	// 				},
+	// 			},
+	// 		},
+	// 	}
+	// 	s.humaConfig.Security = []map[string][]string{
+	// 		{"dboxed": {}},
+	// 	}
+	// }
 	s.humaConfig.DocsPath = ""
 	s.api = humagin.New(s.ginEngine, s.humaConfig)
 
@@ -73,7 +74,8 @@ func (s *PluginServer) InitHuma() error {
 	huma_utils.SetupTxMiddlewares(s.ginEngine, s.api, "db")
 	huma_utils.InitHumaErrorOverride()
 
-	err := huma_utils.InitHumaDocs(s.ginEngine, s.authInfo.OidcClientId)
+	//TODO: remove this?
+	err := huma_utils.InitHumaDocs(s.ginEngine, "")
 	if err != nil {
 		return err
 	}

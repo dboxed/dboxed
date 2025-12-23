@@ -115,107 +115,107 @@ type Driver interface {
 }
 
 // Handler forwards requests and responses between the docker daemon and the plugin.
-type Handler struct {
-	driver Driver
-	sdk.Handler
-}
+// type Handler struct {
+// 	driver Driver
+// 	sdk.Handler
+// }
 
 // NewHandler initializes the request handler with a driver implementation.
-func NewHandler(driver Driver) *Handler {
-	h := &Handler{driver, sdk.NewHandler(manifest)}
-	h.initMux()
-	return h
-}
+// func NewHandler(driver Driver) *Handler {
+// 	h := &Handler{driver, sdk.NewHandler(manifest)}
+// 	h.initMux()
+// 	return h
+// }
 
-func (h *Handler) initMux() {
-	h.HandleFunc(createPath, func(w http.ResponseWriter, r *http.Request) {
-		req := &CreateRequest{}
-		err := sdk.DecodeRequest(w, r, req)
-		if err != nil {
-			return
-		}
-		err = h.driver.Create(req)
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, struct{}{}, false)
-	})
-	h.HandleFunc(removePath, func(w http.ResponseWriter, r *http.Request) {
-		req := &RemoveRequest{}
-		err := sdk.DecodeRequest(w, r, req)
-		if err != nil {
-			return
-		}
-		err = h.driver.Remove(req)
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, struct{}{}, false)
-	})
-	h.HandleFunc(mountPath, func(w http.ResponseWriter, r *http.Request) {
-		req := &MountRequest{}
-		err := sdk.DecodeRequest(w, r, req)
-		if err != nil {
-			return
-		}
-		res, err := h.driver.Mount(req)
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, res, false)
-	})
-	h.HandleFunc(hostVirtualPath, func(w http.ResponseWriter, r *http.Request) {
-		req := &PathRequest{}
-		err := sdk.DecodeRequest(w, r, req)
-		if err != nil {
-			return
-		}
-		res, err := h.driver.Path(req)
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, res, false)
-	})
-	h.HandleFunc(getPath, func(w http.ResponseWriter, r *http.Request) {
-		req := &GetRequest{}
-		err := sdk.DecodeRequest(w, r, req)
-		if err != nil {
-			return
-		}
-		res, err := h.driver.Get(req)
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, res, false)
-	})
-	h.HandleFunc(unmountPath, func(w http.ResponseWriter, r *http.Request) {
-		req := &UnmountRequest{}
-		err := sdk.DecodeRequest(w, r, req)
-		if err != nil {
-			return
-		}
-		err = h.driver.Unmount(req)
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, struct{}{}, false)
-	})
-	h.HandleFunc(listPath, func(w http.ResponseWriter, r *http.Request) {
-		res, err := h.driver.List()
-		if err != nil {
-			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
-			return
-		}
-		sdk.EncodeResponse(w, res, false)
-	})
+// func (h *Handler) initMux() {
+// 	h.HandleFunc(createPath, func(w http.ResponseWriter, r *http.Request) {
+// 		req := &CreateRequest{}
+// 		err := sdk.DecodeRequest(w, r, req)
+// 		if err != nil {
+// 			return
+// 		}
+// 		err = h.driver.Create(req)
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, struct{}{}, false)
+// 	})
+// 	h.HandleFunc(removePath, func(w http.ResponseWriter, r *http.Request) {
+// 		req := &RemoveRequest{}
+// 		err := sdk.DecodeRequest(w, r, req)
+// 		if err != nil {
+// 			return
+// 		}
+// 		err = h.driver.Remove(req)
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, struct{}{}, false)
+// 	})
+// 	h.HandleFunc(mountPath, func(w http.ResponseWriter, r *http.Request) {
+// 		req := &MountRequest{}
+// 		err := sdk.DecodeRequest(w, r, req)
+// 		if err != nil {
+// 			return
+// 		}
+// 		res, err := h.driver.Mount(req)
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, res, false)
+// 	})
+// 	h.HandleFunc(hostVirtualPath, func(w http.ResponseWriter, r *http.Request) {
+// 		req := &PathRequest{}
+// 		err := sdk.DecodeRequest(w, r, req)
+// 		if err != nil {
+// 			return
+// 		}
+// 		res, err := h.driver.Path(req)
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, res, false)
+// 	})
+// 	h.HandleFunc(getPath, func(w http.ResponseWriter, r *http.Request) {
+// 		req := &GetRequest{}
+// 		err := sdk.DecodeRequest(w, r, req)
+// 		if err != nil {
+// 			return
+// 		}
+// 		res, err := h.driver.Get(req)
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, res, false)
+// 	})
+// 	h.HandleFunc(unmountPath, func(w http.ResponseWriter, r *http.Request) {
+// 		req := &UnmountRequest{}
+// 		err := sdk.DecodeRequest(w, r, req)
+// 		if err != nil {
+// 			return
+// 		}
+// 		err = h.driver.Unmount(req)
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, struct{}{}, false)
+// 	})
+// 	h.HandleFunc(listPath, func(w http.ResponseWriter, r *http.Request) {
+// 		res, err := h.driver.List()
+// 		if err != nil {
+// 			sdk.EncodeResponse(w, NewErrorResponse(err.Error()), true)
+// 			return
+// 		}
+// 		sdk.EncodeResponse(w, res, false)
+// 	})
 
-	h.HandleFunc(capabilitiesPath, func(w http.ResponseWriter, r *http.Request) {
-		sdk.EncodeResponse(w, h.driver.Capabilities(), false)
-	})
+// 	h.HandleFunc(capabilitiesPath, func(w http.ResponseWriter, r *http.Request) {
+// 		sdk.EncodeResponse(w, h.driver.Capabilities(), false)
+// 	})
 }
