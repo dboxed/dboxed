@@ -15,7 +15,8 @@ RUN mkdir /tmp/restic && cd /tmp/restic  \
 
 VOLUME /var/lib/dboxed
 
-# RUN mkdir -p /run/docker/plugins /var/lib/dboxed/volumes
+RUN mkdir -p /run/docker/plugins 
+# RUN mkdir -p /var/lib/dboxed/volumes
 
 COPY $TARGETPLATFORM/dboxed /usr/bin/dboxed
 

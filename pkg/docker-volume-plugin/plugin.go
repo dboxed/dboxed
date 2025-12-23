@@ -6,10 +6,10 @@ import (
 	// "os"
 	// "path/filepath"
 
-	volume_helper "github.com/docker/go-plugins-helpers/volume"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/volume"
 	volume_mount "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-mount"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	volume_helper "github.com/docker/go-plugins-helpers/volume"
 	// volume_plugin "github.com/dboxed/dboxed/pkg/docker-volume-plugin"
 	// plugin_config "github.com/dboxed/dboxed/pkg/docker-volume-plugin/config"
 )
@@ -18,21 +18,33 @@ const pluginRoot = "/var/lib/dboxed/volumes"
 
 type driver struct{}
 
+type driver_opts struct {
+
+}
+
+func GetGlobals() *flags.GlobalFlags {
+	// TODO load from env or config file?
+	return &flags.GlobalFlags{}
+}
+
+func parseVolumeOptions(options map[string]string) driver_opts {
+	parsedOptions := driver_opts{}
+	return parsedOptions
+}
+
 func (d *driver) Create(req *volume_helper.CreateRequest) error {
 	// req.Name
 	// req.Options
 
 	// TODO check if dboxed volume already exists before creating and validate
 	cmd := &volume.CreateCmd{
-		Name:           "default-volume",
+		Name:           req.Name,
 		VolumeProvider: "rustic-test",
 		FsType:         "btrfs",
-		FsSize:         "",
+		// FsSize:         "",
 	}
 
-	gf := &flags.GlobalFlags{
-		// TODO load from volume mount? or env?
-	}
+	gf := GetGlobals()
 
 	//TODO: write metadata for later use?
 
@@ -44,25 +56,23 @@ func (d *driver) Create(req *volume_helper.CreateRequest) error {
 }
 
 func (d *driver) Mount(req *volume_helper.MountRequest) (*volume_helper.MountResponse, error) {
-	// TODO: run serve
 
-	args := &flags.VolumeServeArgs{
-		Volume:         "test",
-		BackupInterval: "30m",
-	}
+	// TODO: run serve in background?
+	// args := &flags.VolumeServeArgs{
+	// 	Volume:         "test",
+	// 	BackupInterval: "30m",
+	// }
 
-	cmd := &volume_mount.ServeCmd{
-		args,
-	}
+	// cmd := &volume_mount.ServeCmd{
+	// 	args,
+	// }
 
 	// TODO check if dboxed volume-mount already exists before creating?
 	cmd := &volume_mount.CreateCmd{
 		Volume: req.Name,
 	}
 
-	gf := &flags.GlobalFlags{
-		// TODO load from volume mount? or env?
-	}
+	gf := GetGlobals()
 
 	err := cmd.Run(gf)
 	if err != nil {
@@ -100,9 +110,7 @@ func (d *driver) Unmount(req *volume_helper.UnmountRequest) error {
 		Volume: req.Name,
 	}
 
-	gf := &flags.GlobalFlags{
-		// TODO load from volume mount? or env?
-	}
+	gf := GetGlobals()
 
 	err := cmd.Run(gf)
 	if err != nil {
@@ -246,6 +254,8 @@ func (d *driver) Path(req *volume_helper.PathRequest) (*volume_helper.PathRespon
 }
 
 func main() {
+	// if needed, do migrations if an older metadata structure is found?
+	
 	driver := &driver{}
 	h := volume_helper.NewHandler(driver)
 	log.Print("Starting plugin ...")
