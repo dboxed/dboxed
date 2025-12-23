@@ -1,4 +1,4 @@
-package git_specs
+package dboxed_specs
 
 import (
 	"context"
@@ -13,28 +13,27 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/volumes"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dustin/go-humanize"
-	"github.com/kluctl/kluctl/lib/git/types"
 )
 
-func (r *reconciler) reconcileSpecVolume(ctx context.Context, gs *dmodel.GitSpec, u types.GitUrl, name string, volume *dboxed_specs.Volume, e *dmodel.GitSpecMapping, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileSpecVolume(ctx context.Context, gs *dmodel.DboxedSpec, name string, volume *dboxed_specs.Volume, e *dmodel.DboxedSpecMapping, log *slog.Logger) base.ReconcileResult {
 	if e == nil {
-		return r.createVolume(ctx, gs, u, name, volume, log)
+		return r.createVolume(ctx, gs, name, volume, log)
 	} else {
-		var oldVolume *dboxed_specs.Volume
-		err := json.Unmarshal([]byte(e.Spec), &oldVolume)
+		var oldFragment *dboxed_specs.Volume
+		err := json.Unmarshal([]byte(e.SpecFragment), &oldFragment)
 		if err != nil {
 			return base.InternalError(err)
 		}
-		if volume.Recreate != oldVolume.Recreate {
+		if volume.Recreate != oldFragment.Recreate {
 			deleted, result := r.deleteObject(ctx, e, log)
 			if result.ExitReconcile() {
 				return result
 			}
 			if deleted {
-				return r.createVolume(ctx, gs, u, name, volume, log)
+				return r.createVolume(ctx, gs, name, volume, log)
 			}
 		} else {
-			if !util.EqualsViaJson(volume, oldVolume) {
+			if !util.EqualsViaJson(volume, oldFragment) {
 				return base.ErrorFromMessage("volume %s has been modified, which is not allowed", name)
 			}
 		}
@@ -42,7 +41,7 @@ func (r *reconciler) reconcileSpecVolume(ctx context.Context, gs *dmodel.GitSpec
 	}
 }
 
-func (r *reconciler) createVolume(ctx context.Context, gs *dmodel.GitSpec, u types.GitUrl, name string, volume *dboxed_specs.Volume, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) createVolume(ctx context.Context, gs *dmodel.DboxedSpec, name string, volume *dboxed_specs.Volume, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 	vp, err := dmodel.GetVolumeProviderByName(q, gs.WorkspaceID, volume.Provider, true)
 	if err != nil {
@@ -76,7 +75,7 @@ func (r *reconciler) createVolume(ctx context.Context, gs *dmodel.GitSpec, u typ
 		return base.InternalError(err)
 	}
 
-	_, result := r.createMapping(ctx, gs.WorkspaceID, u.RepoKey(), volume.Recreate, "volume", dbVolume.ID, name, volume)
+	_, result := r.createMapping(ctx, gs.WorkspaceID, gs, volume.Recreate, "volume", dbVolume.ID, name, volume)
 	if result.ExitReconcile() {
 		return result
 	}

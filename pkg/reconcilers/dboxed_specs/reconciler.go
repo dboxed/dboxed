@@ -1,4 +1,4 @@
-package git_specs
+package dboxed_specs
 
 import (
 	"context"
@@ -27,9 +27,9 @@ type globalState struct {
 	sshPools sync.Map
 }
 
-func NewGitSpecsReconciler() *base.Reconciler[*dmodel.GitSpec] {
-	return base.NewReconciler(base.Config[*dmodel.GitSpec]{
-		ReconcilerName:        "git-specs",
+func NewDboxedSpecsReconciler() *base.Reconciler[*dmodel.DboxedSpec] {
+	return base.NewReconciler(base.Config[*dmodel.DboxedSpec]{
+		ReconcilerName:        "dboxed-specs",
 		Reconciler:            &reconciler{},
 		FullReconcileInterval: 15 * time.Second,
 		NewGlobalState: func(ctx context.Context) any {
@@ -38,11 +38,11 @@ func NewGitSpecsReconciler() *base.Reconciler[*dmodel.GitSpec] {
 	})
 }
 
-func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.GitSpec, error) {
-	return dmodel.GetGitSpecsById(querier.GetQuerier(ctx), nil, id, false)
+func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.DboxedSpec, error) {
+	return dmodel.GetDboxedSpecById(querier.GetQuerier(ctx), nil, id, false)
 }
 
-func (r *reconciler) Reconcile(ctx context.Context, gs *dmodel.GitSpec, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) Reconcile(ctx context.Context, gs *dmodel.DboxedSpec, log *slog.Logger) base.ReconcileResult {
 	u, err := types.ParseGitUrl(gs.GitUrl)
 	if err != nil {
 		return base.InternalError(err)
@@ -104,21 +104,15 @@ type typeAndName struct {
 	n string
 }
 
-func (r *reconciler) reconcileDboxedSpecs(ctx context.Context, gs *dmodel.GitSpec, gt *object.Tree, specs *dboxed_specs.DboxedSpecs, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileDboxedSpecs(ctx context.Context, gs *dmodel.DboxedSpec, gt *object.Tree, specs *dboxed_specs.DboxedSpecs, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
-	u, err := types.ParseGitUrl(gs.GitUrl)
+	existingMappings, err := dmodel.ListDboxedSpecMappingForSpec(q, gs.WorkspaceID, gs.ID)
 	if err != nil {
 		return base.InternalError(err)
 	}
-	rk := u.RepoKey()
-
-	existingMappings, err := dmodel.ListGitSpecMappingForRepoKey(q, gs.WorkspaceID, rk.String())
-	if err != nil {
-		return base.InternalError(err)
-	}
-	existingMappingsById := map[string]*dmodel.GitSpecMapping{}
-	existingMappingsByTypeAndName := map[typeAndName]*dmodel.GitSpecMapping{}
+	existingMappingsById := map[string]*dmodel.DboxedSpecMapping{}
+	existingMappingsByTypeAndName := map[typeAndName]*dmodel.DboxedSpecMapping{}
 	foundMappings := map[typeAndName]struct{}{}
 
 	for _, m := range existingMappings {
@@ -154,14 +148,14 @@ func (r *reconciler) reconcileDboxedSpecs(ctx context.Context, gs *dmodel.GitSpe
 
 	for name, volume := range specs.Volumes {
 		e := existingMappingsByTypeAndName[typeAndName{t: "volume", n: name}]
-		result := r.reconcileSpecVolume(ctx, gs, *u, name, &volume, e, log)
+		result := r.reconcileSpecVolume(ctx, gs, name, &volume, e, log)
 		if result.ExitReconcile() {
 			return result
 		}
 	}
 	for name, box := range specs.Boxes {
 		e := existingMappingsByTypeAndName[typeAndName{t: "box", n: name}]
-		result := r.reconcileSpecBox(ctx, gs, *u, gt, name, &box, e, log)
+		result := r.reconcileSpecBox(ctx, gs, gt, name, &box, e, log)
 		if result.ExitReconcile() {
 			return result
 		}
@@ -170,7 +164,7 @@ func (r *reconciler) reconcileDboxedSpecs(ctx context.Context, gs *dmodel.GitSpe
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) deleteObject(ctx context.Context, e *dmodel.GitSpecMapping, log *slog.Logger) (bool, base.ReconcileResult) {
+func (r *reconciler) deleteObject(ctx context.Context, e *dmodel.DboxedSpecMapping, log *slog.Logger) (bool, base.ReconcileResult) {
 	q := querier.GetQuerier(ctx)
 
 	log = log.With("objectType", e.ObjectType, "objectName", e.ObjectName, "objectId", e.ObjectId)
@@ -200,7 +194,7 @@ func (r *reconciler) deleteObject(ctx context.Context, e *dmodel.GitSpecMapping,
 	v, err := getObjectFunc()
 	if err != nil {
 		if querier.IsSqlNotFoundError(err) {
-			log.InfoContext(ctx, "deleting git spec mapping")
+			log.InfoContext(ctx, "deleting dboxed spec mapping")
 			err = querier.DeleteOneByStruct(q, e)
 			if err != nil {
 				return false, base.InternalError(err)
@@ -222,28 +216,28 @@ func (r *reconciler) deleteObject(ctx context.Context, e *dmodel.GitSpecMapping,
 	return false, base.ReconcileResult{}
 }
 
-func (r *reconciler) createMapping(ctx context.Context, workspaceId string, rk types.RepoKey, recreateKey string, objectType string, objectId string, objectName string, spec any) (*dmodel.GitSpecMapping, base.ReconcileResult) {
+func (r *reconciler) createMapping(ctx context.Context, workspaceId string, spec *dmodel.DboxedSpec, recreateKey string, objectType string, objectId string, objectName string, specFragment any) (*dmodel.DboxedSpecMapping, base.ReconcileResult) {
 	q := querier.GetQuerier(ctx)
 
-	specStr, err := json.Marshal(spec)
+	specStr, err := json.Marshal(specFragment)
 	if err != nil {
 		return nil, base.InternalError(err)
 	}
 
-	m := &dmodel.GitSpecMapping{
+	m := &dmodel.DboxedSpecMapping{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: workspaceId,
 		},
-		RepoKey:     rk.String(),
-		RecreateKey: recreateKey,
-		ObjectType:  objectType,
-		ObjectId:    objectId,
-		ObjectName:  objectName,
-		Spec:        string(specStr),
+		SpecId:       spec.ID,
+		ObjectType:   objectType,
+		ObjectId:     objectId,
+		ObjectName:   objectName,
+		RecreateKey:  recreateKey,
+		SpecFragment: string(specStr),
 	}
 	err = m.Create(q)
 	if err != nil {
-		return nil, base.ErrorWithMessage(err, "failed to create git spec mapping")
+		return nil, base.ErrorWithMessage(err, "failed to create dboxed spec mapping")
 	}
 	return m, base.ReconcileResult{}
 }

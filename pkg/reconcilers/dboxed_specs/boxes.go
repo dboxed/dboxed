@@ -1,4 +1,4 @@
-package git_specs
+package dboxed_specs
 
 import (
 	"context"
@@ -15,34 +15,33 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/kluctl/kluctl/lib/git/types"
 )
 
-func (r *reconciler) reconcileSpecBox(ctx context.Context, gs *dmodel.GitSpec, u types.GitUrl, gt *object.Tree, name string, box *dboxed_specs.Box, e *dmodel.GitSpecMapping, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileSpecBox(ctx context.Context, gs *dmodel.DboxedSpec, gt *object.Tree, name string, box *dboxed_specs.Box, e *dmodel.DboxedSpecMapping, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	log = log.With("boxName", name)
 
 	if e == nil {
-		newE, result := r.createBox(ctx, gs, u, name, box, log)
+		newE, result := r.createBox(ctx, gs, name, box, log)
 		if result.ExitReconcile() {
 			return result
 		}
 		e = newE
 	}
 
-	var oldBox *dboxed_specs.OnlyRecreate
-	err := json.Unmarshal([]byte(e.Spec), &oldBox)
+	var oldFragment *dboxed_specs.OnlyRecreate
+	err := json.Unmarshal([]byte(e.SpecFragment), &oldFragment)
 	if err != nil {
 		return base.InternalError(err)
 	}
-	if box.Recreate != oldBox.Recreate {
+	if box.Recreate != oldFragment.Recreate {
 		deleted, result := r.deleteObject(ctx, e, log)
 		if result.ExitReconcile() {
 			return result
 		}
 		if deleted {
-			newE, result := r.createBox(ctx, gs, u, name, box, log)
+			newE, result := r.createBox(ctx, gs, name, box, log)
 			if result.ExitReconcile() {
 				return result
 			}
@@ -74,7 +73,7 @@ func (r *reconciler) reconcileSpecBox(ctx context.Context, gs *dmodel.GitSpec, u
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) createBox(ctx context.Context, gs *dmodel.GitSpec, u types.GitUrl, name string, box *dboxed_specs.Box, log *slog.Logger) (*dmodel.GitSpecMapping, base.ReconcileResult) {
+func (r *reconciler) createBox(ctx context.Context, gs *dmodel.DboxedSpec, name string, box *dboxed_specs.Box, log *slog.Logger) (*dmodel.DboxedSpecMapping, base.ReconcileResult) {
 	q := querier.GetQuerier(ctx)
 
 	var err error
@@ -94,19 +93,19 @@ func (r *reconciler) createBox(ctx context.Context, gs *dmodel.GitSpec, u types.
 	}
 
 	log.InfoContext(ctx, "creating box")
-	dbBox, err := boxes_utils.CreateBox(ctx, gs.WorkspaceID, createArgs, dmodel.BoxTypeGitSpec)
+	dbBox, err := boxes_utils.CreateBox(ctx, gs.WorkspaceID, createArgs, dmodel.BoxTypeDboxedSpec)
 	if err != nil {
 		return nil, base.InternalError(err)
 	}
 
-	e, result := r.createMapping(ctx, gs.WorkspaceID, u.RepoKey(), box.Recreate, "box", dbBox.ID, name, box)
+	e, result := r.createMapping(ctx, gs.WorkspaceID, gs, box.Recreate, "box", dbBox.ID, name, box)
 	if result.ExitReconcile() {
 		return nil, result
 	}
 	return e, base.ReconcileResult{}
 }
 
-func (r *reconciler) reconcileBoxVolumeAttachments(ctx context.Context, gs *dmodel.GitSpec, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileBoxVolumeAttachments(ctx context.Context, gs *dmodel.DboxedSpec, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	existingAttachments, err := dmodel.ListBoxVolumeAttachments(q, dbBox.ID)
@@ -169,7 +168,7 @@ func (r *reconciler) reconcileBoxVolumeAttachments(ctx context.Context, gs *dmod
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) reconcileBoxVolumeComposeProjects(ctx context.Context, gs *dmodel.GitSpec, gt *object.Tree, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileBoxVolumeComposeProjects(ctx context.Context, gs *dmodel.DboxedSpec, gt *object.Tree, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	existingComposeProjects, err := dmodel.ListBoxComposeProjects(q, dbBox.ID)
@@ -229,7 +228,7 @@ func (r *reconciler) reconcileBoxVolumeComposeProjects(ctx context.Context, gs *
 	return base.ReconcileResult{}
 }
 
-func (r *reconciler) reconcileBoxLoadBalancerServices(ctx context.Context, gs *dmodel.GitSpec, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+func (r *reconciler) reconcileBoxLoadBalancerServices(ctx context.Context, gs *dmodel.DboxedSpec, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
 
 	existingLBServices, err := dmodel.ListLoadBalancerServices(q, dbBox.ID)

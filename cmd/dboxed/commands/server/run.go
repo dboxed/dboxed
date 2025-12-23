@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/boxes"
-	"github.com/dboxed/dboxed/pkg/reconcilers/git_specs"
+	"github.com/dboxed/dboxed/pkg/reconcilers/dboxed_specs"
 	"github.com/dboxed/dboxed/pkg/reconcilers/load_balancers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machine_providers"
 	"github.com/dboxed/dboxed/pkg/reconcilers/machines"
@@ -54,7 +54,7 @@ var reconcilerFuncs = []initRunFunc{
 	runReconcilerLoadBalancers,
 	runReconcilerBoxes,
 	runReconcilerMachines,
-	runReconcilerGitSpecs,
+	runReconcilerDboxedSpecs,
 	runCronJobTokens,
 }
 
@@ -253,8 +253,8 @@ func runReconcilerMachines(ctx context.Context, config config2.Config) (runFunc,
 	return r.Run, nil
 }
 
-func runReconcilerGitSpecs(ctx context.Context, config config2.Config) (runFunc, error) {
-	r := git_specs.NewGitSpecsReconciler()
+func runReconcilerDboxedSpecs(ctx context.Context, config config2.Config) (runFunc, error) {
+	r := dboxed_specs.NewDboxedSpecsReconciler()
 	return r.Run, nil
 }
 

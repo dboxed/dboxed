@@ -7,7 +7,6 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
 	git_credentials "github.com/dboxed/dboxed/cmd/dboxed/commands/git-credentials"
-	git_spec "github.com/dboxed/dboxed/cmd/dboxed/commands/git-spec"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/load-balancer"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/machine"
@@ -16,6 +15,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/s3-bucket"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
+	"github.com/dboxed/dboxed/cmd/dboxed/commands/spec"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/token"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/volume"
 	volume_mount "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-mount"
@@ -50,7 +50,7 @@ type Cli struct {
 	Sandbox         sandbox.SandboxCommands                  `cmd:"" help:"manage sandboxes" aliases:"sb"`
 
 	GitCredentials git_credentials.GitCredentialsCommands `cmd:"" help:"manage git credentials" aliases:"git-creds"`
-	GitSpec        git_spec.GitSpecCommands               `cmd:"" help:"manage git specs"`
+	Spec           spec.SpecCommands                      `cmd:"" help:"manage dboxed specs"`
 
 	Version VersionCmd `cmd:"" help:"Print version"`
 

@@ -1,4 +1,4 @@
-package git_spec
+package spec
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 type DeleteCmd struct {
-	GitSpec string `help:"Specify git spec ID" required:"" arg:""`
+	DboxedSpec string `help:"Specify dboxed spec" required:"" arg:""`
 }
 
 func (cmd *DeleteCmd) Run(g *flags.GlobalFlags) error {
@@ -21,19 +21,19 @@ func (cmd *DeleteCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	gs, err := commandutils.GetGitSpec(ctx, c, cmd.GitSpec)
+	gs, err := commandutils.GetDboxedSpec(ctx, c, cmd.DboxedSpec)
 	if err != nil {
 		return err
 	}
 
-	c2 := &clients.GitSpecClient{Client: c}
+	c2 := &clients.DboxedSpecClient{Client: c}
 
-	err = c2.DeleteGitSpec(ctx, gs.ID)
+	err = c2.DeleteDboxedSpec(ctx, gs.ID)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("git spec deleted", slog.Any("id", gs.ID))
+	slog.Info("dboxed spec deleted", slog.Any("id", gs.ID))
 
 	return nil
 }

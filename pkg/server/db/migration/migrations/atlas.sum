@@ -1,4 +1,4 @@
-h1:0AWxkLlm/gXdvuakL30oQ+naloIrqLHlP4T5ZLMH4b8=
+h1:0ZHpesFB6puW1OlsHm/hs5GA4CgEXAhE/pC8lbmfSmo=
 20251106202744_initial.sql h1:8ORhKxF0D6d3K2ywYRRNfUwBn2lE9TtrJ70e/c+mi18=
 20251107095218_volume_lock_to_mount.sql h1:bL4/86ONX6bdeFzOPHr973GnxtgVSYyNFoAcDFb2fvM=
 20251107160511_volume_mount_status.sql h1:QSsqjdEBjA4yYaKtuPVCNBz5xjf3ffphF5vWTXyMBCE=
@@ -31,3 +31,6 @@ h1:0AWxkLlm/gXdvuakL30oQ+naloIrqLHlP4T5ZLMH4b8=
 20251219160453_rustic_to_restic_2.sql h1:BNje8Bb8Zy26NNnUZLp5W9DNhrXbwWZmiorDBB0FDGk=
 20251222094438_rustic_to_restic_3.sql h1:ecpIOsUCjLbpsprL7VUk2bjUs1OvuunqO6/qIggy/j0=
 20251222145116_public_ip.sql h1:XhssCz3L5MpqBQcMEw30d74Nxykj6R0OJZl7RQYxstI=
+20251223095039_dboxed_spec.sql h1:qfzxX7DhaHCqJzJNru/23YURWCvI3a864A+96ExpaAs=
+20251223102827_dboxed_spec_2.sql h1:Z7oCInUwxfLb0zQMKgOkLL3kLPdm8KOnq6Jf1spoFB8=
+20251223110657_dboxed_spec_3.sql h1:d+kbWabytBPuQgpp8bWSbg3zIUcYhpfuc8G9dnwDItU=

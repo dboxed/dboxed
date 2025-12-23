@@ -8,7 +8,7 @@ import (
 	"github.com/kluctl/kluctl/lib/git/types"
 )
 
-type GitSpec struct {
+type DboxedSpec struct {
 	OwnedByWorkspace
 	SoftDeleteFields
 	ReconcileStatus
@@ -19,7 +19,11 @@ type GitSpec struct {
 	SpecFile string  `db:"spec_file"`
 }
 
-func (v *GitSpec) SetGitRef(r *types.GitRef) {
+func (v *DboxedSpec) Create(q *querier2.Querier) error {
+	return querier2.Create(q, v)
+}
+
+func (v *DboxedSpec) SetGitRef(r *types.GitRef) {
 	if r == nil || *r == (types.GitRef{}) {
 		v.GitRef = nil
 	} else {
@@ -31,7 +35,7 @@ func (v *GitSpec) SetGitRef(r *types.GitRef) {
 	}
 }
 
-func (v *GitSpec) GetGitRef() *types.GitRef {
+func (v *DboxedSpec) GetGitRef() *types.GitRef {
 	if v.GitRef == nil {
 		return nil
 	}
@@ -43,26 +47,22 @@ func (v *GitSpec) GetGitRef() *types.GitRef {
 	return &ret
 }
 
-func (v *GitSpec) Create(q *querier2.Querier) error {
-	return querier2.Create(q, v)
-}
-
-func GetGitSpecsById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*GitSpec, error) {
-	return querier2.GetOne[GitSpec](q, map[string]any{
+func GetDboxedSpecById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*DboxedSpec, error) {
+	return querier2.GetOne[DboxedSpec](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListGitSpecsForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]GitSpec, error) {
-	return querier2.GetMany[GitSpec](q, map[string]any{
+func ListDboxedSpecsForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]DboxedSpec, error) {
+	return querier2.GetMany[DboxedSpec](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func (v *GitSpec) Update(q *querier2.Querier, gitUrl *string, gitRef **types.GitRef, subdir *string, specFile *string) error {
+func (v *DboxedSpec) Update(q *querier2.Querier, gitUrl *string, gitRef **types.GitRef, subdir *string, specFile *string) error {
 	var fields []string
 	if gitUrl != nil {
 		fields = append(fields, "git_url")
@@ -79,6 +79,9 @@ func (v *GitSpec) Update(q *querier2.Querier, gitUrl *string, gitRef **types.Git
 	if specFile != nil {
 		fields = append(fields, "spec_file")
 		v.SpecFile = *specFile
+	}
+	if len(fields) == 0 {
+		return nil
 	}
 
 	return querier2.UpdateOneByFieldsFromStruct(q, map[string]any{
