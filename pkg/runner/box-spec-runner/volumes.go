@@ -16,6 +16,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/util/command_helper"
+	"github.com/dboxed/dboxed/pkg/version"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
 )
 
@@ -202,7 +203,7 @@ func (rn *BoxSpecRunner) buildDboxedVolumesComposeProject(ctx context.Context) (
 
 	for _, dv := range rn.BoxSpec.Volumes {
 		p.Services[dv.Name] = ctypes.ServiceConfig{
-			Image:       consts.GetDefaultVolumeInfraImage(),
+			Image:       version.GetDefaultVolumeInfraImage(),
 			Privileged:  true,
 			NetworkMode: "host",
 			Volumes: []ctypes.ServiceVolumeConfig{

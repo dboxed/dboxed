@@ -11,7 +11,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/volume/mount"
 )
 
-func (v *Volume) CreateSnapshot(ctx context.Context, snapshotName string, overwrite bool) error {
+func (v *Volume) CreateSnapshot(ctx context.Context, snapshotName string, overwrite bool, lvmTags []string) error {
 	snapLv, err := lvm.LVGet(ctx, v.filesystemLv.VgName, snapshotName)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -30,9 +30,8 @@ func (v *Volume) CreateSnapshot(ctx context.Context, snapshotName string, overwr
 	}
 
 	_ = command_helper.RunCommand(ctx, "sync")
-
 	slog.Info("creating snapshot", slog.Any("snapshotName", snapshotName))
-	err = lvm.LVSnapCreate100Free(ctx, v.filesystemLv.VgName, v.filesystemLv.LvName, snapshotName)
+	err = lvm.LVSnapCreate100Free(ctx, v.filesystemLv.VgName, v.filesystemLv.LvName, snapshotName, lvmTags)
 	if err != nil {
 		return err
 	}

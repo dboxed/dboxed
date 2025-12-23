@@ -42,16 +42,16 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 		return nil, huma.Error400BadRequest("invalid name", err)
 	}
 
-	if i.Body.Rustic == nil {
-		return nil, huma.Error400BadRequest("currently only rustic is supported")
+	if i.Body.Restic == nil {
+		return nil, huma.Error400BadRequest("currently only restic is supported")
 	}
-	if i.Body.Rustic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
+	if i.Body.Restic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
 		return nil, huma.Error400BadRequest("currently only S3 storage is supported")
 	}
 
-	if i.Body.Rustic != nil {
-		if i.Body.Rustic.Password == "" {
-			return nil, huma.Error400BadRequest("rustic password is missing")
+	if i.Body.Restic != nil {
+		if i.Body.Restic.Password == "" {
+			return nil, huma.Error400BadRequest("restic password is missing")
 		}
 	}
 
@@ -78,40 +78,40 @@ func (s *VolumeProviderServer) restCreateVolumeProvider(ctx context.Context, i *
 	}
 
 	switch i.Body.Type {
-	case dmodel.VolumeProviderTypeRustic:
-		if i.Body.Rustic == nil {
-			return nil, fmt.Errorf("missing rustic config")
+	case dmodel.VolumeProviderTypeRestic:
+		if i.Body.Restic == nil {
+			return nil, fmt.Errorf("missing restic config")
 		}
 
-		err = s.checkPrefix(i.Body.Rustic.StoragePrefix)
+		err = s.checkPrefix(i.Body.Restic.StoragePrefix)
 		if err != nil {
 			return nil, err
 		}
 
-		r.Rustic = &dmodel.VolumeProviderRustic{
+		r.Restic = &dmodel.VolumeProviderRestic{
 			ID:            querier.N(r.ID),
-			StorageType:   querier.N(i.Body.Rustic.StorageType),
-			Password:      querier.N(i.Body.Rustic.Password),
-			StoragePrefix: querier.N(i.Body.Rustic.StoragePrefix),
+			StorageType:   querier.N(i.Body.Restic.StorageType),
+			Password:      querier.N(i.Body.Restic.Password),
+			StoragePrefix: querier.N(i.Body.Restic.StoragePrefix),
 		}
 
-		switch i.Body.Rustic.StorageType {
+		switch i.Body.Restic.StorageType {
 		case dmodel.VolumeProviderStorageTypeS3:
-			if i.Body.Rustic.S3BucketId == nil {
+			if i.Body.Restic.S3BucketId == nil {
 				return nil, fmt.Errorf("missing S3 bucket id")
 			}
 
-			err = checkS3Bucket(*i.Body.Rustic.S3BucketId)
+			err = checkS3Bucket(*i.Body.Restic.S3BucketId)
 			if err != nil {
 				return nil, err
 			}
 
-			r.Rustic.S3BucketID = i.Body.Rustic.S3BucketId
+			r.Restic.S3BucketID = i.Body.Restic.S3BucketId
 		default:
-			return nil, fmt.Errorf("unsupported storage type %s", i.Body.Rustic.StorageType)
+			return nil, fmt.Errorf("unsupported storage type %s", i.Body.Restic.StorageType)
 		}
 
-		err = r.Rustic.Create(q)
+		err = r.Restic.Create(q)
 		if err != nil {
 			return nil, err
 		}
@@ -198,37 +198,37 @@ func (s *VolumeProviderServer) restUpdateVolumeProvider(c context.Context, i *re
 
 func (s *VolumeProviderServer) doUpdateVolumeProvider(c context.Context, r *dmodel.VolumeProvider, body models.UpdateVolumeProvider) error {
 	q := querier.GetQuerier(c)
-	if body.Rustic != nil {
-		if dmodel.VolumeProviderType(r.Type) != dmodel.VolumeProviderTypeRustic {
-			return huma.Error400BadRequest("invalid update, not a rustic volume provider")
+	if body.Restic != nil {
+		if dmodel.VolumeProviderType(r.Type) != dmodel.VolumeProviderTypeRestic {
+			return huma.Error400BadRequest("invalid update, not a restic volume provider")
 		}
 
-		if body.Rustic.Password != nil {
-			if *body.Rustic.Password == "" {
-				return huma.Error400BadRequest("rustic password can not be empty")
+		if body.Restic.Password != nil {
+			if *body.Restic.Password == "" {
+				return huma.Error400BadRequest("restic password can not be empty")
 			}
-			err := r.Rustic.UpdatePassword(q, *body.Rustic.Password)
+			err := r.Restic.UpdatePassword(q, *body.Restic.Password)
 			if err != nil {
 				return err
 			}
 		}
 
-		if body.Rustic.StorageS3 != nil {
-			if r.Rustic.StorageType.V != dmodel.VolumeProviderStorageTypeS3 {
+		if body.Restic.StorageS3 != nil {
+			if r.Restic.StorageType.V != dmodel.VolumeProviderStorageTypeS3 {
 				return huma.Error400BadRequest("invalid update, not a S3 based volume provider")
 			}
-			if body.Rustic.StorageS3.S3BucketId != nil {
-				err := r.Rustic.UpdateS3Bucket(q, *body.Rustic.StorageS3.S3BucketId)
+			if body.Restic.StorageS3.S3BucketId != nil {
+				err := r.Restic.UpdateS3Bucket(q, *body.Restic.StorageS3.S3BucketId)
 				if err != nil {
 					return err
 				}
 			}
-			if body.Rustic.StorageS3.StoragePrefix != nil {
-				err := s.checkPrefix(*body.Rustic.StorageS3.StoragePrefix)
+			if body.Restic.StorageS3.StoragePrefix != nil {
+				err := s.checkPrefix(*body.Restic.StorageS3.StoragePrefix)
 				if err != nil {
 					return err
 				}
-				err = r.Rustic.UpdateStoragePrefix(q, *body.Rustic.StorageS3.StoragePrefix)
+				err = r.Restic.UpdateStoragePrefix(q, *body.Restic.StorageS3.StoragePrefix)
 				if err != nil {
 					return err
 				}

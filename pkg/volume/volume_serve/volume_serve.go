@@ -30,7 +30,7 @@ type VolumeServeOpts struct {
 	Dir            string
 	BackupInterval time.Duration
 
-	WebdavProxyListen string
+	ResticRestServerListen string
 }
 
 type VolumeServe struct {
@@ -105,8 +105,8 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 
 	vs.log = vs.log.With(slog.Any("mountId", *s.Volume.MountId))
 
-	if s.Volume.Rustic == nil {
-		return fmt.Errorf("only rustic is supported for now")
+	if s.Volume.Restic == nil {
+		return fmt.Errorf("only restic is supported for now")
 	}
 
 	lvmTags := []string{
@@ -117,20 +117,20 @@ func (vs *VolumeServe) Create(ctx context.Context) error {
 
 	image := filepath.Join(vs.opts.Dir, "image")
 
-	imageSize := s.Volume.Rustic.FsSize * 2
+	imageSize := s.Volume.Restic.FsSize * 2
 	vs.log.Info("creating local volume image",
 		slog.Any("path", image),
 		slog.Any("imageSize", humanize.Bytes(uint64(imageSize))),
-		slog.Any("fsSize", humanize.Bytes(uint64(s.Volume.Rustic.FsSize))),
-		slog.Any("fsType", s.Volume.Rustic.FsType),
+		slog.Any("fsSize", humanize.Bytes(uint64(s.Volume.Restic.FsSize))),
+		slog.Any("fsType", s.Volume.Restic.FsType),
 		slog.Any("lvmTags", lvmTags),
 	)
 	err = volume.Create(ctx, volume.CreateOptions{
 		MountId:   *s.Volume.MountId,
 		ImagePath: image,
 		ImageSize: imageSize,
-		FsSize:    s.Volume.Rustic.FsSize,
-		FsType:    s.Volume.Rustic.FsType,
+		FsSize:    s.Volume.Restic.FsSize,
+		FsType:    s.Volume.Restic.FsType,
 		LvmTags:   lvmTags,
 	})
 	if err != nil {
@@ -385,14 +385,14 @@ func (vs *VolumeServe) buildVolumeBackup(ctx context.Context, s *VolumeState) (*
 	snapshotMount := filepath.Join(vs.opts.Dir, "snapshot")
 
 	vb := &volume_backup.VolumeBackup{
-		Client:                c,
-		Volume:                vs.LocalVolume,
-		VolumeId:              s.Volume.ID,
-		MountId:               *s.Volume.MountId,
-		RusticPassword:        s.Volume.Rustic.Password,
-		Mount:                 mount,
-		SnapshotMount:         snapshotMount,
-		WebdavProxyListenAddr: vs.opts.WebdavProxyListen,
+		Client:                     c,
+		Volume:                     vs.LocalVolume,
+		VolumeId:                   s.Volume.ID,
+		MountId:                    *s.Volume.MountId,
+		ResticPassword:             s.Volume.Restic.Password,
+		Mount:                      mount,
+		SnapshotMount:              snapshotMount,
+		ResticRestServerListenAddr: vs.opts.ResticRestServerListen,
 	}
 	return vb, nil
 }
@@ -469,7 +469,7 @@ func (vs *VolumeServe) RestoreSnapshot(ctx context.Context, snapshotId string, d
 		return err
 	}
 
-	err = vb.RestoreSnapshot(ctx, snapshot.Rustic.SnapshotId, delete)
+	err = vb.RestoreSnapshot(ctx, snapshot.Restic.SnapshotId, delete)
 	if err != nil {
 		return err
 	}

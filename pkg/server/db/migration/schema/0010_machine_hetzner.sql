@@ -13,8 +13,9 @@ create index machine_hetzner_change_seq on machine_hetzner (change_seq);
 
 create table machine_hetzner_status
 (
-    id        text not null primary key references machine (id) on delete cascade,
+    id         text not null primary key references machine (id) on delete cascade,
 
-    server_id bigint
+    server_id  bigint,
+    public_ip4 text
 );
 

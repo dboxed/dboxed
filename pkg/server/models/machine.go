@@ -25,6 +25,9 @@ type Machine struct {
 	MachineProvider     *string                     `json:"machineProvider,omitempty"`
 	MachineProviderType *dmodel.MachineProviderType `json:"machineProviderType,omitempty"`
 
+	Aws     *MachineAws     `json:"aws,omitempty"`
+	Hetzner *MachineHetzner `json:"hetzner,omitempty"`
+
 	RunStatus *MachineRunStatus `json:"runStatus,omitempty"`
 }
 
@@ -35,17 +38,6 @@ type CreateMachine struct {
 
 	Hetzner *CreateMachineHetzner `json:"hetzner,omitempty"`
 	Aws     *CreateMachineAws     `json:"aws,omitempty"`
-}
-
-type CreateMachineHetzner struct {
-	ServerType     string `json:"serverType"`
-	ServerLocation string `json:"serverLocation"`
-}
-
-type CreateMachineAws struct {
-	InstanceType   string `json:"instanceType"`
-	SubnetId       string `json:"subnetId"`
-	RootVolumeSize *int64 `json:"rootVolumeSize,omitempty"`
 }
 
 type UpdateMachine struct {
@@ -97,9 +89,30 @@ func MachineFromDB(s dmodel.Machine, runStatus *dmodel.MachineRunStatus) (*Machi
 	if s.Aws != nil && s.Aws.ID.Valid {
 		ret.MachineProviderStatus = s.Aws.ReconcileStatus.ReconcileStatus.V
 		ret.MachineProviderStatusDetails = s.Aws.ReconcileStatus.ReconcileStatusDetails.V
+		ret.Aws = &MachineAws{
+			InstanceType:   s.Aws.InstanceType.V,
+			SubnetID:       s.Aws.SubnetID.V,
+			RootVolumeSize: s.Aws.RootVolumeSize.V,
+		}
+		if s.Aws.Status != nil {
+			ret.Aws.Status = &MachineStatusAws{
+				InstanceId: s.Aws.Status.InstanceID,
+				PublicIp4:  s.Aws.Status.PublicIp4,
+			}
+		}
 	} else if s.Hetzner != nil && s.Hetzner.ID.Valid {
 		ret.MachineProviderStatus = s.Hetzner.ReconcileStatus.ReconcileStatus.V
 		ret.MachineProviderStatusDetails = s.Hetzner.ReconcileStatus.ReconcileStatusDetails.V
+		ret.Hetzner = &MachineHetzner{
+			ServerType:     s.Hetzner.ServerType.V,
+			ServerLocation: s.Hetzner.ServerLocation.V,
+		}
+		if s.Hetzner.Status != nil {
+			ret.Hetzner.Status = &MachineStatusHetzner{
+				ServerId:  s.Hetzner.Status.ServerID,
+				PublicIp4: s.Hetzner.Status.PublicIp4,
+			}
+		}
 	}
 
 	if runStatus != nil {

@@ -15,6 +15,7 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
+	"github.com/gin-gonic/gin"
 )
 
 type ServeCmd struct {
@@ -27,6 +28,9 @@ type ServeCmd struct {
 
 func (cmd *ServeCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
+
+	// restic rest server is using gin
+	gin.SetMode(gin.ReleaseMode)
 
 	err := runServeVolumeCmd(ctx, g, runServeVolumeCmdOpts{
 		volume:            cmd.Volume,
@@ -90,7 +94,7 @@ func runServeVolumeCmd(ctx context.Context, g *flags.GlobalFlags, opts runServeV
 		vsOpts.BackupInterval = backupInterval
 	}
 	if opts.webdavProxyListen != nil {
-		vsOpts.WebdavProxyListen = *opts.webdavProxyListen
+		vsOpts.ResticRestServerListen = *opts.webdavProxyListen
 	}
 
 	if opts.box != nil {

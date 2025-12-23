@@ -17,6 +17,14 @@ func Ptr[T any](v T) *T {
 	return &v
 }
 
+func ZeroPtr[T comparable](v T) *T {
+	var zero T
+	if zero == v {
+		return nil
+	}
+	return &v
+}
+
 func MustJson(v any) string {
 	b, err := json.Marshal(v)
 	if err != nil {

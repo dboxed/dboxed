@@ -48,8 +48,8 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	switch vp.Type {
-	case dmodel.VolumeProviderTypeRustic:
-		req.Rustic = &models.CreateVolumeRustic{
+	case dmodel.VolumeProviderTypeRestic:
+		req.Restic = &models.CreateVolumeRestic{
 			FsSize: int64(fsSize),
 			FsType: cmd.FsType,
 		}

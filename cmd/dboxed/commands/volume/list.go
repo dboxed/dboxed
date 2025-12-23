@@ -63,10 +63,10 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		if v.LatestSnapshotId != nil {
 			snapshot, err := c2.GetVolumeSnapshotById(ctx, v.ID, *v.LatestSnapshotId)
 			if err == nil && snapshot != nil {
-				if snapshot.Rustic != nil {
+				if snapshot.Restic != nil {
 					p.LatestSnapshotId = snapshot.ID
-					p.LatestSnapshotTime = snapshot.Rustic.SnapshotTime.String()
-					p.LatestSnapshotSize = humanize.Bytes(uint64(snapshot.Rustic.TotalBytesProcessed))
+					p.LatestSnapshotTime = snapshot.Restic.SnapshotTime.String()
+					p.LatestSnapshotSize = humanize.Bytes(uint64(snapshot.Restic.TotalBytesProcessed))
 				}
 			}
 		}

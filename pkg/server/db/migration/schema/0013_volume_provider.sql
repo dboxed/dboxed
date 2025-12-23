@@ -17,7 +17,7 @@ create table volume_provider
 );
 create index volume_provider_change_seq on volume_provider (change_seq);
 
-create table volume_provider_rustic
+create table volume_provider_restic
 (
     id             text not null primary key references volume_provider (id) on delete cascade,
 

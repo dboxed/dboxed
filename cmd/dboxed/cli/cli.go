@@ -22,8 +22,8 @@ import (
 	volume_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-provider"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/workspace"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/logs"
+	"github.com/dboxed/dboxed/pkg/version"
 )
 
 type Cli struct {
@@ -72,7 +72,7 @@ func Execute() {
 		}),
 		kong.DefaultEnvars("DBOXED"),
 		kong.Vars{
-			"default_infra_image": consts.GetDefaultSandboxInfraImage(),
+			"default_infra_image": version.GetDefaultSandboxInfraImage(),
 		})
 
 	logLevel := slog.LevelInfo

@@ -13,6 +13,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
 	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/dboxed/dboxed/pkg/version"
 )
 
 type MachinesServer struct {
@@ -77,7 +78,7 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 			WorkspaceID: w.ID,
 		},
 		Name:          body.Name,
-		DboxedVersion: "latest",
+		DboxedVersion: version.GetDefaultMachineDboxedVersion(),
 	}
 
 	if body.MachineProvider != nil {

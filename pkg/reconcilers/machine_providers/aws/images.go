@@ -13,6 +13,9 @@ import (
 	"github.com/dboxed/dboxed/pkg/util"
 )
 
+// see https://wiki.debian.org/Cloud/AmazonEC2Image/Trixie
+const debianAccount = "136693071363"
+
 func (r *Reconciler) describeAwsInstanceTypes(ctx context.Context) ([]types.InstanceTypeInfo, base.ReconcileResult) {
 	if r.awsInstanceTypes != nil {
 		return r.awsInstanceTypes, base.ReconcileResult{}
@@ -43,10 +46,11 @@ func (r *Reconciler) describeAwsImages(ctx context.Context) ([]types.Image, base
 	var nextToken *string
 	for {
 		resp, err := r.ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+			Owners: []string{debianAccount},
 			Filters: []types.Filter{
 				{
 					Name:   util.Ptr("name"),
-					Values: []string{"al2023-ami-2023.*"},
+					Values: []string{"debian-13-arm64-*", "debian-13-amd64-*"},
 				},
 				{
 					Name:   util.Ptr("state"),

@@ -8,7 +8,7 @@ import (
 
 	"github.com/dboxed/dboxed/pkg/reconcilers/base"
 	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers/forget"
-	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers/rustic"
+	"github.com/dboxed/dboxed/pkg/reconcilers/volume_providers/restic"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 )
@@ -30,8 +30,8 @@ func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.VolumeProv
 
 func (r *reconciler) getSubReconciler(mp *dmodel.VolumeProvider) (subReconciler, error) {
 	switch mp.Type {
-	case dmodel.VolumeProviderTypeRustic:
-		return &rustic.Reconciler{}, nil
+	case dmodel.VolumeProviderTypeRestic:
+		return &restic.Reconciler{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported volume provider type %s", mp.Type)
 	}
@@ -103,7 +103,7 @@ func (r *reconciler) Reconcile(ctx context.Context, vp *dmodel.VolumeProvider, l
 				return result
 			}
 
-			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Rustic.SnapshotId.V))
+			log.InfoContext(ctx, "finally deleting snapshot", slog.Any("snapshotId", s.ID), slog.Any("rsSnapshotId", s.Restic.SnapshotId.V))
 			err = querier.DeleteOneByStruct(q, s)
 			if err != nil {
 				return base.InternalError(err)

@@ -1,14 +1,5 @@
 package consts
 
-import (
-	"fmt"
-
-	"github.com/dboxed/dboxed/pkg/version"
-)
-
-const dboxedInfraSandboxImage = "ghcr.io/dboxed/dboxed-infra-sandbox"
-const dboxedInfraVolumeImage = "ghcr.io/dboxed/dboxed-infra-volume"
-
 const DboxedDataDir = "/var/lib/dboxed"
 const SandboxClientAuthFile = DboxedDataDir + "/client-auth.yaml"
 
@@ -34,19 +25,3 @@ const VethIPStoreFile = "veth-ip"
 const SandboxInfoFile = "sandbox-info.yaml"
 
 const ShutdownSandboxMarkerFile = DboxedDataDir + "/" + "stop-sandbox"
-
-func GetDefaultInfraImageTag() string {
-	tag := "nightly"
-	if !version.IsDummyVersion() {
-		tag = "v" + version.Version
-	}
-	return tag
-}
-
-func GetDefaultSandboxInfraImage() string {
-	return fmt.Sprintf("%s:%s", dboxedInfraSandboxImage, GetDefaultInfraImageTag())
-}
-
-func GetDefaultVolumeInfraImage() string {
-	return fmt.Sprintf("%s:%s", dboxedInfraVolumeImage, GetDefaultInfraImageTag())
-}

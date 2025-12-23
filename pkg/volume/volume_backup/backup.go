@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/dboxed/dboxed/pkg/util/command_helper"
-	"github.com/dboxed/dboxed/pkg/volume/rustic"
+	"github.com/dboxed/dboxed/pkg/volume/mount"
+	"github.com/dboxed/dboxed/pkg/volume/restic"
+	"github.com/dboxed/dboxed/pkg/volume/restic_rest_server"
 	"github.com/dboxed/dboxed/pkg/volume/volume"
-	"github.com/dboxed/dboxed/pkg/volume/webdavproxy"
 )
 
 type VolumeBackup struct {
@@ -23,15 +24,16 @@ type VolumeBackup struct {
 	VolumeId string
 	MountId  string
 
-	RusticPassword        string
-	Mount                 string
-	SnapshotMount         string
-	WebdavProxyListenAddr string
+	ResticPassword string
+	Mount          string
+	SnapshotMount  string
+
+	ResticRestServerListenAddr string
 }
 
 func (vb *VolumeBackup) Backup(ctx context.Context) (*models.VolumeSnapshot, error) {
 	snapshotName := "backup-snapshot"
-	rusticHost := fmt.Sprintf("dboxed-volume-%s", vb.VolumeId)
+	resticHost := fmt.Sprintf("dboxed-volume-%s", vb.VolumeId)
 
 	_ = command_helper.RunCommand(ctx, "sync")
 
@@ -41,12 +43,14 @@ func (vb *VolumeBackup) Backup(ctx context.Context) (*models.VolumeSnapshot, err
 		return nil, err
 	}
 
+	tags := BuildBackupTags(v.VolumeProvider.ID, &vb.VolumeId, &vb.MountId)
+
 	err = vb.Volume.UnmountSnapshot(ctx, snapshotName)
 	if err != nil {
 		return nil, err
 	}
 
-	err = vb.Volume.CreateSnapshot(ctx, snapshotName, true)
+	err = vb.Volume.CreateSnapshot(ctx, snapshotName, true, tags)
 	if err != nil {
 		return nil, err
 	}
@@ -67,17 +71,25 @@ func (vb *VolumeBackup) Backup(ctx context.Context) (*models.VolumeSnapshot, err
 			slog.Error("deferred unmounting failed", slog.Any("error", err))
 		}
 	}()
-	tags := BuildBackupTags(v.VolumeProvider.ID, &vb.VolumeId, &vb.MountId)
 
-	var rsSnapshot *rustic.Snapshot
-	err = vb.runWithWebdavProxy(ctx, v, func(config rustic.RusticConfig) error {
+	var excludes []string
+	m, err := mount.GetMountByMountpoint(vb.SnapshotMount)
+	if err != nil {
+		return nil, err
+	}
+	if m.FSType == "ext2" || m.FSType == "ext3" || m.FSType == "ext4" {
+		excludes = append(excludes, filepath.Join(vb.SnapshotMount, "lost+found"))
+	}
+
+	var rsSnapshot *restic.Snapshot
+	err = vb.runWithResticRestServer(ctx, v, func(env []string) error {
 		var err error
-		rsSnapshot, err = rustic.RunBackup(ctx, config, vb.SnapshotMount, rustic.BackupOpts{
-			Host:      &rusticHost,
-			AsPath:    util.Ptr("/"),
+		rsSnapshot, err = restic.RunBackup(ctx, env, vb.SnapshotMount, restic.BackupOpts{
+			Host:      &resticHost,
 			WithAtime: true,
 			NoScan:    true,
 			Tags:      tags,
+			Exclude:   excludes,
 		})
 		if err != nil {
 			return err
@@ -90,7 +102,7 @@ func (vb *VolumeBackup) Backup(ctx context.Context) (*models.VolumeSnapshot, err
 
 	snapshot, err := c2.CreateSnapshot(ctx, vb.VolumeId, models.CreateVolumeSnapshot{
 		MountId: vb.MountId,
-		Rustic:  rsSnapshot.ToApi(),
+		Restic:  rsSnapshot.ToApi(),
 	})
 	if err != nil {
 		return nil, err
@@ -106,10 +118,9 @@ func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string, 
 		return err
 	}
 
-	err = vb.runWithWebdavProxy(ctx, v, func(config rustic.RusticConfig) error {
-		return rustic.RunRestore(ctx, config, snapshotId, vb.Mount, rustic.RestoreOpts{
-			NumericId: true,
-			Delete:    delete,
+	err = vb.runWithResticRestServer(ctx, v, func(env []string) error {
+		return restic.RunRestore(ctx, env, snapshotId, vb.Mount, restic.RestoreOpts{
+			Delete: delete,
 		})
 	})
 	if err != nil {
@@ -118,46 +129,39 @@ func (vb *VolumeBackup) RestoreSnapshot(ctx context.Context, snapshotId string, 
 	return nil
 }
 
-func (vb *VolumeBackup) runWithWebdavProxy(ctx context.Context, v *models.Volume, fn func(config rustic.RusticConfig) error) error {
-	if v.VolumeProvider.Type != dmodel.VolumeProviderTypeRustic {
-		return fmt.Errorf("not a rustic volume provider")
+func (vb *VolumeBackup) runWithResticRestServer(ctx context.Context, v *models.Volume, fn func(env []string) error) error {
+	if v.VolumeProvider.Type != dmodel.VolumeProviderTypeRestic {
+		return fmt.Errorf("not a restic volume provider")
 	}
-	if v.VolumeProvider.Rustic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
-		return fmt.Errorf("not a S3 based rustic volume provider")
+	if v.VolumeProvider.Restic.StorageType != dmodel.VolumeProviderStorageTypeS3 {
+		return fmt.Errorf("not a S3 based restic volume provider")
 	}
 
 	c3 := clients.S3BucketsClient{Client: vb.Client}
-	b, err := c3.GetS3BucketById(ctx, *v.VolumeProvider.Rustic.S3BucketId)
+	b, err := c3.GetS3BucketById(ctx, *v.VolumeProvider.Restic.S3BucketId)
 	if err != nil {
 		return err
 	}
 
-	fs := webdavproxy.NewFileSystem(ctx, vb.Client, b.ID, v.VolumeProvider.Rustic.StoragePrefix)
-
-	webdavProxy, err := webdavproxy.NewProxy(fs, vb.WebdavProxyListenAddr)
+	restServer, err := restic_rest_server.NewServer(vb.Client, b.ID, v.VolumeProvider.Restic.StoragePrefix, vb.ResticRestServerListenAddr)
 	if err != nil {
 		return err
 	}
-	wdpAddr, err := webdavProxy.Start(ctx)
+	restAddr, err := restServer.Start(ctx)
 	if err != nil {
 		return err
 	}
-	defer webdavProxy.Stop()
+	defer restServer.Stop()
 
-	config := vb.buildRusticConfig(wdpAddr.String())
+	env := vb.buildResticEnv(restAddr.String())
 
-	return fn(config)
+	return fn(env)
 }
 
-func (vb *VolumeBackup) buildRusticConfig(webdavAddr string) rustic.RusticConfig {
-	config := rustic.RusticConfig{
-		Repository: rustic.RusticConfigRepository{
-			Repository: "opendal:webdav",
-			Password:   vb.RusticPassword,
-			Options: rustic.RusticConfigRepositoryOptions{
-				Endpoint: fmt.Sprintf("http://%s", webdavAddr),
-			},
-		},
+func (vb *VolumeBackup) buildResticEnv(restAddr string) []string {
+	env := []string{
+		fmt.Sprintf("RESTIC_REPOSITORY=rest:http://%s", restAddr),
+		fmt.Sprintf("RESTIC_PASSWORD=%s", vb.ResticPassword),
 	}
-	return config
+	return env
 }

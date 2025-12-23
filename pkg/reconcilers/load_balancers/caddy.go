@@ -12,6 +12,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/version"
 )
 
 func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.LoadBalancer, box *dmodel.Box, token *models.Token, log *slog.Logger) base.ReconcileResult {
@@ -57,7 +58,7 @@ func (r *reconciler) buildCaddyCompose(ctx context.Context, lb *dmodel.LoadBalan
 		return "", result
 	}
 
-	ret, err := files.GetCaddyComposeFile("latest", cf)
+	ret, err := files.GetCaddyComposeFile(version.GetDefaultInfraImageTag(), cf)
 	if err != nil {
 		return "", base.InternalError(err)
 	}

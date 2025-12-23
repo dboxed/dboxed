@@ -58,19 +58,27 @@ func (cmd *ForceRemoveCmd) Run(g *flags.GlobalFlags) error {
 
 	if vs.Volume != nil {
 		tag := fmt.Sprintf("dboxed-volume-mount-%s", *vs.Volume.MountId)
-		lvs, err := lvm.FindLVsWithTag(ctx, tag)
+		vgs, err := lvm.FindVGsWithTag(ctx, tag)
 		if err != nil {
 			return err
 		}
-
-		vgs := map[string]struct{}{}
+		lvs, err := lvm.ListLVs(ctx)
+		if err != nil {
+			return err
+		}
+		vgsMap := map[string]*lvm.VGEntry{}
+		for _, vg := range vgs {
+			vgsMap[vg.VgName] = &vg
+		}
 
 		mounts, err := mount.ListMounts()
 		if err != nil {
 			return err
 		}
 		for _, lv := range lvs {
-			vgs[lv.VgName] = struct{}{}
+			if _, ok := vgsMap[lv.VgName]; !ok {
+				continue
+			}
 
 			devPath, err := lvm.BuildDevPath(lv.VgName, lv.LvName, true)
 			if err != nil {
@@ -86,7 +94,7 @@ func (cmd *ForceRemoveCmd) Run(g *flags.GlobalFlags) error {
 				}
 			}
 		}
-		for vgName := range vgs {
+		for vgName := range vgsMap {
 			slog.Info("trying to deactivate logical volume group", "vgName", vgName)
 			err = lvm.VGDeactivate(ctx, vgName)
 			if err != nil {

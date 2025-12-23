@@ -21,7 +21,8 @@ func (v *MachineHetzner) GetId() string {
 type MachineHetznerStatus struct {
 	ID querier2.NullForJoin[string] `db:"id"`
 
-	ServerID *int64 `db:"server_id"`
+	ServerID  *int64  `db:"server_id"`
+	PublicIp4 *string `db:"public_ip4"`
 }
 
 func (v *MachineHetzner) Create(q *querier2.Querier) error {
@@ -35,4 +36,9 @@ func (v *MachineHetznerStatus) Create(q *querier2.Querier) error {
 func (v *MachineHetznerStatus) UpdateServerID(q *querier2.Querier, serverId *int64) error {
 	v.ServerID = serverId
 	return querier2.UpdateOneFromStruct(q, v, "server_id")
+}
+
+func (v *MachineHetznerStatus) UpdatePublicIP4(q *querier2.Querier, ip *string) error {
+	v.PublicIp4 = ip
+	return querier2.UpdateOneFromStruct(q, v, "public_ip4")
 }

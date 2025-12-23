@@ -91,11 +91,11 @@ func CreateVolume(ctx context.Context, workspaceId string, body models.CreateVol
 	}
 
 	switch vp.Type {
-	case dmodel.VolumeProviderTypeRustic:
-		if body.Rustic == nil {
-			return nil, huma.Error400BadRequest("missing rustic config")
+	case dmodel.VolumeProviderTypeRestic:
+		if body.Restic == nil {
+			return nil, huma.Error400BadRequest("missing restic config")
 		}
-		err = createVolumeRustic(ctx, v, *body.Rustic)
+		err = createVolumeRestic(ctx, v, *body.Restic)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +106,7 @@ func CreateVolume(ctx context.Context, workspaceId string, body models.CreateVol
 	return v, nil
 }
 
-func createVolumeRustic(ctx context.Context, v *dmodel.Volume, body models.CreateVolumeRustic) error {
+func createVolumeRestic(ctx context.Context, v *dmodel.Volume, body models.CreateVolumeRestic) error {
 	q := querier.GetQuerier(ctx)
 
 	if body.FsSize <= humanize.MiByte {
@@ -116,12 +116,12 @@ func createVolumeRustic(ctx context.Context, v *dmodel.Volume, body models.Creat
 		return huma.Error400BadRequest("unsupported or invalid fsType")
 	}
 
-	v.Rustic = &dmodel.VolumeRustic{
+	v.Restic = &dmodel.VolumeRestic{
 		ID:     querier.N(v.ID),
 		FsSize: querier.N(body.FsSize),
 		FsType: querier.N(body.FsType),
 	}
-	err := v.Rustic.Create(q)
+	err := v.Restic.Create(q)
 	if err != nil {
 		return err
 	}
