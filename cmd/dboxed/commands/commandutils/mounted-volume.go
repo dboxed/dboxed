@@ -1,5 +1,6 @@
 package commandutils
 
+//TODO: Move to pkg services? Maybe merge with getters or split getters into multiple files?
 import (
 	"os"
 

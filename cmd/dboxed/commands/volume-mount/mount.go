@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/services"
 )
 
 type MountCmd struct {
@@ -15,12 +16,19 @@ type MountCmd struct {
 func (cmd *MountCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	err := runServeVolumeCmd(ctx, g, runServeVolumeCmdOpts{
-		volume:  cmd.Volume,
-		create:  false,
-		mount:   true,
-		serve:   false,
-		release: false,
+	c, err := g.BuildClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	s := &services.VolumesService{Client: c}
+
+	err = s.RunServeVolumeCmd(ctx, g.WorkDir, services.RunServeVolumeCmdOpts{
+		Volume:  cmd.Volume,
+		Create:  false,
+		Mount:   true,
+		Serve:   false,
+		Release: false,
 	})
 
 	if err != nil {

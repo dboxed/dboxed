@@ -25,6 +25,8 @@ type CreateCmd struct {
 func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
+	//TODO: extract to a service class?
+
 	c, err := g.BuildClient(ctx)
 	if err != nil {
 		return err
