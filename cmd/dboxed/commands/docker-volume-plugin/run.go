@@ -2,14 +2,12 @@ package docker_volume_plugin
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-	"reflect"
-	"runtime"
-	"sync"
+	"log"
 
+	plugin "github.com/dboxed/dboxed/pkg/docker-volume-plugin"
 	plugin_config "github.com/dboxed/dboxed/pkg/docker-volume-plugin/config"
-	"github.com/dboxed/dboxed/pkg/docker-volume-plugin/server"
+	volume_helper "github.com/docker/go-plugins-helpers/volume"
+	// "github.com/dboxed/dboxed/pkg/docker-volume-plugin/server"
 	// plugin_config "github.com/dboxed/dboxed/pkg/server/config"
 )
 
@@ -22,9 +20,9 @@ type RunCmd struct {
 	loadedConfig plugin_config.Config
 }
 
-var pluginFuncs = []initRunFunc{
-	runPlugin,
-}
+// var pluginFuncs = []initRunFunc{
+// 	runPlugin,
+// }
 
 type RunPluginCmd struct {
 }
@@ -39,86 +37,100 @@ func (cmd *RunCmd) AfterApply() error {
 }
 
 func (cmd *RunPluginCmd) Run(runCmd *RunCmd) error {
-	ctx := context.Background()
-	return runMultiple(ctx,
-		runCmd.loadedConfig,
-		true,
-		pluginFuncs...,
-	)
+	// ctx := context.Background()
+
+	driver := &plugin.Driver{}
+	h := volume_helper.NewHandler(driver)
+	log.Print("Starting plugin ...")
+
+	//TODO customize GID?
+	if err := h.ServeUnix("dboxed", 0); err != nil {
+		log.Fatalf("plugin serve error: %v", err)
+		return err
+	}
+	return nil
+
+	// return runMultiple(ctx,
+	// 	runCmd.loadedConfig,
+	// 	true,
+	// 	pluginFuncs...,
+	// )
 }
 
-func runPlugin(ctx context.Context, config plugin_config.Config,
-) (runFunc, error) {
+// func runPlugin(ctx context.Context, config plugin_config.Config,
+// ) (runFunc, error) {
 
-	s, err := server.NewPluginServer(ctx, config)
-	if err != nil {
-		return nil, err
-	}
+// docker_volume_plugin.main()
 
-	err = s.InitGin()
-	if err != nil {
-		return nil, err
-	}
+// s, err := server.NewPluginServer(ctx, config)
+// if err != nil {
+// 	return nil, err
+// }
 
-	err = s.InitHuma()
-	if err != nil {
-		return nil, err
-	}
+// err = s.InitGin()
+// if err != nil {
+// 	return nil, err
+// }
 
-	err = s.InitApi(ctx)
-	if err != nil {
-		return nil, err
-	}
+// err = s.InitHuma()
+// if err != nil {
+// 	return nil, err
+// }
 
-	return s.ListenAndServe, nil
-}
+// err = s.InitApi(ctx)
+// if err != nil {
+// 	return nil, err
+// }
 
-func runMultiple(ctx context.Context,
-	config plugin_config.Config,
-	allowMigrate bool,
-	runs ...initRunFunc) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+// return s.ListenAndServe, nil
+// }
 
-	var firstErr error
-	var m sync.Mutex
+// func runMultiple(ctx context.Context,
+// 	config plugin_config.Config,
+// 	allowMigrate bool,
+// 	runs ...initRunFunc) error {
+// 	ctx, cancel := context.WithCancel(ctx)
+// 	defer cancel()
 
-	//TODO: Use allowMigrate for saved configs of already created volumes?
+// 	var firstErr error
+// 	var m sync.Mutex
 
-	// db, err := initDB(ctx, config, allowMigrate)
-	// if err != nil {
-	// 	return err
-	// }
+//TODO: Use allowMigrate for saved configs of already created volumes?
 
-	// ctx = context.WithValue(ctx, "config", &config)
-	// ctx = context.WithValue(ctx, "db", db)
+// db, err := initDB(ctx, config, allowMigrate)
+// if err != nil {
+// 	return err
+// }
 
-	for _, initRun := range runs {
-		fnName := runtime.FuncForPC(reflect.ValueOf(initRun).Pointer()).Name()
+// ctx = context.WithValue(ctx, "config", &config)
+// ctx = context.WithValue(ctx, "db", db)
 
-		slog.InfoContext(ctx, fmt.Sprintf("starting %s", fnName))
+// 	for _, initRun := range runs {
+// 		fnName := runtime.FuncForPC(reflect.ValueOf(initRun).Pointer()).Name()
 
-		runFn, err := initRun(ctx, config)
+// 		slog.InfoContext(ctx, fmt.Sprintf("starting %s", fnName))
 
-		if err != nil {
-			return fmt.Errorf("error in %s: %w", fnName, err)
-		}
+// 		runFn, err := initRun(ctx, config)
 
-		go func() {
-			err := runFn(ctx)
-			if err != nil {
-				slog.ErrorContext(ctx, fnName, slog.Any("error", err))
+// 		if err != nil {
+// 			return fmt.Errorf("error in %s: %w", fnName, err)
+// 		}
 
-				m.Lock()
-				if firstErr == nil {
-					firstErr = err
-				}
-				m.Unlock()
-			}
-			cancel()
-		}()
-	}
+// 		go func() {
+// 			err := runFn(ctx)
+// 			if err != nil {
+// 				slog.ErrorContext(ctx, fnName, slog.Any("error", err))
 
-	<-ctx.Done()
-	return firstErr
-}
+// 				m.Lock()
+// 				if firstErr == nil {
+// 					firstErr = err
+// 				}
+// 				m.Unlock()
+// 			}
+// 			cancel()
+// 		}()
+// 	}
+
+// 	<-ctx.Done()
+// 	return firstErr
+// }
