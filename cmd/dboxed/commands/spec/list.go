@@ -1,4 +1,4 @@
-package git_spec
+package spec
 
 import (
 	"context"
@@ -13,8 +13,8 @@ type ListCmd struct {
 	flags.ListFlags
 }
 
-type PrintGitSpec struct {
-	ID            string `col:"ID" id:"true"`
+type PrintDboxedSpec struct {
+	ID            string `col:"ID"`
 	GitUrl        string `col:"Git URL"`
 	Subdir        string `col:"Subdir"`
 	SpecFile      string `col:"Spec File"`
@@ -30,16 +30,16 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.GitSpecClient{Client: c}
+	c2 := &clients.DboxedSpecClient{Client: c}
 
-	specs, err := c2.ListGitSpecs(ctx)
+	specs, err := c2.ListDboxedSpecs(ctx)
 	if err != nil {
 		return err
 	}
 
-	var table []PrintGitSpec
+	var table []PrintDboxedSpec
 	for _, gs := range specs {
-		table = append(table, PrintGitSpec{
+		table = append(table, PrintDboxedSpec{
 			ID:            gs.ID,
 			GitUrl:        gs.GitUrl,
 			Subdir:        gs.Subdir,

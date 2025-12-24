@@ -1,4 +1,4 @@
-package git_specs
+package dboxed_specs
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"github.com/kluctl/kluctl/lib/git/types"
 )
 
-func (r *reconciler) buildMirroredGitRepo(ctx context.Context, gs *dmodel.GitSpec, log *slog.Logger) (*git.MirroredGitRepo, error) {
+func (r *reconciler) buildMirroredGitRepo(ctx context.Context, gs *dmodel.DboxedSpec, log *slog.Logger) (*git.MirroredGitRepo, error) {
 	cfg := config.GetConfig(ctx)
 	g := base.GetGlobalState[globalState](ctx)
 
@@ -50,7 +50,7 @@ func (r *reconciler) buildMirroredGitRepo(ctx context.Context, gs *dmodel.GitSpe
 	return mr, nil
 }
 
-func (r *reconciler) buildAuthProviders(ctx context.Context, gs *dmodel.GitSpec, log *slog.Logger) (*auth.GitAuthProviders, error) {
+func (r *reconciler) buildAuthProviders(ctx context.Context, gs *dmodel.DboxedSpec, log *slog.Logger) (*auth.GitAuthProviders, error) {
 	q := querier.GetQuerier(ctx)
 	gitCreds, err := dmodel.ListGitCredentialsForWorkspace(q, gs.WorkspaceID)
 	if err != nil {
@@ -93,7 +93,7 @@ func (r *reconciler) buildAuthProviders(ctx context.Context, gs *dmodel.GitSpec,
 	return &ret, nil
 }
 
-func (r *reconciler) openGitTree(gs *dmodel.GitSpec, mr *git.MirroredGitRepo) (*object.Tree, base.ReconcileResult) {
+func (r *reconciler) openGitTree(gs *dmodel.DboxedSpec, mr *git.MirroredGitRepo) (*object.Tree, base.ReconcileResult) {
 	err := mr.Update()
 	if err != nil {
 		return nil, base.ErrorWithMessage(err, "failed to update mirrored git repo")

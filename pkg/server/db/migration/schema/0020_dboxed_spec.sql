@@ -1,4 +1,4 @@
-create table git_spec
+create table dboxed_spec
 (
     id                       text        not null primary key,
     workspace_id             text        not null references workspace (id) on delete cascade,

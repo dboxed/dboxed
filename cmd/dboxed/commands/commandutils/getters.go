@@ -207,10 +207,10 @@ func GetGitCredentials(ctx context.Context, c *baseclient.Client, gitCredentials
 	}
 }
 
-func GetGitSpec(ctx context.Context, c *baseclient.Client, gitSpec string) (*models.GitSpec, error) {
-	c2 := clients.GitSpecClient{Client: c}
-	// GitSpec only supports ID lookup
-	gs, err := c2.GetGitSpecById(ctx, gitSpec)
+func GetDboxedSpec(ctx context.Context, c *baseclient.Client, dboxedSpec string) (*models.DboxedSpec, error) {
+	c2 := clients.DboxedSpecClient{Client: c}
+	// DboxedSpec only supports ID lookup
+	gs, err := c2.GetDboxedSpecById(ctx, dboxedSpec)
 	if err != nil {
 		return nil, err
 	}

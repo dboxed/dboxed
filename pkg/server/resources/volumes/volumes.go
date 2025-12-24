@@ -103,6 +103,11 @@ func CreateVolume(ctx context.Context, workspaceId string, body models.CreateVol
 		return nil, huma.Error501NotImplemented("volume provider not implemented")
 	}
 
+	err = dmodel.BumpChangeSeqForId[*dmodel.VolumeProvider](q, v.VolumeProviderID)
+	if err != nil {
+		return nil, err
+	}
+
 	return v, nil
 }
 
@@ -255,6 +260,11 @@ func DeleteVolume(ctx context.Context, workspaceId string, id string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	err = dmodel.BumpChangeSeqForId[*dmodel.VolumeProvider](q, v.VolumeProviderID)
+	if err != nil {
+		return err
 	}
 
 	return nil

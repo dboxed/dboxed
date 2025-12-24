@@ -1,4 +1,4 @@
-package git_spec
+package spec
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 type UpdateCmd struct {
-	GitSpec string `help:"Specify git spec ID" required:"" arg:""`
+	DboxedSpec string `help:"Specify dboxed spec" required:"" arg:""`
 
 	GitUrl   *string `help:"Git repository URL"`
 	Subdir   *string `help:"Subdirectory in the repository"`
@@ -26,25 +26,25 @@ func (cmd *UpdateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	gs, err := commandutils.GetGitSpec(ctx, c, cmd.GitSpec)
+	gs, err := commandutils.GetDboxedSpec(ctx, c, cmd.DboxedSpec)
 	if err != nil {
 		return err
 	}
 
-	c2 := &clients.GitSpecClient{Client: c}
+	c2 := &clients.DboxedSpecClient{Client: c}
 
-	req := models.UpdateGitSpec{
+	req := models.UpdateDboxedSpec{
 		GitUrl:   cmd.GitUrl,
 		Subdir:   cmd.Subdir,
 		SpecFile: cmd.SpecFile,
 	}
 
-	updated, err := c2.UpdateGitSpec(ctx, gs.ID, req)
+	updated, err := c2.UpdateDboxedSpec(ctx, gs.ID, req)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("git spec updated", slog.Any("id", updated.ID), slog.Any("gitUrl", updated.GitUrl))
+	slog.Info("dboxed spec updated", slog.Any("id", updated.ID), slog.Any("gitUrl", updated.GitUrl))
 
 	return nil
 }

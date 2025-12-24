@@ -7,7 +7,7 @@ import (
 	"github.com/kluctl/kluctl/lib/git/types"
 )
 
-type GitSpec struct {
+type DboxedSpec struct {
 	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	Workspace string    `json:"workspace"`
@@ -21,22 +21,22 @@ type GitSpec struct {
 	SpecFile string        `json:"specFile"`
 }
 
-type CreateGitSpec struct {
+type CreateDboxedSpec struct {
 	GitUrl   string        `json:"gitUrl"`
 	GitRef   *types.GitRef `json:"gitRef,omitempty"`
 	Subdir   string        `json:"subdir"`
 	SpecFile string        `json:"specFile"`
 }
 
-type UpdateGitSpec struct {
+type UpdateDboxedSpec struct {
 	GitUrl   *string       `json:"gitUrl,omitempty"`
 	GitRef   *types.GitRef `json:"gitRef,omitempty"`
 	Subdir   *string       `json:"subdir,omitempty"`
 	SpecFile *string       `json:"specFile,omitempty"`
 }
 
-func GitSpecFromDB(v dmodel.GitSpec) GitSpec {
-	ret := GitSpec{
+func DboxedSpecFromDB(v dmodel.DboxedSpec) DboxedSpec {
+	ret := DboxedSpec{
 		ID:            v.ID,
 		CreatedAt:     v.CreatedAt,
 		Workspace:     v.WorkspaceID,

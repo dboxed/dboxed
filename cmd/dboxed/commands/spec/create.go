@@ -1,4 +1,4 @@
-package git_spec
+package spec
 
 import (
 	"context"
@@ -29,9 +29,9 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.GitSpecClient{Client: c}
+	c2 := &clients.DboxedSpecClient{Client: c}
 
-	req := models.CreateGitSpec{
+	req := models.CreateDboxedSpec{
 		GitUrl:   cmd.GitUrl,
 		Subdir:   cmd.Subdir,
 		SpecFile: cmd.SpecFile,
@@ -45,12 +45,12 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		req.GitRef = &types.GitRef{Commit: *cmd.Commit}
 	}
 
-	gs, err := c2.CreateGitSpec(ctx, req)
+	gs, err := c2.CreateDboxedSpec(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("git spec created", slog.Any("id", gs.ID), slog.Any("gitUrl", gs.GitUrl))
+	slog.Info("dboxed spec created", slog.Any("id", gs.ID), slog.Any("gitUrl", gs.GitUrl))
 
 	return nil
 }
