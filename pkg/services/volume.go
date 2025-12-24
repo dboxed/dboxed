@@ -12,6 +12,10 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/pkg/baseclient"
+	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dustin/go-humanize"
 
 	// "github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/volume/volume_serve"
@@ -35,7 +39,57 @@ type RunServeVolumeCmdOpts struct {
 	Release   bool
 }
 
+type CreateVolumeCmdOpts struct {
+	Name           string
+	VolumeProvider string
+	FsType         string
+	FsSize         string
+}
+
+func (service *VolumesService) CreateVolume(opts *CreateVolumeCmdOpts) error {
+	ctx := context.Background()
+
+	c := service.Client
+	
+	fsSize, err := humanize.ParseBytes(opts.FsSize)
+	if err != nil {
+		return err
+	}
+	
+	vp, err := commandutils.GetVolumeProvider(ctx, c, opts.VolumeProvider)
+	if err != nil {
+		return err
+	}
+	
+	req := models.CreateVolume{
+		Name:           opts.Name,
+		VolumeProvider: vp.ID,
+	}
+	
+	switch vp.Type {
+	case dmodel.VolumeProviderTypeRestic:
+		req.Restic = &models.CreateVolumeRestic{
+			FsSize: int64(fsSize),
+			FsType: opts.FsType,
+		}
+	default:
+		return fmt.Errorf("unsupported volume provider type %s", vp.Type)
+	}
+	
+	c2 := clients.VolumesClient{Client: c}
+	rep, err := c2.CreateVolume(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("volume created", slog.Any("id", rep.ID))
+
+	return nil
+}
+
 func (service *VolumesService) RunServeVolumeCmd(ctx context.Context, workDir string, opts RunServeVolumeCmdOpts) error {
+
+	//FIXME: should this bit be done by individual commands instead, and then pass sigs into method arg? only needed for serve though
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
