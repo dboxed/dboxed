@@ -9,41 +9,16 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+//TODO add the following?
+//   --api-url=API-URL                      Override API url ($DBOXED_API_URL)
+//   --api-token=API-TOKEN                  Override API token ($DBOXED_API_TOKEN)
+//   --workspace=WORKSPACE                  Override workspace ($DBOXED_WORKSPACE)
+//   --work-dir="/var/lib/dboxed"           dboxed work dir ($DBOXED_WORK_DIR)
+
 type Config struct {
-	InstanceName string `json:"instanceName"`
-
-	Auth   AuthConfig   `json:"auth"`
-	DB     DbConfig     `json:"db"`
-	Server ServerConfig `json:"server"`
-
-	GitMirrorDir string `json:"gitMirrorDir"`
-
+	InstanceName           string                 `json:"instanceName"`
+	Server                 ServerConfig           `json:"server"`
 	DefaultWorkspaceQuotas DefaultWorkspaceQuotas `json:"defaultWorkspaceQuotas"`
-}
-
-type AuthConfig struct {
-	Oidc *AuthOidcConfig `json:"oidc"`
-}
-
-type AdminUser struct {
-	ID       *string `json:"id,omitempty"`
-	Username *string `json:"username,omitempty"`
-}
-
-type AuthOidcConfig struct {
-	IssuerUrl string `json:"issuerUrl"`
-	ClientId  string `json:"clientId"`
-
-	UsernameClaim string `json:"usernameClaim"`
-	EMailClaim    string `json:"emailClaim"`
-	FullNameClaim string `json:"fullNameClaim"`
-
-	AdminUsers []AdminUser `json:"adminUsers"`
-}
-
-type DbConfig struct {
-	Url     string `json:"url"`
-	Migrate bool   `json:"migrate,omitempty"`
 }
 
 type ServerConfig struct {
@@ -57,6 +32,7 @@ type DefaultWorkspaceQuotas struct {
 
 func LoadConfig(configPath string) (*Config, error) {
 	if configPath == "" {
+		//TODO: Attempt to retrieve from environment / context?
 		return nil, fmt.Errorf("missing config path")
 	}
 
@@ -76,9 +52,6 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 	if config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes == 0 {
 		config.DefaultWorkspaceQuotas.MaxLogBytes.Bytes = humanize.MiByte * 100
-	}
-	if config.GitMirrorDir == "" {
-		config.GitMirrorDir = "/var/lib/dboxed-server/git-mirrors"
 	}
 
 	return &config, nil
