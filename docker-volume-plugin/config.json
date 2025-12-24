@@ -1,0 +1,41 @@
+{
+  "Args": {
+    "Description": "",
+    "Name": "",
+    "Settable": null,
+    "Value": null
+  },
+  "Description": "Dboxed volume plugin for Docker",
+  "Documentation": "https://docs.docker.com/engine/extend/plugins/",
+  "Entrypoint": [
+    "/dboxed"
+  ],
+  "Env": [
+    {
+      "Description": "",
+      "Name": "DEBUG",
+      "Settable": [
+        "value"
+      ],
+      "Value": "0"
+    }
+  ],
+  "Interface": {
+    "Socket": "dboxed.sock",
+    "Types": [
+      "docker.volumedriver/1.0"
+    ]
+  },
+  "Linux": {
+    "Capabilities": null,
+    "AllowAllDevices": false,
+    "Devices": null
+  },
+  "Mounts": null,
+  "Network": {
+    "Type": ""
+  },
+  "PropagatedMount": "/var/lib/dboxed",
+  "User": {},
+  "Workdir": ""
+}

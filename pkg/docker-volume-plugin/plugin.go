@@ -2,13 +2,17 @@ package docker_volume_plugin
 
 import (
 	// "fmt"
+	"context"
 	"log"
+	"errors"
 	// "os"
 	// "path/filepath"
 
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/volume"
+	// "github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	volume_mount "github.com/dboxed/dboxed/cmd/dboxed/commands/volume-mount"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/clients"
+	"github.com/dboxed/dboxed/pkg/server/models"
 	volume_helper "github.com/docker/go-plugins-helpers/volume"
 	// volume_plugin "github.com/dboxed/dboxed/pkg/docker-volume-plugin"
 	// plugin_config "github.com/dboxed/dboxed/pkg/docker-volume-plugin/config"
@@ -16,10 +20,9 @@ import (
 
 const pluginRoot = "/var/lib/dboxed/volumes"
 
-type driver struct{}
+type Driver struct{}
 
 type driver_opts struct {
-
 }
 
 func GetGlobals() *flags.GlobalFlags {
@@ -32,30 +35,58 @@ func parseVolumeOptions(options map[string]string) driver_opts {
 	return parsedOptions
 }
 
-func (d *driver) Create(req *volume_helper.CreateRequest) error {
+func (d *Driver) Create(req *volume_helper.CreateRequest) error {
 	// req.Name
 	// req.Options
 
-	// TODO check if dboxed volume already exists before creating and validate
-	cmd := &volume.CreateCmd{
-		Name:           req.Name,
-		VolumeProvider: "rustic-test",
-		FsType:         "btrfs",
-		// FsSize:         "",
+	gf := GetGlobals()
+
+	ctx := context.Background()
+
+	c, err := gf.BuildClient(ctx)
+	if err != nil {
+		return err
 	}
 
-	gf := GetGlobals()
+	c2 := clients.VolumesClient{Client: c}
+	v, err := c2.GetVolumeByName(ctx, req.Name)
+
+	if v != nil {
+		//TODO: check if volume is already mounted elsewhere... if mounted by self, return and give no error?
+		return errors.New("volume already exists")
+	}
+
+	_, err = c2.CreateVolume(ctx, models.CreateVolume{
+		Name: req.Name,
+		// TODO other params?
+	})
+
+	return err
+
+	// v.Attachment
+	// v.MountStatus
+	// v.VolumeProvider.Name
+
+	// ct := commandutils.NewClientTool(c)
+
+	// TODO check if dboxed volume already exists before creating and validate
+	// cmd := &volume.CreateCmd{
+	// 	Name:           req.Name,
+	// 	VolumeProvider: "rustic-test",
+	// 	FsType:         "btrfs",
+	// 	// FsSize:         "",
+	// }
 
 	//TODO: write metadata for later use?
 
-	return cmd.Run(gf)
+	// return cmd.Run(gf)
 
 	// volPath := filepath.Join(pluginRoot, req.Name)
 	// log.Printf("Create volume: %s", volPath)
 	// return os.MkdirAll(volPath, 0755)
 }
 
-func (d *driver) Mount(req *volume_helper.MountRequest) (*volume_helper.MountResponse, error) {
+func (d *Driver) Mount(req *volume_helper.MountRequest) (*volume_helper.MountResponse, error) {
 
 	// TODO: run serve in background?
 	// args := &flags.VolumeServeArgs{
@@ -104,7 +135,7 @@ func (d *driver) Mount(req *volume_helper.MountRequest) (*volume_helper.MountRes
 	// return &volume_helper.MountResponse{Mountpoint: volPath}, nil
 }
 
-func (d *driver) Unmount(req *volume_helper.UnmountRequest) error {
+func (d *Driver) Unmount(req *volume_helper.UnmountRequest) error {
 	// TODO check if dboxed volume already exists before creating
 	cmd := &volume_mount.ReleaseCmd{
 		Volume: req.Name,
@@ -138,7 +169,7 @@ func (d *driver) Unmount(req *volume_helper.UnmountRequest) error {
 	// return nil
 }
 
-func (d *driver) Remove(req *volume_helper.RemoveRequest) error {
+func (d *Driver) Remove(req *volume_helper.RemoveRequest) error {
 	// TODO is anything needed here? Might need to unmount?
 
 	// v, err := d.d.Get(req.Name)
@@ -160,7 +191,7 @@ func (d *driver) Remove(req *volume_helper.RemoveRequest) error {
 	return nil
 }
 
-func (d *driver) Get(req *volume_helper.GetRequest) (*volume_helper.GetResponse, error) {
+func (d *Driver) Get(req *volume_helper.GetRequest) (*volume_helper.GetResponse, error) {
 	//TODO: check locally stored metadata for volume info?
 
 	var res *volume_helper.GetResponse
@@ -198,7 +229,7 @@ func (d *driver) Get(req *volume_helper.GetRequest) (*volume_helper.GetResponse,
 	// }, nil
 }
 
-func (d *driver) List() (*volume_helper.ListResponse, error) {
+func (d *Driver) List() (*volume_helper.ListResponse, error) {
 	//TODO: check locally stored metadata for volume info?
 
 	var res *volume_helper.ListResponse
@@ -230,7 +261,7 @@ func (d *driver) List() (*volume_helper.ListResponse, error) {
 	// return &volume_helper.ListResponse{Volumes: volumes}, nil
 }
 
-func (d *driver) Capabilities() *volume_helper.CapabilitiesResponse {
+func (d *Driver) Capabilities() *volume_helper.CapabilitiesResponse {
 	return &volume_helper.CapabilitiesResponse{
 		Capabilities: volume_helper.Capability{
 			Scope: "local", // or "global" for multi-host plugins
@@ -238,7 +269,7 @@ func (d *driver) Capabilities() *volume_helper.CapabilitiesResponse {
 	}
 }
 
-func (d *driver) Path(req *volume_helper.PathRequest) (*volume_helper.PathResponse, error) {
+func (d *Driver) Path(req *volume_helper.PathRequest) (*volume_helper.PathResponse, error) {
 	//TODO: check locally stored metadata for volume info?
 
 	var res *volume_helper.PathResponse
@@ -255,9 +286,9 @@ func (d *driver) Path(req *volume_helper.PathRequest) (*volume_helper.PathRespon
 
 func main() {
 	// if needed, do migrations if an older metadata structure is found?
-	
-	driver := &driver{}
-	h := volume_helper.NewHandler(driver)
+
+	Driver := &Driver{}
+	h := volume_helper.NewHandler(Driver)
 	log.Print("Starting plugin ...")
 
 	//TODO customize GID?
