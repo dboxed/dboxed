@@ -66,7 +66,7 @@ func (s *S3ProxyServer) restListObjects(ctx context.Context, i *huma_utils.IdByP
 		return nil, err
 	}
 
-	slog.InfoContext(ctx, "restListObjects", slog.Any("listPrefix", i.Body.Prefix))
+	slog.DebugContext(ctx, "restListObjects", slog.Any("listPrefix", i.Body.Prefix))
 
 	ch := c.ListObjects(ctx, b.Bucket, minio.ListObjectsOptions{
 		Prefix:    i.Body.Prefix,
