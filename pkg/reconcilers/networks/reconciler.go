@@ -19,7 +19,7 @@ func NewNetworksReconciler() *base.Reconciler[*dmodel.Network] {
 	return base.NewReconciler(base.Config[*dmodel.Network]{
 		ReconcilerName:        "networks",
 		Reconciler:            &networkReconciler{},
-		FullReconcileInterval: 5 * time.Second,
+		FullReconcileInterval: 60 * time.Second,
 	})
 }
 
