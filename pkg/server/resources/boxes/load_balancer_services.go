@@ -97,6 +97,11 @@ func (s *BoxesServer) restCreateLoadBalancerService(c context.Context, i *restCr
 		return nil, err
 	}
 
+	err = dmodel.BumpChangeSeq(q, lb)
+	if err != nil {
+		return nil, err
+	}
+
 	ret := models.LoadBalancerServiceFromDB(*sbService)
 	return huma_utils.NewJsonBody(*ret), nil
 }
@@ -144,6 +149,11 @@ func (s *BoxesServer) restUpdateLoadBalancerService(c context.Context, i *restUp
 		return nil, err
 	}
 
+	err = dmodel.BumpChangeSeqForId[*dmodel.LoadBalancer](q, lbService.LoadBalancerId)
+	if err != nil {
+		return nil, err
+	}
+
 	ret := models.LoadBalancerServiceFromDB(*lbService)
 	return huma_utils.NewJsonBody(*ret), nil
 }
@@ -179,6 +189,11 @@ func (s *BoxesServer) restDeleteLoadBalancerService(c context.Context, i *restDe
 	}
 
 	err = dmodel.BumpChangeSeq(q, box)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dmodel.BumpChangeSeqForId[*dmodel.LoadBalancer](q, i.LoadBalancerServiceId)
 	if err != nil {
 		return nil, err
 	}

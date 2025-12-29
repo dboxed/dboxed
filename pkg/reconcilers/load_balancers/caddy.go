@@ -30,6 +30,7 @@ func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.
 		}
 	}
 
+	changed := false
 	if existingComposeProject == nil {
 		bcp := &dmodel.BoxComposeProject{
 			BoxID:          box.ID,
@@ -40,12 +41,21 @@ func (r *reconciler) reconcileLoadBalancerCaddy(ctx context.Context, lb *dmodel.
 		if err != nil {
 			return base.InternalError(err)
 		}
+		changed = true
 	} else {
 		if composeFile != existingComposeProject.ComposeProject {
 			err = existingComposeProject.UpdateComposeProject(q, composeFile)
 			if err != nil {
 				return base.InternalError(err)
 			}
+			changed = true
+		}
+	}
+
+	if changed {
+		err = dmodel.BumpChangeSeq(q, box)
+		if err != nil {
+			return base.InternalError(err)
 		}
 	}
 

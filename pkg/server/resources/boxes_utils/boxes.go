@@ -18,18 +18,6 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		return nil, err
 	}
 
-	var networkId *string
-	var networkType *dmodel.NetworkType
-	if body.Network != nil {
-		var network *dmodel.Network
-		network, err = dmodel.GetNetworkById(q, &workspaceId, *body.Network, true)
-		if err != nil {
-			return nil, err
-		}
-		networkId = &network.ID
-		networkType = &network.Type
-	}
-
 	box := &dmodel.Box{
 		OwnedByWorkspace: dmodel.OwnedByWorkspace{
 			WorkspaceID: workspaceId,
@@ -38,9 +26,16 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		BoxType: boxType,
 
 		Enabled: true,
+	}
 
-		NetworkID:   networkId,
-		NetworkType: networkType,
+	var network *dmodel.Network
+	if body.Network != nil {
+		network, err = dmodel.GetNetworkById(q, &workspaceId, *body.Network, true)
+		if err != nil {
+			return nil, err
+		}
+		box.NetworkID = &network.ID
+		box.NetworkType = &network.Type
 	}
 
 	err = box.Create(q)
@@ -56,8 +51,8 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		return nil, err
 	}
 
-	if networkId != nil {
-		switch *networkType {
+	if network != nil {
+		switch network.Type {
 		case dmodel.NetworkTypeNetbird:
 			box.Netbird = &dmodel.BoxNetbird{
 				ID: querier2.N(box.ID),
@@ -85,14 +80,31 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		}
 	}
 
+	if network != nil {
+		err = dmodel.BumpChangeSeq(q, network)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return box, nil
 }
 
 func DeleteBox(c context.Context, workspaceId string, boxId string) error {
 	q := querier2.GetQuerier(c)
-	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &workspaceId, boxId)
+	box, err := dmodel.GetBoxById(q, &workspaceId, boxId, true)
 	if err != nil {
 		return err
+	}
+	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Box](q, &workspaceId, boxId)
+	if err != nil {
+		return err
+	}
+	if box.NetworkID != nil {
+		err = dmodel.BumpChangeSeqForId[*dmodel.Network](q, *box.NetworkID)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
