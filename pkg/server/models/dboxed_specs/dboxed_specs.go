@@ -23,6 +23,8 @@ type Box struct {
 	VolumeAttachments    []VolumeAttachment        `json:"volumeAttachments,omitempty"`
 	ComposeProjects      map[string]ComposeProject `json:"composeProjects,omitempty"`
 	LoadBalancerServices []LoadBalancerService     `json:"loadBalancerServices,omitempty"`
+
+	Machine *string `json:"machine,omitempty"`
 }
 
 type VolumeAttachment struct {

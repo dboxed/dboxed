@@ -60,6 +60,14 @@ func GetMachineById(q *querier2.Querier, workspaceId *string, id string, skipDel
 	})
 }
 
+func GetMachineByName(q *querier2.Querier, workspaceId string, name string, skipDeleted bool) (*Machine, error) {
+	return querier2.GetOne[Machine](q, map[string]any{
+		"workspace_id": workspaceId,
+		"name":         name,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func GetMachineWithRunStatusById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*MachineWithRunStatus, error) {
 	return querier2.GetOne[MachineWithRunStatus](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),

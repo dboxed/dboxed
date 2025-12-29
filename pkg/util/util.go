@@ -25,6 +25,18 @@ func ZeroPtr[T comparable](v T) *T {
 	return &v
 }
 
+func PtrEquals[T comparable](v1 *T, v2 *T) bool {
+	if v1 == nil && v2 == nil {
+		return true
+	} else if v1 == nil {
+		return false
+	} else if v2 == nil {
+		return false
+	} else {
+		return *v1 == *v2
+	}
+}
+
 func MustJson(v any) string {
 	b, err := json.Marshal(v)
 	if err != nil {

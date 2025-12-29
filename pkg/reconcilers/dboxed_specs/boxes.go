@@ -69,6 +69,10 @@ func (r *reconciler) reconcileSpecBox(ctx context.Context, gs *dmodel.DboxedSpec
 	if result.ExitReconcile() {
 		return result
 	}
+	result = r.reconcileBoxMachine(ctx, gs, box, dbBox, log)
+	if result.ExitReconcile() {
+		return result
+	}
 
 	return base.ReconcileResult{}
 }
@@ -313,6 +317,44 @@ func (r *reconciler) reconcileBoxLoadBalancerServices(ctx context.Context, gs *d
 		if err != nil {
 			return base.InternalError(err)
 		}
+	}
+
+	return base.ReconcileResult{}
+}
+
+func (r *reconciler) reconcileBoxMachine(ctx context.Context, gs *dmodel.DboxedSpec, box *dboxed_specs.Box, dbBox *dmodel.Box, log *slog.Logger) base.ReconcileResult {
+	q := querier.GetQuerier(ctx)
+
+	var oldMachineId, newMachineId *string
+
+	if dbBox.MachineID != nil {
+		oldMachineId = dbBox.MachineID
+	}
+	if box.Machine != nil {
+		machine, err := dmodel.GetMachineByName(q, dbBox.WorkspaceID, *box.Machine, true)
+		if err != nil {
+			return base.ErrorWithMessage(err, "failed to get machine with name '%s'", *box.Machine)
+		}
+		newMachineId = &machine.ID
+	}
+
+	if util.PtrEquals(oldMachineId, newMachineId) {
+		return base.ReconcileResult{}
+	}
+
+	if !dbBox.MachineFromSpec && oldMachineId != nil {
+		if newMachineId == nil {
+			return base.ReconcileResult{}
+		}
+		return base.ErrorFromMessage("box was already manually attached to a machine, can't override this via dboxed specs")
+	}
+
+	log.InfoContext(ctx, "updating machine for spec box", "newMachineId", newMachineId)
+
+	fromSpec := newMachineId != nil
+	err := dbBox.UpdateMachineID(q, newMachineId, fromSpec)
+	if err != nil {
+		return base.InternalError(err)
 	}
 
 	return base.ReconcileResult{}

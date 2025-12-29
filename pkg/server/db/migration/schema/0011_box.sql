@@ -17,6 +17,7 @@ create table box
     network_type             text,
 
     machine_id               text        references machine (id) on delete set null,
+    machine_from_spec        bool        not null default false,
 
     enabled                  bool        not null default true,
     reconcile_requested_at   timestamptz,

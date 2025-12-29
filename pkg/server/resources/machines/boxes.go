@@ -67,7 +67,7 @@ func (s *MachinesServer) restAddBox(c context.Context, i *restAddBoxInput) (*hum
 		}
 	}
 
-	err = box.UpdateMachineID(q, &machine.ID)
+	err = box.UpdateMachineID(q, &machine.ID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,11 @@ func (s *MachinesServer) restRemoveBox(c context.Context, i *restRemoveBoxInput)
 		return nil, huma.Error400BadRequest("box is not assigned to this machine")
 	}
 
-	err = box.UpdateMachineID(q, nil)
+	if box.MachineFromSpec {
+		return nil, huma.Error400BadRequest("box was added via dboxed spec and can't be manually removed")
+	}
+
+	err = box.UpdateMachineID(q, nil, false)
 	if err != nil {
 		return nil, err
 	}
