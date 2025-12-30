@@ -13,7 +13,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/dockercli"
 	"github.com/dboxed/dboxed/pkg/server/models"
 )
@@ -45,18 +44,12 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := &clients.BoxClient{Client: c}
-	sandboxStatus, err := c2.GetSandboxStatus(ctx, b.ID)
-	if err != nil {
-		return err
-	}
-
 	// Display box status with styled output
-	renderSandboxStatus(b, sandboxStatus)
+	renderSandboxStatus(b, b.Sandbox)
 
 	// Display docker containers table
-	if sandboxStatus.DockerPs != nil && len(sandboxStatus.DockerPs) > 0 {
-		containers, err := parseDockerPs(sandboxStatus.DockerPs)
+	if b.Sandbox != nil && b.Sandbox.DockerPs != nil && len(b.Sandbox.DockerPs) > 0 {
+		containers, err := parseDockerPs(b.Sandbox.DockerPs)
 		if err != nil {
 			return err
 		}
@@ -72,7 +65,7 @@ func (cmd *StatusCmd) Run(g *flags.GlobalFlags) error {
 	return nil
 }
 
-func renderSandboxStatus(box *models.Box, sandboxStatus *models.BoxSandboxStatus) {
+func renderSandboxStatus(box *models.Box, sandbox *models.BoxSandbox) {
 	// Define styles
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -120,35 +113,37 @@ func renderSandboxStatus(box *models.Box, sandboxStatus *models.BoxSandboxStatus
 		enabledStyle.Render(fmt.Sprintf("%t", box.Enabled)),
 	)
 
-	// Run Status with color
-	runStatusValue := formatOptionalString(sandboxStatus.RunStatus)
-	statusColor := lipgloss.Color("241") // default gray
-	if color, ok := statusColors[runStatusValue]; ok {
-		statusColor = color
+	if sandbox != nil {
+		// Run Status with color
+		runStatusValue := formatOptionalString(sandbox.RunStatus)
+		statusColor := lipgloss.Color("241") // default gray
+		if color, ok := statusColors[runStatusValue]; ok {
+			statusColor = color
+		}
+		statusValueStyle := valueStyle.Copy().Foreground(statusColor)
+		fmt.Printf("%s  %s\n",
+			labelStyle.Render("Run Status:"),
+			statusValueStyle.Render(runStatusValue),
+		)
+
+		// Start Time
+		fmt.Printf("%s  %s\n",
+			labelStyle.Render("Start Time:"),
+			valueStyle.Render(formatOptionalTime(sandbox.StartTime)),
+		)
+
+		// Stop Time
+		fmt.Printf("%s  %s\n",
+			labelStyle.Render("Stop Time:"),
+			valueStyle.Render(formatOptionalTime(sandbox.StopTime)),
+		)
+
+		// Status Time
+		fmt.Printf("%s  %s\n",
+			labelStyle.Render("Status Time:"),
+			valueStyle.Render(formatOptionalTime(sandbox.StatusTime)),
+		)
 	}
-	statusValueStyle := valueStyle.Copy().Foreground(statusColor)
-	fmt.Printf("%s  %s\n",
-		labelStyle.Render("Run Status:"),
-		statusValueStyle.Render(runStatusValue),
-	)
-
-	// Start Time
-	fmt.Printf("%s  %s\n",
-		labelStyle.Render("Start Time:"),
-		valueStyle.Render(formatOptionalTime(sandboxStatus.StartTime)),
-	)
-
-	// Stop Time
-	fmt.Printf("%s  %s\n",
-		labelStyle.Render("Stop Time:"),
-		valueStyle.Render(formatOptionalTime(sandboxStatus.StopTime)),
-	)
-
-	// Status Time
-	fmt.Printf("%s  %s\n",
-		labelStyle.Render("Status Time:"),
-		valueStyle.Render(formatOptionalTime(sandboxStatus.StatusTime)),
-	)
 
 	fmt.Println() // Empty line before containers table
 }

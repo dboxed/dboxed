@@ -30,12 +30,12 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		return err
 	}
 
-	sandboxName, err := cmd.GetSandboxName(box)
+	sandboxId, err := run_sandbox.DetermineSandboxId(ctx, c, box, g.WorkDir)
 	if err != nil {
 		return err
 	}
 
-	logFile := filepath.Join(run_sandbox.GetSandboxDir(g.WorkDir, sandboxName), "logs", "sandbox-run.log")
+	logFile := filepath.Join(run_sandbox.GetSandboxDir(g.WorkDir, sandboxId), "logs", "sandbox-run.log")
 	logWriter := logs.BuildRotatingLogger(logFile)
 
 	logHandler.AddWriter(logWriter)
@@ -49,8 +49,8 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 		Debug:           g.Debug,
 		Client:          c,
 		BoxId:           box.ID,
+		SandboxId:       sandboxId,
 		InfraImage:      cmd.InfraImage,
-		SandboxName:     sandboxName,
 		WorkDir:         g.WorkDir,
 		VethNetworkCidr: cmd.VethCidr,
 	}

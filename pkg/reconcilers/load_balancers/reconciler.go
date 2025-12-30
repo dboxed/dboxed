@@ -121,7 +121,7 @@ func (r *reconciler) calculateStatus(ctx context.Context, lb *dmodel.LoadBalance
 
 	for _, replica := range replicas {
 		// Get box details
-		box, err := dmodel.GetBoxWithSandboxStatusById(q, nil, replica.BoxId, false)
+		box, err := dmodel.GetBoxWithSandboxById(q, nil, replica.BoxId, false)
 		if err != nil {
 			if querier.IsSqlNotFoundError(err) {
 				deletedBoxes++
@@ -142,18 +142,20 @@ func (r *reconciler) calculateStatus(ctx context.Context, lb *dmodel.LoadBalance
 			continue
 		}
 
-		// Check if status is stale
-		if box.SandboxStatus.StatusTime != nil {
-			statusAge := time.Since(*box.SandboxStatus.StatusTime)
-			if statusAge > 60*time.Second {
-				staleBoxes++
-				continue
+		if box.Sandbox != nil || !box.Sandbox.ID.Valid {
+			// Check if status is stale
+			if box.Sandbox.StatusTime != nil {
+				statusAge := time.Since(*box.Sandbox.StatusTime)
+				if statusAge > 60*time.Second {
+					staleBoxes++
+					continue
+				}
 			}
-		}
 
-		// Check if box is running
-		if box.SandboxStatus.RunStatus != nil && *box.SandboxStatus.RunStatus == "running" {
-			readyBoxes++
+			// Check if box is running
+			if box.Sandbox.RunStatus != nil && *box.Sandbox.RunStatus == "running" {
+				readyBoxes++
+			}
 		}
 	}
 

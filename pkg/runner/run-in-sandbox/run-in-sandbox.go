@@ -29,9 +29,8 @@ type RunInSandbox struct {
 
 	sandboxInfo *sandbox.SandboxInfo
 
-	networkConfig *boxspec.NetworkConfig
-	namesAndIps   network.NamesAndIps
-	portForwards  *network.PortForwards
+	namesAndIps  network.NamesAndIps
+	portForwards *network.PortForwards
 
 	routesMirror network.RoutesMirror
 
@@ -82,11 +81,7 @@ func (rn *RunInSandbox) doRun(ctx context.Context, sigs chan os.Signal) (bool, e
 	if err != nil {
 		return false, err
 	}
-	rn.networkConfig, err = util.UnmarshalYamlFile[boxspec.NetworkConfig](consts.NetworkConfFile)
-	if err != nil {
-		return false, err
-	}
-	rn.namesAndIps, err = network.NewNamesAndIPs(rn.networkConfig.SandboxName, rn.networkConfig.VethNetworkCidr)
+	rn.namesAndIps, err = network.NewNamesAndIPs(rn.sandboxInfo.SandboxId, rn.sandboxInfo.AcquiredVethNetworkCidr)
 	if err != nil {
 		return false, err
 	}

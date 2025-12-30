@@ -1,5 +1,5 @@
 [Unit]
-Description=dboxed sandbox {{ .SandboxName }}
+Description=dboxed sandbox for box {{ .BoxId }}
 Documentation=https://dboxed.io
 After=network.target local-fs.target
 
@@ -8,11 +8,10 @@ ExecStart={{ .ExePath }} \
     --workspace={{ .WorkspaceId }} \
     --client-auth-file={{ .ClientAuthFile }} \
     sandbox run {{ .BoxId }} \
-    --sandbox-name={{ .SandboxName }} \
     {{ .ExtraArgs }}
 
 ExecStop={{ .ExePath }} \
-    sandbox stop {{ .SandboxName }}
+    sandbox stop {{ .BoxId }}
 
 Type=simple
 RemainAfterExit=yes

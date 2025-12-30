@@ -11,10 +11,12 @@ import (
 )
 
 type SandboxInfo struct {
-	SandboxName     string            `json:"sandboxName"`
-	Box             *models.Box       `json:"box"`
-	Workspace       *models.Workspace `json:"workspace"`
-	VethNetworkCidr string            `json:"vethNetworkCidr"`
+	SandboxId string            `json:"sandboxId"`
+	Box       *models.Box       `json:"box"`
+	Workspace *models.Workspace `json:"workspace"`
+
+	GlobalVethNetworkCidr   string `json:"globalVethNetworkCidr"`
+	AcquiredVethNetworkCidr string `json:"acquiredVethNetworkCidr"`
 }
 
 func ListSandboxes(sandboxBaseDir string) ([]SandboxInfo, error) {

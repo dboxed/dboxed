@@ -12,7 +12,7 @@ var f embed.FS
 
 var templates, _ = template.New("").ParseFS(f, "*")
 
-func GetDboxedUnit(workspaceId string, boxId string, sandboxName string, clientAuthFile string, extraArgs string) string {
+func GetDboxedUnit(workspaceId string, boxId string, clientAuthFile string, extraArgs string) string {
 	exe, err := os.Executable()
 	if err != nil {
 		panic(err)
@@ -21,7 +21,6 @@ func GetDboxedUnit(workspaceId string, boxId string, sandboxName string, clientA
 	buf := bytes.NewBuffer(nil)
 	err = templates.Lookup("dboxed-sandbox.service").Execute(buf, map[string]any{
 		"ExePath":        exe,
-		"SandboxName":    sandboxName,
 		"WorkspaceId":    workspaceId,
 		"BoxId":          boxId,
 		"ClientAuthFile": clientAuthFile,

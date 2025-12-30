@@ -62,9 +62,12 @@ func (s *BoxesServer) Init(rootGroup huma.API, workspacesGroup huma.API) error {
 	huma.Patch(workspacesGroup, "/boxes/{id}/load-balancer-services/{loadBalancerServiceId}", s.restUpdateLoadBalancerService)
 	huma.Delete(workspacesGroup, "/boxes/{id}/load-balancer-services/{loadBalancerServiceId}", s.restDeleteLoadBalancerService)
 
-	// run status
-	huma.Get(workspacesGroup, "/boxes/{id}/sandbox-status", s.restGetSandboxStatus, allowBoxTokenModifier)
-	huma.Patch(workspacesGroup, "/boxes/{id}/sandbox-status", s.restUpdateSandboxStatus, allowBoxTokenModifier)
+	// sandboxes
+	huma.Post(workspacesGroup, "/boxes/{id}/sandboxes", s.restCreateSandbox, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/{id}/sandboxes", s.restListSandboxes, allowBoxTokenModifier)
+	huma.Get(workspacesGroup, "/boxes/{id}/sandboxes/{sandboxId}", s.restGetSandbox, allowBoxTokenModifier)
+	huma.Patch(workspacesGroup, "/boxes/{id}/sandboxes/{sandboxId}", s.restUpdateSandbox, allowBoxTokenModifier)
+	huma.Post(workspacesGroup, "/boxes/{id}/sandboxes/{sandboxId}/release", s.restReleaseSandbox, allowBoxTokenModifier)
 
 	return nil
 }
@@ -89,15 +92,15 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	w := auth_middleware.GetWorkspace(c)
 	token := auth_middleware.GetToken(c)
 
-	var l []dmodel.BoxWithSandboxStatus
+	var l []dmodel.BoxWithSandbox
 	if token == nil || token.Type == dmodel.TokenTypeWorkspace {
 		var err error
-		l, err = dmodel.ListBoxesWithSandboxStatusForWorkspace(q, w.ID, true)
+		l, err = dmodel.ListBoxesWithSandboxForWorkspace(q, w.ID, true)
 		if err != nil {
 			return nil, err
 		}
 	} else if token.BoxID != nil {
-		b, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, *token.BoxID, true)
+		b, err := dmodel.GetBoxWithSandboxById(q, &w.ID, *token.BoxID, true)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +111,7 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 
 	var ret []models.Box
 	for _, box := range l {
-		mm, err := s.postprocessBox(box.Box, box.SandboxStatus)
+		mm, err := s.postprocessBox(box.Box, box.Sandbox)
 		if err != nil {
 			return nil, err
 		}
@@ -117,13 +120,13 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.BoxWithSandboxStatus) (*huma_utils.JsonBody[models.Box], error) {
+func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.BoxWithSandbox) (*huma_utils.JsonBody[models.Box], error) {
 	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, box.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	boxm, err := s.postprocessBox(box.Box, box.SandboxStatus)
+	boxm, err := s.postprocessBox(box.Box, box.Sandbox)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +137,7 @@ func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*hu
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +153,7 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxStatusByName(q, w.ID, i.BoxName, true)
+	box, err := dmodel.GetBoxWithSandboxByName(q, w.ID, i.BoxName, true)
 	if err != nil {
 		return nil, err
 	}
@@ -162,22 +165,14 @@ func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
-	oldEnabled := box.Enabled
 	err = box.UpdateEnabled(q, true)
 	if err != nil {
 		return nil, err
-	}
-
-	if oldEnabled != box.Enabled {
-		err = box.SandboxStatus.UpdateStatusTime(q)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	err = dmodel.BumpChangeSeq(q, box)
@@ -197,22 +192,14 @@ func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) 
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxStatusById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxWithSandboxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
 
-	oldEnabled := box.Enabled
 	err = box.UpdateEnabled(q, false)
 	if err != nil {
 		return nil, err
-	}
-
-	if oldEnabled != box.Enabled {
-		err = box.SandboxStatus.UpdateStatusTime(q)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	err = dmodel.BumpChangeSeq(q, box)
@@ -275,8 +262,8 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	return &huma_utils.Empty{}, nil
 }
 
-func (s *BoxesServer) postprocessBox(box dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*models.Box, error) {
-	ret, err := models.BoxFromDB(box, sandboxStatus)
+func (s *BoxesServer) postprocessBox(box dmodel.Box, sandbox *dmodel.BoxSandbox) (*models.Box, error) {
+	ret, err := models.BoxFromDB(box, sandbox)
 	if err != nil {
 		return nil, err
 	}

@@ -129,7 +129,7 @@ func (rn *Sandbox) buildSandboxContainerConfig(image *v1.Image) (*configs.Config
 	mounts := rn.buildSandboxContainerMounts()
 
 	cg := &cgroups.Cgroup{
-		Path: fmt.Sprintf(":dboxed:%s", rn.SandboxName),
+		Path: fmt.Sprintf(":dboxed:%s", rn.SandboxId),
 		Resources: &cgroups.Resources{
 			Devices: []*config.Rule{
 				{

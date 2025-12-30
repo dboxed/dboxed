@@ -13,7 +13,6 @@ import (
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/machine/service/service_files"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/service"
 	"github.com/dboxed/dboxed/pkg/util"
 )
@@ -41,7 +40,7 @@ func (cmd *InstallCmd) Run(g *flags.GlobalFlags) error {
 	}
 	slog.Info("detected init system", slog.Any("initSystem", initSystem))
 
-	machineDir := run_sandbox.GetSandboxDir(g.WorkDir, "machine")
+	machineDir := filepath.Join(g.WorkDir, "machine")
 	err = os.MkdirAll(machineDir, 0700)
 	if err != nil {
 		return err

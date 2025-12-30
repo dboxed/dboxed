@@ -35,7 +35,7 @@ func (cmd *InstallCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	sandboxName, err := cmd.GetSandboxName(box)
+	sandboxId, err := run_sandbox.DetermineSandboxId(ctx, c, box, g.WorkDir)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (cmd *InstallCmd) Run(g *flags.GlobalFlags) error {
 	}
 	slog.Info("detected init system", slog.Any("initSystem", initSystem))
 
-	sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, sandboxName)
+	sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, sandboxId)
 	err = os.MkdirAll(sandboxDir, 0700)
 	if err != nil {
 		return err
@@ -66,9 +66,9 @@ func (cmd *InstallCmd) Run(g *flags.GlobalFlags) error {
 
 	switch initSystem {
 	case service.InitSystemSystemd:
-		unitName := fmt.Sprintf("dboxed-sandbox-%s", sandboxName)
+		unitName := fmt.Sprintf("dboxed-sandbox-%s", box.ID)
 		unitContent := service_files.GetDboxedUnit(
-			box.Workspace, box.ID, sandboxName, authFile,
+			box.Workspace, box.ID, authFile,
 			strings.Join(extraArgs, " "),
 		)
 

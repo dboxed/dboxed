@@ -19,28 +19,15 @@ create table box
     machine_id               text        references machine (id) on delete set null,
     machine_from_spec        bool        not null default false,
 
+    -- foreign key is added later
+    current_sandbox_id        text,
+
     enabled                  bool        not null default true,
     reconcile_requested_at   timestamptz,
 
     unique (workspace_id, name)
 );
 create index box_change_seq on box (change_seq);
-
-create table box_sandbox_status
-(
-    id          text not null primary key references box (id) on delete cascade,
-
-    status_time timestamptz,
-
-    run_status  text,
-    start_time  timestamptz,
-    stop_time   timestamptz,
-
-    -- gzip compressed json
-    docker_ps   bytea,
-
-    network_ip4 text
-);
 
 create table box_netbird
 (

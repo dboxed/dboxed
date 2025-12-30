@@ -34,7 +34,7 @@ func (cmd *UninstallCmd) Run(g *flags.GlobalFlags) error {
 
 	switch initSystem {
 	case service.InitSystemSystemd:
-		unitName := fmt.Sprintf("dboxed-sandbox-%s", si.SandboxName)
+		unitName := fmt.Sprintf("dboxed-sandbox-%s", si.SandboxId)
 
 		s := service.SystemdUnit{
 			UnitName: unitName,

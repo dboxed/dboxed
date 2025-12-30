@@ -18,9 +18,9 @@ type Sandbox struct {
 
 	HostWorkDir string
 
-	InfraImage  string
-	SandboxName string
-	SandboxDir  string
+	InfraImage string
+	SandboxId  string
+	SandboxDir string
 
 	NetworkNamespaceName string
 }

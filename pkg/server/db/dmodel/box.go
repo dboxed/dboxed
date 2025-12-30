@@ -21,34 +21,12 @@ type Box struct {
 	MachineID       *string `db:"machine_id"`
 	MachineFromSpec bool    `db:"machine_from_spec"`
 
+	CurrentSandboxId *string `db:"current_sandbox_id"`
+
 	Enabled              bool       `db:"enabled"`
 	ReconcileRequestedAt *time.Time `db:"reconcile_requested_at"`
 
 	Netbird *BoxNetbird `join:"true"`
-}
-
-type BoxSandboxStatus struct {
-	ID querier2.NullForJoin[string] `db:"id"`
-
-	StatusTime *time.Time `db:"status_time"`
-
-	RunStatus *string    `db:"run_status"`
-	StartTime *time.Time `db:"start_time"`
-	StopTime  *time.Time `db:"stop_time"`
-
-	DockerPs []byte `db:"docker_ps"`
-
-	NetworkIP4 *string `db:"network_ip4"`
-}
-
-type BoxWithSandboxStatus struct {
-	Box
-
-	SandboxStatus *BoxSandboxStatus `db:"sandbox_status" join:"true" join_left_field:"id" join_right_table:"box_sandbox_status" join_right_field:"id"`
-}
-
-func (x *BoxWithSandboxStatus) GetTableName() string {
-	return "box"
 }
 
 type BoxNetbird struct {
@@ -105,11 +83,14 @@ func (v *Box) UpdateMachineID(q *querier2.Querier, machineId *string, fromSpec b
 	)
 }
 
-func (v *BoxNetbird) Create(q *querier2.Querier) error {
-	return querier2.Create(q, v)
+func (v *Box) UpdateCurrentSandboxId(q *querier2.Querier, id *string) error {
+	v.CurrentSandboxId = id
+	return querier2.UpdateOneFromStruct(q, v,
+		"current_sandbox_id",
+	)
 }
 
-func (v *BoxSandboxStatus) Create(q *querier2.Querier) error {
+func (v *BoxNetbird) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
@@ -121,24 +102,24 @@ func GetBoxById(q *querier2.Querier, workspaceId *string, id string, skipDeleted
 	})
 }
 
-func GetBoxWithSandboxStatusById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
-	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
+func GetBoxWithSandboxById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*BoxWithSandbox, error) {
+	return querier2.GetOne[BoxWithSandbox](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
 		"id":           id,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func GetBoxWithSandboxStatusByName(q *querier2.Querier, workspaceId string, name string, skipDeleted bool) (*BoxWithSandboxStatus, error) {
-	return querier2.GetOne[BoxWithSandboxStatus](q, map[string]any{
+func GetBoxWithSandboxByName(q *querier2.Querier, workspaceId string, name string, skipDeleted bool) (*BoxWithSandbox, error) {
+	return querier2.GetOne[BoxWithSandbox](q, map[string]any{
 		"workspace_id": workspaceId,
 		"name":         name,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	})
 }
 
-func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
-	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
+func ListBoxesWithSandboxForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]BoxWithSandbox, error) {
+	return querier2.GetMany[BoxWithSandbox](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, &querier2.SortAndPage{
@@ -146,69 +127,18 @@ func ListBoxesWithSandboxStatusForWorkspace(q *querier2.Querier, workspaceId str
 	})
 }
 
-func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
-	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
+func ListBoxesForNetwork(q *querier2.Querier, networkId string, skipDeleted bool) ([]BoxWithSandbox, error) {
+	return querier2.GetMany[BoxWithSandbox](q, map[string]any{
 		"network_id": networkId,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
 }
 
-func ListBoxesForMachine(q *querier2.Querier, machineId string, skipDeleted bool) ([]BoxWithSandboxStatus, error) {
-	return querier2.GetMany[BoxWithSandboxStatus](q, map[string]any{
+func ListBoxesForMachine(q *querier2.Querier, machineId string, skipDeleted bool) ([]BoxWithSandbox, error) {
+	return querier2.GetMany[BoxWithSandbox](q, map[string]any{
 		"machine_id": machineId,
 		"deleted_at": querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
-}
-
-func GetSandboxStatus(q *querier2.Querier, boxId string) (*BoxSandboxStatus, error) {
-	return querier2.GetOne[BoxSandboxStatus](q, map[string]any{
-		"id": boxId,
-	})
-}
-
-func (v *BoxSandboxStatus) UpdateStatusTime(q *querier2.Querier) error {
-	v.StatusTime = util.Ptr(time.Now())
-	return querier2.UpdateOneFromStruct(q, v,
-		"status_time",
-	)
-}
-
-func (v *BoxSandboxStatus) UpdateStatus(q *querier2.Querier, runStatus *string, startTime *time.Time, stopTime *time.Time, networkIp4 *string) error {
-	var fields []string
-	if runStatus != nil {
-		fields = append(fields, "run_status")
-		v.RunStatus = runStatus
-	}
-	if startTime != nil {
-		fields = append(fields, "start_time", "stop_time")
-		v.StartTime = startTime
-		v.StopTime = stopTime
-	} else if stopTime != nil {
-		fields = append(fields, "stop_time")
-		v.StopTime = stopTime
-	}
-	if networkIp4 != nil {
-		fields = append(fields, "network_ip4")
-		v.NetworkIP4 = networkIp4
-	}
-
-	if len(fields) == 0 {
-		return nil
-	}
-
-	fields = append(fields, "status_time")
-	v.StatusTime = util.Ptr(time.Now())
-
-	return querier2.UpdateOneFromStruct(q, v, fields...)
-}
-
-func (v *BoxSandboxStatus) UpdateDockerPs(q *querier2.Querier, dockerPs []byte) error {
-	v.StatusTime = util.Ptr(time.Now())
-	v.DockerPs = dockerPs
-	return querier2.UpdateOneFromStruct(q, v,
-		"status_time",
-		"docker_ps",
-	)
 }
 
 func (v *BoxNetbird) UpdateSetupKey(q *querier2.Querier, setupKey *string, setupKeyId *string) error {

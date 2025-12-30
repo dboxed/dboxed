@@ -20,8 +20,9 @@ import (
 )
 
 type StatusPublisher struct {
-	Client *baseclient.Client
-	BoxId  string
+	Client    *baseclient.Client
+	BoxId     string
+	SandboxId string
 
 	stopCh         chan struct{}
 	sendStatusDone sync.WaitGroup
@@ -86,7 +87,7 @@ func (rn *StatusPublisher) sendSandboxStatus(ctx context.Context) {
 	}
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
-	err = boxesClient.UpdateSandboxStatus(ctx, rn.BoxId, models.UpdateBoxSandboxStatus{
+	err = boxesClient.UpdateSandbox(ctx, rn.BoxId, rn.SandboxId, models.UpdateBoxSandboxStatus{
 		SandboxStatus: s,
 	})
 	if err != nil {
@@ -130,7 +131,7 @@ func (rn *StatusPublisher) doSendSandboxStatusDockerPs(ctx context.Context, b []
 	}
 
 	boxesClient := clients.BoxClient{Client: rn.Client}
-	err = boxesClient.UpdateSandboxStatus(ctx, rn.BoxId, models.UpdateBoxSandboxStatus{
+	err = boxesClient.UpdateSandbox(ctx, rn.BoxId, rn.SandboxId, models.UpdateBoxSandboxStatus{
 		DockerPs: buf.Bytes(),
 	})
 	if err != nil {

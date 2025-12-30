@@ -42,7 +42,7 @@ func (cmd *ExecCmd) Run(g *flags.GlobalFlags) error {
 	s := sandbox.Sandbox{
 		Debug:       g.Debug,
 		HostWorkDir: g.WorkDir,
-		SandboxDir:  run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxName),
+		SandboxDir:  run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxId),
 	}
 
 	c, err := s.GetSandboxContainer()

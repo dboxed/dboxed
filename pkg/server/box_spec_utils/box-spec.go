@@ -122,11 +122,14 @@ func listNetworkHosts(c context.Context, network *dmodel.Network) ([]boxspec.Net
 	}
 
 	for _, box := range boxes {
+		if box.CurrentSandboxId == nil {
+			continue
+		}
 		ip4 := ""
 		switch *box.NetworkType {
 		case dmodel.NetworkTypeNetbird:
-			if box.SandboxStatus.NetworkIP4 != nil {
-				ip4 = *box.SandboxStatus.NetworkIP4
+			if box.Sandbox.NetworkIP4 != nil {
+				ip4 = *box.Sandbox.NetworkIP4
 			}
 		default:
 			return nil, fmt.Errorf("unsupported network")

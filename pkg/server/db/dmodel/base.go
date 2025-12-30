@@ -22,6 +22,9 @@ type HasReconcileStatusAndSoftDelete interface {
 type Times struct {
 	CreatedAt time.Time `db:"created_at" omitCreate:"true"`
 }
+type TimesOrNull struct {
+	CreatedAt querier2.NullForJoin[time.Time] `db:"created_at" omitCreate:"true"`
+}
 
 type OwnedByWorkspace struct {
 	ID string `db:"id" uuid:"true"`

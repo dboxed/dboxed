@@ -25,7 +25,7 @@ type Box struct {
 
 	Enabled bool `json:"enabled"`
 
-	SandboxStatus *BoxSandboxStatus `json:"sandboxStatus,omitempty"`
+	Sandbox *BoxSandbox `json:"sandbox,omitempty"`
 }
 
 type CreateBox struct {
@@ -37,48 +37,10 @@ type CreateBox struct {
 	ComposeProjects   []CreateBoxComposeProject `json:"composeProjects,omitempty"`
 }
 
-type BoxSandboxStatus struct {
-	StatusTime *time.Time `json:"statusTime,omitempty"`
-	RunStatus  *string    `json:"runStatus,omitempty"`
-	StartTime  *time.Time `json:"startTime,omitempty"`
-	StopTime   *time.Time `json:"stopTime,omitempty"`
-
-	// compressed json
-	DockerPs []byte `json:"dockerPs,omitempty"`
-
-	NetworkIp4 *string `json:"networkIp4,omitempty"`
-}
-
-type UpdateBoxSandboxStatus struct {
-	SandboxStatus *UpdateBoxSandboxStatus2 `json:"sandboxStatus,omitempty"`
-
-	// compressed json
-	DockerPs []byte `json:"dockerPs,omitempty"`
-}
-
-type UpdateBoxSandboxStatus2 struct {
-	RunStatus *string    `json:"runStatus,omitempty"`
-	StartTime *time.Time `json:"startTime,omitempty"`
-	StopTime  *time.Time `json:"stopTime,omitempty"`
-
-	NetworkIp4 *string `json:"networkIp4,omitempty"`
-}
-
-func BoxSandboxStatusFromDB(s dmodel.BoxSandboxStatus) *BoxSandboxStatus {
-	return &BoxSandboxStatus{
-		StatusTime: s.StatusTime,
-		RunStatus:  s.RunStatus,
-		StartTime:  s.StartTime,
-		StopTime:   s.StopTime,
-		DockerPs:   s.DockerPs,
-		NetworkIp4: s.NetworkIP4,
-	}
-}
-
-func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, error) {
+func BoxFromDB(s dmodel.Box, sandbox *dmodel.BoxSandbox) (*Box, error) {
 	var networkType *dmodel.NetworkType
 	if s.NetworkType != nil {
-		networkType = util.Ptr(dmodel.NetworkType(*s.NetworkType))
+		networkType = util.Ptr(*s.NetworkType)
 	}
 	ret := &Box{
 		ID:            s.ID,
@@ -98,8 +60,8 @@ func BoxFromDB(s dmodel.Box, sandboxStatus *dmodel.BoxSandboxStatus) (*Box, erro
 		Enabled: s.Enabled,
 	}
 
-	if sandboxStatus != nil {
-		ret.SandboxStatus = BoxSandboxStatusFromDB(*sandboxStatus)
+	if sandbox != nil && sandbox.ID.Valid {
+		ret.Sandbox = BoxSandboxFromDB(*sandbox)
 	}
 
 	return ret, nil

@@ -61,7 +61,7 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 
 		si, ok := sandboxesByBoxId[box.ID]
 		if ok {
-			log = log.With("sandboxName", si.SandboxName)
+			log = log.With("sandboxId", si.SandboxId)
 		}
 
 		if !ok {
@@ -69,8 +69,7 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 		} else {
 			cs := sandboxStatusById[box.ID]
 			if cs != libcontainer.Running {
-				log.InfoContext(ctx, "sandbox is not in running state, restarting",
-					"sandboxName", si.SandboxName, "state", cs.String())
+				log.InfoContext(ctx, "sandbox is not in running state, restarting", "state", cs.String())
 				ok = false
 			}
 		}
@@ -85,7 +84,7 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 	}
 
 	for _, si := range sandboxInfos {
-		log := slog.With("boxId", si.Box.ID, "boxName", si.Box.Name, "sandboxName", si.SandboxName)
+		log := slog.With("boxId", si.Box.ID, "boxName", si.Box.Name, "sandboxId", si.SandboxId)
 
 		_, ok := boxesById[si.Box.ID]
 		if !ok {

@@ -18,8 +18,7 @@ type ListCmd struct {
 }
 
 type PrintSandbox struct {
-	ID        string `col:"ID" id:"true"`
-	Name      string `col:"Name"`
+	ID        string `col:"ID"`
 	Workspace string `col:"Workspace"`
 	Box       string `col:"Box"`
 	Status    string `col:"Status"`
@@ -55,8 +54,7 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 		}
 
 		table = append(table, PrintSandbox{
-			ID:        si.Box.ID,
-			Name:      si.SandboxName,
+			ID:        si.SandboxId,
 			Box:       si.Box.Name,
 			Workspace: ct.Workspaces.GetColumn(ctx, si.Box.Workspace, false),
 			Status:    statusStr,

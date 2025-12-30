@@ -50,10 +50,8 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			SandboxStatus: "-",
 		}
 
-		// Fetch run status for this box
-		sandboxStatus, err := c2.GetSandboxStatus(ctx, b.ID)
-		if err == nil && sandboxStatus.RunStatus != nil {
-			p.SandboxStatus = *sandboxStatus.RunStatus
+		if b.Sandbox != nil && b.Sandbox.RunStatus != nil {
+			p.SandboxStatus = *b.Sandbox.RunStatus
 
 			if b.Status == "Stale" {
 				p.SandboxStatus += " (stale)"

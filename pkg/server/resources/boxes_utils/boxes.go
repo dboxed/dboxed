@@ -43,14 +43,6 @@ func CreateBox(c context.Context, workspaceId string, body models.CreateBox, box
 		return nil, err
 	}
 
-	sandboxStatus := dmodel.BoxSandboxStatus{
-		ID: querier2.N(box.ID),
-	}
-	err = sandboxStatus.Create(q)
-	if err != nil {
-		return nil, err
-	}
-
 	if network != nil {
 		switch network.Type {
 		case dmodel.NetworkTypeNetbird:

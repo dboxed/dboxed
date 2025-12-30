@@ -29,7 +29,7 @@ func (s *MachinesServer) restListBoxes(c context.Context, i *huma_utils.IdByPath
 
 	var ret []models.Box
 	for _, b := range boxes {
-		box, err := models.BoxFromDB(b.Box, b.SandboxStatus)
+		box, err := models.BoxFromDB(b.Box, b.Sandbox)
 		if err != nil {
 			return nil, err
 		}

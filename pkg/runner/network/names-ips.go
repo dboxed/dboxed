@@ -21,13 +21,13 @@ type NamesAndIps struct {
 	PeerAddr             netlink.Addr
 }
 
-func NewNamesAndIPs(sandboxName string, vethCidrStr string) (n NamesAndIps, err error) {
+func NewNamesAndIPs(sandboxId string, vethCidrStr string) (n NamesAndIps, err error) {
 	_, vethCidr, err := net.ParseCIDR(vethCidrStr)
 	if err != nil {
 		return NamesAndIps{}, err
 	}
 
-	n.Base = n.buildNameBase(sandboxName)
+	n.Base = n.buildNameBase(sandboxId)
 	n.SandboxNamespaceName = n.Base
 	n.VethNameHost = fmt.Sprintf("%s-host", n.Base)
 	n.VethNamePeer = fmt.Sprintf("%s-peer", n.Base)
@@ -55,8 +55,8 @@ func NewNamesAndIPs(sandboxName string, vethCidrStr string) (n NamesAndIps, err 
 	return
 }
 
-func (n *NamesAndIps) buildNameBase(sandboxName string) string {
-	h := util.Sha256Sum([]byte(sandboxName))
+func (n *NamesAndIps) buildNameBase(sandboxId string) string {
+	h := util.Sha256Sum([]byte(sandboxId))
 	h = h[:6]
 
 	return fmt.Sprintf("%s-%s", consts.SandboxShortPrefix, h)

@@ -18,7 +18,7 @@ func GetSandboxInfo(baseDir string, sandboxArg *string) (*sandbox.SandboxInfo, e
 	}
 
 	for _, s := range sandboxes {
-		if s.SandboxName == *sandboxArg || s.Box.Name == *sandboxArg || s.Box.ID == *sandboxArg {
+		if s.SandboxId == *sandboxArg || s.Box.Name == *sandboxArg || s.Box.ID == *sandboxArg {
 			return &s, nil
 		}
 	}

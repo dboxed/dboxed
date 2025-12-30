@@ -62,8 +62,9 @@ func (cmd *RunInSandboxStatus) Run() error {
 	}
 
 	sp := run_in_sandbox_status.StatusPublisher{
-		Client: client,
-		BoxId:  sandboxInfo.Box.ID,
+		Client:    client,
+		BoxId:     sandboxInfo.Box.ID,
+		SandboxId: sandboxInfo.SandboxId,
 	}
 	sp.Start(ctx)
 

@@ -90,16 +90,36 @@ func (c *BoxClient) ReconcileBox(ctx context.Context, id string) (*models.Box, e
 	return baseclient.RequestApi[models.Box](ctx, c.Client, "POST", p, struct{}{})
 }
 
-func (c *BoxClient) GetSandboxStatus(ctx context.Context, boxId string) (*models.BoxSandboxStatus, error) {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
+func (c *BoxClient) CreateSandbox(ctx context.Context, boxId string, req models.CreateBoxSandbox) (*models.BoxSandbox, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandboxes")
 	if err != nil {
 		return nil, err
 	}
-	return baseclient.RequestApi[models.BoxSandboxStatus](ctx, c.Client, "GET", p, struct{}{})
+	return baseclient.RequestApi[models.BoxSandbox](ctx, c.Client, "POST", p, req)
 }
 
-func (c *BoxClient) UpdateSandboxStatus(ctx context.Context, boxId string, req models.UpdateBoxSandboxStatus) error {
-	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandbox-status")
+func (c *BoxClient) ListSandboxes(ctx context.Context, boxId string) ([]models.BoxSandbox, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandboxes")
+	if err != nil {
+		return nil, err
+	}
+	l, err := baseclient.RequestApi[huma_utils.ListBody[models.BoxSandbox]](ctx, c.Client, "GET", p, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+	return l.Items, err
+}
+
+func (c *BoxClient) GetSandbox(ctx context.Context, boxId string, sandboxId string) (*models.BoxSandbox, error) {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandboxes", sandboxId)
+	if err != nil {
+		return nil, err
+	}
+	return baseclient.RequestApi[models.BoxSandbox](ctx, c.Client, "GET", p, struct{}{})
+}
+
+func (c *BoxClient) UpdateSandbox(ctx context.Context, boxId string, sandboxId string, req models.UpdateBoxSandboxStatus) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandboxes", sandboxId)
 	if err != nil {
 		return err
 	}

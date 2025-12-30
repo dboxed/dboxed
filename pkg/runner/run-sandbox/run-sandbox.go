@@ -11,14 +11,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dboxed/dboxed/pkg/baseclient"
-	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/consts"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
+	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
 	"github.com/gofrs/flock"
 	"github.com/opencontainers/runc/libcontainer"
@@ -28,11 +29,11 @@ import (
 type RunSandbox struct {
 	Debug bool
 
-	Client *baseclient.Client
-	BoxId  string
+	Client    *baseclient.Client
+	BoxId     string
+	SandboxId string
 
 	InfraImage      string
-	SandboxName     string
 	WorkDir         string
 	VethNetworkCidr string
 
@@ -41,16 +42,59 @@ type RunSandbox struct {
 	sandbox *sandbox.Sandbox
 }
 
+func DetermineSandboxId(ctx context.Context, c *baseclient.Client, box *models.Box, workDir string) (string, error) {
+	c2 := clients.BoxClient{Client: c}
+
+	machineIdBytes, err := os.ReadFile("/etc/machine-id")
+	if err != nil {
+		return "", err
+	}
+	machineId := strings.TrimSpace(string(machineIdBytes))
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+
+	var sandboxId string
+	if box.Sandbox != nil {
+		sandboxDir := GetSandboxDir(workDir, box.Sandbox.ID)
+		si, err := sandbox.ReadSandboxInfo(sandboxDir)
+		if err != nil && !os.IsNotExist(err) {
+			return "", err
+		}
+		if si == nil {
+			if machineId != box.Sandbox.MachineID {
+				return "", fmt.Errorf("box has a sandbox (%s) which is not on this host", box.Sandbox.ID)
+			}
+		}
+		sandboxId = box.Sandbox.ID
+	} else {
+		slog.InfoContext(ctx, "creating sandbox", "machineId", machineId, "hostname", hostname)
+		sb, err := c2.CreateSandbox(ctx, box.ID, models.CreateBoxSandbox{
+			MachineId: machineId,
+			Hostname:  hostname,
+		})
+		if err != nil {
+			return "", err
+		}
+		sandboxId = sb.ID
+	}
+
+	slog.InfoContext(ctx, "determined sandbox id", "sandboxId", sandboxId)
+
+	return sandboxId, nil
+}
+
 func (rn *RunSandbox) GetSandboxDir() string {
-	return rn.getSandboxDir2(rn.SandboxName)
+	return rn.getSandboxDir2(rn.SandboxId)
 }
 
-func (rn *RunSandbox) getSandboxDir2(sandboxName string) string {
-	return GetSandboxDir(rn.WorkDir, sandboxName)
+func (rn *RunSandbox) getSandboxDir2(sandboxId string) string {
+	return GetSandboxDir(rn.WorkDir, sandboxId)
 }
 
-func GetSandboxDir(workDir string, sandboxName string) string {
-	return filepath.Join(workDir, "sandboxes", sandboxName)
+func GetSandboxDir(workDir string, sandboxId string) string {
+	return filepath.Join(workDir, "sandboxes", sandboxId)
 }
 
 func (rn *RunSandbox) Run(ctx context.Context) error {
@@ -86,7 +130,7 @@ func (rn *RunSandbox) Run(ctx context.Context) error {
 	}
 	slog.InfoContext(ctx, "using veth cidr", slog.Any("cidr", rn.acquiredVethNetworkCidr))
 
-	namesAndIps, err := network.NewNamesAndIPs(rn.SandboxName, rn.acquiredVethNetworkCidr)
+	namesAndIps, err := network.NewNamesAndIPs(rn.SandboxId, rn.acquiredVethNetworkCidr)
 	if err != nil {
 		return err
 	}
@@ -95,22 +139,12 @@ func (rn *RunSandbox) Run(ctx context.Context) error {
 		Debug:                rn.Debug,
 		InfraImage:           rn.InfraImage,
 		HostWorkDir:          rn.WorkDir,
-		SandboxName:          rn.SandboxName,
+		SandboxId:            rn.SandboxId,
 		SandboxDir:           sandboxDir,
 		NetworkNamespaceName: namesAndIps.SandboxNamespaceName,
 	}
 
 	needDestroy := false
-
-	localSandboxInfo, err := sandbox.ReadSandboxInfo(sandboxDir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	}
-	if localSandboxInfo != nil && localSandboxInfo.Box.ID != box.ID {
-		return fmt.Errorf("sandbox %s already exists and serves a different box (id=%s)", rn.SandboxName, rn.BoxId)
-	}
 
 	container, err := rn.sandbox.GetSandboxContainer()
 	if err != nil {
@@ -166,10 +200,11 @@ func (rn *RunSandbox) Run(ctx context.Context) error {
 	}
 
 	newSandboxInfo := &sandbox.SandboxInfo{
-		SandboxName:     rn.SandboxName,
-		Box:             box,
-		Workspace:       workspace,
-		VethNetworkCidr: rn.VethNetworkCidr,
+		SandboxId:               rn.SandboxId,
+		Box:                     box,
+		Workspace:               workspace,
+		GlobalVethNetworkCidr:   rn.VethNetworkCidr,
+		AcquiredVethNetworkCidr: rn.acquiredVethNetworkCidr,
 	}
 	err = sandbox.WriteSandboxInfo(sandboxDir, newSandboxInfo)
 	if err != nil {
@@ -377,15 +412,6 @@ func (rn *RunSandbox) writeDboxedConfFiles(ctx context.Context) error {
 		rn.Client.GetClientAuth(true),
 		0600,
 	)
-	if err != nil {
-		return err
-	}
-
-	networkConfig := boxspec.NetworkConfig{
-		SandboxName:     rn.SandboxName,
-		VethNetworkCidr: rn.acquiredVethNetworkCidr,
-	}
-	err = util.AtomicWriteFileYaml(filepath.Join(rn.sandbox.GetSandboxRoot(), consts.NetworkConfFile), networkConfig, 0644)
 	if err != nil {
 		return err
 	}

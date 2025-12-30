@@ -40,12 +40,12 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 	}
 
 	for _, si := range sandboxes {
-		sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxName)
+		sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxId)
 
 		s := sandbox.Sandbox{
 			Debug:       g.Debug,
 			HostWorkDir: g.WorkDir,
-			SandboxName: si.SandboxName,
+			SandboxId:   si.SandboxId,
 			SandboxDir:  sandboxDir,
 		}
 
@@ -65,10 +65,10 @@ func (cmd *StopCmd) Run(g *flags.GlobalFlags) error {
 			return err
 		}
 		if !stopped {
-			return fmt.Errorf("failed to stop sandbox %s", si.SandboxName)
+			return fmt.Errorf("failed to stop sandbox %s", si.SandboxId)
 		}
 
-		namesAndIps, err := network.NewNamesAndIPs(si.SandboxName, si.VethNetworkCidr)
+		namesAndIps, err := network.NewNamesAndIPs(si.SandboxId, si.AcquiredVethNetworkCidr)
 		if err != nil {
 			return err
 		}
