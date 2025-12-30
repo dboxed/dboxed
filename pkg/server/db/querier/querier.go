@@ -472,18 +472,26 @@ func GetOneWhere[T any](q *Querier, where string, args map[string]any) (*T, erro
 	return &ret, nil
 }
 
-func CheckOne[T any](q *Querier, byFields map[string]any) error {
+type onlyId[T HasId] struct {
+	ID string `db:"id"`
+}
+
+func (v *onlyId[T]) GetTableName() string {
+	return GetTableName[T]()
+}
+
+func CheckOne[T HasId](q *Querier, byFields map[string]any) error {
 	where, args, err := BuildWhere[T](byFields)
 	if err != nil {
 		return err
 	}
-	query, err := BuildSelectWhereQuery[T](where, nil)
+
+	query, err := BuildSelectWhereQuery[onlyId[T]](where, nil)
 	if err != nil {
 		return err
 	}
-	var ret struct {
-		ID string `db:"id"`
-	}
+
+	var ret onlyId[T]
 	err = q.GetNamed(&ret, query, args)
 	if err != nil {
 		return err

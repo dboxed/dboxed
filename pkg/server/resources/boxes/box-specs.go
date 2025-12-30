@@ -6,21 +6,12 @@ import (
 	"github.com/dboxed/dboxed/pkg/boxspec"
 	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/resources/boxes_utils"
 )
 
 func (s *BoxesServer) restGetBoxSpec(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[boxspec.BoxSpec], error) {
-	q := querier.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
-
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.Box](c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}

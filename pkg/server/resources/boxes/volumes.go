@@ -13,19 +13,13 @@ import (
 
 func (s *BoxesServer) restListAttachedVolumes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.VolumeAttachment], error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
-	attachments, err := dmodel.ListBoxVolumeAttachments(q, box.ID)
+	attachments, err := dmodel.ListBoxVolumeAttachments(q, i.Id)
 	if err != nil {
 		return nil, err
 	}

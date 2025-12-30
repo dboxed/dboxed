@@ -14,7 +14,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/config"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	"github.com/dboxed/dboxed/pkg/server/db/querier"
-	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/server/resources/huma_metadata"
@@ -224,7 +223,7 @@ func (s *AuthMiddleware) updateDBUser(ctx huma.Context, user *models.User) error
 		return nil
 	}
 
-	q := querier2.GetQuerier(ctx.Context())
+	q := querier.GetQuerier(ctx.Context())
 
 	newDbUser := dmodel.User{
 		ID:       user.ID,
@@ -237,7 +236,7 @@ func (s *AuthMiddleware) updateDBUser(ctx huma.Context, user *models.User) error
 	needUpdate := false
 	dbUser, err := dmodel.GetUserById(q, user.ID)
 	if err != nil {
-		if !querier2.IsSqlNotFoundError(err) {
+		if !querier.IsSqlNotFoundError(err) {
 			return err
 		}
 		needUpdate = true
@@ -302,44 +301,105 @@ func GetToken(ctx context.Context) *models.Token {
 	return token
 }
 
-func CheckTokenAccess(ctx context.Context, expectedTokenType dmodel.TokenType, resourceId string) error {
+func queryResource[T any](ctx context.Context, workspaceId string, resourceId string) (*T, error) {
+	q := querier.GetQuerier(ctx)
+	var v any
+	var err error
+	switch reflect.TypeFor[T]() {
+	case reflect.TypeFor[dmodel.Machine]():
+		v, err = dmodel.GetMachineById(q, &workspaceId, resourceId, true)
+	case reflect.TypeFor[dmodel.MachineWithRunStatus]():
+		v, err = dmodel.GetMachineWithRunStatusById(q, &workspaceId, resourceId, true)
+	case reflect.TypeFor[dmodel.Box]():
+		v, err = dmodel.GetBoxById(q, &workspaceId, resourceId, true)
+	case reflect.TypeFor[dmodel.BoxWithSandbox]():
+		v, err = dmodel.GetBoxWithSandboxById(q, &workspaceId, resourceId, true)
+	case reflect.TypeFor[dmodel.LoadBalancer]():
+		v, err = dmodel.GetLoadBalancerById(q, &workspaceId, resourceId, true)
+	default:
+		return nil, huma.Error500InternalServerError("unsupported type in queryResource")
+	}
+	if err != nil {
+		return nil, err
+	}
+	v2, ok := v.(*T)
+	if !ok {
+		return nil, huma.Error500InternalServerError("invalid type in queryResource")
+	}
+	return v2, nil
+}
+
+func checkResource(ctx context.Context, tokenType dmodel.TokenType, workspaceId string, resourceId string) error {
+	q := querier.GetQuerier(ctx)
+	switch tokenType {
+	case dmodel.TokenTypeMachine:
+		return dmodel.CheckMachineById(q, &workspaceId, resourceId, true)
+	case dmodel.TokenTypeBox:
+		return dmodel.CheckBoxById(q, &workspaceId, resourceId, true)
+	case dmodel.TokenTypeLoadBalancer:
+		return dmodel.CheckLoadBalancerById(q, &workspaceId, resourceId, true)
+	default:
+		return huma.Error403Forbidden("token does not have access to resource")
+	}
+}
+
+func checkResourceAccessHelper[T any](ctx context.Context, expectedTokenType dmodel.TokenType, resourceId string, returnResource bool) (*T, error) {
 	token := GetToken(ctx)
 	if token == nil {
 		user := GetUser(ctx)
 		if user == nil {
-			return huma.Error403Forbidden("missing user and token")
+			return nil, huma.Error403Forbidden("missing user and token")
 		}
-		return nil
+		w := GetWorkspace(ctx)
+		if w == nil {
+			return nil, huma.Error400BadRequest("missing workspace")
+		}
+		if returnResource {
+			return queryResource[T](ctx, w.ID, resourceId)
+		} else {
+			return nil, checkResource(ctx, expectedTokenType, w.ID, resourceId)
+		}
 	}
 
 	if token.ValidUntil != nil && time.Now().After(*token.ValidUntil) {
-		return huma.Error403Forbidden("token has expired")
+		return nil, huma.Error403Forbidden("token has expired")
 	}
 
 	if token.Type == dmodel.TokenTypeWorkspace {
-		return nil
+		return nil, nil
 	}
 	if token.Type != expectedTokenType {
-		return huma.Error403Forbidden(fmt.Sprintf("token does not have access to %s", expectedTokenType))
+		return nil, huma.Error403Forbidden(fmt.Sprintf("token does not have access to %s", expectedTokenType))
 	}
 
 	switch token.Type {
 	case dmodel.TokenTypeMachine:
 		if *token.MachineID != resourceId {
-			return huma.Error403Forbidden("token does not have access to machine")
+			return nil, huma.Error403Forbidden("token does not have access to machine")
 		}
-		return nil
 	case dmodel.TokenTypeBox:
 		if *token.BoxID != resourceId {
-			return huma.Error403Forbidden("token does not have access to box")
+			return nil, huma.Error403Forbidden("token does not have access to box")
 		}
-		return nil
 	case dmodel.TokenTypeLoadBalancer:
 		if *token.LoadBalancerId != resourceId {
-			return huma.Error403Forbidden("token does not have access to load-balancer")
+			return nil, huma.Error403Forbidden("token does not have access to load-balancer")
 		}
-		return nil
 	default:
-		return huma.Error403Forbidden("token does not have access to resource")
+		return nil, huma.Error403Forbidden("token does not have access to resource")
 	}
+
+	if returnResource {
+		return queryResource[T](ctx, token.Workspace, resourceId)
+	}
+	return nil, nil
+}
+
+func CheckResourceAccessAndReturn[T querier.HasId](ctx context.Context, tokenType dmodel.TokenType, resourceId string) (*T, error) {
+	return checkResourceAccessHelper[T](ctx, tokenType, resourceId, true)
+}
+
+func CheckResourceAccess(ctx context.Context, expectedTokenType dmodel.TokenType, resourceId string) error {
+	_, err := checkResourceAccessHelper[any](ctx, expectedTokenType, resourceId, false)
+	return err
 }

@@ -21,19 +21,13 @@ import (
 
 func (s *BoxesServer) restCreateSandbox(c context.Context, i *huma_utils.IdByPathAndJsonBody[models.CreateBoxSandbox]) (*huma_utils.JsonBody[models.BoxSandbox], error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
 	err := util.CheckName(i.Body.Hostname)
 	if err != nil {
 		return nil, err
 	}
 
-	err = auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.Box](c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -72,19 +66,13 @@ func (s *BoxesServer) restCreateSandbox(c context.Context, i *huma_utils.IdByPat
 
 func (s *BoxesServer) restListSandboxes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.BoxSandbox], error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
-	l, err := dmodel.ListSandboxesBySandbox(q, box.ID)
+	l, err := dmodel.ListSandboxesBySandbox(q, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -104,19 +92,13 @@ type restGetSandboxInput struct {
 
 func (s *BoxesServer) restGetSandbox(c context.Context, i *restGetSandboxInput) (*huma_utils.JsonBody[models.BoxSandbox], error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
-	sandbox, err := dmodel.GetSandboxById(q, box.ID, i.SandboxId)
+	sandbox, err := dmodel.GetSandboxById(q, i.Id, i.SandboxId)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +115,8 @@ type restUpdateSandboxInput struct {
 
 func (s *BoxesServer) restUpdateSandbox(c context.Context, i *restUpdateSandboxInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.Box](c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -207,14 +183,8 @@ type restReleaseSandboxInput struct {
 
 func (s *BoxesServer) restReleaseSandbox(c context.Context, i *restReleaseSandboxInput) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
+	box, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.Box](c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}

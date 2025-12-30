@@ -79,12 +79,7 @@ func (s *BoxesServer) restCreateBox(c context.Context, i *huma_utils.JsonBody[mo
 		return nil, err
 	}
 
-	ret, err := models.BoxFromDB(*box, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return huma_utils.NewJsonBody(*ret), nil
+	return huma_utils.NewJsonBody(*models.BoxFromDB(*box, nil)), nil
 }
 
 func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils.List[models.Box], error) {
@@ -111,38 +106,19 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 
 	var ret []models.Box
 	for _, box := range l {
-		mm, err := s.postprocessBox(box.Box, box.Sandbox)
-		if err != nil {
-			return nil, err
-		}
+		mm := models.BoxFromDB(box.Box, box.Sandbox)
 		ret = append(ret, *mm)
 	}
 	return huma_utils.NewList(ret, len(ret)), nil
 }
 
-func (s *BoxesServer) getBoxHelper(c context.Context, box *dmodel.BoxWithSandbox) (*huma_utils.JsonBody[models.Box], error) {
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, box.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	boxm, err := s.postprocessBox(box.Box, box.Sandbox)
-	if err != nil {
-		return nil, err
-	}
-	return huma_utils.NewJsonBody(*boxm), nil
-}
-
 func (s *BoxesServer) restGetBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
-	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
-
-	box, err := dmodel.GetBoxWithSandboxById(q, &w.ID, i.Id, true)
+	box, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.BoxWithSandbox](c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.getBoxHelper(c, box)
+	return huma_utils.NewJsonBody(*models.BoxFromDB(box.Box, box.Sandbox)), nil
 }
 
 type BoxName struct {
@@ -158,14 +134,19 @@ func (s *BoxesServer) restGetBoxByName(c context.Context, i *BoxName) (*huma_uti
 		return nil, err
 	}
 
-	return s.getBoxHelper(c, box)
+	err = auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeBox, box.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return huma_utils.NewJsonBody(*models.BoxFromDB(box.Box, box.Sandbox)), nil
 }
 
 func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -180,19 +161,14 @@ func (s *BoxesServer) restEnableBox(c context.Context, i *huma_utils.IdByPath) (
 		return nil, err
 	}
 
-	m, err := s.postprocessBox(box.Box, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return huma_utils.NewJsonBody(*m), nil
+	return huma_utils.NewJsonBody(*models.BoxFromDB(*box, nil)), nil
 }
 
 func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	box, err := dmodel.GetBoxWithSandboxById(q, &w.ID, i.Id, true)
+	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
 	}
@@ -207,12 +183,7 @@ func (s *BoxesServer) restDisableBox(c context.Context, i *huma_utils.IdByPath) 
 		return nil, err
 	}
 
-	m, err := s.postprocessBox(box.Box, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return huma_utils.NewJsonBody(*m), nil
+	return huma_utils.NewJsonBody(*models.BoxFromDB(*box, nil)), nil
 }
 
 func (s *BoxesServer) restReconcileBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.Box], error) {
@@ -234,12 +205,7 @@ func (s *BoxesServer) restReconcileBox(c context.Context, i *huma_utils.IdByPath
 		return nil, err
 	}
 
-	m, err := s.postprocessBox(*box, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return huma_utils.NewJsonBody(*m), nil
+	return huma_utils.NewJsonBody(*models.BoxFromDB(*box, nil)), nil
 }
 
 func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
@@ -260,15 +226,6 @@ func (s *BoxesServer) restDeleteBox(c context.Context, i *huma_utils.IdByPath) (
 	}
 
 	return &huma_utils.Empty{}, nil
-}
-
-func (s *BoxesServer) postprocessBox(box dmodel.Box, sandbox *dmodel.BoxSandbox) (*models.Box, error) {
-	ret, err := models.BoxFromDB(box, sandbox)
-	if err != nil {
-		return nil, err
-	}
-
-	return ret, nil
 }
 
 func (s *BoxesServer) checkNormalBoxMod(box *dmodel.Box) error {

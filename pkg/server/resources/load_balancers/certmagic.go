@@ -30,7 +30,7 @@ var (
 func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutCertmagicLockInput) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutC
 	key = strings.TrimPrefix(key, "/")
 	key = path.Join("_locks", key)
 
-	lb, v, err := s.getCertmagicValue(c, i.Id, key)
+	v, err := s.getCertmagicValue(c, i.Id, key)
 	if err != nil {
 		if !querier.IsSqlNotFoundError(err) {
 			return nil, err
@@ -57,7 +57,7 @@ func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutC
 				return nil, huma.Error409Conflict(fmt.Sprintf("%s is still locked", key), nil)
 			}
 		}
-		err = dmodel.DeleteLoadBalancerCertMagic(q, lb.ID, key)
+		err = dmodel.DeleteLoadBalancerCertMagic(q, i.Id, key)
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutC
 		return nil, err
 	}
 	v = &dmodel.LoadBalancerCertmagic{
-		LoadBalancerId: lb.ID,
+		LoadBalancerId: i.Id,
 		Key:            key,
 		Value:          lBytes,
 		LastModified:   time.Now(),
@@ -86,9 +86,8 @@ func (s *LoadBalancerServer) restPutCertmagicLock(c context.Context, i *restPutC
 
 func (s *LoadBalancerServer) restDeleteCertmagicLock(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +99,7 @@ func (s *LoadBalancerServer) restDeleteCertmagicLock(c context.Context, i *huma_
 	key = strings.TrimPrefix(key, "/")
 	key = path.Join("_locks", key)
 
-	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dmodel.DeleteLoadBalancerCertMagic(q, lb.ID, key)
+	err = dmodel.DeleteLoadBalancerCertMagic(q, i.Id, key)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +114,7 @@ type restHeadCertmagicObjectOutput struct {
 }
 
 func (s *LoadBalancerServer) restHeadCertmagicObject(c context.Context, i *huma_utils.IdByPath) (*restHeadCertmagicObjectOutput, error) {
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +125,7 @@ func (s *LoadBalancerServer) restHeadCertmagicObject(c context.Context, i *huma_
 	}
 	key = strings.TrimPrefix(key, "/")
 
-	_, v, err := s.getCertmagicValue(c, i.Id, key)
+	v, err := s.getCertmagicValue(c, i.Id, key)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +150,7 @@ type restGetCertmagicOutput struct {
 }
 
 func (s *LoadBalancerServer) restGetCertmagicObject(c context.Context, i *restGetCertmagicInput) (*restGetCertmagicOutput, error) {
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +186,7 @@ func (s *LoadBalancerServer) restGetCertmagicObject(c context.Context, i *restGe
 			Body: lf,
 		}, nil
 	} else {
-		_, v, err := s.getCertmagicValue(c, i.Id, key)
+		v, err := s.getCertmagicValue(c, i.Id, key)
 		if err != nil {
 			return nil, err
 		}
@@ -211,9 +205,8 @@ type restPutCertmagicInput struct {
 
 func (s *LoadBalancerServer) restPutCertmagicObject(c context.Context, i *restPutCertmagicInput) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -224,13 +217,8 @@ func (s *LoadBalancerServer) restPutCertmagicObject(c context.Context, i *restPu
 	}
 	key = strings.TrimPrefix(key, "/")
 
-	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
 	v := &dmodel.LoadBalancerCertmagic{
-		LoadBalancerId: lb.ID,
+		LoadBalancerId: i.Id,
 		Key:            key,
 		Value:          i.RawBody,
 		LastModified:   time.Now(),
@@ -245,9 +233,8 @@ func (s *LoadBalancerServer) restPutCertmagicObject(c context.Context, i *restPu
 
 func (s *LoadBalancerServer) restDeleteCertmagicObject(c context.Context, i *huma_utils.IdByPath) (*huma_utils.Empty, error) {
 	q := querier.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeLoadBalancer, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -258,13 +245,8 @@ func (s *LoadBalancerServer) restDeleteCertmagicObject(c context.Context, i *hum
 	}
 	key = strings.TrimPrefix(key, "/")
 
-	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
 	err = querier.DeleteOneByFields[dmodel.LoadBalancerCertmagic](q, map[string]any{
-		"load_balancer_id": lb.ID,
+		"load_balancer_id": i.Id,
 		"key":              key,
 	})
 	if err != nil {
@@ -276,14 +258,8 @@ func (s *LoadBalancerServer) restDeleteCertmagicObject(c context.Context, i *hum
 
 func (s *LoadBalancerServer) listCertmagicKeys(c context.Context, lbId string, prefix string) ([]string, error) {
 	q := querier.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, lbId, true)
-	if err != nil {
-		return nil, err
-	}
-
-	l, err := dmodel.ListLoadBalancerCertmagicKeys(q, lb.ID, prefix)
+	l, err := dmodel.ListLoadBalancerCertmagicKeys(q, lbId, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -300,19 +276,13 @@ func (s *LoadBalancerServer) getCertmagicKey(c context.Context) (string, error) 
 	return key, nil
 }
 
-func (s *LoadBalancerServer) getCertmagicValue(c context.Context, lbId string, key string) (*dmodel.LoadBalancer, *dmodel.LoadBalancerCertmagic, error) {
+func (s *LoadBalancerServer) getCertmagicValue(c context.Context, lbId string, key string) (*dmodel.LoadBalancerCertmagic, error) {
 	q := querier.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	lb, err := dmodel.GetLoadBalancerById(q, &w.ID, lbId, true)
+	v, err := dmodel.GetLoadBalancerCertmagicByKey(q, lbId, key)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	v, err := dmodel.GetLoadBalancerCertmagicByKey(q, lb.ID, key)
-	if err != nil {
-		return lb, nil, err
-	}
-
-	return lb, v, nil
+	return v, nil
 }

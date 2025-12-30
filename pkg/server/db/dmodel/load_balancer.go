@@ -69,6 +69,14 @@ func (v *LoadBalancer) Update(q *querier2.Querier, httpPort *int, httpsPort *int
 	}, v, fields...)
 }
 
+func CheckLoadBalancerById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) error {
+	return querier2.CheckOne[LoadBalancer](q, map[string]any{
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"id":           id,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func GetLoadBalancerById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*LoadBalancer, error) {
 	return querier2.GetOne[LoadBalancer](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),

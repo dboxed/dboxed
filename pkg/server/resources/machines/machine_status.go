@@ -13,15 +13,7 @@ import (
 )
 
 func (s *MachinesServer) restGetMachineStatus(c context.Context, i *huma_utils.IdByPath) (*huma_utils.JsonBody[models.MachineRunStatus], error) {
-	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
-
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, i.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	machine, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
+	machine, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.MachineWithRunStatus](c, dmodel.TokenTypeMachine, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -32,14 +24,8 @@ func (s *MachinesServer) restGetMachineStatus(c context.Context, i *huma_utils.I
 
 func (s *MachinesServer) restUpdateMachineStatus(c context.Context, i *huma_utils.IdByPathAndJsonBody[models.UpdateMachineRunStatus]) (*huma_utils.Empty, error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, i.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	machine, err := dmodel.GetMachineWithRunStatusById(q, &w.ID, i.Id, true)
+	machine, err := auth_middleware.CheckResourceAccessAndReturn[dmodel.MachineWithRunStatus](c, dmodel.TokenTypeMachine, i.Id)
 	if err != nil {
 		return nil, err
 	}

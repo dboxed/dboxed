@@ -15,19 +15,13 @@ import (
 
 func (s *BoxesServer) restListLoadBalancerServices(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.LoadBalancerService], error) {
 	q := querier2.GetQuerier(c)
-	w := auth_middleware.GetWorkspace(c)
 
-	err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Id)
+	err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeBox, i.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	box, err := dmodel.GetBoxById(q, &w.ID, i.Id, true)
-	if err != nil {
-		return nil, err
-	}
-
-	lbServices, err := dmodel.ListLoadBalancerServices(q, box.ID)
+	lbServices, err := dmodel.ListLoadBalancerServices(q, i.Id)
 	if err != nil {
 		return nil, err
 	}

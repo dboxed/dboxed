@@ -95,12 +95,12 @@ func (s *LogsServer) restPostLogs(c context.Context, i *huma_utils.JsonBody[mode
 	w := auth_middleware.GetWorkspace(c)
 
 	if i.Body.Metadata.BoxId != nil {
-		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, *i.Body.Metadata.BoxId)
+		err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeBox, *i.Body.Metadata.BoxId)
 		if err != nil {
 			return nil, err
 		}
 	} else if i.Body.Metadata.MachineId != nil {
-		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, *i.Body.Metadata.MachineId)
+		err := auth_middleware.CheckResourceAccess(c, dmodel.TokenTypeMachine, *i.Body.Metadata.MachineId)
 		if err != nil {
 			return nil, err
 		}

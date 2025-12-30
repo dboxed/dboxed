@@ -37,7 +37,7 @@ type CreateBox struct {
 	ComposeProjects   []CreateBoxComposeProject `json:"composeProjects,omitempty"`
 }
 
-func BoxFromDB(s dmodel.Box, sandbox *dmodel.BoxSandbox) (*Box, error) {
+func BoxFromDB(s dmodel.Box, sandbox *dmodel.BoxSandbox) *Box {
 	var networkType *dmodel.NetworkType
 	if s.NetworkType != nil {
 		networkType = util.Ptr(*s.NetworkType)
@@ -64,5 +64,5 @@ func BoxFromDB(s dmodel.Box, sandbox *dmodel.BoxSandbox) (*Box, error) {
 		ret.Sandbox = BoxSandboxFromDB(*sandbox)
 	}
 
-	return ret, nil
+	return ret
 }
