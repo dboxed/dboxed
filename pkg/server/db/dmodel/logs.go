@@ -13,6 +13,7 @@ type LogMetadata struct {
 
 	MachineID *string `db:"machine_id" omitOnConflictUpdate:"true"`
 	BoxID     *string `db:"box_id" omitOnConflictUpdate:"true"`
+	SandboxID *string `db:"sandbox_id" omitOnConflictUpdate:"true"`
 
 	FileName string `db:"file_name" omitOnConflictUpdate:"true"`
 	Format   string `db:"format"`

@@ -5,6 +5,7 @@ import "time"
 type LogMetadata struct {
 	BoxId     *string `json:"boxId,omitempty"`
 	MachineId *string `json:"machineId,omitempty"`
+	SandboxId *string `json:"sandboxId,omitempty"`
 
 	FileName string         `json:"fileName"`
 	Format   string         `json:"format"`

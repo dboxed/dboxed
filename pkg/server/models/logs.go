@@ -39,9 +39,12 @@ func LogMetadataFromDB(s dmodel.LogMetadata) (*LogMetadataModel, error) {
 		CreatedAt:   s.CreatedAt,
 		LastLogTime: s.LastLogTime,
 		LogMetadata: boxspec.LogMetadata{
-			FileName: s.FileName,
-			Format:   s.Format,
-			Metadata: m,
+			BoxId:     s.BoxID,
+			SandboxId: s.SandboxID,
+			MachineId: s.MachineID,
+			FileName:  s.FileName,
+			Format:    s.Format,
+			Metadata:  m,
 		},
 	}, nil
 }

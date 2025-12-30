@@ -8,6 +8,7 @@ create table log_metadata
 
     machine_id       text references machine (id) on delete cascade,
     box_id           text references box (id) on delete cascade,
+    sandbox_id       text references box_sandbox (id) on delete cascade,
 
     file_name        text        not null,
     format           text        not null,

@@ -74,6 +74,9 @@ func (s *LogsServer) putLogMetadata(c context.Context, logMetadata boxspec.LogMe
 	}
 	if logMetadata.BoxId != nil {
 		lm.BoxID = logMetadata.BoxId
+		if logMetadata.SandboxId != nil {
+			lm.SandboxID = logMetadata.SandboxId
+		}
 	} else if logMetadata.MachineId != nil {
 		lm.MachineID = logMetadata.MachineId
 	} else {

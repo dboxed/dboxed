@@ -52,8 +52,9 @@ func (cmd *RunInSandboxStatus) Run() error {
 	}
 
 	lp := run_in_sandbox_status.LogsPublisher{
-		Client: client,
-		BoxId:  sandboxInfo.Box.ID,
+		Client:    client,
+		BoxId:     sandboxInfo.Box.ID,
+		SandboxId: sandboxInfo.SandboxId,
 	}
 
 	err = lp.Start(ctx)

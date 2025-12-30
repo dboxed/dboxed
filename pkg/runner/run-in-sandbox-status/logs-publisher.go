@@ -18,8 +18,9 @@ import (
 )
 
 type LogsPublisher struct {
-	Client *baseclient.Client
-	BoxId  string
+	Client    *baseclient.Client
+	BoxId     string
+	SandboxId string
 
 	mt *multitail.MultiTail
 }
@@ -68,10 +69,11 @@ func (lp *LogsPublisher) publishDboxedLogsDir(dir string) error {
 			format = "raw"
 		}
 		return boxspec.LogMetadata{
-			BoxId:    &lp.BoxId,
-			FileName: fileName,
-			Format:   format,
-			Metadata: map[string]any{},
+			BoxId:     &lp.BoxId,
+			SandboxId: &lp.SandboxId,
+			FileName:  fileName,
+			Format:    format,
+			Metadata:  map[string]any{},
 		}, nil
 	}
 
@@ -111,9 +113,10 @@ func (lp *LogsPublisher) buildDockerContainerLogMetadata(logPath string) (boxspe
 	}
 
 	return boxspec.LogMetadata{
-		BoxId:    &lp.BoxId,
-		FileName: filepath.Join("containers", config.Name, config.ID),
-		Format:   "docker-logs",
+		BoxId:     &lp.BoxId,
+		SandboxId: &lp.SandboxId,
+		FileName:  filepath.Join("containers", config.Name, config.ID),
+		Format:    "docker-logs",
 		Metadata: map[string]any{
 			"container": config,
 		},
