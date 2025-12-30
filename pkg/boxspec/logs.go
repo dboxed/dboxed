@@ -3,8 +3,8 @@ package boxspec
 import "time"
 
 type LogMetadata struct {
-	OwnerType string `json:"ownerType"`
-	OwnerId   string `json:"ownerId"`
+	BoxId     *string `json:"boxId,omitempty"`
+	MachineId *string `json:"machineId,omitempty"`
 
 	FileName string         `json:"fileName"`
 	Format   string         `json:"format"`

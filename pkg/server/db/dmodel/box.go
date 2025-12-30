@@ -94,6 +94,14 @@ func (v *BoxNetbird) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
+func CheckBoxById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) error {
+	return querier2.CheckOne[Box](q, map[string]any{
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"id":           id,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func GetBoxById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*Box, error) {
 	return querier2.GetOne[Box](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),

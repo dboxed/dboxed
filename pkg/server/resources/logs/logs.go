@@ -3,7 +3,6 @@ package logs
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -73,13 +72,12 @@ func (s *LogsServer) putLogMetadata(c context.Context, logMetadata boxspec.LogMe
 		Format:   logMetadata.Format,
 		Metadata: string(metadataBytes),
 	}
-	switch logMetadata.OwnerType {
-	case "box":
-		lm.BoxID = &logMetadata.OwnerId
-	case "machine":
-		lm.MachineID = &logMetadata.OwnerId
-	default:
-		return nil, huma.Error400BadRequest(fmt.Sprintf("unknown owner type %s", logMetadata.OwnerType))
+	if logMetadata.BoxId != nil {
+		lm.BoxID = logMetadata.BoxId
+	} else if logMetadata.MachineId != nil {
+		lm.MachineID = logMetadata.MachineId
+	} else {
+		return nil, huma.Error400BadRequest("could not determine log owner")
 	}
 	err := lm.CreateOrUpdate(q)
 	if err != nil {
@@ -96,19 +94,18 @@ func (s *LogsServer) restPostLogs(c context.Context, i *huma_utils.JsonBody[mode
 	q := querier.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	switch i.Body.Metadata.OwnerType {
-	case "box":
-		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, i.Body.Metadata.OwnerId)
+	if i.Body.Metadata.BoxId != nil {
+		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeBox, *i.Body.Metadata.BoxId)
 		if err != nil {
 			return nil, err
 		}
-	case "machine":
-		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, i.Body.Metadata.OwnerId)
+	} else if i.Body.Metadata.MachineId != nil {
+		err := auth_middleware.CheckTokenAccess(c, dmodel.TokenTypeMachine, *i.Body.Metadata.MachineId)
 		if err != nil {
 			return nil, err
 		}
-	default:
-		return nil, huma.Error400BadRequest(fmt.Sprintf("unknown owner type %s", i.Body.Metadata.OwnerType))
+	} else {
+		return nil, huma.Error400BadRequest("could not determine log owner")
 	}
 
 	lm, err := s.putLogMetadata(c, i.Body.Metadata)

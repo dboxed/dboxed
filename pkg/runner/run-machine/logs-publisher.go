@@ -48,8 +48,7 @@ func (lp *LogsPublisher) PublishMachineLogsDir(dir string) error {
 			format = "raw"
 		}
 		return boxspec.LogMetadata{
-			OwnerType: "machine",
-			OwnerId:   lp.MachineId,
+			MachineId: &lp.MachineId,
 			FileName:  fileName,
 			Format:    format,
 			Metadata:  map[string]any{},

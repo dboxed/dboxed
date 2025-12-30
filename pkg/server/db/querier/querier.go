@@ -472,6 +472,25 @@ func GetOneWhere[T any](q *Querier, where string, args map[string]any) (*T, erro
 	return &ret, nil
 }
 
+func CheckOne[T any](q *Querier, byFields map[string]any) error {
+	where, args, err := BuildWhere[T](byFields)
+	if err != nil {
+		return err
+	}
+	query, err := BuildSelectWhereQuery[T](where, nil)
+	if err != nil {
+		return err
+	}
+	var ret struct {
+		ID string `db:"id"`
+	}
+	err = q.GetNamed(&ret, query, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type SortAndPage struct {
 	Sort   []SortField
 	Offset int64

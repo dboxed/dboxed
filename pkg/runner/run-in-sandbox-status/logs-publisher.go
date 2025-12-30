@@ -68,11 +68,10 @@ func (lp *LogsPublisher) publishDboxedLogsDir(dir string) error {
 			format = "raw"
 		}
 		return boxspec.LogMetadata{
-			OwnerType: "box",
-			OwnerId:   lp.BoxId,
-			FileName:  fileName,
-			Format:    format,
-			Metadata:  map[string]any{},
+			BoxId:    &lp.BoxId,
+			FileName: fileName,
+			Format:   format,
+			Metadata: map[string]any{},
 		}, nil
 	}
 
@@ -112,10 +111,9 @@ func (lp *LogsPublisher) buildDockerContainerLogMetadata(logPath string) (boxspe
 	}
 
 	return boxspec.LogMetadata{
-		OwnerType: "box",
-		OwnerId:   lp.BoxId,
-		FileName:  filepath.Join("containers", config.Name, config.ID),
-		Format:    "docker-logs",
+		BoxId:    &lp.BoxId,
+		FileName: filepath.Join("containers", config.Name, config.ID),
+		Format:   "docker-logs",
 		Metadata: map[string]any{
 			"container": config,
 		},
