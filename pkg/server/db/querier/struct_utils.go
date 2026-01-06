@@ -2,6 +2,7 @@ package querier
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 	"sync"
 
@@ -18,6 +19,7 @@ func joinPrefix(a string, b string) string {
 type StructDBField struct {
 	SelectName  string
 	FieldName   string
+	Omit        bool
 	StructField reflect.StructField
 	Path        []int
 }
@@ -61,7 +63,7 @@ func GetStructDBFields[T any]() (map[string]StructDBField, []StructJoin) {
 	e2 := e.(*structDBFieldsCacheEntry)
 	e2.Once.Do(func() {
 		e2.fields = map[string]StructDBField{}
-		getStructDBFields2(t, GetTableName2(t), nil, "", e2.fields, &e2.joins)
+		getStructDBFields2(t, GetTableName2(t), nil, "", nil, e2.fields, &e2.joins)
 	})
 	return e2.fields, e2.joins
 }
@@ -98,9 +100,28 @@ func dupPath(p []int, extra int) []int {
 	return pathCopy
 }
 
+func mergeOmits(oldOmits map[string]struct{}, newOmits []string) map[string]struct{} {
+	m := maps.Clone(oldOmits)
+	if m == nil {
+		m = map[string]struct{}{}
+	}
+	for _, o := range newOmits {
+		m[o] = struct{}{}
+	}
+	return m
+}
+
 func getStructDBFields2(t reflect.Type, fromTableName string, path []int,
 	fieldPrefix string,
+	omits map[string]struct{},
 	retFields map[string]StructDBField, joins *[]StructJoin) {
+
+	v := reflect.New(t).Interface()
+	i, ok := v.(HasOmits)
+	if ok {
+		omits = mergeOmits(omits, i.GetOmittedColumns())
+	}
+
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
@@ -115,10 +136,10 @@ func getStructDBFields2(t reflect.Type, fromTableName string, path []int,
 			*joins = append(*joins, join)
 			getStructDBFields2(f.Type, join.RightTableName, path,
 				joinPrefix(fieldPrefix, util.ToSnakeCase(f.Name)),
-				retFields, joins)
+				omits, retFields, joins)
 			continue
 		} else if f.Anonymous {
-			getStructDBFields2(f.Type, fromTableName, path, fieldPrefix, retFields, joins)
+			getStructDBFields2(f.Type, fromTableName, path, fieldPrefix, omits, retFields, joins)
 			continue
 		}
 		dbFieldName := f.Tag.Get("db")
@@ -128,12 +149,21 @@ func getStructDBFields2(t reflect.Type, fromTableName string, path []int,
 
 		selectName := fmt.Sprintf(`"%s"."%s"`, fromTableName, dbFieldName)
 		fieldName := joinPrefix(fieldPrefix, dbFieldName)
-		retFields[fieldName] = StructDBField{
+
+		e := StructDBField{
 			SelectName:  selectName,
 			FieldName:   fieldName,
 			StructField: f,
 			Path:        dupPath(path, 0),
 		}
+
+		if f.Tag.Get("omit") == "true" {
+			e.Omit = true
+		} else if _, ok := omits[fieldName]; ok {
+			e.Omit = true
+		}
+
+		retFields[fieldName] = e
 	}
 }
 
@@ -147,9 +177,10 @@ func GetTableName2(t reflect.Type) string {
 		t = t.Elem()
 	}
 
-	if reflect.PointerTo(t).Implements(reflect.TypeFor[HasTableName]()) {
-		i := reflect.New(t).Interface().(HasTableName)
-		return i.GetTableName()
+	v := reflect.New(t).Interface()
+	x, ok := v.(HasTableName)
+	if ok {
+		return x.GetTableName()
 	}
 
 	return util.ToSnakeCase(t.Name())

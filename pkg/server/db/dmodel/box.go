@@ -118,6 +118,14 @@ func GetBoxWithSandboxById(q *querier2.Querier, workspaceId *string, id string, 
 	})
 }
 
+func GetBoxWithFullSandboxById(q *querier2.Querier, workspaceId *string, id string, skipDeleted bool) (*BoxWithFullSandbox, error) {
+	return querier2.GetOne[BoxWithFullSandbox](q, map[string]any{
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"id":           id,
+		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
+	})
+}
+
 func GetBoxWithSandboxByName(q *querier2.Querier, workspaceId string, name string, skipDeleted bool) (*BoxWithSandbox, error) {
 	return querier2.GetOne[BoxWithSandbox](q, map[string]any{
 		"workspace_id": workspaceId,
@@ -126,8 +134,8 @@ func GetBoxWithSandboxByName(q *querier2.Querier, workspaceId string, name strin
 	})
 }
 
-func ListBoxesWithSandboxForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]BoxWithSandbox, error) {
-	return querier2.GetMany[BoxWithSandbox](q, map[string]any{
+func ListBoxesWithFullSandboxForWorkspace(q *querier2.Querier, workspaceId string, skipDeleted bool) ([]BoxWithFullSandbox, error) {
+	return querier2.GetMany[BoxWithFullSandbox](q, map[string]any{
 		"workspace_id": workspaceId,
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, &querier2.SortAndPage{

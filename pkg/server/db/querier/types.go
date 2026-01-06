@@ -8,6 +8,10 @@ type HasTableName interface {
 	GetTableName() string
 }
 
+type HasOmits interface {
+	GetOmittedColumns() []string
+}
+
 type SortOrder string
 
 const (

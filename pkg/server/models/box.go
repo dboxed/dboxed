@@ -50,7 +50,7 @@ func BoxFromDB(s dmodel.Box, sandbox *dmodel.BoxSandbox) *Box {
 		StatusDetails: s.ReconcileStatus.ReconcileStatusDetails.V,
 
 		Name:    s.Name,
-		BoxType: dmodel.BoxType(s.BoxType),
+		BoxType: s.BoxType,
 
 		Machine: s.MachineID,
 

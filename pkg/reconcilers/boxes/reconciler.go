@@ -30,7 +30,7 @@ func (r *reconciler) Reconcile(ctx context.Context, box *dmodel.BoxWithSandbox, 
 		slog.Any("name", box.Name),
 	)
 
-	if box.Sandbox == nil || !box.Sandbox.ID.Valid {
+	if box.CurrentSandboxId == nil {
 		return base.StatusWithMessage("New", "Box is new and has no sandbox status yet")
 	}
 

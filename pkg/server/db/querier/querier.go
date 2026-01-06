@@ -213,7 +213,7 @@ func createOrUpdate[T any](q *Querier, l []*T, allowUpdate bool, constraint stri
 		isOmitCreate := f.StructField.Tag.Get("omitCreate") == "true"
 		isOmitOnConflictUpdate := f.StructField.Tag.Get("omitOnConflictUpdate") == "true"
 
-		if isOmitCreate {
+		if f.Omit || isOmitCreate {
 			continue
 		}
 
@@ -410,6 +410,9 @@ func BuildSelectWhereQuery[T any](where string, sp *SortAndPage) (string, error)
 
 	var selects []string
 	for _, f := range dbFields {
+		if f.Omit {
+			continue
+		}
 		selects = append(selects, fmt.Sprintf(`%s as "%s"`, f.SelectName, f.FieldName))
 	}
 

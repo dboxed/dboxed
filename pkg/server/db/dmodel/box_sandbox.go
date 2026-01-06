@@ -25,14 +25,28 @@ type BoxSandbox struct {
 	NetworkIP4 *string `db:"network_ip4"`
 }
 
-type BoxWithSandbox struct {
+type BoxWithFullSandbox struct {
 	Box
 
 	Sandbox *BoxSandbox `db:"sandbox" join:"true" join_left_field:"current_sandbox_id" join_right_table:"box_sandbox" join_right_field:"id"`
 }
 
-func (x *BoxWithSandbox) GetTableName() string {
+func (x *BoxWithFullSandbox) GetTableName() string {
 	return "box"
+}
+
+type BoxWithSandbox struct {
+	BoxWithFullSandbox
+}
+
+func (x *BoxWithSandbox) GetOmittedColumns() []string {
+	return []string{"sandbox.docker_ps"}
+}
+
+type BoxSandboxOnlyNetworkIP4 struct {
+	ID querier2.NullForJoin[string] `db:"id"`
+
+	NetworkIP4 *string `db:"network_ip4"`
 }
 
 func (v *BoxSandbox) Create(q *querier2.Querier) error {

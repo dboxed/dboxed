@@ -87,15 +87,15 @@ func (s *BoxesServer) restListBoxes(c context.Context, i *struct{}) (*huma_utils
 	w := auth_middleware.GetWorkspace(c)
 	token := auth_middleware.GetToken(c)
 
-	var l []dmodel.BoxWithSandbox
+	var l []dmodel.BoxWithFullSandbox
 	if token == nil || token.Type == dmodel.TokenTypeWorkspace {
 		var err error
-		l, err = dmodel.ListBoxesWithSandboxForWorkspace(q, w.ID, true)
+		l, err = dmodel.ListBoxesWithFullSandboxForWorkspace(q, w.ID, true)
 		if err != nil {
 			return nil, err
 		}
 	} else if token.BoxID != nil {
-		b, err := dmodel.GetBoxWithSandboxById(q, &w.ID, *token.BoxID, true)
+		b, err := dmodel.GetBoxWithFullSandboxById(q, &w.ID, *token.BoxID, true)
 		if err != nil {
 			return nil, err
 		}
