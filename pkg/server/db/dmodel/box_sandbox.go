@@ -56,7 +56,9 @@ func (v *BoxSandbox) Create(q *querier2.Querier) error {
 func ListSandboxesByBox(q *querier2.Querier, boxId string) ([]BoxSandbox, error) {
 	return querier2.GetMany[BoxSandbox](q, map[string]any{
 		"box_id": boxId,
-	}, nil)
+	}, &querier2.SortAndPage{
+		Sort: querier2.SortBySingleField("id", querier2.SortOrderAsc),
+	})
 }
 
 func ListSandboxesByWorkspace(q *querier2.Querier, workspaceId string) ([]BoxSandbox, error) {
