@@ -63,7 +63,9 @@ func DetermineSandboxId(ctx context.Context, c *baseclient.Client, box *models.B
 			return "", err
 		}
 		if si == nil {
-			if machineId != box.Sandbox.MachineID {
+			if machineId == box.Sandbox.MachineID {
+				return "", fmt.Errorf("box has a sandbox (%s) which is not on this host anymore. It looks like it got deleted", box.Sandbox.ID)
+			} else {
 				return "", fmt.Errorf("box has a sandbox (%s) which is not on this host", box.Sandbox.ID)
 			}
 		}
