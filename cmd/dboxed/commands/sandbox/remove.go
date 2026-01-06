@@ -11,6 +11,7 @@ import (
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/clients"
 	"github.com/dboxed/dboxed/pkg/runner/network"
 	run_sandbox "github.com/dboxed/dboxed/pkg/runner/run-sandbox"
 	"github.com/dboxed/dboxed/pkg/runner/sandbox"
@@ -27,6 +28,12 @@ type RemoveCmd struct {
 func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
+	c, err := g.BuildClient(ctx)
+	if err != nil {
+		return err
+	}
+	bc := clients.BoxClient{Client: c}
+
 	sandboxBaseDir := run_sandbox.GetSandboxDir(g.WorkDir, "")
 	sandboxes, err := commandutils.GetOneOrAllSandboxInfos(sandboxBaseDir, cmd.Sandbox, cmd.All)
 	if err != nil {
@@ -35,6 +42,11 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 
 	for _, si := range sandboxes {
 		sandboxDir := run_sandbox.GetSandboxDir(g.WorkDir, si.SandboxId)
+
+		box, err := bc.GetBoxById(ctx, si.Box.ID)
+		if err != nil {
+			return err
+		}
 
 		s := sandbox.Sandbox{
 			Debug:       g.Debug,
@@ -89,6 +101,14 @@ func (cmd *RemoveCmd) Run(g *flags.GlobalFlags) error {
 		err = os.RemoveAll(sandboxDir)
 		if err != nil {
 			return err
+		}
+
+		if box.Sandbox != nil && box.Sandbox.ID == si.SandboxId {
+			slog.InfoContext(ctx, "releasing box sandbox")
+			err = bc.ReleaseSandbox(ctx, box.ID, si.SandboxId)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

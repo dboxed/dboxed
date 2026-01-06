@@ -6,6 +6,8 @@ type BoxCommands struct {
 	List   ListCmd   `cmd:"" help:"List boxes" aliases:"ls"`
 	Delete DeleteCmd `cmd:"" help:"Delete a box" aliases:"rm,delete"`
 
+	ForceReleaseSandbox ForceReleaseSandboxCmd `cmd:"" help:"Force release the current sandbox from the box"`
+
 	Logs     LogsCmd     `cmd:"" help:"Stream box logs" group:"logs"`
 	ListLogs ListLogsCmd `cmd:"" help:"List available log files for a box" group:"logs"`
 

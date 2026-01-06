@@ -127,6 +127,15 @@ func (c *BoxClient) UpdateSandbox(ctx context.Context, boxId string, sandboxId s
 	return err
 }
 
+func (c *BoxClient) ReleaseSandbox(ctx context.Context, boxId string, sandboxId string) error {
+	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "sandboxes", sandboxId, "release")
+	if err != nil {
+		return err
+	}
+	_, err = baseclient.RequestApi[huma_utils.Empty](ctx, c.Client, "POST", p, huma_utils.Empty{})
+	return err
+}
+
 func (c *BoxClient) ListComposeProjects(ctx context.Context, boxId string) ([]models.BoxComposeProject, error) {
 	p, err := c.Client.BuildApiPath(true, "boxes", boxId, "compose-projects")
 	if err != nil {
