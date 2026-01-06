@@ -29,6 +29,9 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 	if err != nil {
 		return err
 	}
+	if !box.Enabled {
+		return fmt.Errorf("the box is disabled, refusing to start it")
+	}
 
 	sandboxId, err := run_sandbox.DetermineSandboxId(ctx, c, box, g.WorkDir)
 	if err != nil {
@@ -40,10 +43,6 @@ func (cmd *RunCmd) Run(g *flags.GlobalFlags, logHandler *logs.MultiLogHandler) e
 
 	logHandler.AddWriter(logWriter)
 	defer logHandler.RemoveWriter(logWriter)
-
-	if !box.Enabled {
-		return fmt.Errorf("the box is disabled, refusing to start it")
-	}
 
 	runBox := run_sandbox.RunSandbox{
 		Debug:           g.Debug,
