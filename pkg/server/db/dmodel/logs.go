@@ -40,11 +40,12 @@ func (v *LogLine) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListLogMetadataForOwner(q *querier2.Querier, workspaceId *string, machineId *string, boxId *string, skipDeleted bool) ([]LogMetadata, error) {
+func ListLogMetadataForOwner(q *querier2.Querier, workspaceId *string, machineId *string, boxId *string, sandboxId *string, skipDeleted bool) ([]LogMetadata, error) {
 	return querier2.GetMany[LogMetadata](q, map[string]any{
 		"workspace_id": querier2.OmitIfNull(workspaceId),
-		"machine_id":   machineId,
-		"box_id":       boxId,
+		"machine_id":   querier2.OmitIfNull(machineId),
+		"box_id":       querier2.OmitIfNull(boxId),
+		"sandbox_id":   querier2.OmitIfNull(sandboxId),
 		"deleted_at":   querier2.ExcludeNonNull(skipDeleted),
 	}, nil)
 }

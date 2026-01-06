@@ -168,7 +168,7 @@ func (s *LogsServer) restPostLogs(c context.Context, i *huma_utils.JsonBody[mode
 }
 
 type restListLogsInput struct {
-	OwnerType string `query:"owner_type"`
+	OwnerType string `query:"owner_type" enum:"machine,box,sandbox"`
 	OwnerId   string `query:"owner_id"`
 }
 
@@ -180,15 +180,17 @@ func (s *LogsServer) restListLogs(c context.Context, i *restListLogsInput) (*hum
 		return nil, huma.Error400BadRequest("missing owner_type/owner_id")
 	}
 
-	var machineId, boxId *string
+	var machineId, boxId, sandboxId *string
 	switch i.OwnerType {
 	case "machine":
 		machineId = &i.OwnerId
 	case "box":
 		boxId = &i.OwnerId
+	case "sandbox":
+		sandboxId = &i.OwnerId
 	}
 
-	l, err := dmodel.ListLogMetadataForOwner(q, &w.ID, machineId, boxId, true)
+	l, err := dmodel.ListLogMetadataForOwner(q, &w.ID, machineId, boxId, sandboxId, true)
 	if err != nil {
 		return nil, err
 	}
