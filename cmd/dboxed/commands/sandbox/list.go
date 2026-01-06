@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
@@ -25,13 +26,16 @@ type ListCmd struct {
 }
 
 type PrintSandbox struct {
-	ID          string `col:"ID"`
-	Workspace   string `col:"Workspace"`
-	Box         string `col:"Box"`
-	MachineId   string `col:"Machine Id"`
-	Host        string `col:"Host"`
-	LocalStatus string `col:"Local Status"`
-	ApiStatus   string `col:"API Status"`
+	ID          string     `col:"ID"`
+	Workspace   string     `col:"Workspace"`
+	Box         string     `col:"Box"`
+	MachineId   string     `col:"Machine Id"`
+	Host        string     `col:"Host"`
+	StartTime   *time.Time `col:"Start Time"`
+	StopTime    *time.Time `col:"Stop Time"`
+	LocalStatus string     `col:"Local Status"`
+	ApiStatus   string     `col:"API Status"`
+	Current     string     `col:"Current"`
 }
 
 func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
@@ -76,6 +80,16 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 			return id
 		}
 	}
+	formatCurrent := func(boxId string, sandboxId string) string {
+		box := ct.Boxes.GetObject(ctx, boxId)
+		if box == nil {
+			return "box not found"
+		} else if box.Sandbox == nil || box.Sandbox.ID != sandboxId {
+			return "no"
+		} else {
+			return "yes"
+		}
+	}
 
 	var table []PrintSandbox
 	tableContains := map[string]struct{}{}
@@ -94,17 +108,20 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 
 		te := PrintSandbox{
 			ID:          si.SandboxId,
-			Workspace:   ct.Workspaces.GetColumn(ctx, si.Box.Workspace, false),
-			Box:         si.Box.Name,
+			Workspace:   ct.Workspaces.GetColumn(ctx, si.Box.Workspace, cmd.ShowIds),
+			Box:         ct.Boxes.GetColumn(ctx, si.Box.ID, cmd.ShowIds),
 			MachineId:   formatMachineId(machineId),
 			Host:        hostname,
 			LocalStatus: statusStr,
+			Current:     formatCurrent(si.Box.ID, si.SandboxId),
 		}
 
 		apiSb, ok := apiSandboxesById[si.SandboxId]
 		if !ok {
 			te.ApiStatus = "only local"
 		} else {
+			te.StartTime = apiSb.StartTime
+			te.StopTime = apiSb.StopTime
 			if apiSb.RunStatus != nil {
 				te.ApiStatus = *apiSb.RunStatus
 			} else {
@@ -127,10 +144,13 @@ func (cmd *ListCmd) Run(g *flags.GlobalFlags) error {
 
 		te := PrintSandbox{
 			ID:        apiSb.ID,
-			Workspace: ct.Workspaces.GetColumn(ctx, *c.GetWorkspaceId(), false),
-			Box:       apiSb.BoxId,
+			Workspace: ct.Workspaces.GetColumn(ctx, *c.GetWorkspaceId(), cmd.ShowIds),
+			Box:       ct.Boxes.GetColumn(ctx, apiSb.BoxId, cmd.ShowIds),
 			MachineId: formatMachineId(apiSb.MachineID),
 			Host:      apiSb.Hostname,
+			StartTime: apiSb.StartTime,
+			StopTime:  apiSb.StopTime,
+			Current:   formatCurrent(apiSb.BoxId, apiSb.ID),
 		}
 		if apiSb.MachineID == machineId {
 			te.LocalStatus = "deleted"

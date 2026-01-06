@@ -89,11 +89,7 @@ type cache[T any] struct {
 	getById    func(ctx context.Context, id string) (*T, error)
 }
 
-func (c *cache[T]) GetColumn(ctx context.Context, id string, showIds bool) string {
-	if showIds {
-		return id
-	}
-
+func (c *cache[T]) GetObject(ctx context.Context, id string) *T {
 	if c.cache == nil {
 		c.cache = map[string]*T{}
 	}
@@ -106,6 +102,15 @@ func (c *cache[T]) GetColumn(ctx context.Context, id string, showIds bool) strin
 			slog.WarnContext(ctx, fmt.Sprintf("failed to retrieve %s", c.entityName), slog.Any("error", err))
 		}
 	}
+	return v
+}
+
+func (c *cache[T]) GetColumn(ctx context.Context, id string, showIds bool) string {
+	if showIds {
+		return id
+	}
+
+	v := c.GetObject(ctx, id)
 
 	var ret string
 	if v != nil {

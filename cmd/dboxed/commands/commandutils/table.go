@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 type TableItem interface {
@@ -39,7 +41,7 @@ func FormatTable[T TableItem](l []T, showIds bool) string {
 		var row []string
 		for _, i := range columnIndices {
 			f := v.Field(i)
-			row = append(row, fmt.Sprintf("%v", f.Interface()))
+			row = append(row, FormatColumn(f.Interface()))
 		}
 		rows = append(rows, row)
 	}
@@ -58,6 +60,17 @@ func FormatTable[T TableItem](l []T, showIds bool) string {
 		Rows(rows...)
 
 	return tw.Render()
+}
+
+func FormatColumn(v any) string {
+	switch v.(type) {
+	case time.Time:
+		return FormatTime(util.Ptr(v.(time.Time)))
+	case *time.Time:
+		return FormatTime(v.(*time.Time))
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 func PrintTable[T TableItem](w io.Writer, l []T, showIds bool) error {
