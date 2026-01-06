@@ -39,6 +39,9 @@ func (s *BoxesServer) restCreateSandbox(c context.Context, i *huma_utils.IdByPat
 	slog.InfoContext(c, "creating box sandbox", "boxId", box.ID, "machineId", i.Body.MachineId, "hostname", i.Body.Hostname)
 
 	sandbox := &dmodel.BoxSandbox{
+		OwnedByWorkspaceOrNull: dmodel.OwnedByWorkspaceOrNull{
+			WorkspaceID: querier2.N(box.WorkspaceID),
+		},
 		BoxID:      querier2.N(box.ID),
 		MachineId:  querier2.N(i.Body.MachineId),
 		Hostname:   querier2.N(i.Body.Hostname),
@@ -72,7 +75,7 @@ func (s *BoxesServer) restListSandboxes(c context.Context, i *huma_utils.IdByPat
 		return nil, err
 	}
 
-	l, err := dmodel.ListSandboxesBySandbox(q, i.Id)
+	l, err := dmodel.ListSandboxesByBox(q, i.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +101,7 @@ func (s *BoxesServer) restGetSandbox(c context.Context, i *restGetSandboxInput) 
 		return nil, err
 	}
 
-	sandbox, err := dmodel.GetSandboxById(q, i.Id, i.SandboxId)
+	sandbox, err := dmodel.GetSandboxById(q, nil, &i.Id, i.SandboxId)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +124,7 @@ func (s *BoxesServer) restUpdateSandbox(c context.Context, i *restUpdateSandboxI
 		return nil, err
 	}
 
-	sandbox, err := dmodel.GetSandboxById(q, box.ID, i.SandboxId)
+	sandbox, err := dmodel.GetSandboxById(q, nil, &box.ID, i.SandboxId)
 	if err != nil {
 		return nil, err
 	}

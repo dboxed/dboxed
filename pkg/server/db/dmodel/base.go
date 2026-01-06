@@ -31,7 +31,13 @@ type OwnedByWorkspace struct {
 	Times
 
 	WorkspaceID string `db:"workspace_id"`
-	Workspace   *Workspace
+}
+
+type OwnedByWorkspaceOrNull struct {
+	ID querier2.NullForJoin[string] `db:"id" uuid:"true"`
+	TimesOrNull
+
+	WorkspaceID querier2.NullForJoin[string] `db:"workspace_id"`
 }
 
 type ReconcileStatus struct {

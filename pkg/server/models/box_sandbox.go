@@ -9,6 +9,8 @@ import (
 type BoxSandbox struct {
 	ID string `json:"id"`
 
+	BoxId string `json:"boxId"`
+
 	MachineID string `json:"machineId"`
 	Hostname  string `json:"hostname"`
 
@@ -47,6 +49,7 @@ type UpdateBoxSandboxStatus2 struct {
 func BoxSandboxFromDB(s dmodel.BoxSandbox) *BoxSandbox {
 	return &BoxSandbox{
 		ID:         s.ID.V,
+		BoxId:      s.BoxID.V,
 		MachineID:  s.MachineId.V,
 		Hostname:   s.Hostname.V,
 		StatusTime: s.StatusTime,

@@ -8,9 +8,8 @@ import (
 )
 
 type BoxSandbox struct {
-	ID    querier2.NullForJoin[string] `db:"id" uuid:"true"`
+	OwnedByWorkspaceOrNull
 	BoxID querier2.NullForJoin[string] `db:"box_id"`
-	TimesOrNull
 
 	MachineId querier2.NullForJoin[string] `db:"machine_id"`
 	Hostname  querier2.NullForJoin[string] `db:"hostname"`
@@ -40,16 +39,23 @@ func (v *BoxSandbox) Create(q *querier2.Querier) error {
 	return querier2.Create(q, v)
 }
 
-func ListSandboxesBySandbox(q *querier2.Querier, boxId string) ([]BoxSandbox, error) {
+func ListSandboxesByBox(q *querier2.Querier, boxId string) ([]BoxSandbox, error) {
 	return querier2.GetMany[BoxSandbox](q, map[string]any{
 		"box_id": boxId,
 	}, nil)
 }
 
-func GetSandboxById(q *querier2.Querier, boxId string, id string) (*BoxSandbox, error) {
+func ListSandboxesByWorkspace(q *querier2.Querier, workspaceId string) ([]BoxSandbox, error) {
+	return querier2.GetMany[BoxSandbox](q, map[string]any{
+		"workspace_id": workspaceId,
+	}, nil)
+}
+
+func GetSandboxById(q *querier2.Querier, workspaceId *string, boxId *string, id string) (*BoxSandbox, error) {
 	return querier2.GetOne[BoxSandbox](q, map[string]any{
-		"box_id": boxId,
-		"id":     id,
+		"workspace_id": querier2.OmitIfNull(workspaceId),
+		"box_id":       querier2.OmitIfNull(boxId),
+		"id":           id,
 	})
 }
 func (v *BoxSandbox) UpdateStatusTime(q *querier2.Querier) error {

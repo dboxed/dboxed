@@ -23,6 +23,7 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/resources/networks"
 	"github.com/dboxed/dboxed/pkg/server/resources/s3buckets"
 	"github.com/dboxed/dboxed/pkg/server/resources/s3proxy"
+	"github.com/dboxed/dboxed/pkg/server/resources/sandboxes"
 	"github.com/dboxed/dboxed/pkg/server/resources/tokens"
 	"github.com/dboxed/dboxed/pkg/server/resources/users"
 	"github.com/dboxed/dboxed/pkg/server/resources/volume_providers"
@@ -56,6 +57,7 @@ type DboxedServer struct {
 	networks         *networks.NetworksServer
 	volumes          *volumes.VolumeServer
 	boxes            *boxes.BoxesServer
+	sandboxes        *sandboxes.SandboxesServer
 	machines         *machines.MachinesServer
 	loadBalancers    *load_balancers.LoadBalancerServer
 	gitCredentials   *git_credentials.GitCredentialsServer
@@ -89,6 +91,7 @@ func NewDboxedServer(ctx context.Context, config config.Config) (*DboxedServer, 
 	s.networks = networks.New()
 	s.volumes = volumes.New(config)
 	s.boxes = boxes.New(config)
+	s.sandboxes = sandboxes.New(config)
 	s.machines = machines.New(config)
 	s.loadBalancers = load_balancers.New(config)
 	s.gitCredentials = git_credentials.New()
@@ -171,6 +174,10 @@ func (s *DboxedServer) InitApi(ctx context.Context) error {
 		return err
 	}
 	err = s.boxes.Init(s.api, workspacesGroup)
+	if err != nil {
+		return err
+	}
+	err = s.sandboxes.Init(s.api, workspacesGroup)
 	if err != nil {
 		return err
 	}
