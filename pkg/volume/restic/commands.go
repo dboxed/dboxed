@@ -10,11 +10,16 @@ import (
 )
 
 type InitOpts struct {
+	NoCache bool
 }
 
 func RunInit(ctx context.Context, env []string, opts InitOpts) error {
 	args := []string{
 		"init",
+	}
+
+	if opts.NoCache {
+		args = append(args, "--no-cache")
 	}
 
 	_, err := RunResticCommand(ctx, env, false, args)

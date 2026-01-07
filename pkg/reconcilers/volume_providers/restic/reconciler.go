@@ -50,7 +50,9 @@ func (r *Reconciler) initResticRepo(ctx context.Context, log *slog.Logger, vp *d
 	}
 
 	log.InfoContext(ctx, "initializing restic repo")
-	err = restic.RunInit(ctx, r.buildResticEnv(vp, b), restic.InitOpts{})
+	err = restic.RunInit(ctx, r.buildResticEnv(vp, b), restic.InitOpts{
+		NoCache: true,
+	})
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed to initialize restic repo: %s", err.Error())
 	}
