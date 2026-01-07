@@ -2,3 +2,5 @@
 /vendor
 Dockerfile
 Taskfile.yml
+
+.envrc
