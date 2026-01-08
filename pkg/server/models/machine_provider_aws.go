@@ -1,6 +1,8 @@
 package models
 
-import "github.com/dboxed/dboxed/pkg/server/db/dmodel"
+import (
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+)
 
 type MachineProviderAws struct {
 	Region          string  `json:"region"`
@@ -37,6 +39,14 @@ type AwsRegion struct {
 	OptInStatus string `json:"OptInStatus"`
 	RegionName  string `json:"RegionName"`
 	Endpoint    string `json:"Endpoint"`
+}
+
+type AwsInstanceType struct {
+	InstanceType     string `json:"instanceType"`
+	FreeTierEligible bool   `json:"freeTierEligible"`
+	Hypervisor       string `json:"hypervisor"`
+	MemoryInMB       int64  `json:"memoryInMB"`
+	VCPUCount        int32  `json:"vCpuCount"`
 }
 
 func MachineProviderAwsFromDB(v dmodel.MachineProviderAws) *MachineProviderAws {

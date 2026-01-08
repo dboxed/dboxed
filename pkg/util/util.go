@@ -25,6 +25,14 @@ func ZeroPtr[T comparable](v T) *T {
 	return &v
 }
 
+func Value[T any](ptr *T) T {
+	var zero T
+	if ptr == nil {
+		return zero
+	}
+	return *ptr
+}
+
 func PtrEquals[T comparable](v1 *T, v2 *T) bool {
 	if v1 == nil && v2 == nil {
 		return true

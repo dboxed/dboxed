@@ -36,6 +36,7 @@ func (s *MachineProviderServer) Init(rootGroup huma.API, workspacesGroup huma.AP
 		return huma_utils.NewList(hetznerLocations, len(hetznerLocations)), nil
 	})
 	huma.Get(workspacesGroup, "/machine-provider/{id}/hetzner/server-types", s.restListHetznerServerTypes)
+	huma.Get(workspacesGroup, "/machine-provider/{id}/aws/instance-types", s.restListAwsInstanceTypes)
 
 	return nil
 }

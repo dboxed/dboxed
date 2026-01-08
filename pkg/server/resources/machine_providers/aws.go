@@ -5,10 +5,15 @@ import (
 	"log/slog"
 	"regexp"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
+	"github.com/dboxed/dboxed/pkg/server/cloud_utils"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
+	"github.com/dboxed/dboxed/pkg/util"
 )
 
 func (s *MachineProviderServer) restCreateMachineProviderAws(c context.Context, log *slog.Logger, mp *dmodel.MachineProvider, body *models.CreateMachineProviderAws) error {
@@ -77,4 +82,59 @@ func (s *MachineProviderServer) checkAwsVpcId(vpcId string) error {
 		return huma.Error400BadRequest("invalid vpc id")
 	}
 	return nil
+}
+
+func (s *MachineProviderServer) restListAwsInstanceTypes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.AwsInstanceType], error) {
+	q := querier2.GetQuerier(c)
+	w := auth_middleware.GetWorkspace(c)
+
+	mp, err := dmodel.GetMachineProviderById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	ec2Client, err := s.buildAWSClient(mp)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []models.AwsInstanceType
+
+	input := ec2.DescribeInstanceTypesInput{
+		MaxResults: util.Ptr(int32(100)),
+	}
+	for {
+		res, err := ec2Client.DescribeInstanceTypes(c, &input)
+		if err != nil {
+			return nil, err
+		}
+		for _, it := range res.InstanceTypes {
+			ret = append(ret, models.AwsInstanceType{
+				InstanceType:     string(it.InstanceType),
+				FreeTierEligible: util.Value(it.FreeTierEligible),
+				Hypervisor:       string(it.Hypervisor),
+				MemoryInMB:       util.Value(it.MemoryInfo.SizeInMiB),
+				VCPUCount:        util.Value(it.VCpuInfo.DefaultVCpus),
+			})
+		}
+		if res.NextToken == nil {
+			break
+		}
+		input.NextToken = res.NextToken
+	}
+
+	return huma_utils.NewList(ret, len(ret)), nil
+}
+
+func (s *MachineProviderServer) buildAWSClient(mp *dmodel.MachineProvider) (*ec2.Client, error) {
+	if mp.Type != dmodel.MachineProviderTypeAws {
+		return nil, huma.Error400BadRequest("machine provider is not a aws provider")
+	}
+	awsCfg := cloud_utils.BuildAwsConfig(cloud_utils.AwsCreds{
+		AwsAccessKeyID:     mp.Aws.AwsAccessKeyID,
+		AwsSecretAccessKey: mp.Aws.AwsSecretAccessKey,
+		Region:             mp.Aws.Region.V,
+	})
+
+	return ec2.NewFromConfig(*awsCfg), nil
 }
