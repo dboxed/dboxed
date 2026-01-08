@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,17 +20,20 @@ func GetUserCacheDir(ctx context.Context) string {
 		return filepath.Join(p, "dboxed")
 	}
 	h := homedir.HomeDir()
+	if h == "" || h == "/" || runtime.GOOS == "windows" {
+		tmpDir := filepath.Join(os.TempDir(), "dboxed-cache")
+		err := os.MkdirAll(tmpDir, 0700)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create dboxed-cache dir in temp dir: %s", err.Error()))
+		}
+		return filepath.Join(tmpDir, "dboxed-cache")
+	}
 	switch runtime.GOOS {
 	case "linux":
-		if h != "" {
-			return filepath.Join(h, ".cache", "dboxed")
-		}
+		return filepath.Join(h, ".cache", "dboxed")
 	case "darwin":
-		if h != "" {
-			return filepath.Join(h, "Library", "Caches", "dboxed")
-		}
-	case "windows":
-		break
+		return filepath.Join(h, "Library", "Caches", "dboxed")
+	default:
+		panic("unsupported os in GetUserCacheDir")
 	}
-	return filepath.Join(os.TempDir(), "dboxed-cache")
 }
