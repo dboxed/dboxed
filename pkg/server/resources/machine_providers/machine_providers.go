@@ -35,9 +35,7 @@ func (s *MachineProviderServer) Init(rootGroup huma.API, workspacesGroup huma.AP
 	huma.Get(rootGroup, "/v1/machine-provider-info/hetzner/locations", func(ctx context.Context, i *struct{}) (*huma_utils.List[models.HetznerLocation], error) {
 		return huma_utils.NewList(hetznerLocations, len(hetznerLocations)), nil
 	})
-	huma.Get(rootGroup, "/v1/machine-provider-info/hetzner/server-types", func(ctx context.Context, i *struct{}) (*huma_utils.List[models.HetznerServerType], error) {
-		return huma_utils.NewList(hetznerServerTypes, len(hetznerServerTypes)), nil
-	})
+	huma.Get(workspacesGroup, "/machine-provider/{id}/hetzner/server-types", s.restListHetznerServerTypes)
 
 	return nil
 }

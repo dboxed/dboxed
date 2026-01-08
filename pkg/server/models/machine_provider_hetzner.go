@@ -57,10 +57,8 @@ type HetznerServerTypeLocationPricing struct {
 }
 
 type HetznerPrice struct {
-	Currency string `json:"currency"`
-	VATRate  string `json:"vatRate"`
-	Net      string `json:"net"`
-	Gross    string `json:"gross"`
+	Net   string `json:"net"`
+	Gross string `json:"gross"`
 }
 
 func MachineProviderHetznerFromDB(v dmodel.MachineProviderHetzner) *MachineProviderHetzner {

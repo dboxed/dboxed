@@ -2,15 +2,19 @@ package machine_providers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/netip"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/dboxed/dboxed/pkg/server/auth_middleware"
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 	querier2 "github.com/dboxed/dboxed/pkg/server/db/querier"
+	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
+	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"go4.org/netipx"
 )
 
@@ -134,4 +138,60 @@ func (s *MachineProviderServer) checkSubnets(networkCidr *string, cloudSubnetCid
 		}
 	}
 	return nil
+}
+
+func (s *MachineProviderServer) restListHetznerServerTypes(c context.Context, i *huma_utils.IdByPath) (*huma_utils.List[models.HetznerServerType], error) {
+	q := querier2.GetQuerier(c)
+	w := auth_middleware.GetWorkspace(c)
+
+	mp, err := dmodel.GetMachineProviderById(q, &w.ID, i.Id, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if mp.Type != dmodel.MachineProviderTypeHetzner {
+		return nil, huma.Error400BadRequest("machine provider is not a hetzner provider")
+	}
+
+	hcloudClient := hcloud.NewClient(hcloud.WithToken(mp.Hetzner.HcloudToken.V))
+
+	l, _, err := hcloudClient.ServerType.List(c, hcloud.ServerTypeListOpts{})
+	if err != nil {
+		return nil, huma.Error400BadRequest(fmt.Sprintf("failed to retrieve hetzner server types: %s", err.Error()), err)
+	}
+
+	var ret []models.HetznerServerType
+	for _, x := range l {
+		e := models.HetznerServerType{
+			ID:           x.ID,
+			Name:         x.Name,
+			Description:  x.Description,
+			Category:     x.Category,
+			Cores:        x.Cores,
+			Memory:       x.Memory,
+			Disk:         x.Disk,
+			StorageType:  string(x.StorageType),
+			CPUType:      string(x.CPUType),
+			Architecture: string(x.Architecture),
+		}
+		for _, p := range x.Pricings {
+			e.Pricings = append(e.Pricings, models.HetznerServerTypeLocationPricing{
+				Location:        p.Location.Name,
+				Hourly:          convertHetznerPrice(p.Hourly),
+				Monthly:         convertHetznerPrice(p.Monthly),
+				IncludedTraffic: p.IncludedTraffic,
+				PerTBTraffic:    convertHetznerPrice(p.PerTBTraffic),
+			})
+		}
+		ret = append(ret, e)
+	}
+
+	return huma_utils.NewList(ret, len(ret)), nil
+}
+
+func convertHetznerPrice(p hcloud.Price) models.HetznerPrice {
+	return models.HetznerPrice{
+		Net:   p.Net,
+		Gross: p.Gross,
+	}
 }
