@@ -3,6 +3,10 @@
 version: '3'
 
 tasks:
+  generate:
+    cmds:
+      - go generate ./...
+
   check-migration-name:
     run: once
     cmds:

@@ -1,0 +1,48 @@
+- City: Falkenstein
+  Country: DE
+  Description: Falkenstein DC Park 1
+  ID: 1
+  Latitude: 50.47612
+  Longitude: 12.370071
+  Name: fsn1
+  NetworkZone: eu-central
+- City: Nuremberg
+  Country: DE
+  Description: Nuremberg DC Park 1
+  ID: 2
+  Latitude: 49.452102
+  Longitude: 11.076665
+  Name: nbg1
+  NetworkZone: eu-central
+- City: Helsinki
+  Country: FI
+  Description: Helsinki DC Park 1
+  ID: 3
+  Latitude: 60.169855
+  Longitude: 24.938379
+  Name: hel1
+  NetworkZone: eu-central
+- City: Ashburn, VA
+  Country: US
+  Description: Ashburn, VA
+  ID: 4
+  Latitude: 39.045821
+  Longitude: -77.487073
+  Name: ash
+  NetworkZone: us-east
+- City: Hillsboro, OR
+  Country: US
+  Description: Hillsboro, OR
+  ID: 5
+  Latitude: 45.54222
+  Longitude: -122.951924
+  Name: hil
+  NetworkZone: us-west
+- City: Singapore
+  Country: SG
+  Description: Singapore
+  ID: 6
+  Latitude: 1.283333
+  Longitude: 103.833333
+  Name: sin
+  NetworkZone: ap-southeast
