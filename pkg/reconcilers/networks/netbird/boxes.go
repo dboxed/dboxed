@@ -83,7 +83,7 @@ func (r *Reconciler) doReconcileBox(ctx context.Context, box *dmodel.Box) base.R
 		r.usedSetupKeys[*box.Netbird.SetupKeyID] = struct{}{}
 	}
 
-	log := r.log.With(slog.Any("machined", box.ID))
+	log := r.log.With(slog.Any("machineId", box.ID))
 	if box.Netbird.SetupKeyID != nil {
 		log = log.With(slog.Any("netbirdSetupKeyId", *box.Netbird.SetupKeyID))
 	}

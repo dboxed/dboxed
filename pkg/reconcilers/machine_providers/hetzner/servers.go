@@ -43,7 +43,7 @@ func (r *Reconciler) ReconcileMachine(ctx context.Context, log *slog.Logger, m *
 
 func (r *Reconciler) doReconcileMachine(ctx context.Context, m *dmodel.Machine) base.ReconcileResult {
 	q := querier.GetQuerier(ctx)
-	log := r.log.With(slog.Any("machined", m.ID))
+	log := r.log.With(slog.Any("machineId", m.ID))
 	if m.Hetzner.Status.ServerID != nil {
 		log = log.With(slog.Any("hetznerServerId", *m.Hetzner.Status.ServerID))
 	}
@@ -142,10 +142,12 @@ func (r *Reconciler) createHetznerServer(ctx context.Context, log *slog.Logger, 
 		m.ID,
 	)
 
-	log.InfoContext(ctx, "creating hetzner server")
+	serverName := r.buildHetznerServerName(ctx, m)
+
+	log.InfoContext(ctx, "creating hetzner server", "hetznerServerName", serverName)
 	labels := cloud_utils.BuildCloudMachineTags(r.mp.Hetzner.ID.V, m)
 	createOpts := hcloud.ServerCreateOpts{
-		Name: r.buildHetznerServerName(ctx, m),
+		Name: serverName,
 		ServerType: &hcloud.ServerType{
 			Name: m.Hetzner.ServerType.V,
 		},

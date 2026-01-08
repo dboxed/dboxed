@@ -49,11 +49,14 @@ func (r *Reconciler) initResticRepo(ctx context.Context, log *slog.Logger, vp *d
 		return base.ErrorWithMessage(err, "failed to determine if restic repo is already initialized: %s", err.Error())
 	}
 
+	log = log.With("prefix", vp.Restic.StoragePrefix)
+
 	log.InfoContext(ctx, "initializing restic repo")
 	err = restic.RunInit(ctx, r.buildResticEnv(vp, b), restic.InitOpts{})
 	if err != nil {
 		return base.ErrorWithMessage(err, "failed to initialize restic repo: %s", err.Error())
 	}
+	log.InfoContext(ctx, "done initializing restic repo")
 
 	return base.ReconcileResult{}
 }
