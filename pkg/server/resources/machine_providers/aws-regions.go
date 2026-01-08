@@ -1,14 +1,12 @@
 package machine_providers
 
-import "encoding/json"
+import (
+	"encoding/json"
 
-var awsRegions []AwsRegion
+	"github.com/dboxed/dboxed/pkg/server/models"
+)
 
-type AwsRegion struct {
-	OptInStatus string `json:"OptInStatus"`
-	RegionName  string `json:"RegionName"`
-	Endpoint    string `json:"Endpoint"`
-}
+var awsRegions []models.AwsRegion
 
 func init() {
 	err := json.Unmarshal([]byte(_awsRegions), &awsRegions)

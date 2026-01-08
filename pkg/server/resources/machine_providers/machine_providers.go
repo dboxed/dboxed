@@ -12,7 +12,6 @@ import (
 	"github.com/dboxed/dboxed/pkg/server/huma_utils"
 	"github.com/dboxed/dboxed/pkg/server/models"
 	"github.com/dboxed/dboxed/pkg/util"
-	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -30,13 +29,13 @@ func (s *MachineProviderServer) Init(rootGroup huma.API, workspacesGroup huma.AP
 	huma.Patch(workspacesGroup, "/machine-providers/{id}", s.restUpdateMachineProvider)
 	huma.Delete(workspacesGroup, "/machine-providers/{id}", s.restDeleteMachineProvider)
 
-	huma.Get(rootGroup, "/v1/machine-provider-info/aws/regions", func(ctx context.Context, i *struct{}) (*huma_utils.List[AwsRegion], error) {
+	huma.Get(rootGroup, "/v1/machine-provider-info/aws/regions", func(ctx context.Context, i *struct{}) (*huma_utils.List[models.AwsRegion], error) {
 		return huma_utils.NewList(awsRegions, len(awsRegions)), nil
 	})
-	huma.Get(rootGroup, "/v1/machine-provider-info/hetzner/locations", func(ctx context.Context, i *struct{}) (*huma_utils.List[HetznerLocation], error) {
+	huma.Get(rootGroup, "/v1/machine-provider-info/hetzner/locations", func(ctx context.Context, i *struct{}) (*huma_utils.List[models.HetznerLocation], error) {
 		return huma_utils.NewList(hetznerLocations, len(hetznerLocations)), nil
 	})
-	huma.Get(rootGroup, "/v1/machine-provider-info/hetzner/server-types", func(ctx context.Context, i *struct{}) (*huma_utils.List[hcloud.ServerType], error) {
+	huma.Get(rootGroup, "/v1/machine-provider-info/hetzner/server-types", func(ctx context.Context, i *struct{}) (*huma_utils.List[models.HetznerServerType], error) {
 		return huma_utils.NewList(hetznerServerTypes, len(hetznerServerTypes)), nil
 	})
 

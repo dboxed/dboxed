@@ -2,7 +2,6 @@ package machine_providers
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/netip"
 	"strings"
@@ -99,15 +98,6 @@ func (s *MachineProviderServer) restUpdateMachineProviderHetzner(c context.Conte
 	}
 
 	return nil
-}
-
-func (s *MachineProviderServer) getHetznerLocation(location string) (*HetznerLocation, error) {
-	for _, l := range hetznerLocations {
-		if l.Name == location {
-			return &l, nil
-		}
-	}
-	return nil, huma.Error400BadRequest(fmt.Sprintf("unknown location %s", location))
 }
 
 func (s *MachineProviderServer) checkSubnets(networkCidr *string, cloudSubnetCidr *string, robotSubnetCidr *string) error {

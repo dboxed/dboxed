@@ -1,6 +1,10 @@
 package machine_providers
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/dboxed/dboxed/pkg/server/models"
+)
 
 var hetznerNetworkZones = []string{
 	"eu-central",
@@ -9,18 +13,7 @@ var hetznerNetworkZones = []string{
 	"ap-southeast",
 }
 
-var hetznerLocations []HetznerLocation
-
-type HetznerLocation struct {
-	City        string  `json:"city"`
-	Country     string  `json:"country"`
-	Description string  `json:"description"`
-	Id          int     `json:"id"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	Name        string  `json:"name"`
-	NetworkZone string  `json:"network_zone"`
-}
+var hetznerLocations []models.HetznerLocation
 
 func init() {
 	err := json.Unmarshal([]byte(_hetznerLocations), &hetznerLocations)

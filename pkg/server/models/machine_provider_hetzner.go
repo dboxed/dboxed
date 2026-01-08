@@ -1,6 +1,8 @@
 package models
 
-import "github.com/dboxed/dboxed/pkg/server/db/dmodel"
+import (
+	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
+)
 
 type MachineProviderHetzner struct {
 	HetznerNetworkName string  `json:"hetznerNetworkName"`
@@ -16,6 +18,49 @@ type UpdateMachineProviderHetzner struct {
 	CloudToken    *string `json:"cloudToken,omitempty"`
 	RobotUsername *string `json:"robotUsername,omitempty"`
 	RobotPassword *string `json:"robotPassword,omitempty"`
+}
+
+type HetznerLocation struct {
+	City        string  `json:"city"`
+	Country     string  `json:"country"`
+	Description string  `json:"description"`
+	Id          int64   `json:"id"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+	Name        string  `json:"name"`
+	NetworkZone string  `json:"network_zone"`
+}
+
+type HetznerServerType struct {
+	ID           int64   `json:"id"`
+	Name         string  `json:"name"`
+	Description  string  `json:"description"`
+	Category     string  `json:"category"`
+	Cores        int     `json:"cores"`
+	Memory       float32 `json:"memory"`
+	Disk         int     `json:"disk"`
+	StorageType  string  `json:"storageType"`
+	CPUType      string  `json:"cpuType"`
+	Architecture string  `json:"architecture"`
+
+	Pricings []HetznerServerTypeLocationPricing `json:"pricings"`
+}
+
+type HetznerServerTypeLocationPricing struct {
+	Location string       `json:"location"`
+	Hourly   HetznerPrice `json:"hourly"`
+	Monthly  HetznerPrice `json:"monthly"`
+
+	// IncludedTraffic is the free traffic per month in bytes
+	IncludedTraffic uint64       `json:"includedTraffic"`
+	PerTBTraffic    HetznerPrice `json:"perTBTraffic"`
+}
+
+type HetznerPrice struct {
+	Currency string `json:"currency"`
+	VATRate  string `json:"vatRate"`
+	Net      string `json:"net"`
+	Gross    string `json:"gross"`
 }
 
 func MachineProviderHetznerFromDB(v dmodel.MachineProviderHetzner) *MachineProviderHetzner {

@@ -33,6 +33,12 @@ type UpdateMachineProviderAws struct {
 	AwsSecretAccessKey *string `json:"awsSecretAccessKey,omitempty"`
 }
 
+type AwsRegion struct {
+	OptInStatus string `json:"OptInStatus"`
+	RegionName  string `json:"RegionName"`
+	Endpoint    string `json:"Endpoint"`
+}
+
 func MachineProviderAwsFromDB(v dmodel.MachineProviderAws) *MachineProviderAws {
 	return &MachineProviderAws{
 		Region:          v.Region.V,
