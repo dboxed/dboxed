@@ -23,34 +23,6 @@ type MachineProvider struct {
 	Hetzner *MachineProviderHetzner `json:"hetzner,omitempty"`
 }
 
-type MachineProviderAws struct {
-	Region          string  `json:"region"`
-	VpcID           *string `json:"vpcId"`
-	VpcName         *string `json:"vpcName"`
-	VpcCidr         *string `json:"vpcCidr"`
-	SecurityGroupID *string `json:"securityGroupId"`
-
-	Subnets []MachineProviderAwsSubnet `json:"subnets"`
-}
-
-type MachineProviderAwsSubnet struct {
-	MachineProvider  string  `json:"machineProvider"`
-	SubnetID         string  `json:"subnetId"`
-	SubnetName       *string `json:"subnetName"`
-	AvailabilityZone string  `json:"availabilityZone"`
-	Cidr             string  `json:"cidr"`
-}
-
-type MachineProviderHetzner struct {
-	HetznerNetworkName string  `json:"hetznerNetworkName"`
-	HetznerNetworkID   *int64  `json:"hetznerNetworkId"`
-	HetznerNetworkZone *string `json:"hetznerNetworkZone"`
-	HetznerNetworkCidr *string `json:"hetznerNetworkCidr"`
-	CloudSubnetCidr    *string `json:"cloudSubnetCidr"`
-	RobotSubnetCidr    *string `json:"robotSubnetCidr"`
-	RobotVswitchID     *int64  `json:"robotVswitchId"`
-}
-
 type CreateMachineProvider struct {
 	Type dmodel.MachineProviderType `json:"type"`
 	Name string                     `json:"name"`
@@ -59,14 +31,6 @@ type CreateMachineProvider struct {
 
 	Aws     *CreateMachineProviderAws     `json:"aws,omitempty"`
 	Hetzner *CreateMachineProviderHetzner `json:"hetzner,omitempty"`
-}
-
-type CreateMachineProviderAws struct {
-	Region string `json:"region"`
-	VpcId  string `json:"vpcId"`
-
-	AwsAccessKeyId     string `json:"awsAccessKeyId"`
-	AwsSecretAccessKey string `json:"awsSecretAccessKey"`
 }
 
 type CreateMachineProviderHetzner struct {
@@ -84,17 +48,6 @@ type UpdateMachineProvider struct {
 	Hetzner *UpdateMachineProviderHetzner `json:"hetzner,omitempty"`
 }
 
-type UpdateMachineProviderAws struct {
-	AwsAccessKeyId     *string `json:"awsAccessKeyId,omitempty"`
-	AwsSecretAccessKey *string `json:"awsSecretAccessKey,omitempty"`
-}
-
-type UpdateMachineProviderHetzner struct {
-	CloudToken    *string `json:"cloudToken,omitempty"`
-	RobotUsername *string `json:"robotUsername,omitempty"`
-	RobotPassword *string `json:"robotPassword,omitempty"`
-}
-
 func MachineProviderFromDB(v dmodel.MachineProvider) *MachineProvider {
 	return &MachineProvider{
 		ID:            v.ID,
@@ -105,37 +58,5 @@ func MachineProviderFromDB(v dmodel.MachineProvider) *MachineProvider {
 
 		Type: v.Type,
 		Name: v.Name,
-	}
-}
-
-func MachineProviderAwsFromDB(v dmodel.MachineProviderAws) *MachineProviderAws {
-	return &MachineProviderAws{
-		Region:          v.Region.V,
-		VpcID:           v.VpcID,
-		VpcName:         v.Status.VpcName,
-		VpcCidr:         v.Status.VpcCidr,
-		SecurityGroupID: v.Status.SecurityGroupID,
-	}
-}
-
-func MachineProviderHetznerFromDB(v dmodel.MachineProviderHetzner) *MachineProviderHetzner {
-	return &MachineProviderHetzner{
-		HetznerNetworkName: v.HetznerNetworkName.V,
-		HetznerNetworkID:   v.Status.HetznerNetworkID,
-		HetznerNetworkZone: v.Status.HetznerNetworkZone,
-		HetznerNetworkCidr: v.Status.HetznerNetworkCidr,
-		CloudSubnetCidr:    v.Status.CloudSubnetCidr,
-		RobotSubnetCidr:    v.Status.RobotSubnetCidr,
-		RobotVswitchID:     v.Status.RobotVswitchID,
-	}
-}
-
-func MachineProviderAwsSubnetFromDB(v dmodel.MachineProviderAwsSubnet) *MachineProviderAwsSubnet {
-	return &MachineProviderAwsSubnet{
-		MachineProvider:  v.MachineProviderID.V,
-		SubnetID:         v.SubnetID.V,
-		SubnetName:       v.SubnetName,
-		AvailabilityZone: v.AvailabilityZone.V,
-		Cidr:             v.Cidr.V,
 	}
 }
