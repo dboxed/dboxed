@@ -124,6 +124,13 @@ func (s *MachinesServer) createMachine(c context.Context, body models.CreateMach
 		}
 	}
 
+	if m.MachineProviderID != nil {
+		err = dmodel.BumpChangeSeqForId[*dmodel.MachineProvider](q, *m.MachineProviderID)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	return m, "", nil
 }
 
@@ -274,9 +281,21 @@ func (s *MachinesServer) restDeleteMachine(c context.Context, i *huma_utils.IdBy
 	q := querier2.GetQuerier(c)
 	w := auth_middleware.GetWorkspace(c)
 
-	err := dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Machine](q, &w.ID, i.Id)
+	m, err := dmodel.GetMachineById(q, &w.ID, i.Id, true)
 	if err != nil {
 		return nil, err
+	}
+
+	err = dmodel.SoftDeleteWithConstraintsByIds[*dmodel.Machine](q, &w.ID, i.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if m.MachineProviderID != nil {
+		err = dmodel.BumpChangeSeqForId[*dmodel.MachineProvider](q, *m.MachineProviderID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &huma_utils.Empty{}, nil
