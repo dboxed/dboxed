@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
 )
 
@@ -43,7 +45,8 @@ type HetznerServerType struct {
 	CPUType      string  `json:"cpuType"`
 	Architecture string  `json:"architecture"`
 
-	Pricings []HetznerServerTypeLocationPricing `json:"pricings"`
+	Pricings  []HetznerServerTypeLocationPricing `json:"pricings"`
+	Locations []HetznerServerTypeLocation        `json:"locations"`
 }
 
 type HetznerServerTypeLocationPricing struct {
@@ -54,6 +57,16 @@ type HetznerServerTypeLocationPricing struct {
 	// IncludedTraffic is the free traffic per month in bytes
 	IncludedTraffic uint64       `json:"includedTraffic"`
 	PerTBTraffic    HetznerPrice `json:"perTBTraffic"`
+}
+
+type HetznerServerTypeLocation struct {
+	Location    string              `json:"location"`
+	Deprecation *HetznerDeprecation `json:"deprecation,omitempty"`
+}
+
+type HetznerDeprecation struct {
+	Announced        time.Time `json:"announced"`
+	UnavailableAfter time.Time `json:"unavailableAfter"`
 }
 
 type HetznerPrice struct {

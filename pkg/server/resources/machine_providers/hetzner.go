@@ -183,6 +183,18 @@ func (s *MachineProviderServer) restListHetznerServerTypes(c context.Context, i 
 				PerTBTraffic:    convertHetznerPrice(p.PerTBTraffic),
 			})
 		}
+		for _, l := range x.Locations {
+			e2 := models.HetznerServerTypeLocation{
+				Location: l.Location.Name,
+			}
+			if l.DeprecatableResource.Deprecation != nil {
+				e2.Deprecation = &models.HetznerDeprecation{
+					Announced:        l.Deprecation.Announced,
+					UnavailableAfter: l.Deprecation.UnavailableAfter,
+				}
+			}
+			e.Locations = append(e.Locations, e2)
+		}
 		ret = append(ret, e)
 	}
 
