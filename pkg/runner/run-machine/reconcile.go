@@ -40,7 +40,7 @@ func (rn *RunMachine) reconcileMachine(ctx context.Context, boxes []models.Box) 
 		s := sandbox.Sandbox{
 			Debug:       rn.Debug,
 			HostWorkDir: rn.WorkDir,
-			SandboxDir:  filepath.Join(sandboxBaseDir, si.Box.ID),
+			SandboxDir:  filepath.Join(sandboxBaseDir, si.SandboxId),
 		}
 		cs, err := s.GetSandboxContainerStatus()
 		if err != nil {
@@ -158,7 +158,7 @@ func (rn *RunMachine) stopSandbox(ctx context.Context, si sandbox.SandboxInfo) e
 	args := []string{
 		"sandbox",
 		"stop",
-		si.Box.ID,
+		si.SandboxId,
 		"--work-dir", rn.WorkDir,
 	}
 	if rn.Debug {
@@ -188,7 +188,7 @@ func (rn *RunMachine) removeSandbox(ctx context.Context, si sandbox.SandboxInfo)
 	args := []string{
 		"sandbox",
 		"rm",
-		si.Box.ID,
+		si.SandboxId,
 		"--work-dir", rn.WorkDir,
 	}
 	if rn.Debug {
