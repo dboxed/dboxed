@@ -19,7 +19,7 @@ type reconciler struct {
 func NewMachineProvidersReconciler() *base.Reconciler[*dmodel.MachineProvider] {
 	return base.NewReconciler(base.Config[*dmodel.MachineProvider]{
 		ReconcilerName:        "machine_providers",
-		FullReconcileInterval: 5 * time.Second,
+		FullReconcileInterval: 60 * time.Second,
 		Reconciler:            &reconciler{},
 	})
 }
@@ -29,7 +29,7 @@ func (r *reconciler) GetItem(ctx context.Context, id string) (*dmodel.MachinePro
 }
 
 func (r *reconciler) getSubReconciler(mp *dmodel.MachineProvider) (subReconciler, error) {
-	switch dmodel.MachineProviderType(mp.Type) {
+	switch mp.Type {
 	case dmodel.MachineProviderTypeAws:
 		return &aws.Reconciler{}, nil
 	case dmodel.MachineProviderTypeHetzner:
