@@ -7,12 +7,12 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/box"
 	git_credentials "github.com/dboxed/dboxed/cmd/dboxed/commands/git-credentials"
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/load-balancer"
+	load_balancer "github.com/dboxed/dboxed/cmd/dboxed/commands/load-balancer"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/login"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/machine"
 	machine_provider "github.com/dboxed/dboxed/cmd/dboxed/commands/machine-provider"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/network"
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/s3-bucket"
+	s3_bucket "github.com/dboxed/dboxed/cmd/dboxed/commands/s3-bucket"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/sandbox"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/server"
 	"github.com/dboxed/dboxed/cmd/dboxed/commands/spec"
@@ -55,6 +55,7 @@ type Cli struct {
 	Version VersionCmd `cmd:"" help:"Print version"`
 
 	cliOnlyLinux
+	cliOnlyDockerVolumePlugin
 }
 
 func Execute() {

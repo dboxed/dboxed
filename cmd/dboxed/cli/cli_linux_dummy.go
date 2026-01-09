@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build !linux || docker_volume_plugin
 
 package cli
 

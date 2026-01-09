@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
+	"github.com/dboxed/dboxed/pkg/services"
 )
 
 type ReleaseCmd struct {
@@ -17,13 +18,20 @@ type ReleaseCmd struct {
 func (cmd *ReleaseCmd) Run(g *flags.GlobalFlags) error {
 	ctx := context.Background()
 
-	err := runServeVolumeCmd(ctx, g, runServeVolumeCmdOpts{
-		volume:            cmd.Volume,
-		webdavProxyListen: &cmd.WebdavProxyListen,
-		create:            false,
-		mount:             false,
-		serve:             false,
-		release:           true,
+	c, err := g.BuildClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	s := &services.VolumesService{Client: c}
+
+	err = s.RunServeVolumeCmd(ctx, g.WorkDir, services.RunServeVolumeCmdOpts{
+		Volume:            cmd.Volume,
+		WebdavProxyListen: &cmd.WebdavProxyListen,
+		Create:            false,
+		Mount:             false,
+		Serve:             false,
+		Release:           true,
 	})
 
 	if err != nil {

@@ -2,15 +2,9 @@ package volume
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 
-	"github.com/dboxed/dboxed/cmd/dboxed/commands/commandutils"
 	"github.com/dboxed/dboxed/cmd/dboxed/flags"
-	"github.com/dboxed/dboxed/pkg/clients"
-	"github.com/dboxed/dboxed/pkg/server/db/dmodel"
-	"github.com/dboxed/dboxed/pkg/server/models"
-	"github.com/dustin/go-humanize"
+	"github.com/dboxed/dboxed/pkg/services"
 )
 
 type CreateCmd struct {
@@ -30,39 +24,11 @@ func (cmd *CreateCmd) Run(g *flags.GlobalFlags) error {
 		return err
 	}
 
-	c2 := clients.VolumesClient{Client: c}
-
-	fsSize, err := humanize.ParseBytes(cmd.FsSize)
-	if err != nil {
-		return err
-	}
-
-	vp, err := commandutils.GetVolumeProvider(ctx, c, cmd.VolumeProvider)
-	if err != nil {
-		return err
-	}
-
-	req := models.CreateVolume{
+	s := &services.VolumesService{Client: c}
+	return s.CreateVolume(&services.CreateVolumeCmdOpts{
 		Name:           cmd.Name,
-		VolumeProvider: vp.ID,
-	}
-
-	switch vp.Type {
-	case dmodel.VolumeProviderTypeRestic:
-		req.Restic = &models.CreateVolumeRestic{
-			FsSize: int64(fsSize),
-			FsType: cmd.FsType,
-		}
-	default:
-		return fmt.Errorf("unsupported volume provider type %s", vp.Type)
-	}
-
-	rep, err := c2.CreateVolume(ctx, req)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("volume created", slog.Any("id", rep.ID))
-
-	return nil
+		VolumeProvider: cmd.VolumeProvider,
+		FsType:         cmd.FsType,
+		FsSize:         cmd.FsSize,
+	})
 }
